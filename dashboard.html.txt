@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Панель управління</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; padding: 15px; margin: 0; color: #1c1e21; }
+        .container { max-width: 500px; margin: 0 auto; }
+        
+        /* Картка заголовку */
+        .header-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
+        .header-card h2 { margin: 10px 0 5px; color: #1c1e21; font-size: 22px; }
+        .biz-id { font-size: 11px; color: #8a8d91; background: #f0f2f5; padding: 4px 10px; border-radius: 10px; }
+
+        /* Сітка статистики */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-box { background: white; padding: 15px; border-radius: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); text-align: center; }
+        .stat-box i { font-size: 20px; color: #ff7652; margin-bottom: 8px; }
+        .stat-val { display: block; font-size: 18px; font-weight: 800; color: #1c1e21; }
+        .stat-label { font-size: 12px; color: #8a8d91; }
+
+        /* Секції управління */
+        .section-title { font-size: 14px; font-weight: 700; color: #65676b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .menu-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 15px; }
+        .menu-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: 0.2s; }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:active { background: #f9f9f9; }
+        .menu-item i { width: 30px; font-size: 18px; color: #ff7652; }
+        .menu-text { flex: 1; font-size: 15px; font-weight: 600; }
+        .menu-arrow { color: #ccd0d5; font-size: 12px; }
+
+        /* Кнопка запрошення */
+        .btn-invite { background: #ff7652; color: white; border: none; width: 100%; padding: 15px; border-radius: 15px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(255,118,82,0.3); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-invite:active { transform: scale(0.98); }
+
+        #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; align-items:center; justify-content:center; }
+    </style>
+</head>
+<body>
+
+<div id="loading-overlay"><i class="fa-solid fa-circle-notch fa-spin" style="font-size: 30px; color: #ff7652;"></i></div>
+
+<div class="container">
+    <div class="header-card">
+        <div id="biz-status" style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #2da44e;">● Підписка Активна</div>
+        <h2 id="biz-name">Завантаження...</h2>
+        <span class="biz-id" id="biz-id-display">ID: ...</span>
+    </div>
+
+    <div class="section-title">Статистика за сьогодні</div>
+    <div class="stats-grid">
+        <div class="stat-box">
+            <i class="fa-solid fa-bag-shopping"></i>
+            <span class="stat-val" id="stat-orders">0</span>
+            <span class="stat-label">Замовлень</span>
+        </div>
+        <div class="stat-box">
+            <i class="fa-solid fa-money-bill-wave"></i>
+            <span class="stat-val" id="stat-cash">0.00</span>
+            <span class="stat-label">Готівка (zł)</span>
+        </div>
+        <div class="stat-box">
+            <i class="fa-solid fa-credit-card"></i>
+            <span class="stat-val" id="stat-term">0.00</span>
+            <span class="stat-label">Термінал (zł)</span>
+        </div>
+        <div class="stat-box">
+            <i class="fa-solid fa-chart-line"></i>
+            <span class="stat-val" id="stat-total">0.00</span>
+            <span class="stat-label">Загальна каса</span>
+        </div>
+    </div>
+
+    <div class="section-title">Управління</div>
+    <div class="menu-card">
+        <div class="menu-item" onclick="alert('У розробці: Налаштування радіусу та валюти')">
+            <i class="fa-solid fa-gears"></i>
+            <span class="menu-text">Налаштування бізнесу</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+        </div>
+        <div class="menu-item" onclick="location.href='archive.html?biz_id=' + bizId">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span class="menu-text">Повна історія замовлень</span>
+            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+        </div>
+    </div>
+
+    <div class="section-title">Персонал</div>
+    <button class="btn-invite" onclick="generateInviteLink()">
+        <i class="fa-solid fa-user-plus"></i> Додати кур'єра / адміна
+    </button>
+</div>
+
+<script>
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const bizId = urlParams.get('biz_id');
+
+    const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Твій повний ключ
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    async function initDashboard() {
+        if (!bizId) {
+            alert("Помилка: Business ID не знайдено");
+            return;
+        }
+
+        try {
+            // 1. Отримуємо дані бізнесу
+            const { data: biz, error: bizErr } = await db.from('businesses').select('*').eq('id', bizId).single();
+            if (bizErr) throw bizErr;
+
+            document.getElementById('biz-name').innerText = biz.name;
+            document.getElementById('biz-id-display').innerText = "ID: " + biz.id;
+
+            // 2. Отримуємо статистику за сьогодні (closed замовлення)
+            const today = new Date().toISOString().split('T')[0];
+            const { data: orders, error: ordErr } = await db.from('orders')
+                .select('*')
+                .eq('business_id', bizId)
+                .eq('status', 'closed')
+                .gte('created_at', today);
+
+            if (ordErr) throw ordErr;
+
+            let cash = 0, term = 0;
+            orders.forEach(o => {
+                if (o.pay_type === 'cash') cash += parseFloat(o.amount || 0);
+                if (o.pay_type === 'terminal') term += parseFloat(o.amount || 0);
+            });
+
+            document.getElementById('stat-orders').innerText = orders.length;
+            document.getElementById('stat-cash').innerText = cash.toFixed(2);
+            document.getElementById('stat-term').innerText = term.toFixed(2);
+            document.getElementById('stat-total').innerText = (cash + term).toFixed(2);
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            document.getElementById('loading-overlay').style.display = 'none';
+        }
+    }
+
+    function generateInviteLink() {
+        // Логіка глибокого посилання для Telegram
+        const botUsername = "Sushi_delivers_bot"; // Твій юзернейм бота
+        const inviteLink = `https://t.me/${botUsername}?start=join_${bizId}`;
+        
+        // Копіюємо в буфер та повідомляємо
+        navigator.clipboard.writeText(inviteLink).then(() => {
+            alert("Посилання для реєстрації персоналу скопійовано!\n\nПросто надішліть його своєму кур'єру або менеджеру.");
+        });
+    }
+
+    initDashboard();
+</script>
+</body>
+</html>

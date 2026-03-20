@@ -1,0 +1,6 @@
+aiogram
+supabase
+requests
+apscheduler
+staticmap
+python-dotenv
