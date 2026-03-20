@@ -1,6 +1,6 @@
 import os
 
-API_TOKEN = '8342216853:AAF-_LtBQejUR1Wx9FS9mA0dmWPZuiEei58'
+API_TOKEN = '8675947904:AAEaCGrJ8uWH79uJ5GsBqGwOLbSlSGDpobg'
 SUPABASE_URL = "https://kvanzkcwpwmfexsmldvx.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." # Твій повний ключ
 
