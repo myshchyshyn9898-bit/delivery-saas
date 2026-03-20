@@ -23,7 +23,7 @@ def get_couriers_manage_kb(business_id):
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 
 # BASE_URL — це посилання на твій GitHub Pages
-URL = "https://myshchyshyn9898-bit.github.io/delivery-bot/"
+URL = "https://myshchyshyn9898-bit.github.io/delivery-saas/"
 
 def get_owner_kb(biz_id):
     return ReplyKeyboardMarkup(keyboard=[
