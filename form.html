@@ -99,35 +99,47 @@
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
+        // Ініціалізація Telegram
+        let tg = null;
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                tg.expand();
+            }
+        } catch(e) {}
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
-        let selectedPayment = 'cash';
+        
+        // Робимо змінну глобальною
+        window.selectedPayment = 'cash';
 
-        // Ключі Supabase (встав свої, якщо я помилився)
+        // Ключі Supabase
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // Вибір оплати
-        function selectPayment(element, method) {
-            document.querySelectorAll('#payment-chips .chip').forEach(c => c.classList.remove('active'));
-            element.classList.add('active');
-            selectedPayment = method;
+        let supabase = null;
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
-        // Завантаження кур'єрів з бази
-        async function loadCouriers() {
+        // --- БРОНЕБІЙНІ ГЛОБАЛЬНІ ФУНКЦІЇ ---
+
+        // Вибір оплати
+        window.selectPayment = function(element, method) {
+            document.querySelectorAll('#payment-chips .chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+            window.selectedPayment = method;
+        };
+
+        // Завантаження кур'єрів
+        window.loadCouriers = async function() {
             const select = document.getElementById('courier-select');
-            if (!bizId) {
+            if (!bizId || !supabase) {
                 select.innerHTML = '<option value="">Помилка: Немає ID бізнесу</option>';
                 return;
             }
 
             try {
-                // Шукаємо всіх, у кого role = courier і відповідний business_id
                 const { data: couriers, error } = await supabase
                     .from('staff')
                     .select('id, user_id, name')
@@ -137,7 +149,6 @@
                 if (couriers && couriers.length > 0) {
                     select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
                     couriers.forEach(c => {
-                        // Зберігаємо Telegram user_id кур'єра, щоб бот знав, кому писати
                         select.innerHTML += `<option value="${c.user_id}">🛵 ${c.name}</option>`;
                     });
                 } else {
@@ -147,16 +158,17 @@
                 console.error(err);
                 select.innerHTML = '<option value="">Помилка завантаження</option>';
             }
-        }
+        };
 
-        // Відправка замовлення в бота
-        function submitOrder() {
+        // Відправка
+        window.submitOrder = function() {
             const street = document.getElementById('address-street').value.trim();
             const amount = document.getElementById('order-amount').value.trim();
             const courierId = document.getElementById('courier-select').value;
 
             if (!street || !amount || !courierId) {
-                tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
+                if (tg && tg.showAlert) tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
+                else alert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
                 return;
             }
 
@@ -168,17 +180,21 @@
                 address: street + (document.getElementById('address-apt').value ? `, кв. ${document.getElementById('address-apt').value}` : ''),
                 code: document.getElementById('address-code').value.trim(),
                 amount: amount,
-                payment: selectedPayment,
-                courier_id: courierId, // ID кур'єра, якому полетить замовлення
+                payment: window.selectedPayment, // Використовуємо глобальну змінну
+                courier_id: courierId,
                 comment: document.getElementById('order-comment').value.trim()
             };
 
             document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
-            tg.sendData(JSON.stringify(orderData));
-        }
+            if (tg) {
+                tg.sendData(JSON.stringify(orderData));
+            } else {
+                console.log("Тестовий режим:", orderData);
+            }
+        };
 
-        // Запускаємо при старті
-        loadCouriers();
+        // Запускаємо завантаження
+        window.loadCouriers();
     </script>
 </body>
 </html>
