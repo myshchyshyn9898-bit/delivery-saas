@@ -97,3 +97,20 @@ def create_staff(tg_id: int, name: str, biz_id: str, role: str = 'courier'):
         "role": role
     }
     return supabase.table("couriers").insert(data).execute()
+def create_new_order(order_data: dict):
+    # Пакуємо дані з форми для бази
+    data = {
+        "business_id": order_data['biz_id'],
+        "courier_id": order_data['courier_id'],
+        "client_name": order_data.get('client_name'),
+        "client_phone": order_data.get('client_phone'),
+        "address": order_data.get('address'),
+        "amount": order_data.get('amount'),
+        "pay_type": order_data.get('payment'),
+        "comment": order_data.get('comment'),
+        "status": "pending" # Статус: очікує прийняття кур'єром
+    }
+    
+    # Записуємо і повертаємо результат (щоб отримати ID нового замовлення)
+    result = supabase.table("orders").insert(data).execute()
+    return result.data[0] if result.data else None
