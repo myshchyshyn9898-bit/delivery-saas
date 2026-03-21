@@ -13,12 +13,23 @@ def get_business_by_owner(owner_id: int):
     res = supabase.table("businesses").select("*").eq("owner_id", owner_id).execute()
     return res.data[0] if res.data else None
 
-def register_new_business(owner_id: int, name: str):
+def register_new_business(owner_id: int, biz_data: dict):
+    # Пакуємо всі дані з Web App у формат для бази
     data = {
         "owner_id": owner_id,
-        "name": name,
-        "currency": "zł",
-        "radius_km": 5
+        "name": biz_data.get("name"),
+        "description": biz_data.get("desc"),
+        "phone": biz_data.get("phone"),
+        "country": biz_data.get("location", {}).get("country"),
+        "city": biz_data.get("location", {}).get("city"),
+        "street": biz_data.get("location", {}).get("street"),
+        "lat": biz_data.get("location", {}).get("lat"),
+        "lng": biz_data.get("location", {}).get("lng"),
+        "radius_km": int(biz_data.get("radius", 5)),
+        "currency": biz_data.get("currency", "zł"),
+        "payments": biz_data.get("payments", []),
+        "plan": biz_data.get("plan", "pro"),
+        "is_active": True
     }
     return supabase.table("businesses").insert(data).execute()
 
