@@ -36,12 +36,19 @@
         .row { display: flex; gap: 10px; }
         .row > div { flex: 1; }
 
-        /* Змінено стилі, щоб кнопки виглядали як раніше */
+        /* --- НОВА БРОНЕБІЙНА СИСТЕМА ЧІПІВ (CSS Only) --- */
         .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
-        .chip { padding: 10px 14px; border-radius: 10px; border: 2px solid #edf1f7; background: #fbfcfd; font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: 0.2s; flex: 1; text-align: center; font-family: inherit; outline: none; }
-        .chip.active { background: rgba(255, 118, 82, 0.1); border-color: var(--primary); color: var(--primary); }
+        
+        /* Ховаємо стандартні круглі перемикачі */
+        .chips-container input[type="radio"] { display: none; }
+        
+        /* Стиль для етикетки (виглядає як наша кнопка) */
+        .chip { padding: 10px 14px; border-radius: 10px; border: 2px solid #edf1f7; background: #fbfcfd; font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: 0.2s; flex: 1; text-align: center; display: block; }
+        
+        /* Магія CSS: якщо прихований radio обраний (checked), то сусідній з ним .chip змінює колір! */
+        .chips-container input[type="radio"]:checked + .chip { background: rgba(255, 118, 82, 0.1); border-color: var(--primary); color: var(--primary); }
 
-        .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block;}
+        .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block; margin-top: 15px;}
         .btn-submit:active { transform: scale(0.96); }
     </style>
 </head>
@@ -76,10 +83,16 @@
             <div class="input-group">
                 <input type="number" id="order-amount" class="input-field" placeholder="Сума замовлення (zł)">
             </div>
-            <div class="chips-container" id="payment-chips">
-                <button type="button" class="chip active" id="chip-cash" onclick="setPayment('cash')">Готівка</button>
-                <button type="button" class="chip" id="chip-terminal" onclick="setPayment('terminal')">Термінал</button>
-                <button type="button" class="chip" id="chip-online" onclick="setPayment('online')">Онлайн</button>
+            
+            <div class="chips-container">
+                <input type="radio" id="pay-cash" name="payment" value="cash" checked>
+                <label class="chip" for="pay-cash">Готівка</label>
+
+                <input type="radio" id="pay-terminal" name="payment" value="terminal">
+                <label class="chip" for="pay-terminal">Термінал</label>
+
+                <input type="radio" id="pay-online" name="payment" value="online">
+                <label class="chip" for="pay-online">Онлайн</label>
             </div>
         </div>
 
@@ -111,9 +124,6 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
-        
-        // Глобальна змінна для валюти
-        window.selectedPayment = 'cash'; 
 
         // Ключі Supabase
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
@@ -121,25 +131,14 @@
         let supabase = null;
         if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- ФУНКЦІЯ ВИБОРУ ОПЛАТИ ---
-        window.setPayment = function(method) {
-            // Знімаємо 'active' з усіх кнопок
-            document.getElementById('chip-cash').classList.remove('active');
-            document.getElementById('chip-terminal').classList.remove('active');
-            document.getElementById('chip-online').classList.remove('active');
-            
-            // Додаємо 'active' тільки на натиснуту
-            document.getElementById('chip-' + method).classList.add('active');
-            
-            // Зберігаємо вибір
-            window.selectedPayment = method;
-        };
-
         // --- ВІДПРАВКА ЗАМОВЛЕННЯ ---
         window.submitOrder = function() {
             const street = document.getElementById('address-street').value.trim();
             const amount = document.getElementById('order-amount').value.trim();
             const courierId = document.getElementById('courier-select').value;
+            
+            // Зчитуємо, яка системна радіокнопка зараз обрана
+            const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
 
             if (!street || !amount || !courierId) {
                 if (tg && tg.showAlert) tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
@@ -155,7 +154,7 @@
                 address: street + (document.getElementById('address-apt').value ? `, кв. ${document.getElementById('address-apt').value}` : ''),
                 code: document.getElementById('address-code').value.trim(),
                 amount: amount,
-                payment: window.selectedPayment, // Передаємо вибраний метод оплати
+                payment: selectedPayment, // Передаємо вибраний метод
                 courier_id: courierId,
                 comment: document.getElementById('order-comment').value.trim()
             };
@@ -198,7 +197,6 @@
             }
         };
 
-        // Запускаємо при старті
         window.loadCouriers();
     </script>
 </body>
