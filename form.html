@@ -76,9 +76,9 @@
                 <input type="number" id="order-amount" class="input-field" placeholder="Сума замовлення (zł)">
             </div>
             <div class="chips-container" id="payment-chips">
-                <div class="chip active" onclick="selectPayment(this, 'cash')">Готівка</div>
-                <div class="chip" onclick="selectPayment(this, 'terminal')">Термінал</div>
-                <div class="chip" onclick="selectPayment(this, 'online')">Онлайн</div>
+                <div class="chip active" data-method="cash">Готівка</div>
+                <div class="chip" data-method="terminal">Термінал</div>
+                <div class="chip" data-method="online">Онлайн</div>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
             <input type="text" id="order-comment" class="input-field" placeholder="Коментар (необов'язково)">
         </div>
 
-        <button class="btn-submit" id="btn-submit" onclick="submitOrder()">Створити та Відправити</button>
+        <button class="btn-submit" id="btn-submit">Створити та Відправити</button>
     </div>
 
     <script>
@@ -110,9 +110,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
-        
-        // Робимо змінну глобальною
-        window.selectedPayment = 'cash';
+        let selectedPayment = 'cash'; // По замовчуванню
 
         // Ключі Supabase
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
@@ -122,79 +120,88 @@
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
 
-        // --- БРОНЕБІЙНІ ГЛОБАЛЬНІ ФУНКЦІЇ ---
+        // Чекаємо, поки вся сторінка повністю завантажиться
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. НАЛАШТУВАННЯ ЧІПІВ ОПЛАТИ (Бронебійний метод)
+            const chips = document.querySelectorAll('.chip');
+            chips.forEach(chip => {
+                chip.addEventListener('click', function() {
+                    // Знімаємо 'active' з усіх
+                    chips.forEach(c => c.classList.remove('active'));
+                    // Додаємо тому, на який клікнули
+                    this.classList.add('active');
+                    // Зберігаємо метод оплати з data-атрибута
+                    selectedPayment = this.getAttribute('data-method');
+                });
+            });
 
-        // Вибір оплати
-        window.selectPayment = function(element, method) {
-            document.querySelectorAll('#payment-chips .chip').forEach(c => c.classList.remove('active'));
-            element.classList.add('active');
-            window.selectedPayment = method;
-        };
+            // 2. НАЛАШТУВАННЯ КНОПКИ "ВІДПРАВИТИ"
+            const submitBtn = document.getElementById('btn-submit');
+            submitBtn.addEventListener('click', function() {
+                const street = document.getElementById('address-street').value.trim();
+                const amount = document.getElementById('order-amount').value.trim();
+                const courierId = document.getElementById('courier-select').value;
 
-        // Завантаження кур'єрів
-        window.loadCouriers = async function() {
-            const select = document.getElementById('courier-select');
-            if (!bizId || !supabase) {
-                select.innerHTML = '<option value="">Помилка: Немає ID бізнесу</option>';
-                return;
-            }
-
-            try {
-                const { data: couriers, error } = await supabase
-                    .from('staff')
-                    .select('id, user_id, name')
-                    .eq('business_id', bizId)
-                    .eq('role', 'courier');
-
-                if (couriers && couriers.length > 0) {
-                    select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
-                    couriers.forEach(c => {
-                        select.innerHTML += `<option value="${c.user_id}">🛵 ${c.name}</option>`;
-                    });
-                } else {
-                    select.innerHTML = '<option value="">В штаті немає кур\'єрів!</option>';
+                if (!street || !amount || !courierId) {
+                    if (tg && tg.showAlert) tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
+                    else alert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
+                    return;
                 }
-            } catch (err) {
-                console.error(err);
-                select.innerHTML = '<option value="">Помилка завантаження</option>';
+
+                const orderData = {
+                    action: "new_order",
+                    biz_id: bizId,
+                    client_name: document.getElementById('client-name').value.trim() || "Клієнт",
+                    client_phone: document.getElementById('client-phone').value.trim(),
+                    address: street + (document.getElementById('address-apt').value ? `, кв. ${document.getElementById('address-apt').value}` : ''),
+                    code: document.getElementById('address-code').value.trim(),
+                    amount: amount,
+                    payment: selectedPayment, // Беремо збережену валюту
+                    courier_id: courierId,
+                    comment: document.getElementById('order-comment').value.trim()
+                };
+
+                this.innerText = "⏳ Відправляємо...";
+                if (tg && tg.sendData) {
+                    tg.sendData(JSON.stringify(orderData));
+                } else {
+                    console.log("Тестовий режим (дані для бота):", orderData);
+                }
+            });
+
+            // 3. ЗАВАНТАЖЕННЯ КУР'ЄРІВ
+            async function loadCouriers() {
+                const select = document.getElementById('courier-select');
+                if (!bizId || !supabase) {
+                    select.innerHTML = '<option value="">Помилка: Немає ID бізнесу</option>';
+                    return;
+                }
+
+                try {
+                    const { data: couriers, error } = await supabase
+                        .from('staff')
+                        .select('id, user_id, name')
+                        .eq('business_id', bizId)
+                        .eq('role', 'courier');
+
+                    if (couriers && couriers.length > 0) {
+                        select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
+                        couriers.forEach(c => {
+                            select.innerHTML += `<option value="${c.user_id}">🛵 ${c.name}</option>`;
+                        });
+                    } else {
+                        select.innerHTML = '<option value="">В штаті немає кур\'єрів!</option>';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    select.innerHTML = '<option value="">Помилка завантаження</option>';
+                }
             }
-        };
 
-        // Відправка
-        window.submitOrder = function() {
-            const street = document.getElementById('address-street').value.trim();
-            const amount = document.getElementById('order-amount').value.trim();
-            const courierId = document.getElementById('courier-select').value;
-
-            if (!street || !amount || !courierId) {
-                if (tg && tg.showAlert) tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
-                else alert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
-                return;
-            }
-
-            const orderData = {
-                action: "new_order",
-                biz_id: bizId,
-                client_name: document.getElementById('client-name').value.trim() || "Клієнт",
-                client_phone: document.getElementById('client-phone').value.trim(),
-                address: street + (document.getElementById('address-apt').value ? `, кв. ${document.getElementById('address-apt').value}` : ''),
-                code: document.getElementById('address-code').value.trim(),
-                amount: amount,
-                payment: window.selectedPayment, // Використовуємо глобальну змінну
-                courier_id: courierId,
-                comment: document.getElementById('order-comment').value.trim()
-            };
-
-            document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
-            if (tg) {
-                tg.sendData(JSON.stringify(orderData));
-            } else {
-                console.log("Тестовий режим:", orderData);
-            }
-        };
-
-        // Запускаємо завантаження
-        window.loadCouriers();
+            // Запускаємо
+            loadCouriers();
+        });
     </script>
 </body>
 </html>
