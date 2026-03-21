@@ -1,43 +1,43 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types.web_app_info import WebAppInfo
 
-# Меню для реєстрації (для нових юзерів)
-reg_kb = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text="🚀 Зареєструвати свій бізнес")]
-], resize_keyboard=True)
-
-# Головне меню власника
-def get_owner_kb():
-    return ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="➕ Створити замовлення")],
-        [KeyboardButton(text="👥 Управління кур'єрами"), KeyboardButton(text="📊 Дашборд")],
-        [KeyboardButton(text="⚙️ Налаштування бізнесу")]
-    ], resize_keyboard=True)
-
-# Меню управління кур'єрами (Inline - під повідомленням)
-def get_couriers_manage_kb(business_id):
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ Згенерувати посилання для кур'єра", callback_data=f"invite_courier_{business_id}")],
-        [InlineKeyboardButton(text="📜 Список моїх кур'єрів", callback_data="list_couriers")]
-    ])
-# keyboards.py
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
-
-# BASE_URL — це посилання на твій GitHub Pages
+# Головне посилання на твій GitHub Pages
 URL = "https://myshchyshyn9898-bit.github.io/delivery-saas/"
 
+# --- 1. МЕНЮ РЕЄСТРАЦІЇ (Для нових юзерів) ---
+# Ця кнопка запускає наш новий крутий додаток!
+reg_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="🚀 Відкрити DelivePro", web_app=WebAppInfo(url=f"{URL}delivepro.html"))]
+    ],
+    resize_keyboard=True
+)
+
+# --- 2. МЕНЮ ВЛАСНИКА ---
 def get_owner_kb(biz_id):
-    return ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="📊 Дашборд", web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}"))],
-        [KeyboardButton(text="⚙️ Налаштування бізнесу"), KeyboardButton(text="👥 Персонал")]
-    ], resize_keyboard=True)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📊 Дашборд", web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}"))],
+            [KeyboardButton(text="⚙️ Налаштування бізнесу"), KeyboardButton(text="👥 Персонал")]
+        ],
+        resize_keyboard=True
+    )
 
+# --- 3. МЕНЮ МЕНЕДЖЕРА ---
 def get_manager_kb(biz_id):
-    return ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="📝 Нове замовлення", web_app=WebAppInfo(url=f"{URL}form.html?biz_id={biz_id}"))],
-        [KeyboardButton(text="📂 Активні замовлення", web_app=WebAppInfo(url=f"{URL}archive.html?biz_id={biz_id}"))]
-    ], resize_keyboard=True)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📝 Нове замовлення", web_app=WebAppInfo(url=f"{URL}form.html?biz_id={biz_id}"))],
+            [KeyboardButton(text="📂 Активні замовлення", web_app=WebAppInfo(url=f"{URL}archive.html?biz_id={biz_id}"))]
+        ],
+        resize_keyboard=True
+    )
 
+# --- 4. МЕНЮ КУР'ЄРА ---
 def get_courier_kb(biz_id):
-    return ReplyKeyboardMarkup(keyboard=[
-        [KeyboardButton(text="📦 Мої доставки", web_app=WebAppInfo(url=f"{URL}archive.html?biz_id={biz_id}"))]
-    ], resize_keyboard=True)
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📦 Мої доставки", web_app=WebAppInfo(url=f"{URL}archive.html?biz_id={biz_id}"))]
+        ],
+        resize_keyboard=True
+    )
