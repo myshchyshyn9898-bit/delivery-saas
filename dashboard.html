@@ -3,164 +3,266 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Панель управління</title>
+    <title>DelivePro Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; padding: 15px; margin: 0; color: #1c1e21; }
-        .container { max-width: 500px; margin: 0 auto; }
+        :root {
+            --bg-color: #f4f7f9;
+            --text-main: #111418;
+            --text-muted: #8a8d91;
+            --primary: #ff7652;
+            --surface: #ffffff;
+            --success: #34C759;
+            --info: #4A6CF7;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; }
+        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 80px; } /* Місце для нижнього меню */
+
+        /* --- ШАПКА --- */
+        .header { background: var(--surface); padding: 20px 20px 15px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; }
+        .biz-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
+        .biz-status { font-size: 11px; background: rgba(52, 199, 89, 0.1); color: var(--success); padding: 4px 10px; border-radius: 10px; font-weight: 800; text-transform: uppercase; }
         
-        /* Картка заголовку */
-        .header-card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
-        .header-card h2 { margin: 10px 0 5px; color: #1c1e21; font-size: 22px; }
-        .biz-id { font-size: 11px; color: #8a8d91; background: #f0f2f5; padding: 4px 10px; border-radius: 10px; }
+        /* Фільтр часу */
+        .time-filter { display: flex; background: #edf1f7; border-radius: 12px; padding: 4px; margin-top: 15px; }
+        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 8px; transition: 0.2s; }
+        .filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        /* Сітка статистики */
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .stat-box { background: white; padding: 15px; border-radius: 18px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); text-align: center; }
-        .stat-box i { font-size: 20px; color: #ff7652; margin-bottom: 8px; }
-        .stat-val { display: block; font-size: 18px; font-weight: 800; color: #1c1e21; }
-        .stat-label { font-size: 12px; color: #8a8d91; }
+        /* --- ВКЛАДКИ (Контент) --- */
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Секції управління */
-        .section-title { font-size: 14px; font-weight: 700; color: #65676b; margin: 20px 0 10px 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* --- ГОЛОВНА: ПЛИТКИ (Grid) --- */
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .metric-card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; position: relative; overflow: hidden; }
+        .metric-card.full-width { grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; }
+        .metric-icon { width: 35px; height: 35px; border-radius: 10px; background: rgba(255, 118, 82, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+        .full-width .metric-icon { background: rgba(255,255,255,0.2); color: white; }
+        .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; }
+        .metric-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+        .full-width .metric-label { color: rgba(255,255,255,0.8); }
+
+        .section-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
+
+        /* Останні активності */
+        .activity-feed { background: var(--surface); border-radius: 20px; padding: 5px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
+        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
+        .activity-item:last-child { border-bottom: none; }
+        .act-icon { width: 40px; height: 40px; border-radius: 50%; background: #f4f7f9; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: var(--success); }
+        .act-details { flex: 1; }
+        .act-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+        .act-time { font-size: 12px; color: var(--text-muted); }
+        .act-price { font-size: 15px; font-weight: 800; color: var(--text-main); }
+
+        /* --- КОМАНДА & НАЛАШТУВАННЯ --- */
+        .team-card { background: var(--surface); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 15px; display: flex; align-items: center; }
+        .team-avatar { width: 50px; height: 50px; border-radius: 15px; background: #edf1f7; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; }
+        .team-info { flex: 1; }
+        .team-name { font-size: 16px; font-weight: 800; }
+        .team-role { font-size: 12px; color: var(--primary); font-weight: 600; background: rgba(255, 118, 82, 0.1); padding: 3px 8px; border-radius: 8px; display: inline-block; margin-top: 4px; }
         
-        .menu-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 15px; }
-        .menu-item { display: flex; align-items: center; padding: 15px 20px; border-bottom: 1px solid #f0f2f5; cursor: pointer; transition: 0.2s; }
-        .menu-item:last-child { border-bottom: none; }
-        .menu-item:active { background: #f9f9f9; }
-        .menu-item i { width: 30px; font-size: 18px; color: #ff7652; }
-        .menu-text { flex: 1; font-size: 15px; font-weight: 600; }
-        .menu-arrow { color: #ccd0d5; font-size: 12px; }
+        .btn-invite { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
+        .btn-invite:active { transform: scale(0.96); }
+        .btn-invite.manager { background: var(--info); box-shadow: 0 8px 20px rgba(74, 108, 247, 0.25); }
 
-        /* Кнопка запрошення */
-        .btn-invite { background: #ff7652; color: white; border: none; width: 100%; padding: 15px; border-radius: 15px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(255,118,82,0.3); margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .btn-invite:active { transform: scale(0.98); }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
+        .setting-row:last-child { border-bottom: none; }
+        .set-label { font-size: 15px; font-weight: 600; color: var(--text-muted); }
+        .set-val { font-size: 15px; font-weight: 800; }
 
-        #loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; display:flex; align-items:center; justify-content:center; }
+        /* --- НИЖНЯ НАВІГАЦІЯ --- */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 20px; border-top: 1px solid #edf1f7; z-index: 100; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; }
+        .nav-item i { font-size: 20px; }
+        .nav-item.active { color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay"><i class="fa-solid fa-circle-notch fa-spin" style="font-size: 30px; color: #ff7652;"></i></div>
-
-<div class="container">
-    <div class="header-card">
-        <div id="biz-status" style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #2da44e;">● Підписка Активна</div>
-        <h2 id="biz-name">Завантаження...</h2>
-        <span class="biz-id" id="biz-id-display">ID: ...</span>
-    </div>
-
-    <div class="section-title">Статистика за сьогодні</div>
-    <div class="stats-grid">
-        <div class="stat-box">
-            <i class="fa-solid fa-bag-shopping"></i>
-            <span class="stat-val" id="stat-orders">0</span>
-            <span class="stat-label">Замовлень</span>
+    <div class="header">
+        <div class="biz-title">
+            <span id="display-biz-name">Завантаження...</span>
+            <span class="biz-status">Pro</span>
         </div>
-        <div class="stat-box">
-            <i class="fa-solid fa-money-bill-wave"></i>
-            <span class="stat-val" id="stat-cash">0.00</span>
-            <span class="stat-label">Готівка (zł)</span>
-        </div>
-        <div class="stat-box">
-            <i class="fa-solid fa-credit-card"></i>
-            <span class="stat-val" id="stat-term">0.00</span>
-            <span class="stat-label">Термінал (zł)</span>
-        </div>
-        <div class="stat-box">
-            <i class="fa-solid fa-chart-line"></i>
-            <span class="stat-val" id="stat-total">0.00</span>
-            <span class="stat-label">Загальна каса</span>
+        <div class="time-filter">
+            <div class="filter-btn active" onclick="setFilter(this)">Сьогодні</div>
+            <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
+            <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
         </div>
     </div>
 
-    <div class="section-title">Управління</div>
-    <div class="menu-card">
-        <div class="menu-item" onclick="alert('У розробці: Налаштування радіусу та валюти')">
-            <i class="fa-solid fa-gears"></i>
-            <span class="menu-text">Налаштування бізнесу</span>
-            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+    <div id="tab-home" class="tab-content active">
+        <div class="metrics-grid">
+            <div class="metric-card full-width">
+                <div class="metric-icon"><i class="fa-solid fa-wallet"></i></div>
+                <div class="metric-val" id="val-total">0.00 zł</div>
+                <div class="metric-label">Загальна каса</div>
+                <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 80px; opacity: 0.1;"></i>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="metric-val" id="val-cash">0.00</div>
+                <div class="metric-label">Готівка (zł)</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-icon" style="color: var(--info); background: rgba(74,108,247,0.1);"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="metric-val" id="val-term">0.00</div>
+                <div class="metric-label">Термінал (zł)</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon" style="color: #FFB020; background: rgba(255,176,32,0.1);"><i class="fa-solid fa-bag-shopping"></i></div>
+                <div class="metric-val" id="val-orders">0</div>
+                <div class="metric-label">Замовлень</div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-icon" style="color: var(--success); background: rgba(52,199,89,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
+                <div class="metric-val" id="val-time">0 хв</div>
+                <div class="metric-label">Сер. час доставки</div>
+            </div>
         </div>
-        <div class="menu-item" onclick="location.href='archive.html?biz_id=' + bizId">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span class="menu-text">Повна історія замовлень</span>
-            <i class="fa-solid fa-chevron-right menu-arrow"></i>
+
+        <div class="section-title">Останні замовлення</div>
+        <div class="activity-feed">
+            <div class="activity-item">
+                <div class="act-icon"><i class="fa-solid fa-check"></i></div>
+                <div class="act-details">
+                    <div class="act-title">Замовлення #1042</div>
+                    <div class="act-time">Доставлено • Кур'єр: Іван</div>
+                </div>
+                <div class="act-price">145.00 zł</div>
+            </div>
+            <div class="activity-item">
+                <div class="act-icon" style="color: #FFB020; background: #fff8eb;"><i class="fa-solid fa-motorcycle"></i></div>
+                <div class="act-details">
+                    <div class="act-title">Замовлення #1043</div>
+                    <div class="act-time">В дорозі • Залишилось 12 хв</div>
+                </div>
+                <div class="act-price">89.00 zł</div>
+            </div>
         </div>
     </div>
 
-    <div class="section-title">Персонал</div>
-    <button class="btn-invite" onclick="generateInviteLink()">
-        <i class="fa-solid fa-user-plus"></i> Додати кур'єра / адміна
-    </button>
-</div>
+    <div id="tab-team" class="tab-content">
+        <div class="section-title">Запрошення</div>
+        <button class="btn-invite" onclick="generateInvite('courier')">
+            <i class="fa-solid fa-motorcycle"></i> Запросити Кур'єра
+        </button>
+        <button class="btn-invite manager" onclick="generateInvite('admin')">
+            <i class="fa-solid fa-user-tie"></i> Запросити Адміна
+        </button>
 
-<script>
-    let tg = window.Telegram.WebApp;
-    tg.expand();
+        <div class="section-title" style="margin-top: 30px;">Активний персонал</div>
+        <div class="team-card">
+            <div class="team-avatar">👨‍💼</div>
+            <div class="team-info">
+                <div class="team-name">Олег Адмін</div>
+                <div class="team-role" style="color: var(--info); background: rgba(74, 108, 247, 0.1);">Менеджер</div>
+            </div>
+        </div>
+        <div class="team-card">
+            <div class="team-avatar">🛵</div>
+            <div class="team-info">
+                <div class="team-name">Іван Коваленко</div>
+                <div class="team-role">Кур'єр</div>
+            </div>
+        </div>
+    </div>
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const bizId = urlParams.get('biz_id');
-
-    const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Твій повний ключ
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    async function initDashboard() {
-        if (!bizId) {
-            alert("Помилка: Business ID не знайдено");
-            return;
-        }
-
-        try {
-            // 1. Отримуємо дані бізнесу
-            const { data: biz, error: bizErr } = await db.from('businesses').select('*').eq('id', bizId).single();
-            if (bizErr) throw bizErr;
-
-            document.getElementById('biz-name').innerText = biz.name;
-            document.getElementById('biz-id-display').innerText = "ID: " + biz.id;
-
-            // 2. Отримуємо статистику за сьогодні (closed замовлення)
-            const today = new Date().toISOString().split('T')[0];
-            const { data: orders, error: ordErr } = await db.from('orders')
-                .select('*')
-                .eq('business_id', bizId)
-                .eq('status', 'closed')
-                .gte('created_at', today);
-
-            if (ordErr) throw ordErr;
-
-            let cash = 0, term = 0;
-            orders.forEach(o => {
-                if (o.pay_type === 'cash') cash += parseFloat(o.amount || 0);
-                if (o.pay_type === 'terminal') term += parseFloat(o.amount || 0);
-            });
-
-            document.getElementById('stat-orders').innerText = orders.length;
-            document.getElementById('stat-cash').innerText = cash.toFixed(2);
-            document.getElementById('stat-term').innerText = term.toFixed(2);
-            document.getElementById('stat-total').innerText = (cash + term).toFixed(2);
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
-    }
-
-    function generateInviteLink() {
-        // Логіка глибокого посилання для Telegram
-        const botUsername = "rz_city_bot"; // Твій юзернейм бота
-        const inviteLink = `https://t.me/${botUsername}?start=join_${bizId}`;
+    <div id="tab-settings" class="tab-content">
+        <div class="activity-feed" style="padding: 10px 20px;">
+            <div class="setting-row">
+                <span class="set-label">Business ID</span>
+                <span class="set-val" id="set-id">...</span>
+            </div>
+            <div class="setting-row">
+                <span class="set-label">Підписка</span>
+                <span class="set-val" style="color: var(--success);">PRO (Активна)</span>
+            </div>
+            <div class="setting-row">
+                <span class="set-label">Валюта</span>
+                <span class="set-val" id="set-currency">zł</span>
+            </div>
+            <div class="setting-row">
+                <span class="set-label">Радіус доставки</span>
+                <span class="set-val" id="set-radius">5 км</span>
+            </div>
+        </div>
         
-        // Копіюємо в буфер та повідомляємо
-        navigator.clipboard.writeText(inviteLink).then(() => {
-            alert("Посилання для реєстрації персоналу скопійовано!\n\nПросто надішліть його своєму кур'єру або менеджеру.");
-        });
-    }
+        <button class="btn-invite" style="background: #ff3b30; margin-top: 20px; box-shadow: none;" onclick="tg.close()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Закрити Дашборд
+        </button>
+    </div>
 
-    initDashboard();
-</script>
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home', this)"><i class="fa-solid fa-chart-pie"></i>Головна</div>
+        <div class="nav-item" onclick="switchTab('team', this)"><i class="fa-solid fa-users"></i>Команда</div>
+        <div class="nav-item" onclick="switchTab('settings', this)"><i class="fa-solid fa-gear"></i>Налаштування</div>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Отримуємо biz_id з URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        let botUsername = "ТВІЙ_ЮЗЕРНЕЙМ_БОТА_БЕЗ_@"; // <--- ВАЖЛИВО: ВПИШИ СЮДИ ЮЗЕРНЕЙМ БОТА!
+
+        document.getElementById('set-id').innerText = bizId || "Невідомо";
+        
+        // Для MVP ставимо тимчасові гарні цифри (поки не підключимо Supabase JS)
+        document.getElementById('display-biz-name').innerText = "Мій Заклад";
+        document.getElementById('val-total').innerText = "4,600.00 zł";
+        document.getElementById('val-cash').innerText = "1,200.00";
+        document.getElementById('val-term').innerText = "3,400.00";
+        document.getElementById('val-orders').innerText = "42";
+        document.getElementById('val-time').innerText = "28 хв";
+
+        // Перемикання вкладок нижнього меню
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // Анімація фільтру часу
+        function setFilter(el) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            
+            // Тут ми додамо легку анімацію чисел, щоб виглядало живо
+            const valTotal = document.getElementById('val-total');
+            valTotal.style.opacity = '0';
+            setTimeout(() => { valTotal.style.opacity = '1'; }, 200);
+        }
+
+        // Генерація посилань для персоналу
+        function generateInvite(role) {
+            if (!bizId) {
+                tg.showAlert("Помилка: Business ID не знайдено.");
+                return;
+            }
+            
+            // Формуємо лінк (join_UUID для кур'єра, admin_UUID для менеджера)
+            let prefix = role === 'courier' ? 'join_' : 'admin_';
+            const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
+            
+            navigator.clipboard.writeText(inviteLink).then(() => {
+                let roleName = role === 'courier' ? "Кур'єра" : "Менеджера";
+                tg.showAlert(`✅ Посилання для ${roleName} скопійовано!\n\nНадішліть його працівнику в особисті повідомлення.`);
+            });
+        }
+    </script>
 </body>
 </html>
