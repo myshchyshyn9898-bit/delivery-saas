@@ -45,17 +45,25 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
     user_id = message.from_user.id
     args = command.args
 
-    # 1. Логіка приєднання кур'єра через посилання
-    if args and args.startswith("join_"):
-        biz_id = args.replace("join_", "")
+    # 1. Логіка приєднання персоналу (Кур'єр або Менеджер)
+    if args and (args.startswith("join_") or args.startswith("admin_")):
+        role = "courier" if args.startswith("join_") else "manager"
+        prefix = "join_" if role == "courier" else "admin_"
+        biz_id = args.replace(prefix, "")
+        
         biz = db.get_business_by_id(biz_id)
         if not biz:
-            await message.answer("❌ Помилка: Посилання недійсне.")
+            await message.answer("❌ Помилка: Посилання недійсне або такий заклад не існує.")
             return
         
-        await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'])
+        await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'], joining_role=role)
         await state.set_state(RegStaff.waiting_for_name)
-        await message.answer(f"👋 Приєднуємось до команди **{biz['name']}**!\nВведіть ваше Прізвище та Ім'я:")
+        
+        role_ua = "Кур'єра 🛵" if role == "courier" else "Менеджера 👨‍💼"
+        await message.answer(
+            f"👋 Вітаємо!\nВи отримали запрошення на посаду **{role_ua}** у заклад **{biz['name']}**.\n\n"
+            f"✏️ Введіть ваше Прізвище та Ім'я, щоб приєднатися до команди:"
+        )
         return
 
     # 2. Перевірка існуючого юзера
@@ -100,22 +108,25 @@ async def handle_web_app_data(message: types.Message):
             print(f"Помилка реєстрації: {e}")
             await message.answer("❌ Сталася помилка при реєстрації. Перевірте логи Railway.")
 
-# --- РЕЄСТРАЦІЯ КУР'ЄРА ---
+# --- РЕЄСТРАЦІЯ КУР'ЄРА ТА МЕНЕДЖЕРА ---
 @dp.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
     name = message.text
     data = await state.get_data()
     biz_id = data['joining_biz_id']
+    role = data.get('joining_role', 'courier')
 
     try:
-        db.create_staff(message.from_user.id, name, biz_id, role='courier')
+        db.create_staff(message.from_user.id, name, biz_id, role=role)
         await state.clear()
         
         context = db.get_user_context(message.from_user.id)
-        await message.answer(f"✅ Вітаємо, {name}! Ви успішно приєдналися до команди.")
+        role_ua = "Кур'єр" if role == "courier" else "Менеджер"
+        
+        await message.answer(f"✅ Вітаємо, {name}! Ви успішно приєдналися до команди як {role_ua}.")
         await show_main_menu(message, context)
     except Exception as e:
-        await message.answer(f"❌ Помилка: {e}")
+        await message.answer(f"❌ Помилка при додаванні: {e}. Можливо, ви вже працюєте тут.")
 
 # --- ПАНЕЛЬ СУПЕР-АДМІНА (/sa) ---
 @dp.message(Command("sa"))
