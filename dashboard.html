@@ -20,8 +20,9 @@
             --info: #4A6CF7;
         }
 
+        /* Додав -webkit-tap-highlight-color щоб не було синього блимання при кліку на iOS */
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 90px; } 
+        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 100px; } 
 
         /* --- ШАПКА --- */
         .header { background: var(--surface); padding: 20px 20px 15px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; }
@@ -78,10 +79,34 @@
         .set-label { font-size: 15px; font-weight: 600; color: var(--text-muted); }
         .set-val { font-size: 15px; font-weight: 800; }
 
-        /* --- НИЖНЯ НАВІГАЦІЯ --- */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 20px; border-top: 1px solid #edf1f7; z-index: 100; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px;}
-        .nav-item i { font-size: 20px; }
+        /* --- НИЖНЯ НАВІГАЦІЯ (Виправлено для iOS) --- */
+        .bottom-nav { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            background: var(--surface); 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); /* ВАЖЛИВО: Захист від системної смужки iPhone */
+            border-top: 1px solid #edf1f7; 
+            z-index: 9999; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.03); 
+        }
+        .nav-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            color: var(--text-muted); 
+            font-size: 11px; 
+            font-weight: 700; 
+            gap: 5px; 
+            transition: 0.2s; 
+            cursor: pointer; 
+            width: 33%; 
+            padding-top: 10px;
+        }
+        .nav-item i { font-size: 22px; }
         .nav-item.active { color: var(--primary); }
     </style>
 </head>
@@ -192,87 +217,79 @@
     </div>
 
     <script>
-        // БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ TELEGRAM (Щоб не ламалося в браузері)
-        let tg = null;
-        try {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                tg.expand();
-            }
-        } catch (e) {
-            console.log("Відкрито поза межами Telegram");
-        }
-
-        // --- ВАЖЛИВО: ВПИШИ НІК СВОГО БОТА ---
-        let botUsername = "ТВІЙ_БОТ_ЮЗЕРНЕЙМ"; 
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const bizId = urlParams.get('biz_id');
-        let currencySymbol = "zł";
-
-        // Supabase Ключі
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // ФУНКЦІЯ: Перемикання вкладок
+        // 1. ФУНКЦІЇ ІНТЕРФЕЙСУ (Хоїстинг) - Працюють ОДРАЗУ, незалежно від бази чи інтернету
         function switchTab(tabId, el) {
-            // Ховаємо всі вкладки
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            // Показуємо потрібну
-            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
             
-            // Оновлюємо колір кнопок внизу
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             
             window.scrollTo(0, 0);
         }
 
-        // ФУНКЦІЯ: Фільтр часу
         function setFilter(el) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
             
             const valTotal = document.getElementById('val-total');
-            valTotal.style.opacity = '0';
-            setTimeout(() => { valTotal.style.opacity = '1'; }, 200);
+            if (valTotal) {
+                valTotal.style.opacity = '0';
+                setTimeout(() => { valTotal.style.opacity = '1'; }, 200);
+            }
         }
 
-        // ФУНКЦІЯ: Запрошення
+        function closeApp() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.close();
+            }
+        }
+
+        // --- ВАЖЛИВО: ВПИШИ НІК СВОГО БОТА ---
+        let botUsername = "ТВІЙ_БОТ_ЮЗЕРНЕЙМ"; 
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        let currencySymbol = "zł";
+
         function generateInvite(role) {
             if (!bizId) {
-                if(tg && tg.showAlert) tg.showAlert("Помилка: Business ID не знайдено.");
-                else alert("Помилка: Business ID не знайдено.");
+                alert("Помилка: Business ID не знайдено.");
                 return;
             }
             let prefix = role === 'courier' ? 'join_' : 'admin_';
             const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
             
             navigator.clipboard.writeText(inviteLink).then(() => {
-                let msg = `✅ Посилання для ${role === 'courier' ? "Кур'єра" : "Менеджера"} скопійовано!\n\nНадішліть його працівнику.`;
-                if(tg && tg.showAlert) tg.showAlert(msg);
-                else alert(msg);
+                alert(`✅ Посилання для ${role === 'courier' ? "Кур'єра" : "Менеджера"} скопійовано!\n\nНадішліть його працівнику.`);
             });
         }
 
-        // ФУНКЦІЯ: Закрити додаток
-        function closeApp() {
-            if(tg) tg.close();
-        }
-
-        // ЗАВАНТАЖЕННЯ ДАНИХ З БАЗИ
+        // 2. БЕЗПЕЧНЕ ЗАВАНТАЖЕННЯ БАЗИ ДАНИХ
         async function loadDashboardData() {
-            if (!bizId) {
-                document.getElementById('display-biz-name').innerText = "Тестовий режим";
-                return;
-            }
-
-            document.getElementById('set-id').innerText = bizId;
-
             try {
+                // Розгортаємо Telegram WebApp
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.expand();
+                    window.Telegram.WebApp.ready();
+                }
+
+                if (!bizId) {
+                    document.getElementById('display-biz-name').innerText = "Тестовий режим";
+                    return;
+                }
+                document.getElementById('set-id').innerText = bizId;
+
+                // Supabase Ключі
+                const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+                
+                // Перевіряємо чи завантажився скрипт Supabase
+                if (!window.supabase) return;
+
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
                 // 1. Бізнес
-                const { data: biz, error: bizErr } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+                const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
                 if (biz) {
                     currencySymbol = biz.currency || "zł";
                     document.getElementById('display-biz-name').innerText = biz.name;
@@ -349,9 +366,10 @@
                 } else {
                     staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px;">Ви поки що єдиний у команді 😊</div>`;
                 }
-            } catch (error) { console.error(error); }
+            } catch (error) { console.error("Помилка БД:", error); }
         }
 
+        // 3. Запускаємо логіку бази даних
         loadDashboardData();
     </script>
 </body>
