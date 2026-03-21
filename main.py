@@ -1,5 +1,5 @@
-import json
 import asyncio
+import json
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
@@ -14,9 +14,6 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
 
 # --- СТАНИ (FSM) ---
-class Registration(StatesGroup):
-    waiting_for_biz_name = State()
-
 class RegStaff(StatesGroup):
     waiting_for_name = State()
 
@@ -27,7 +24,7 @@ async def show_main_menu(message: types.Message, context: dict):
     biz_id = biz['id']
 
     if not biz['is_active']:
-        await message.answer("⚠️ **Ваша підписка закінчилася.**\nБудь ласка, зверніться до адміністратора.")
+        await message.answer("⚠️ **Ваша підписка закінчилася або призупинена.**\nБудь ласка, зверніться до адміністратора.")
         return
 
     if role == "owner":
@@ -43,7 +40,6 @@ async def show_main_menu(message: types.Message, context: dict):
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
 
 # --- ОБРОБНИКИ КОМАНД ---
-
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
     user_id = message.from_user.id
@@ -59,44 +55,52 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
         
         await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'])
         await state.set_state(RegStaff.waiting_for_name)
-        await message.answer(f"👋 Приєднуємось до **{biz['name']}**!\nВведіть ваше Прізвище та Ім'я:")
+        await message.answer(f"👋 Приєднуємось до команди **{biz['name']}**!\nВведіть ваше Прізвище та Ім'я:")
         return
 
     # 2. Перевірка існуючого юзера
     context = db.get_user_context(user_id)
     if not context:
+        # Якщо юзера немає - пропонуємо відкрити Web App
         await message.answer(
-            "🌟 **Delivery SaaS**\n\nВи власник закладу? Зареєструйтеся зараз.",
-            reply_markup=kb.reg_kb, parse_mode="Markdown"
+            "🌟 **Вітаємо в DelivePro!**\n\nЕволюція вашої доставки починається тут. Натисніть кнопку нижче, щоб налаштувати свій бізнес.",
+            reply_markup=kb.reg_kb, 
+            parse_mode="Markdown"
         )
     else:
+        # Якщо вже зареєстрований - показуємо його дашборд/меню
         await show_main_menu(message, context)
 
-# --- РЕЄСТРАЦІЯ БІЗНЕСУ (ВЛАСНИК) ---
-
-@dp.message(F.text == "🚀 Зареєструвати свій бізнес")
-async def start_reg(message: types.Message, state: FSMContext):
-    await message.answer("📝 Введіть назву вашого закладу (наприклад: *Hero Sushi*):", parse_mode="Markdown")
-    await state.set_state(Registration.waiting_for_biz_name)
-
-@dp.message(Registration.waiting_for_biz_name)
-async def process_biz_name(message: types.Message, state: FSMContext):
-    biz_name = message.text
-    owner_id = message.from_user.id
-
-    try:
-        db.register_new_business(owner_id, biz_name)
-        await state.clear()
+# --- РЕЄСТРАЦІЯ БІЗНЕСУ ЧЕРЕЗ WEB APP ---
+@dp.message(F.web_app_data)
+async def handle_web_app_data(message: types.Message):
+    # Розпаковуємо JSON, який прийшов від нашого delivepro.html
+    data = json.loads(message.web_app_data.data)
+    
+    if data.get("action") == "register_business":
+        user_id = message.from_user.id
         
-        # Відразу після запису дістаємо контекст і показуємо меню
-        context = db.get_user_context(owner_id)
-        await message.answer(f"✅ Бізнес **{biz_name}** успішно створено!")
-        await show_main_menu(message, context)
-    except Exception as e:
-        await message.answer(f"❌ Помилка при створенні: {e}")
+        try:
+            # 1. Записуємо в базу
+            db.register_new_business(user_id, data)
+            
+            # 2. Отримуємо оновлений контекст юзера
+            context = db.get_user_context(user_id)
+            biz = context['biz']
+            
+            # 3. Видаємо вітальне повідомлення і дашборд!
+            await message.answer(
+                f"🎉 **Вітаємо! Ваш бізнес '{biz['name']}' успішно створено.**\n"
+                f"📦 **Тариф:** {biz['plan'].upper()} (Активовано 7 днів тріалу)\n\n"
+                f"Тепер ви можете перейти до повноцінного керування 👇",
+                reply_markup=kb.get_owner_kb(biz['id']),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            print(f"Помилка реєстрації: {e}")
+            await message.answer("❌ Сталася помилка при реєстрації. Перевірте логи Railway.")
 
 # --- РЕЄСТРАЦІЯ КУР'ЄРА ---
-
 @dp.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
     name = message.text
@@ -106,12 +110,14 @@ async def process_staff_name(message: types.Message, state: FSMContext):
     try:
         db.create_staff(message.from_user.id, name, biz_id, role='courier')
         await state.clear()
-        await message.answer(f"✅ Вітаємо, {name}! Ви в команді. Очікуйте замовлень.")
+        
+        context = db.get_user_context(message.from_user.id)
+        await message.answer(f"✅ Вітаємо, {name}! Ви успішно приєдналися до команди.")
+        await show_main_menu(message, context)
     except Exception as e:
         await message.answer(f"❌ Помилка: {e}")
 
 # --- ПАНЕЛЬ СУПЕР-АДМІНА (/sa) ---
-
 @dp.message(Command("sa"))
 async def super_admin_panel(message: types.Message):
     if message.from_user.id not in SUPER_ADMIN_IDS: return
