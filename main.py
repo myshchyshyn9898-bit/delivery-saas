@@ -79,24 +79,20 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
         # Якщо вже зареєстрований - показуємо його дашборд/меню
         await show_main_menu(message, context)
 
-# --- РЕЄСТРАЦІЯ БІЗНЕСУ ЧЕРЕЗ WEB APP ---
+# --- ОБРОБКА ДАНИХ З WEB APP ---
 @dp.message(F.web_app_data)
-async def handle_web_app_data(message: types.Message):
-    # Розпаковуємо JSON, який прийшов від нашого delivepro.html
+async def handle_web_app_data(message: types.Message, bot: Bot):
+    # Розпаковуємо JSON, який прийшов від нашого Web App
     data = json.loads(message.web_app_data.data)
+    user_id = message.from_user.id
     
+    # 1. Реєстрація нового бізнесу
     if data.get("action") == "register_business":
-        user_id = message.from_user.id
-        
         try:
-            # 1. Записуємо в базу
             db.register_new_business(user_id, data)
-            
-            # 2. Отримуємо оновлений контекст юзера
             context = db.get_user_context(user_id)
             biz = context['biz']
             
-            # 3. Видаємо вітальне повідомлення і дашборд!
             await message.answer(
                 f"🎉 **Вітаємо! Ваш бізнес '{biz['name']}' успішно створено.**\n"
                 f"📦 **Тариф:** {biz['plan'].upper()} (Активовано 7 днів тріалу)\n\n"
@@ -107,6 +103,46 @@ async def handle_web_app_data(message: types.Message):
         except Exception as e:
             print(f"Помилка реєстрації: {e}")
             await message.answer("❌ Сталася помилка при реєстрації. Перевірте логи Railway.")
+            
+    # 2. Створення нового замовлення (Менеджером)
+    elif data.get("action") == "new_order":
+        try:
+            # Створюємо замовлення в базі
+            new_order = db.create_new_order(data)
+            
+            if new_order:
+                order_id = new_order['id']
+                # Формуємо красивий текст для кур'єра
+                pay_icon = "💵" if data['payment'] == "cash" else "💳"
+                courier_text = (
+                    f"🚨 **НОВЕ ЗАМОВЛЕННЯ #{order_id}**\n\n"
+                    f"📍 **Куди:** {data['address']}\n"
+                    f"💰 **Сума:** {data['amount']} {pay_icon}\n"
+                    f"📞 **Клієнт:** {data['client_name']} ({data['client_phone']})\n"
+                )
+                if data['comment']:
+                    courier_text += f"💬 **Коментар:** {data['comment']}\n"
+                
+                # Кнопка для кур'єра, щоб прийняти замовлення
+                builder = InlineKeyboardBuilder()
+                builder.button(text="✅ Прийняти в роботу", callback_data=f"accept_order_{order_id}")
+                
+                # Відправляємо повідомлення КОНКРЕТНОМУ кур'єру
+                await bot.send_message(
+                    chat_id=data['courier_id'], 
+                    text=courier_text, 
+                    reply_markup=builder.as_markup(),
+                    parse_mode="Markdown"
+                )
+                
+                # Відповідаємо менеджеру, що все ок
+                await message.answer(f"✅ Замовлення #{order_id} успішно створено та відправлено кур'єру!")
+            else:
+                await message.answer("❌ Помилка при збереженні замовлення в базу.")
+                
+        except Exception as e:
+            print(f"Помилка створення замовлення: {e}")
+            await message.answer("❌ Сталася помилка при відправці замовлення. Перевірте базу даних.")
 
 # --- РЕЄСТРАЦІЯ КУР'ЄРА ТА МЕНЕДЖЕРА ---
 @dp.message(RegStaff.waiting_for_name)
