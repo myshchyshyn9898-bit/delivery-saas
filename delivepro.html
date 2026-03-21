@@ -3,17 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DelivePro SaaS Platform</title>
+    <title>DelivePro SaaS</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root {
-            --bg-color: #ffffff;
+            --bg-color: #f7f9fc;
             --text-main: #1c1e21;
             --text-muted: #8a8d91;
-            --primary: #ff7652; /* Наш фірмовий помаранчевий */
+            --primary: #ff7652; 
             --primary-dark: #e65a38;
-            --surface: #f7f9fc;
+            --surface: #ffffff;
             --acc-green: #34C759;
             --acc-blue: #4A6CF7;
         }
@@ -21,240 +27,170 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; }
         body { background: var(--bg-color); color: var(--text-main); overflow: hidden; height: 100vh; width: 100vw; }
 
-        /* Загальний стиль екранів */
         .screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100vh;
-            display: flex; flex-direction: column;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.4s ease, transform 0.4s ease;
-            transform: translateX(15px);
-            background: var(--bg-color);
-            padding: 20px 25px;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100vh;
+            display: flex; flex-direction: column; opacity: 0; pointer-events: none;
+            transition: opacity 0.4s ease, transform 0.4s ease; transform: translateX(15px);
+            background: var(--bg-color); padding: 20px 20px 30px;
         }
-        .screen.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
+        .screen.active { opacity: 1; pointer-events: auto; transform: translateX(0); overflow-y: auto;}
 
-        /* --- ЕКРАН 1: SPLASH (Брендований) --- */
-        #screen-splash {
-            background: linear-gradient(135deg, #1a1e24 0%, #111418 100%);
-            color: white; align-items: center; justify-content: center;
-        }
-        
-        /* СУЧАСНИЙ ЛОГОТИП DELIVEPRO НА CSS */
-        .dp-logo {
-            width: 130px; height: 130px;
-            position: relative;
-            animation: logoPulse 2.5s infinite ease-in-out;
-            margin-bottom: 30px;
-        }
-        .dp-logo-bg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, var(--primary), #ffa07a);
-            border-radius: 40px;
-            transform: rotate(15deg);
-            box-shadow: 0 10px 40px rgba(255, 118, 82, 0.4);
-        }
-        .dp-logo-icon {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: white; font-size: 65px; font-weight: 900; letter-spacing: -2px;
-        }
+        /* --- SPLASH ТА ОНБОРДИНГ --- */
+        #screen-splash { background: linear-gradient(135deg, #1a1e24 0%, #111418 100%); color: white; align-items: center; justify-content: center; overflow: hidden;}
+        .dp-logo { width: 130px; height: 130px; position: relative; animation: logoPulse 2.5s infinite ease-in-out; margin-bottom: 30px; }
+        .dp-logo-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary), #ffa07a); border-radius: 40px; transform: rotate(15deg); box-shadow: 0 10px 40px rgba(255, 118, 82, 0.4); }
+        .dp-logo-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 65px; font-weight: 900; letter-spacing: -2px; }
         .dp-logo-icon span { font-size: 30px; opacity: 0.8; vertical-align: top; margin-left: -5px;}
-
-        @keyframes logoPulse {
-            0% { transform: scale(1); box-shadow: 0 10px 40px rgba(255, 118, 82, 0.3); }
-            50% { transform: scale(1.04); box-shadow: 0 15px 60px rgba(255, 118, 82, 0.6); }
-            100% { transform: scale(1); box-shadow: 0 10px 40px rgba(255, 118, 82, 0.3); }
-        }
-
+        @keyframes logoPulse { 0% { transform: scale(1); box-shadow: 0 10px 40px rgba(255, 118, 82, 0.3); } 50% { transform: scale(1.04); box-shadow: 0 15px 60px rgba(255, 118, 82, 0.6); } 100% { transform: scale(1); box-shadow: 0 10px 40px rgba(255, 118, 82, 0.3); } }
         .splash-title { font-size: 36px; font-weight: 900; letter-spacing: -1px; margin-bottom: 8px; }
         .splash-subtitle { color: #a0a5aa; font-size: 16px; text-align: center; line-height: 1.4; margin-bottom: 60px; }
-
-        /* Кнопки (Основна стилістика) */
-        .btn-container { margin-top: auto; padding-bottom: 10px; }
-        .btn {
-            background: var(--primary); color: white; border: none;
-            width: 100%; padding: 20px; border-radius: 18px;
-            font-size: 17px; font-weight: 800; cursor: pointer;
-            box-shadow: 0 10px 25px rgba(255, 118, 82, 0.3);
-            transition: 0.2s ease;
-        }
+        
+        /* КНОПКИ */
+        .btn-container { margin-top: auto; padding-top: 15px; position: sticky; bottom: 0; background: var(--bg-color); z-index: 1000; padding-bottom: 10px;}
+        .btn { background: var(--primary); color: white; border: none; width: 100%; padding: 20px; border-radius: 18px; font-size: 17px; font-weight: 800; cursor: pointer; box-shadow: 0 10px 25px rgba(255, 118, 82, 0.3); transition: 0.2s ease; }
         .btn:active { transform: scale(0.96); background: var(--primary-dark); }
+        .btn-trial { background: #111418; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
 
-        /* --- ЕКРАН 2: ОНБОРДИНГ (СЛАЙДЕР) --- */
-        #screen-onboard { padding: 0; }
-        
-        /* Контейнер каруселі */
-        .carousel { flex: 1; display: flex; transition: transform 0.4s ease-out; }
-        .slide {
-            min-width: 100%; height: 100%;
-            display: flex; flex-direction: column;
-            padding: 30px 25px; align-items: center;
-        }
-
-        /* Місце для ВІЗУАЛЬНОГО ПІДКРІПЛЕННЯ (Картинки/Схеми) */
-        .visual-container {
-            width: 100%; height: 220px;
-            background: #f7f9fc; border-radius: 25px;
-            margin: 40px 0 30px;
-            display: flex; align-items: center; justify-content: center;
-            border: 2px solid #eef0f5; position: relative; overflow: hidden;
-        }
-        
-        /* Заглушки для візуалу на CSS (замінити на реальні картинки!) */
-        .visual-mock {
-            width: 90%; height: 80%;
-            background: white; border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            padding: 15px; display: flex; flex-direction: column; gap: 8px;
-        }
-        .mock-line { height: 10px; background: #f0f2f5; border-radius: 5px; }
-        .mock-chart { height: 80px; width: 100%; background: linear-gradient(90deg, #f0f2f5 30%, #ffdfd6 100%); border-radius: 5px; margin: 10px 0; }
-        .mock-map { width: 100%; height: 100%; background: #f0f2f5; border-radius: 10px; position: relative; }
-        .mock-pin { position: absolute; top: 40%; left: 50%; width: 20px; height: 20px; background: var(--primary); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid white;}
-
+        /* ОНБОРДИНГ */
+        .carousel { display: flex; transition: transform 0.4s ease-out; height: 100%; }
+        .slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; padding: 20px 5px; align-items: center; }
+        .visual-container { width: 100%; height: 220px; background: white; border-radius: 25px; margin: 30px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
         .title-block { text-align: center; }
         .title { font-size: 28px; font-weight: 900; margin-bottom: 15px; letter-spacing: -0.5px; }
         .desc { font-size: 16px; color: var(--text-muted); line-height: 1.6; }
-
-        /* Крапки слайдера */
-        .dots {
-            display: flex; justify-content: center; gap: 10px; margin-bottom: 30px;
-        }
+        .dots { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .dot { width: 12px; height: 12px; border-radius: 50%; background: #e0e0e0; transition: 0.3s ease; }
         .dot.active { background: var(--primary); width: 30px; border-radius: 6px; }
 
-        /* --- ІНШІ ЕКРАНИ (РЕЄСТРАЦІЯ / ТАРИФИ) --- */
-        .input-group { margin-bottom: 22px; }
-        .input-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 9px; color: var(--text-muted); }
-        .input-field, .select-field {
-            width: 100%; padding: 18px; border-radius: 16px;
-            border: 2px solid #eef0f5; background: var(--surface);
-            font-size: 16px; color: var(--text-main); outline: none; transition: 0.2s;
-        }
-        .input-field:focus, .select-field:focus { border-color: var(--primary); background: white; }
+        /* --- ЕКРАН 3: ФОРМА БІЗНЕСУ (ПЛИТКИ) --- */
+        .form-section-title { font-size: 30px; font-weight: 900; margin: 10px 0 20px; letter-spacing: -0.5px;}
+        
+        .form-card { background: var(--surface); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
+        .form-card-header { font-size: 16px; font-weight: 800; margin-bottom: 15px; color: #111418; display: flex; align-items: center; gap: 8px;}
+        .form-card-header i { color: var(--primary); }
 
-        .plan-card {
-            border: 2px solid #eef0f5; border-radius: 22px; padding: 25px;
-            margin-bottom: 18px; cursor: pointer; transition: 0.2s; position: relative;
-        }
-        .plan-card.selected { border-color: var(--primary); background: rgba(255, 118, 82, 0.05); }
+        .input-group { margin-bottom: 15px; }
+        .input-group:last-child { margin-bottom: 0; }
+        .input-field, .select-field, .textarea-field { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #edf1f7; background: #fbfcfd; font-size: 15px; color: var(--text-main); outline: none; transition: 0.2s; }
+        .input-field:focus, .select-field:focus, .textarea-field:focus { border-color: var(--primary); background: white; }
+        .textarea-field { resize: none; height: 80px; }
+
+        /* Інтерактивна карта Leaflet */
+        #real-map { width: 100%; height: 180px; border-radius: 12px; margin-top: 15px; border: 2px solid #edf1f7; z-index: 1; }
+        
+        /* Чіпи для вибору оплати */
+        .chips-container { display: flex; gap: 10px; flex-wrap: wrap; }
+        .chip { padding: 12px 18px; border-radius: 12px; border: 2px solid #edf1f7; background: #fbfcfd; font-weight: 600; font-size: 14px; color: var(--text-muted); cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px;}
+        .chip.active { background: rgba(255, 118, 82, 0.1); border-color: var(--primary); color: var(--primary); }
+
+        /* --- ЕКРАН 4: ТАРИФИ ТА ТРІАЛ --- */
+        .plan-card { border: 2px solid #edf1f7; border-radius: 22px; padding: 25px; margin-bottom: 18px; cursor: pointer; transition: 0.3s; position: relative; background: var(--surface); box-shadow: 0 4px 15px rgba(0,0,0,0.02);}
+        .plan-card.selected { border-color: var(--primary); background: #ffffff; box-shadow: 0 10px 30px rgba(255, 118, 82, 0.15); transform: translateY(-2px);}
         .plan-title { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
-        .plan-price { font-size: 26px; font-weight: 900; color: var(--primary); margin-bottom: 20px; }
-        .plan-features { list-style: none; font-size: 15px; color: var(--text-muted); }
-        .plan-features li { margin-bottom: 10px; display: flex; align-items: center; gap: 10px;}
+        .plan-price { font-size: 28px; font-weight: 900; color: var(--text-main); margin-bottom: 20px; }
+        .plan-price span { font-size: 15px; color: var(--text-muted); font-weight: 600;}
+        .plan-features { list-style: none; font-size: 14px; color: var(--text-muted); }
+        .plan-features li { margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-weight: 500;}
         .plan-features i { color: var(--acc-green); font-size: 16px; }
         
-        .badge-pro { position: absolute; top: -14px; right: 25px; background: #111418; color: white; padding: 5px 15px; border-radius: 12px; font-size: 13px; font-weight: bold; }
+        .badge-pro { position: absolute; top: -12px; right: 20px; background: linear-gradient(90deg, var(--primary), #ffa07a); color: white; padding: 6px 16px; border-radius: 12px; font-size: 12px; font-weight: 800; box-shadow: 0 4px 10px rgba(255, 118, 82, 0.3);}
+        
+        .trial-text { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 15px; font-weight: 600;}
+        .trial-text i { color: var(--primary); margin-right: 5px;}
     </style>
 </head>
 <body>
 
     <div id="screen-splash" class="screen active">
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div class="dp-logo">
-                <div class="dp-logo-bg"></div>
-                <div class="dp-logo-icon">D<span>Pro</span></div>
-            </div>
+            <div class="dp-logo"><div class="dp-logo-bg"></div><div class="dp-logo-icon">D<span>Pro</span></div></div>
             <div class="splash-title">DelivePro</div>
             <div class="splash-subtitle">Еволюція твоєї доставки.<br>Швидко. Просто. Прибутково.</div>
         </div>
-        <div class="btn-container" style="width:100%;">
-            <button class="btn" onclick="nextScreen('screen-onboard')">Приєднатися</button>
-        </div>
+        <div class="btn-container"><button class="btn" onclick="nextScreen('screen-onboard')">Приєднатися</button></div>
     </div>
 
     <div id="screen-onboard" class="screen">
-        <div class="carousel-container" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-            <div class="carousel" id="carousel">
-                <div class="slide">
-                    <div class="title-block">
-                        <div class="title">Повний контроль</div>
-                        <div class="desc">Уся аналітика вашого закладу в реальному часі. Бачте кожне замовлення миттєво.</div>
-                    </div>
-                    <div class="visual-container">
-                        <div class="visual-mock">
-                            <div class="mock-line" style="width:40%; background:var(--primary);"></div>
-                            <div class="mock-chart"></div>
-                            <div style="display:flex; gap:10px;">
-                                <div class="mock-line" style="flex:1;"></div>
-                                <div class="mock-line" style="flex:1;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="slide">
-                    <div class="title-block">
-                        <div class="title">Керуй кур'єрами</div>
-                        <div class="desc">Відстежуй їх на карті, призначай замовлення та автоматично рахуй виплати.</div>
-                    </div>
-                    <div class="visual-container">
-                        <div class="visual-mock" style="padding:0;">
-                            <div class="mock-map">
-                                <div class="mock-pin"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="slide">
-                    <div class="title-block">
-                        <div class="title">Збільшуй прибуток</div>
-                        <div class="desc">Глибока аналітика, експорт звітів та налаштування Basic/Pro підписок.</div>
-                    </div>
-                    <div class="visual-container">
-                        <div class="visual-mock" style="border:none; background:transparent; box-shadow:none;">
-                            <i class="fa-solid fa-chart-pie" style="font-size: 100px; color:var(--acc-blue); margin: auto;"></i>
-                        </div>
-                    </div>
-                </div>
+        <div class="carousel" id="carousel">
+            <div class="slide">
+                <div class="title-block"><div class="title">Повний контроль</div><div class="desc">Уся аналітика вашого закладу в реальному часі. Бачте кожне замовлення миттєво.</div></div>
+                <div class="visual-container"><i class="fa-solid fa-chart-line" style="font-size: 80px; color: var(--primary); opacity: 0.2;"></i></div>
+            </div>
+            <div class="slide">
+                <div class="title-block"><div class="title">Керуй кур'єрами</div><div class="desc">Відстежуй їх на карті, призначай замовлення та рахуй виплати.</div></div>
+                <div class="visual-container"><i class="fa-solid fa-map-location-dot" style="font-size: 80px; color: var(--primary); opacity: 0.2;"></i></div>
             </div>
         </div>
-
-        <div style="padding: 0 25px 20px;">
-            <div class="dots">
-                <div class="dot active"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-            </div>
+        <div class="btn-container" style="background: transparent;">
+            <div class="dots"><div class="dot active"></div><div class="dot"></div></div>
             <button class="btn" id="btn-onboard-next" onclick="nextSlide()">Далі</button>
         </div>
     </div>
 
     <div id="screen-register" class="screen">
-        <div class="title" style="text-align: left; margin-top: 20px; font-size: 32px;">Почнемо</div>
-        <div class="desc" style="text-align: left; margin-bottom: 40px;">Введіть базові налаштування вашого закладу.</div>
+        <div class="form-section-title">Профіль бізнесу</div>
         
-        <div style="flex: 1;">
+        <div class="form-card">
+            <div class="form-card-header"><i class="fa-solid fa-store"></i> Основне</div>
             <div class="input-group">
-                <label>Назва закладу / Бренду</label>
-                <input type="text" id="biz-name" class="input-field" placeholder="Наприклад: Hero Sushi" required>
+                <input type="text" id="biz-name" class="input-field" placeholder="Назва закладу (напр. Hero Sushi)" required>
             </div>
             <div class="input-group">
-                <label>Основна валюта</label>
+                <textarea id="biz-desc" class="textarea-field" placeholder="Короткий опис закладу..."></textarea>
+            </div>
+            <div class="input-group">
+                <input type="tel" id="biz-phone" class="input-field" placeholder="Контактний телефон">
+            </div>
+        </div>
+
+        <div class="form-card">
+            <div class="form-card-header"><i class="fa-solid fa-location-dot"></i> Локація</div>
+            <div class="input-group">
+                <input type="text" id="biz-country" class="input-field" placeholder="Країна (напр. Польща)" style="margin-bottom: 10px;">
+                <input type="text" id="biz-city" class="input-field" placeholder="Місто (напр. Варшава)" style="margin-bottom: 10px;">
+                <input type="text" id="biz-street" class="input-field" placeholder="Вулиця та номер будинку">
+            </div>
+            <div class="input-group">
+                <input type="number" id="biz-radius" class="input-field" placeholder="Радіус доставки (км)" value="5">
+            </div>
+            
+            <div id="real-map"></div>
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px;">
+                <i class="fa-solid fa-hand-pointer"></i> Посуньте карту, щоб вказати точний центр доставки
+            </div>
+        </div>
+
+        <div class="form-card">
+            <div class="form-card-header"><i class="fa-solid fa-wallet"></i> Фінанси та Оплата</div>
+            <div class="input-group">
                 <select id="biz-currency" class="select-field">
                     <option value="zł">Польський Злотий (zł)</option>
                     <option value="₴">Українська Гривня (₴)</option>
                     <option value="€">Євро (€)</option>
                 </select>
             </div>
-            <div class="input-group">
-                <label>Радіус доставки (км)</label>
-                <input type="number" id="biz-radius" class="input-field" value="5" min="1" max="50">
+            <div class="input-group" style="margin-top: 15px;">
+                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 8px;">Приймаємо до оплати:</label>
+                <div class="chips-container">
+                    <div class="chip active" onclick="toggleChip(this)" data-val="cash"><i class="fa-solid fa-money-bill"></i> Готівка</div>
+                    <div class="chip active" onclick="toggleChip(this)" data-val="terminal"><i class="fa-solid fa-credit-card"></i> Термінал</div>
+                    <div class="chip" onclick="toggleChip(this)" data-val="online"><i class="fa-solid fa-globe"></i> Онлайн</div>
+                </div>
             </div>
         </div>
         
         <div class="btn-container">
-            <button class="btn" onclick="validateForm()">Вибрати тариф</button>
+            <button class="btn" onclick="validateForm()">Продовжити до Тарифів</button>
         </div>
     </div>
 
     <div id="screen-pricing" class="screen">
-        <div class="title" style="text-align: left; margin-top: 20px; font-size: 32px;">Ваш рівень</div>
-        <div class="desc" style="text-align: left; margin-bottom: 30px;">Оберіть тариф, який підходить вашому бізнесу.</div>
+        <div class="form-section-title">Оберіть підписку</div>
         
-        <div style="flex: 1; overflow-y: auto; padding: 10px 5px;">
+        <div>
             <div class="plan-card" id="plan-basic" onclick="selectPlan('basic')">
                 <div class="plan-title">Basic</div>
-                <div class="plan-price">29.99 zł <span style="font-size: 15px; color: var(--text-muted);">/ міс</span></div>
+                <div class="plan-price">29.99 zł <span>/ міс</span></div>
                 <ul class="plan-features">
                     <li><i class="fa-solid fa-check"></i> До 2 кур'єрів у штаті</li>
                     <li><i class="fa-solid fa-check"></i> Базова статистика</li>
@@ -265,103 +201,137 @@
             <div class="plan-card selected" id="plan-pro" onclick="selectPlan('pro')">
                 <div class="badge-pro">ПОПУЛЯРНИЙ</div>
                 <div class="plan-title">Pro</div>
-                <div class="plan-price">59.99 zł <span style="font-size: 15px; color: var(--text-muted);">/ міс</span></div>
+                <div class="plan-price">59.99 zł <span>/ міс</span></div>
                 <ul class="plan-features">
                     <li><i class="fa-solid fa-check"></i> <b>Необмежена</b> кількість кур'єрів</li>
                     <li><i class="fa-solid fa-check"></i> Глибока аналітика та експорт</li>
-                    <li><i class="fa-solid fa-check"></i> Налаштування адмінів (менеджерів)</li>
-                    <li><i class="fa-solid fa-check"></i> Пріоритетна підтримка</li>
+                    <li><i class="fa-solid fa-check"></i> Управління менеджерами</li>
                 </ul>
             </div>
         </div>
         
         <div class="btn-container">
-            <button class="btn" id="btn-pay" onclick="finishAndPay()">Оплатити 59.99 zł</button>
+            <button class="btn btn-trial" id="btn-pay" onclick="finishAndPay()">Почати 7 днів безкоштовно</button>
+            <div class="trial-text"><i class="fa-solid fa-shield-halved"></i> Скасувати можна в будь-який момент</div>
         </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand(); // Відкриваємо на весь екран
+        tg.expand(); 
 
         let selectedPlan = 'pro';
-        let planPrices = { 'basic': '29.99 zł', 'pro': '59.99 zł' };
         let currentSlide = 0;
-        const totalSlides = 3;
+        const totalSlides = 2;
 
-        // Функція перемикання екранів (Плавна анімація)
+        // --- ЛОГІКА КАРТИ (Leaflet.js) ---
+        let map = null;
+        let marker = null;
+
+        function initMap() {
+            if (map !== null) return; // Уникаємо подвійної ініціалізації
+            
+            // Центруємо карту по замовчуванню (Варшава)
+            map = L.map('real-map').setView([52.2297, 21.0122], 13);
+
+            // Підключаємо безкоштовні тайли OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            // Додаємо маркер
+            marker = L.marker([52.2297, 21.0122]).addTo(map);
+
+            // Коли карту рухають, маркер залишається по центру
+            map.on('move', function () {
+                marker.setLatLng(map.getCenter());
+            });
+        }
+
+        // --- ЛОГІКА ІНТЕРФЕЙСУ ---
         function nextScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+            window.scrollTo(0, 0);
+
+            // Ініціалізуємо карту тільки тоді, коли відкривається форма реєстрації
+            if (screenId === 'screen-register') {
+                if (!map) initMap();
+                // Даємо браузеру час відмалювати блок, щоб карта не була "сплюснутою"
+                setTimeout(() => { map.invalidateSize(); }, 400);
+            }
         }
 
-        // Логіка каруселі (Onboarding)
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
                 currentSlide++;
-                updateSlider();
+                document.getElementById('carousel').style.transform = `translateX(-${currentSlide * 100}%)`;
+                document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+                if (currentSlide === totalSlides - 1) document.getElementById('btn-onboard-next').innerText = "Налаштувати бізнес";
             } else {
-                // Якщо слайди закінчилися, переходимо до реєстрації
                 nextScreen('screen-register');
             }
         }
 
-        function updateSlider() {
-            const carousel = document.getElementById('carousel');
-            const dots = document.querySelectorAll('.dot');
-            const btnNext = document.getElementById('btn-onboard-next');
-
-            // Пересуваємо карусель
-            carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
-
-            // Оновлюємо крапки
-            dots.forEach((dot, index) => {
-                dot.classList.toggle('active', index === currentSlide);
-            });
-
-            // Якщо останній слайд, міняємо текст кнопки
-            if (currentSlide === totalSlides - 1) {
-                btnNext.innerText = "Створити бізнес";
-            } else {
-                btnNext.innerText = "Далі";
-            }
+        function toggleChip(element) {
+            element.classList.toggle('active');
         }
 
-        // Перевірка форми перед переходом до тарифів
         function validateForm() {
             const name = document.getElementById('biz-name').value.trim();
-            if (!name) {
-                tg.showAlert("💳 Будь ласка, введіть назву вашого закладу.");
+            const city = document.getElementById('biz-city').value.trim();
+            if (!name || !city) {
+                tg.showAlert("📍 Будь ласка, введіть хоча б Назву закладу та Місто.");
                 return;
             }
             nextScreen('screen-pricing');
         }
 
-        // Вибір тарифу
         function selectPlan(plan) {
             selectedPlan = plan;
             document.getElementById('plan-basic').classList.remove('selected');
             document.getElementById('plan-pro').classList.remove('selected');
             document.getElementById(`plan-${plan}`).classList.add('selected');
-            
-            document.getElementById('btn-pay').innerText = `Оплатити ${planPrices[plan]}`;
         }
 
-        // Фінал: Збір даних і відправка в Telegram бота
         function finishAndPay() {
+            // Збираємо активні типи оплат
+            let paymentMethods = [];
+            document.querySelectorAll('.chip.active').forEach(chip => {
+                paymentMethods.push(chip.getAttribute('data-val'));
+            });
+
+            // Зчитуємо координати маркера з карти!
+            let lat = 0, lng = 0;
+            if (map) {
+                let center = map.getCenter();
+                lat = center.lat;
+                lng = center.lng;
+            }
+
             const bizData = {
                 action: "register_business",
                 name: document.getElementById('biz-name').value.trim(),
-                currency: document.getElementById('biz-currency').value,
+                desc: document.getElementById('biz-desc').value.trim(),
+                phone: document.getElementById('biz-phone').value.trim(),
+                location: {
+                    country: document.getElementById('biz-country').value.trim(),
+                    city: document.getElementById('biz-city').value.trim(),
+                    street: document.getElementById('biz-street').value.trim(),
+                    lat: lat, // Географічна широта
+                    lng: lng  // Географічна довгота
+                },
                 radius: document.getElementById('biz-radius').value,
-                plan: selectedPlan
+                currency: document.getElementById('biz-currency').value,
+                payments: paymentMethods,
+                plan: selectedPlan,
+                trial: true
             };
 
-            // Кнопка завантаження
-            document.getElementById('btn-pay').innerText = "💳 Обробка...";
+            document.getElementById('btn-pay').innerText = "⏳ Створюємо кабінет...";
             document.getElementById('btn-pay').style.opacity = "0.7";
 
-            // Відправляємо JSON рядок боту
+            // Відправляємо всі дані (включно з координатами) в Python-бот
             tg.sendData(JSON.stringify(bizData));
         }
     </script>
