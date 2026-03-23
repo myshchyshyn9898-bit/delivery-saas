@@ -37,14 +37,14 @@
         /* --- СТИЛІ ДЛЯ АВТОЗАПОВНЕННЯ АДРЕСИ --- */
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #edf1f7; z-index: 1000;
-            max-height: 200px; overflow-y: auto; display: none; margin-top: 5px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #edf1f7; z-index: 1000;
+            max-height: 220px; overflow-y: auto; display: none; margin-top: 5px;
         }
-        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #f4f7f9; cursor: pointer; font-size: 14px; line-height: 1.4; }
+        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #edf1f7; cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; }
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:active { background: #f4f7f9; }
-        .addr-main { font-weight: 700; color: #111418; }
-        .addr-sub { font-size: 11px; color: #8a8d91; margin-top: 2px; }
+        .addr-main { font-weight: 800; color: #111418; margin-bottom: 2px; }
+        .addr-sub { font-size: 12px; color: #8a8d91; }
     </style>
 </head>
 <body>
@@ -66,7 +66,7 @@
             <div class="card-header"><i class="fa-solid fa-location-dot"></i> Адреса доставки</div>
             
             <div class="input-group">
-                <input type="text" id="address-street" class="input-field" placeholder="Вулиця та номер будинку (почніть вводити...)" autocomplete="off">
+                <input type="text" id="address-street" class="input-field" placeholder="Вулиця та номер (почніть вводити...)" autocomplete="off">
                 <div id="autocomplete-list" class="autocomplete-list"></div>
             </div>
 
@@ -119,15 +119,9 @@
         let supabaseClient = null;
         if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Змінні для збереження координат бізнесу (щоб шукати адреси поруч)
-        let bizLat = null;
-        let bizLon = null;
-
         // --- ІНІЦІАЛІЗАЦІЯ ---
         async function initForm() {
             if (!bizId || !supabaseClient) return;
-
-            // 1. Завантажуємо кур'єрів
             const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
             const select = document.getElementById('courier-select');
             if (couriers && couriers.length > 0) {
@@ -136,22 +130,9 @@
             } else {
                 select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
             }
-
-            // 2. Дістаємо координати бізнесу для автозаповнення адрес!
-            const { data: biz } = await supabaseClient.from('businesses').select('address').eq('id', bizId).single();
-            if (biz && biz.address) {
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(biz.address)}&format=json&limit=1`);
-                    const loc = await res.json();
-                    if (loc && loc.length > 0) {
-                        bizLat = loc[0].lat;
-                        bizLon = loc[0].lon;
-                    }
-                } catch(e) {}
-            }
         }
 
-        // --- ЛОГІКА АВТОЗАПОВНЕННЯ АДРЕС (Photon API) ---
+        // --- ЛОГІКА АВТОЗАПОВНЕННЯ АДРЕС (NOMINATIM ПОЛЬЩА) ---
         const addrInput = document.getElementById('address-street');
         const addrList = document.getElementById('autocomplete-list');
         let timeout = null;
@@ -159,43 +140,61 @@
         addrInput.addEventListener('input', function() {
             clearTimeout(timeout);
             const query = this.value.trim();
-            if (query.length < 3) { addrList.style.display = 'none'; return; }
+            
+            if (query.length < 3) { 
+                addrList.style.display = 'none'; 
+                return; 
+            }
+
+            // Показуємо користувачу, що йде пошук
+            addrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо адресу...</div>';
+            addrList.style.display = 'block';
 
             timeout = setTimeout(async () => {
-                // Якщо маємо координати бізнесу - шукаємо навколо нього! Інакше просто по Польщі.
-                let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=pl`;
-                if (bizLat && bizLon) url += `&lat=${bizLat}&lon=${bizLon}`; 
+                // Використовуємо надійний Nominatim з прив'язкою до Польщі (countrycodes=pl)
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl`;
                 
                 try {
-                    const res = await fetch(url);
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'pl' } });
                     const data = await res.json();
                     
-                    if (data.features && data.features.length > 0) {
-                        addrList.innerHTML = '';
-                        data.features.forEach(f => {
-                            const p = f.properties;
-                            // Формуємо красиву назву: "Вулиця Номер"
-                            const mainText = `${p.street || p.name || ''} ${p.housenumber || ''}`.trim();
-                            if (!mainText) return;
+                    if (data && data.length > 0) {
+                        addrList.innerHTML = ''; // Очищаємо список
+                        
+                        data.forEach(item => {
+                            const addr = item.address;
+                            if (!addr) return;
+
+                            // Витягуємо вулицю і номер
+                            const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
+                            const house = addr.house_number || '';
+                            const mainText = `${road} ${house}`.trim();
                             
-                            const subText = `${p.city || p.town || p.village || ''}, ${p.state || ''}`.trim();
+                            // Витягуємо місто
+                            const city = addr.city || addr.town || addr.village || '';
+                            const subText = city ? `${city}, Польща` : 'Польща';
+                            
+                            if (!road) return; // Пропускаємо, якщо немає назви вулиці
                             
                             const div = document.createElement('div');
                             div.className = 'autocomplete-item';
                             div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
                             
+                            // Що відбувається при кліку на підказку
                             div.onclick = function() {
-                                addrInput.value = `${mainText}, ${p.city || p.town || ''}`.replace(/, $/, '');
+                                // Записуємо "Вулиця Номер, Місто"
+                                addrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
                                 addrList.style.display = 'none';
                             };
                             addrList.appendChild(div);
                         });
-                        addrList.style.display = 'block';
                     } else {
-                        addrList.style.display = 'none';
+                        addrList.innerHTML = '<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>';
                     }
-                } catch(e) { addrList.style.display = 'none'; }
-            }, 400); // Чекаємо 400мс після останнього натискання, щоб не спамити сервер
+                } catch(e) { 
+                    addrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
+                }
+            }, 600); // Чекаємо 600мс (щоб не блокувало API за спам)
         });
 
         // Ховаємо список при кліку поза ним
@@ -225,8 +224,8 @@
                 client_name: document.getElementById('client-name').value.trim() || "Клієнт",
                 client_phone: document.getElementById('client-phone').value.trim(),
                 address: street, // ТЕПЕР ТУТ ТІЛЬКИ ЧИСТА ВУЛИЦЯ ДЛЯ GPS!
-                apt: apt,        // Квартира летить окремо
-                code: code,      // Домофон летить окремо
+                apt: apt,        
+                code: code,      
                 amount: amount,
                 payment: selectedPayment,
                 courier_id: courierId,
