@@ -60,6 +60,10 @@
         .role-courier { color: var(--primary); background: rgba(255, 118, 82, 0.1); }
         .role-manager { color: var(--info); background: rgba(74, 108, 247, 0.1); }
         
+        /* КНОПКА ЗВІЛЬНЕННЯ ПЕРСОНАЛУ */
+        .btn-delete-staff { background: rgba(255, 59, 48, 0.1); color: #ff3b30; border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .btn-delete-staff:active { transform: scale(0.9); background: rgba(255, 59, 48, 0.2); }
+
         .btn-invite { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
         .btn-invite:active { transform: scale(0.96); }
         .btn-invite.manager { background: var(--info); box-shadow: 0 8px 20px rgba(74, 108, 247, 0.25); }
@@ -89,7 +93,6 @@
         .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
-        /* СТИЛІ ДЛЯ БЛЮРУ PRO-ФІЧ */
         .pro-locked { position: relative; overflow: hidden; }
         .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
         .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); }
@@ -232,7 +235,15 @@
     </div>
 
     <script>
-        // ГЛОБАЛЬНІ ЗМІННІ ДЛЯ ЛІМІТІВ
+        // --- ГЛОБАЛЬНІ ЗМІННІ (БАЗА) ---
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+        
+        let botUsername = "rz_city_bot"; 
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        let currencySymbol = "zł";
+
         let currentPlanIsPro = true;
         let currentCouriersCount = 0;
         let currentManagersCount = 0;
@@ -258,26 +269,19 @@
         function actionRenew() { alert("Підписку продовжено."); }
         function actionCancel() { if(confirm("Ви впевнені?")) { alert("Підписку скасовано."); closeSubscriptionMenu(); } }
 
-        let botUsername = "rz_city_bot"; 
-        const urlParams = new URLSearchParams(window.location.search);
-        const bizId = urlParams.get('biz_id');
-        let currencySymbol = "zł";
-
-        // ЛОГІКА ПЕРЕВІРКИ ЛІМІТІВ ПРИ ГЕНЕРАЦІЇ ПОСИЛАННЯ
         function generateInvite(role) {
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
             
-            // Якщо тариф BASIC, перевіряємо ліміти!
             if (!currentPlanIsPro) {
                 if (role === 'courier' && currentCouriersCount >= 2) {
                     alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.\nОновіть тариф до PRO для безліміту.");
                     openSubscriptionMenu();
-                    return; // Зупиняємо генерацію
+                    return; 
                 }
                 if (role === 'manager' && currentManagersCount >= 1) {
                     alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.\nОновіть тариф до PRO для безліміту.");
                     openSubscriptionMenu();
-                    return; // Зупиняємо генерацію
+                    return; 
                 }
             }
 
@@ -288,14 +292,32 @@
             });
         }
 
+        // НОВА ФУНКЦІЯ: Видалення працівника
+        async function removeStaff(staffUserId, staffName) {
+            if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?\nВін назавжди втратить доступ до бота доставки.`)) {
+                return;
+            }
+            
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                const { error } = await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
+                
+                if (error) throw error;
+                
+                // Перезавантажуємо дашборд, щоб оновити список і лічильники
+                loadDashboardData(); 
+            } catch (err) {
+                console.error(err);
+                alert("❌ Виникла помилка при видаленні працівника.");
+            }
+        }
+
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
-                const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
                 if (!window.supabase) return;
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -306,7 +328,6 @@
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
 
-                    // Зберігаємо тариф в глобальну змінну для лімітів
                     currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
@@ -349,7 +370,7 @@
                         const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
                         lockedCards.forEach(id => {
                             const el = document.getElementById(id);
-                            if (el) {
+                            if (el && !el.querySelector('.pro-overlay')) {
                                 el.classList.add('pro-locked');
                                 const overlay = document.createElement('div');
                                 overlay.className = 'pro-overlay';
@@ -380,7 +401,9 @@
                             if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
                             
                             if (o.completed_at && o.created_at) {
-                                let diffMs = new Date(o.completed_at) - new Date(o.created_at);
+                                let timeCreated = new Date(o.created_at);
+                                let timeCompleted = new Date(o.completed_at);
+                                let diffMs = timeCompleted - timeCreated;
                                 if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; }
                             }
                         }
@@ -417,18 +440,15 @@
                     });
                 }
 
-                // --- ЗАВАНТАЖЕННЯ ТА ПІДРАХУНОК ПЕРСОНАЛУ ---
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
                 
-                // Обнуляємо лічильники перед підрахунком
                 currentCouriersCount = 0;
                 currentManagersCount = 0;
 
                 if (staff && staff.length > 0) {
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
-                        // Рахуємо скільки в нас кого
                         if (person.role === 'courier') currentCouriersCount++;
                         if (person.role === 'manager') currentManagersCount++;
 
@@ -436,6 +456,7 @@
                         let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер';
                         let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
                         
+                        // ДОДАНО: Кнопка видалення у HTML карточки
                         staffBox.innerHTML += `
                             <div class="team-card">
                                 <div class="team-avatar">${avatar}</div>
@@ -443,9 +464,14 @@
                                     <div class="team-name">${person.name || 'Працівник'}</div>
                                     <div class="team-role ${roleClass}">${roleName}</div>
                                 </div>
+                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${person.name}')" title="Звільнити">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
                             </div>
                         `;
                     });
+                } else {
+                    staffBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">В команді поки нікого немає.</div>';
                 }
 
                 setTimeout(() => {
@@ -454,12 +480,17 @@
                         centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length;
                         centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length;
                     }
+                    
+                    // Якщо карта вже існує, не створюємо її заново, щоб не було помилок
+                    if (window.dashboardMap) {
+                        window.dashboardMap.remove();
+                    }
 
-                    let map = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
-                    L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(map);
+                    window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
+                    L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
 
                     if (heatData.length > 0) {
-                        L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(map);
+                        L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap);
                     }
                 }, 500);
 
