@@ -106,6 +106,8 @@ def create_new_order(order_data: dict):
         "amount": order_data.get('amount'),
         "pay_type": order_data.get('payment'),
         "comment": order_data.get('comment'),
+        "lat": order_data.get('lat'),  # <--- ДОДАНО: Широта
+        "lon": order_data.get('lon'),  # <--- ДОДАНО: Довгота
         "status": "pending" # Статус: очікує прийняття кур'єром
     }
     
