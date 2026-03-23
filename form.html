@@ -10,26 +10,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root {
-            --bg-color: #f4f7f9;
-            --text-main: #111418;
-            --text-muted: #8a8d91;
-            --primary: #ff7652;
-            --surface: #ffffff;
-            --info: #4A6CF7;
-        }
-
+        :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --info: #4A6CF7; }
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 30px; } 
 
         .header { background: var(--surface); padding: 20px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 800; }
-        
         .container { padding: 20px; }
-        
         .card { background: var(--surface); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
         .card-header { font-size: 15px; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
 
-        .input-group { margin-bottom: 15px; }
+        .input-group { margin-bottom: 15px; position: relative; }
         .input-field, .select-field { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #edf1f7; background: #fbfcfd; font-size: 15px; color: var(--text-main); outline: none; transition: 0.2s; }
         .input-field:focus, .select-field:focus { border-color: var(--primary); background: white; }
         
@@ -43,11 +33,23 @@
 
         .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block; margin-top: 15px;}
         .btn-submit:active { transform: scale(0.96); }
+
+        /* --- СТИЛІ ДЛЯ АВТОЗАПОВНЕННЯ АДРЕСИ --- */
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #edf1f7; z-index: 1000;
+            max-height: 200px; overflow-y: auto; display: none; margin-top: 5px;
+        }
+        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #f4f7f9; cursor: pointer; font-size: 14px; line-height: 1.4; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:active { background: #f4f7f9; }
+        .addr-main { font-weight: 700; color: #111418; }
+        .addr-sub { font-size: 11px; color: #8a8d91; margin-top: 2px; }
     </style>
 </head>
 <body>
 
-    <div class="header">📝 Нове замовлення <span style="color: #4CAF50; font-size: 12px;">v3</span></div>
+    <div class="header">📝 Нове замовлення</div>
 
     <div class="container">
         <div class="card">
@@ -62,9 +64,12 @@
 
         <div class="card">
             <div class="card-header"><i class="fa-solid fa-location-dot"></i> Адреса доставки</div>
+            
             <div class="input-group">
-                <input type="text" id="address-street" class="input-field" placeholder="Вулиця (напр. Marszałkowska 12)">
+                <input type="text" id="address-street" class="input-field" placeholder="Вулиця та номер будинку (почніть вводити...)" autocomplete="off">
+                <div id="autocomplete-list" class="autocomplete-list"></div>
             </div>
+
             <div class="row">
                 <div class="input-group" style="margin-bottom: 0;"><input type="text" id="address-apt" class="input-field" placeholder="Квартира"></div>
                 <div class="input-group" style="margin-bottom: 0;"><input type="text" id="address-code" class="input-field" placeholder="Домофон"></div>
@@ -76,14 +81,11 @@
             <div class="input-group">
                 <input type="number" id="order-amount" class="input-field" placeholder="Сума замовлення (zł)">
             </div>
-            
             <div class="chips-container">
                 <input type="radio" id="pay-cash" name="payment" value="cash" checked>
                 <label class="chip" for="pay-cash">Готівка</label>
-
                 <input type="radio" id="pay-terminal" name="payment" value="terminal">
                 <label class="chip" for="pay-terminal">Термінал</label>
-
                 <input type="radio" id="pay-online" name="payment" value="online">
                 <label class="chip" for="pay-online">Онлайн</label>
             </div>
@@ -107,27 +109,106 @@
 
     <script>
         let tg = null;
-        try {
-            if (window.Telegram && window.Telegram.WebApp) {
-                tg = window.Telegram.WebApp;
-                tg.expand();
-            }
-        } catch(e) {}
+        try { if (window.Telegram && window.Telegram.WebApp) { tg = window.Telegram.WebApp; tg.expand(); } } catch(e) {}
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-        
-        // ВАЖЛИВО: Назвали supabaseClient, щоб не зламати скрипт!
         let supabaseClient = null;
-        if (window.supabase) {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Змінні для збереження координат бізнесу (щоб шукати адреси поруч)
+        let bizLat = null;
+        let bizLon = null;
+
+        // --- ІНІЦІАЛІЗАЦІЯ ---
+        async function initForm() {
+            if (!bizId || !supabaseClient) return;
+
+            // 1. Завантажуємо кур'єрів
+            const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
+            const select = document.getElementById('courier-select');
+            if (couriers && couriers.length > 0) {
+                select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
+                couriers.forEach(c => { select.innerHTML += `<option value="${c.user_id || c.tg_id}">🛵 ${c.name}</option>`; });
+            } else {
+                select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
+            }
+
+            // 2. Дістаємо координати бізнесу для автозаповнення адрес!
+            const { data: biz } = await supabaseClient.from('businesses').select('address').eq('id', bizId).single();
+            if (biz && biz.address) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(biz.address)}&format=json&limit=1`);
+                    const loc = await res.json();
+                    if (loc && loc.length > 0) {
+                        bizLat = loc[0].lat;
+                        bizLon = loc[0].lon;
+                    }
+                } catch(e) {}
+            }
         }
 
+        // --- ЛОГІКА АВТОЗАПОВНЕННЯ АДРЕС (Photon API) ---
+        const addrInput = document.getElementById('address-street');
+        const addrList = document.getElementById('autocomplete-list');
+        let timeout = null;
+
+        addrInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const query = this.value.trim();
+            if (query.length < 3) { addrList.style.display = 'none'; return; }
+
+            timeout = setTimeout(async () => {
+                // Якщо маємо координати бізнесу - шукаємо навколо нього! Інакше просто по Польщі.
+                let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=5&lang=pl`;
+                if (bizLat && bizLon) url += `&lat=${bizLat}&lon=${bizLon}`; 
+                
+                try {
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    
+                    if (data.features && data.features.length > 0) {
+                        addrList.innerHTML = '';
+                        data.features.forEach(f => {
+                            const p = f.properties;
+                            // Формуємо красиву назву: "Вулиця Номер"
+                            const mainText = `${p.street || p.name || ''} ${p.housenumber || ''}`.trim();
+                            if (!mainText) return;
+                            
+                            const subText = `${p.city || p.town || p.village || ''}, ${p.state || ''}`.trim();
+                            
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                            
+                            div.onclick = function() {
+                                addrInput.value = `${mainText}, ${p.city || p.town || ''}`.replace(/, $/, '');
+                                addrList.style.display = 'none';
+                            };
+                            addrList.appendChild(div);
+                        });
+                        addrList.style.display = 'block';
+                    } else {
+                        addrList.style.display = 'none';
+                    }
+                } catch(e) { addrList.style.display = 'none'; }
+            }, 400); // Чекаємо 400мс після останнього натискання, щоб не спамити сервер
+        });
+
+        // Ховаємо список при кліку поза ним
+        document.addEventListener('click', function(e) {
+            if (e.target !== addrInput && e.target !== addrList) addrList.style.display = 'none';
+        });
+
+        // --- ВІДПРАВКА ЗАМОВЛЕННЯ ---
         window.submitOrder = function() {
             const street = document.getElementById('address-street').value.trim();
+            const apt = document.getElementById('address-apt').value.trim();
+            const code = document.getElementById('address-code').value.trim();
+            
             const amount = document.getElementById('order-amount').value.trim();
             const courierId = document.getElementById('courier-select').value;
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
@@ -143,8 +224,9 @@
                 biz_id: bizId,
                 client_name: document.getElementById('client-name').value.trim() || "Клієнт",
                 client_phone: document.getElementById('client-phone').value.trim(),
-                address: street + (document.getElementById('address-apt').value ? `, кв. ${document.getElementById('address-apt').value}` : ''),
-                code: document.getElementById('address-code').value.trim(),
+                address: street, // ТЕПЕР ТУТ ТІЛЬКИ ЧИСТА ВУЛИЦЯ ДЛЯ GPS!
+                apt: apt,        // Квартира летить окремо
+                code: code,      // Домофон летить окремо
                 amount: amount,
                 payment: selectedPayment,
                 courier_id: courierId,
@@ -153,54 +235,11 @@
 
             document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
             
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify(orderData));
-            } else {
-                console.log("Тестовий режим (дані для бота):", orderData);
-            }
+            if (tg && tg.sendData) tg.sendData(JSON.stringify(orderData));
+            else console.log("Тестовий режим:", orderData);
         };
 
-        window.loadCouriers = async function() {
-            const select = document.getElementById('courier-select');
-            
-            if (!bizId) {
-                select.innerHTML = '<option value="">❌ Помилка: Немає bizId</option>';
-                return;
-            }
-            if (!supabaseClient) {
-                select.innerHTML = '<option value="">❌ Помилка: Supabase не підключено</option>';
-                return;
-            }
-
-            try {
-                const { data: couriers, error } = await supabaseClient
-                    .from('staff')
-                    .select('*')
-                    .eq('business_id', bizId)
-                    .eq('role', 'courier');
-
-                if (error) {
-                    console.error("БД:", error);
-                    select.innerHTML = `<option value="">❌ БД: ${error.message}</option>`;
-                    return;
-                }
-
-                if (couriers && couriers.length > 0) {
-                    select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
-                    couriers.forEach(c => {
-                        let uid = c.user_id || c.tg_id;
-                        select.innerHTML += `<option value="${uid}">🛵 ${c.name}</option>`;
-                    });
-                } else {
-                    select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
-                }
-            } catch (err) {
-                console.error("Збій:", err);
-                select.innerHTML = `<option value="">❌ Збій: ${err.message}</option>`;
-            }
-        };
-
-        window.loadCouriers();
+        initForm();
     </script>
 </body>
 </html>
