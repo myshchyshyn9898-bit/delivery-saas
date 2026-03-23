@@ -49,7 +49,7 @@
 </head>
 <body>
 
-    <div class="header">📝 Нове замовлення v4</div>
+    <div class="header">📝 Нове замовлення</div>
 
     <div class="container">
         <div class="card">
@@ -119,7 +119,7 @@
         let supabaseClient = null;
         if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- ІНІЦІАЛІЗАЦІЯ (ЗМІНЕНО ТІЛЬКИ ЦЕ: ДОДАНО СТАТУСИ КУР'ЄРІВ) ---
+        // --- ІНІЦІАЛІЗАЦІЯ (СТАТУСИ КУР'ЄРІВ) ---
         async function initForm() {
             if (!bizId || !supabaseClient) return;
             try {
@@ -135,7 +135,10 @@
                     couriers.forEach(c => { 
                         const isBusy = busyIds.includes(String(c.user_id));
                         const statusText = isBusy ? "🟡 В дорозі" : "🟢 Вільний";
-                        select.innerHTML += `<option value="${c.user_id || c.tg_id}">🛵 ${c.name} (${statusText})</option>`; 
+                        const textColor = isBusy ? "#FFB020" : "#34C759";
+                        
+                        // Кур'єр доступний для вибору в будь-якому випадку!
+                        select.innerHTML += `<option value="${c.user_id || c.tg_id}" style="color: ${textColor};">🛵 ${c.name} (${statusText})</option>`; 
                     });
                 } else {
                     select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
@@ -143,13 +146,17 @@
             } catch(e) { console.error(e); }
         }
 
-        // --- ЛОГІКА АВТОЗАПОВНЕННЯ АДРЕС (NOMINATIM ПОЛЬЩА) ---
+        // --- ЛОГІКА АВТОЗАПОВНЕННЯ ТА ЗБЕРЕЖЕННЯ КООРДИНАТ ---
         const addrInput = document.getElementById('address-street');
         const addrList = document.getElementById('autocomplete-list');
         let timeout = null;
+        
+        let selectedLat = null; // Повернули для теплової карти
+        let selectedLon = null; // Повернули для теплової карти
 
         addrInput.addEventListener('input', function() {
             clearTimeout(timeout);
+            selectedLat = null; selectedLon = null;
             const query = this.value.trim();
             
             if (query.length < 3) { 
@@ -157,12 +164,10 @@
                 return; 
             }
 
-            // Показуємо користувачу, що йде пошук
             addrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо адресу...</div>';
             addrList.style.display = 'block';
 
             timeout = setTimeout(async () => {
-                // Використовуємо надійний Nominatim з прив'язкою до Польщі (countrycodes=pl)
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl`;
                 
                 try {
@@ -170,31 +175,28 @@
                     const data = await res.json();
                     
                     if (data && data.length > 0) {
-                        addrList.innerHTML = ''; // Очищаємо список
+                        addrList.innerHTML = ''; 
                         
                         data.forEach(item => {
                             const addr = item.address;
                             if (!addr) return;
 
-                            // Витягуємо вулицю і номер
                             const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
                             const house = addr.house_number || '';
                             const mainText = `${road} ${house}`.trim();
-                            
-                            // Витягуємо місто
                             const city = addr.city || addr.town || addr.village || '';
                             const subText = city ? `${city}, Польща` : 'Польща';
                             
-                            if (!road) return; // Пропускаємо, якщо немає назви вулиці
+                            if (!road) return; 
                             
                             const div = document.createElement('div');
                             div.className = 'autocomplete-item';
                             div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
                             
-                            // Що відбувається при кліку на підказку
                             div.onclick = function() {
-                                // Записуємо "Вулиця Номер, Місто"
                                 addrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
+                                selectedLat = parseFloat(item.lat); // Захоплюємо!
+                                selectedLon = parseFloat(item.lon); // Захоплюємо!
                                 addrList.style.display = 'none';
                             };
                             addrList.appendChild(div);
@@ -205,10 +207,9 @@
                 } catch(e) { 
                     addrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
                 }
-            }, 600); // Чекаємо 600мс (щоб не блокувало API за спам)
+            }, 600); 
         });
 
-        // Ховаємо список при кліку поза ним
         document.addEventListener('click', function(e) {
             if (e.target !== addrInput && e.target !== addrList) addrList.style.display = 'none';
         });
@@ -234,13 +235,15 @@
                 biz_id: bizId,
                 client_name: document.getElementById('client-name').value.trim() || "Клієнт",
                 client_phone: document.getElementById('client-phone').value.trim(),
-                address: street, // ТЕПЕР ТУТ ТІЛЬКИ ЧИСТА ВУЛИЦЯ ДЛЯ GPS!
+                address: street, 
                 apt: apt,        
                 code: code,      
                 amount: amount,
                 payment: selectedPayment,
                 courier_id: courierId,
-                comment: document.getElementById('order-comment').value.trim()
+                comment: document.getElementById('order-comment').value.trim(),
+                lat: selectedLat, // Координати летять у базу!
+                lon: selectedLon  // Координати летять у базу!
             };
 
             document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
