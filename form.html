@@ -119,17 +119,28 @@
         let supabaseClient = null;
         if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- ІНІЦІАЛІЗАЦІЯ ---
+        // --- ІНІЦІАЛІЗАЦІЯ (ЗМІНЕНО ТІЛЬКИ ЦЕ: ДОДАНО СТАТУСИ КУР'ЄРІВ) ---
         async function initForm() {
             if (!bizId || !supabaseClient) return;
-            const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
-            const select = document.getElementById('courier-select');
-            if (couriers && couriers.length > 0) {
-                select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
-                couriers.forEach(c => { select.innerHTML += `<option value="${c.user_id || c.tg_id}">🛵 ${c.name}</option>`; });
-            } else {
-                select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
-            }
+            try {
+                const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
+                const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
+                
+                const select = document.getElementById('courier-select');
+                if (couriers && couriers.length > 0) {
+                    select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
+                    
+                    const busyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
+                    
+                    couriers.forEach(c => { 
+                        const isBusy = busyIds.includes(String(c.user_id));
+                        const statusText = isBusy ? "🟡 В дорозі" : "🟢 Вільний";
+                        select.innerHTML += `<option value="${c.user_id || c.tg_id}">🛵 ${c.name} (${statusText})</option>`; 
+                    });
+                } else {
+                    select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
+                }
+            } catch(e) { console.error(e); }
         }
 
         // --- ЛОГІКА АВТОЗАПОВНЕННЯ АДРЕС (NOMINATIM ПОЛЬЩА) ---
