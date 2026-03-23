@@ -168,40 +168,47 @@
             }
         };
 
-        // --- ЗАВАНТАЖЕННЯ КУР'ЄРІВ ---
+        // --- ЗАВАНТАЖЕННЯ КУР'ЄРІВ (БРОНЕБІЙНА ВЕРСІЯ) ---
         window.loadCouriers = async function() {
             const select = document.getElementById('courier-select');
-            if (!bizId || !supabase) {
-                select.innerHTML = '<option value="">Помилка: Немає ID бізнесу</option>';
+            
+            if (!bizId) {
+                select.innerHTML = '<option value="">❌ Помилка: Немає bizId в посиланні</option>';
+                return;
+            }
+            if (!supabase) {
+                select.innerHTML = '<option value="">❌ Помилка: Supabase не підключено</option>';
                 return;
             }
 
             try {
-                // ТУТ ВАЖЛИВО: Просимо user_id замість id (якщо база так налаштована) або обидва
+                // Використовуємо select('*'), щоб не було помилок через відсутні колонки!
                 const { data: couriers, error } = await supabase
                     .from('staff')
-                    .select('id, user_id, name')
+                    .select('*')
                     .eq('business_id', bizId)
                     .eq('role', 'courier');
 
                 if (error) {
                     console.error("Помилка Supabase:", error);
-                    select.innerHTML = '<option value="">❌ Помилка завантаження</option>';
+                    // Якщо база видає помилку, ми побачимо її текст прямо в телефоні!
+                    select.innerHTML = `<option value="">❌ БД: ${error.message}</option>`;
                     return;
                 }
 
                 if (couriers && couriers.length > 0) {
                     select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
                     couriers.forEach(c => {
-                        // Використовуємо user_id для відправки боту
-                        select.innerHTML += `<option value="${c.user_id}">🛵 ${c.name}</option>`;
+                        // Беремо user_id (або tg_id, якщо раптом колонка ще не оновилася)
+                        let uid = c.user_id || c.tg_id;
+                        select.innerHTML += `<option value="${uid}">🛵 ${c.name}</option>`;
                     });
                 } else {
-                    select.innerHTML = '<option value="">В штаті немає кур\'єрів!</option>';
+                    select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
                 }
             } catch (err) {
                 console.error("Помилка JS:", err);
-                select.innerHTML = '<option value="">❌ Помилка скрипта</option>';
+                select.innerHTML = `<option value="">❌ Збій: ${err.message}</option>`;
             }
         };
 
