@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Нове замовлення </title>
+    <title>Нове замовлення</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -36,16 +36,9 @@
         .row { display: flex; gap: 10px; }
         .row > div { flex: 1; }
 
-        /* --- НОВА БРОНЕБІЙНА СИСТЕМА ЧІПІВ (CSS Only) --- */
         .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
-        
-        /* Ховаємо стандартні круглі перемикачі */
         .chips-container input[type="radio"] { display: none; }
-        
-        /* Стиль для етикетки (виглядає як наша кнопка) */
         .chip { padding: 10px 14px; border-radius: 10px; border: 2px solid #edf1f7; background: #fbfcfd; font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: 0.2s; flex: 1; text-align: center; display: block; }
-        
-        /* Магія CSS: якщо прихований radio обраний (checked), то сусідній з ним .chip змінює колір! */
         .chips-container input[type="radio"]:checked + .chip { background: rgba(255, 118, 82, 0.1); border-color: var(--primary); color: var(--primary); }
 
         .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block; margin-top: 15px;}
@@ -54,7 +47,7 @@
 </head>
 <body>
 
-    <div class="header">📝 Нове замовлення v2</div>
+    <div class="header">📝 Нове замовлення <span style="color: #4CAF50; font-size: 12px;">v3</span></div>
 
     <div class="container">
         <div class="card">
@@ -113,7 +106,6 @@
     </div>
 
     <script>
-        // Ініціалізація Telegram
         let tg = null;
         try {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -125,19 +117,19 @@
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
 
-        // Ключі Supabase
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-        let supabase = null;
-        if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // ВАЖЛИВО: Назвали supabaseClient, щоб не зламати скрипт!
+        let supabaseClient = null;
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
 
-        // --- ВІДПРАВКА ЗАМОВЛЕННЯ ---
         window.submitOrder = function() {
             const street = document.getElementById('address-street').value.trim();
             const amount = document.getElementById('order-amount').value.trim();
             const courierId = document.getElementById('courier-select').value;
-            
-            // Зчитуємо, яка системна радіокнопка зараз обрана
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
 
             if (!street || !amount || !courierId) {
@@ -154,7 +146,7 @@
                 address: street + (document.getElementById('address-apt').value ? `, кв. ${document.getElementById('address-apt').value}` : ''),
                 code: document.getElementById('address-code').value.trim(),
                 amount: amount,
-                payment: selectedPayment, // Передаємо вибраний метод
+                payment: selectedPayment,
                 courier_id: courierId,
                 comment: document.getElementById('order-comment').value.trim()
             };
@@ -168,30 +160,27 @@
             }
         };
 
-        // --- ЗАВАНТАЖЕННЯ КУР'ЄРІВ (БРОНЕБІЙНА ВЕРСІЯ) ---
         window.loadCouriers = async function() {
             const select = document.getElementById('courier-select');
             
             if (!bizId) {
-                select.innerHTML = '<option value="">❌ Помилка: Немає bizId в посиланні</option>';
+                select.innerHTML = '<option value="">❌ Помилка: Немає bizId</option>';
                 return;
             }
-            if (!supabase) {
+            if (!supabaseClient) {
                 select.innerHTML = '<option value="">❌ Помилка: Supabase не підключено</option>';
                 return;
             }
 
             try {
-                // Використовуємо select('*'), щоб не було помилок через відсутні колонки!
-                const { data: couriers, error } = await supabase
+                const { data: couriers, error } = await supabaseClient
                     .from('staff')
                     .select('*')
                     .eq('business_id', bizId)
                     .eq('role', 'courier');
 
                 if (error) {
-                    console.error("Помилка Supabase:", error);
-                    // Якщо база видає помилку, ми побачимо її текст прямо в телефоні!
+                    console.error("БД:", error);
                     select.innerHTML = `<option value="">❌ БД: ${error.message}</option>`;
                     return;
                 }
@@ -199,7 +188,6 @@
                 if (couriers && couriers.length > 0) {
                     select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
                     couriers.forEach(c => {
-                        // Беремо user_id (або tg_id, якщо раптом колонка ще не оновилася)
                         let uid = c.user_id || c.tg_id;
                         select.innerHTML += `<option value="${uid}">🛵 ${c.name}</option>`;
                     });
@@ -207,7 +195,7 @@
                     select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
                 }
             } catch (err) {
-                console.error("Помилка JS:", err);
+                console.error("Збій:", err);
                 select.innerHTML = `<option value="">❌ Збій: ${err.message}</option>`;
             }
         };
