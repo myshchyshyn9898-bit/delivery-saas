@@ -47,7 +47,7 @@ async def show_main_menu(message: types.Message, context: dict):
 
 # --- ГЕНЕРАТОР КАРТИ (МАРШРУТ) ---
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
-    """Синхронна функція для малювання карти (твій старий код, адаптований з User-Agent)"""
+    """Синхронна функція для малювання карти"""
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
         headers = {'User-Agent': 'DeliveProBot/1.0'} # Захист від блокування OSRM
@@ -64,10 +64,13 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        m = StaticMap(600, 300, 10)
-        m.add_line(Line(coordinates, 'blue', 4))
-        m.add_marker(CircleMarker((start_lon, start_lat), 'green', 12)) # Точка бізнесу (Зелена)
-        m.add_marker(CircleMarker((end_lon, end_lat), 'red', 12))       # Точка клієнта (Червона)
+        # НОВА ЛОГІКА: Використовуємо красиву світлу карту від CartoDB (без блокувань!)
+        tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+        m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
+        
+        m.add_line(Line(coordinates, '#4A6CF7', 5)) # Робимо лінію трохи товщою і стильного синього кольору
+        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) # Точка бізнесу (Зелена)
+        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       # Точка клієнта (Червона)
         
         image = m.render()
         image.save(filename)
@@ -80,7 +83,6 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     """Асинхронна обгортка для отримання координат і запуску генератора"""
     c_lat, c_lon = None, None
     
-    # 1. Шукаємо координати клієнта (СЮДИ ВЖЕ ПРИЛІТАЄ ЧИСТА ВУЛИЦЯ БЕЗ КВАРТИРИ!)
     print(f"Шукаємо координати клієнта для: {client_address}")
     encoded_client = urllib.parse.quote(client_address)
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
@@ -94,11 +96,10 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
             else:
                 print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
 
-    if not c_lat: return None # Якщо адресу не знайдено
+    if not c_lat: return None 
 
-    # 2. Шукаємо координати бізнесу
     biz_address = biz.get('address') if biz else None
-    b_lat, b_lon = 50.04132, 21.99901 # Дефолт: центр Жешува
+    b_lat, b_lon = 50.04132, 21.99901 
     
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
@@ -110,7 +111,6 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
                     b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
                     print(f"Знайдено бізнес: {b_lat}, {b_lon}")
 
-    # 3. Малюємо карту у фоновому потоці (щоб бот не зависав)
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
     return result_file
@@ -217,7 +217,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
                 builder.adjust(1, 1)
 
-                # ГЕНЕРУЄМО КАРТУ З СИНЬОЮ ЛІНІЄЮ (В OSRM летить чиста address, без квартир!)
+                # ГЕНЕРУЄМО КАРТУ З СИНЬОЮ ЛІНІЄЮ
                 map_filename = await get_route_map_file(biz, data['address'], short_id)
                 
                 if map_filename and os.path.exists(map_filename):
