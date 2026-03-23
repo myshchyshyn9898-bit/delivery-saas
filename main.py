@@ -47,14 +47,20 @@ async def show_main_menu(message: types.Message, context: dict):
 
 # --- ГЕНЕРАТОР КАРТИ (МАРШРУТ) ---
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
-    """Синхронна функція для малювання карти (твій старий код, адаптований)"""
+    """Синхронна функція для малювання карти (твій старий код, адаптований з User-Agent)"""
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
-        r = requests.get(url, timeout=15)
-        if r.status_code != 200: return None
+        headers = {'User-Agent': 'DeliveProBot/1.0'} # Захист від блокування OSRM
+        r = requests.get(url, headers=headers, timeout=15)
+        
+        if r.status_code != 200: 
+            print(f"OSRM помилка: {r.status_code} - {r.text}")
+            return None
         
         route_data = r.json()
-        if not route_data.get('routes'): return None
+        if not route_data.get('routes'): 
+            print("OSRM не знайшов маршрут")
+            return None
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
@@ -74,29 +80,35 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     """Асинхронна обгортка для отримання координат і запуску генератора"""
     c_lat, c_lon = None, None
     
-    # 1. Шукаємо координати клієнта
+    # 1. Шукаємо координати клієнта (СЮДИ ВЖЕ ПРИЛІТАЄ ЧИСТА ВУЛИЦЯ БЕЗ КВАРТИРИ!)
+    print(f"Шукаємо координати клієнта для: {client_address}")
     encoded_client = urllib.parse.quote(client_address)
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
     async with aiohttp.ClientSession() as session:
         async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
             c_data = await resp.json()
-            if c_data:
+            if c_data and len(c_data) > 0:
                 c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+                print(f"Знайдено клієнта: {c_lat}, {c_lon}")
+            else:
+                print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
 
     if not c_lat: return None # Якщо адресу не знайдено
 
-    # 2. Шукаємо координати бізнесу (або ставимо дефолтні, якщо адреса не вказана)
+    # 2. Шукаємо координати бізнесу
     biz_address = biz.get('address') if biz else None
-    b_lat, b_lon = 50.04132, 21.99901 # Дефолт: центр Жешува (щоб не падало, якщо адреси немає)
+    b_lat, b_lon = 50.04132, 21.99901 # Дефолт: центр Жешува
     
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
-        async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-            b_data = await resp.json()
-            if b_data:
-                b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+        async with aiohttp.ClientSession() as session:
+            async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                b_data = await resp.json()
+                if b_data and len(b_data) > 0:
+                    b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+                    print(f"Знайдено бізнес: {b_lat}, {b_lon}")
 
     # 3. Малюємо карту у фоновому потоці (щоб бот не зависав)
     filename = f"map_{order_id}.png"
@@ -173,9 +185,17 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 pay_type_ua = "Готівка" if data['payment'] == "cash" else ("Термінал" if data['payment'] == "terminal" else "Онлайн")
                 pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
                 
+                # --- ФОРМУЄМО ДЕТАЛІ АДРЕСИ ОКРЕМО ---
+                details_parts = []
+                if data.get('apt'): details_parts.append(f"Кв/Оф: {data['apt']}")
+                if data.get('code'): details_parts.append(f"Домофон: {data['code']}")
+                details_text = f"🏢 **Деталі:** {', '.join(details_parts)}\n" if details_parts else ""
+
+                # --- БЕЗПЕЧНИЙ GPS ЛІНК ДЛЯ КНОПКИ ---
                 address_query = urllib.parse.quote(data['address'])
                 route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
                 
+                # Чистимо телефон
                 phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data['client_phone']))
                 if not phone_clean.startswith('+'): phone_clean = '+' + phone_clean
                 
@@ -184,11 +204,12 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
                     f"Статус: 🟢 Активний\n\n"
                     f"📍 **Адреса:** {data['address']}\n"
+                    f"{details_text}"
                     f"📞 **Тел:** {phone_clean} ({data['client_name']})\n"
                     f"{pay_icon} **Оплата:** {data['amount']} zł ({pay_type_ua})\n"
                 )
                 
-                if data['comment']:
+                if data.get('comment'):
                     courier_text += f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n🗣 **Коментар:** {data['comment']}\n"
 
                 builder = InlineKeyboardBuilder()
@@ -196,11 +217,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
                 builder.adjust(1, 1)
 
-                # ГЕНЕРУЄМО КАРТУ З СИНЬОЮ ЛІНІЄЮ (ФАЙЛ)
+                # ГЕНЕРУЄМО КАРТУ З СИНЬОЮ ЛІНІЄЮ (В OSRM летить чиста address, без квартир!)
                 map_filename = await get_route_map_file(biz, data['address'], short_id)
                 
                 if map_filename and os.path.exists(map_filename):
-                    # Відправляємо фото з картою
                     photo = FSInputFile(map_filename)
                     await bot.send_photo(
                         chat_id=data['courier_id'], 
@@ -209,9 +229,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                         reply_markup=builder.as_markup(),
                         parse_mode="Markdown"
                     )
-                    os.remove(map_filename) # Очищаємо пам'ять сервера
+                    os.remove(map_filename)
                 else:
-                    # Якщо карта чомусь не згенерувалася, відправляємо звичайним текстом
                     await bot.send_message(
                         chat_id=data['courier_id'], 
                         text=courier_text, 
@@ -255,7 +274,6 @@ async def finish_order_handler(callback: types.CallbackQuery):
     try:
         db.update_order_status(order_id, "completed")
         
-        # Перевіряємо чи це повідомлення з картинкою чи звичайне
         if callback.message.caption:
             new_text = callback.message.caption.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
             await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
