@@ -50,7 +50,7 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
     """Синхронна функція для малювання карти"""
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
-        headers = {'User-Agent': 'DeliveProBot/1.0'} # Захист від блокування OSRM
+        headers = {'User-Agent': 'DeliveProBot/1.0'}
         r = requests.get(url, headers=headers, timeout=15)
         
         if r.status_code != 200: 
@@ -64,13 +64,12 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        # НОВА ЛОГІКА: Використовуємо красиву світлу карту від CartoDB (без блокувань!)
         tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
         m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
         
-        m.add_line(Line(coordinates, '#4A6CF7', 5)) # Робимо лінію трохи товщою і стильного синього кольору
-        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) # Точка бізнесу (Зелена)
-        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       # Точка клієнта (Червона)
+        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
         
         image = m.render()
         image.save(filename)
@@ -92,7 +91,6 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
             c_data = await resp.json()
             if c_data and len(c_data) > 0:
                 c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-                print(f"Знайдено клієнта: {c_lat}, {c_lon}")
             else:
                 print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
 
@@ -109,7 +107,6 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
                 b_data = await resp.json()
                 if b_data and len(b_data) > 0:
                     b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
-                    print(f"Знайдено бізнес: {b_lat}, {b_lon}")
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
@@ -182,20 +179,20 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 short_id = str(order_id)[:6].upper()
                 biz = db.get_business_by_id(data['biz_id'])
                 
+                # ПЕРЕВІРКА ТАРИФУ БІЗНЕСУ (PRO чи BASIC)
+                is_pro = biz.get('plan', 'basic').lower() == 'pro'
+                
                 pay_type_ua = "Готівка" if data['payment'] == "cash" else ("Термінал" if data['payment'] == "terminal" else "Онлайн")
                 pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
                 
-                # --- ФОРМУЄМО ДЕТАЛІ АДРЕСИ ОКРЕМО ---
                 details_parts = []
                 if data.get('apt'): details_parts.append(f"Кв/Оф: {data['apt']}")
                 if data.get('code'): details_parts.append(f"Домофон: {data['code']}")
                 details_text = f"🏢 **Деталі:** {', '.join(details_parts)}\n" if details_parts else ""
 
-                # --- БЕЗПЕЧНИЙ GPS ЛІНК ДЛЯ КНОПКИ ---
                 address_query = urllib.parse.quote(data['address'])
                 route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
                 
-                # Чистимо телефон
                 phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data['client_phone']))
                 if not phone_clean.startswith('+'): phone_clean = '+' + phone_clean
                 
@@ -213,23 +210,37 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     courier_text += f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n🗣 **Коментар:** {data['comment']}\n"
 
                 builder = InlineKeyboardBuilder()
-                builder.button(text="🗺 Відкрити маршрут", url=route_url)
-                builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
-                builder.adjust(1, 1)
-
-                # ГЕНЕРУЄМО КАРТУ З СИНЬОЮ ЛІНІЄЮ
-                map_filename = await get_route_map_file(biz, data['address'], short_id)
                 
-                if map_filename and os.path.exists(map_filename):
-                    photo = FSInputFile(map_filename)
-                    await bot.send_photo(
-                        chat_id=data['courier_id'], 
-                        photo=photo,
-                        caption=courier_text, 
-                        reply_markup=builder.as_markup(),
-                        parse_mode="Markdown"
-                    )
-                    os.remove(map_filename)
+                # Якщо PRO - додаємо кнопку маршруту
+                if is_pro:
+                    builder.button(text="🗺 Відкрити маршрут", url=route_url)
+                
+                # Кнопку "Доставлено" додаємо завжди
+                builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
+                builder.adjust(1) # Кнопки будуть стовпчиком
+
+                # Якщо PRO - генеруємо та відправляємо карту
+                if is_pro:
+                    map_filename = await get_route_map_file(biz, data['address'], short_id)
+                    
+                    if map_filename and os.path.exists(map_filename):
+                        photo = FSInputFile(map_filename)
+                        await bot.send_photo(
+                            chat_id=data['courier_id'], 
+                            photo=photo,
+                            caption=courier_text, 
+                            reply_markup=builder.as_markup(),
+                            parse_mode="Markdown"
+                        )
+                        os.remove(map_filename)
+                    else:
+                        await bot.send_message(
+                            chat_id=data['courier_id'], 
+                            text=courier_text, 
+                            reply_markup=builder.as_markup(),
+                            parse_mode="Markdown"
+                        )
+                # Якщо BASIC - відправляємо тільки текст без карти
                 else:
                     await bot.send_message(
                         chat_id=data['courier_id'], 
@@ -274,10 +285,10 @@ async def finish_order_handler(callback: types.CallbackQuery):
     try:
         db.update_order_status(order_id, "completed")
         
-        if callback.message.caption:
+        if callback.message.caption: # Якщо повідомлення з картинкою (PRO)
             new_text = callback.message.caption.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
             await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
-        else:
+        elif callback.message.text: # Якщо повідомлення тільки з текстом (BASIC або помилка карти)
             new_text = callback.message.text.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
             await callback.message.edit_text(text=new_text, reply_markup=None, parse_mode="Markdown")
             
