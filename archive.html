@@ -3,138 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Архів замовлень</title>
+    <title>Активні та Архів</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 15px; margin: 0; color: #1c1e21; }
-        .container { max-width: 500px; margin: 0 auto; }
-        h3 { text-align: center; color: #ff7652; margin-bottom: 20px; }
+        :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --success: #34C759; --info: #4A6CF7; --danger: #ff3b30; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 30px; } 
+
+        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 800; }
+        .container { padding: 15px; }
+
+        .stat-card { background: var(--surface); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 15px; border-left: 5px solid var(--primary); }
+        .stat-title { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-val { font-size: 26px; font-weight: 900; color: var(--text-main); }
+
+        .tabs { display: flex; background: #edf1f7; border-radius: 14px; padding: 5px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; font-weight: 700; color: var(--text-muted); border-radius: 10px; transition: 0.2s; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
+        .tab-btn i { font-size: 16px; opacity: 0.7; transition: 0.2s; }
+        .tab-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .tab-btn.active i { color: var(--primary); opacity: 1; }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .order-card { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #edf1f7; padding-bottom: 10px; }
+        .order-id { font-size: 15px; font-weight: 900; color: var(--text-main); }
+        .badge { padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .badge-pending { background: rgba(255, 176, 32, 0.1); color: #FFB020; }
+        .badge-completed { background: rgba(52, 199, 89, 0.1); color: var(--success); }
+
+        .order-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .order-icon { width: 24px; color: var(--text-muted); text-align: center; font-size: 14px; }
         
-        /* Вкладки */
-        .tabs { display: flex; background: #e4e6eb; border-radius: 12px; padding: 4px; margin-bottom: 15px; }
-        .tab { flex: 1; text-align: center; padding: 10px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; color: #65676b; }
-        .tab.active { background: white; color: #ff7652; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-        /* Картка замовлення */
-        .card { background: white; border-radius: 18px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #ebedf0; }
-        .card-header { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #f0f2f5; padding-bottom: 8px; }
-        .order-id { font-weight: 800; color: #ff7652; }
-        .order-date { font-size: 12px; color: #8a8d91; }
+        .order-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #edf1f7; }
+        .order-price { font-size: 18px; font-weight: 900; color: var(--primary); }
+        .order-payment { font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
         
-        .info { font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
-        .info i { width: 16px; color: #8a8d91; text-align: center; }
-        .info b { color: #1c1e21; }
-
-        .price-tag { margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; }
-        .pay-method { font-size: 12px; font-weight: 700; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; }
-        .pay-cash { background: #e6ffec; color: #2da44e; }
-        .pay-terminal { background: #eaf5ff; color: #1a73e8; }
-        .amount { font-weight: 800; font-size: 16px; }
-
-        #total-box { background: white; padding: 15px; border-radius: 15px; margin-bottom: 15px; border-left: 5px solid #ff7652; }
-        #loading { text-align: center; padding: 50px; color: #8a8d91; }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-icon { font-size: 40px; margin-bottom: 15px; opacity: 0.5; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h3 id="page-title">Архів</h3>
+    <div class="header">📋 Замовлення</div>
 
-    <div id="total-box">
-        <div style="font-size: 12px; color: #8a8d91;">Зароблено за період:</div>
-        <div id="total-sum" style="font-size: 24px; font-weight: 800; color: #1c1e21;">0.00 zł</div>
+    <div class="container">
+        <div class="stat-card">
+            <div class="stat-title">Зароблено за сьогодні</div>
+            <div class="stat-val" id="total-earned">0.00 zł</div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab-btn active" onclick="switchTab('active')">
+                <i class="fa-solid fa-bars-progress"></i> Активні
+            </div>
+            <div class="tab-btn" onclick="switchTab('closed')">
+                <i class="fa-solid fa-box-archive"></i> Закриті
+            </div>
+        </div>
+
+        <div id="tab-active" class="tab-content active">
+            <div id="list-active">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Завантаження...</div>
+            </div>
+        </div>
+
+        <div id="tab-closed" class="tab-content">
+            <div id="list-closed">
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Завантаження...</div>
+            </div>
+        </div>
     </div>
 
-    <div class="tabs" id="tabs-container">
-        <div class="tab active" onclick="switchTab('closed')">🔴 Закриті</div>
-        <div class="tab" onclick="switchTab('active')" id="active-tab-btn">🟢 Активні</div>
-    </div>
+    <script>
+        // Ініціалізація Telegram Web App
+        try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.expand(); } catch(e) {}
 
-    <div id="loading"><i class="fa-solid fa-spinner fa-spin"></i> Завантаження...</div>
-    <div id="orders-list"></div>
-</div>
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        let currencySymbol = "zł";
 
-<script>
-    let tg = window.Telegram.WebApp;
-    const urlParams = new URLSearchParams(window.location.search);
-    const bizId = urlParams.get('biz_id');
-    const userRole = urlParams.get('role'); // Додаємо роль у посилання з бота
+        // Налаштування Supabase
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+        let supabase = null;
+        if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Твій повний ключ
-    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Перемикання вкладок
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
 
-    let currentStatus = 'closed';
+        // Отримання іконки для методу оплати
+        function getPaymentInfo(type) {
+            if (type === 'cash') return { text: 'Готівка', icon: 'fa-money-bill-wave', color: '#34C759' };
+            if (type === 'terminal') return { text: 'Термінал', icon: 'fa-credit-card', color: '#4A6CF7' };
+            return { text: 'Онлайн', icon: 'fa-globe', color: '#a855f7' };
+        }
 
-    function switchTab(status) {
-        currentStatus = status;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-        loadOrders();
-    }
-
-    async function loadOrders() {
-        const list = document.getElementById('orders-list');
-        const loader = document.getElementById('loading');
-        list.innerHTML = '';
-        loader.style.display = 'block';
-
-        try {
-            let query = db.from('orders')
-                .select('*')
-                .eq('business_id', bizId)
-                .eq('status', currentStatus)
-                .order('created_at', { ascending: false });
-
-            const { data, error } = await query;
-            if (error) throw error;
-
-            loader.style.display = 'none';
-            let total = 0;
-
-            if (data.length === 0) {
-                list.innerHTML = '<div style="text-align:center; padding:20px; color:#8a8d91;">Замовлень немає</div>';
+        // Завантаження даних
+        async function loadArchiveData() {
+            if (!bizId || !supabase) {
+                document.getElementById('list-active').innerHTML = '<div class="empty-state">Помилка підключення</div>';
+                return;
             }
 
-            data.forEach(order => {
-                const date = new Date(order.created_at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                const amt = parseFloat(order.amount || 0);
-                total += amt;
+            try {
+                // 1. Отримуємо валюту бізнесу
+                const { data: biz } = await supabase.from('businesses').select('currency').eq('id', bizId).single();
+                if (biz) currencySymbol = biz.currency || "zł";
 
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="card-header">
-                        <span class="order-id">${order.order_id}</span>
-                        <span class="order-date">${date}</span>
-                    </div>
-                    <div class="info"><i class="fa-solid fa-location-dot"></i> <b>${order.address}</b></div>
-                    <div class="info"><i class="fa-solid fa-user-ninja"></i> Кур'єр: ${order.courier || '—'}</div>
-                    <div class="price-tag">
-                        <span class="pay-method pay-${order.pay_type}">${order.pay_type}</span>
-                        <span class="amount">${amt.toFixed(2)} zł</span>
-                    </div>
-                `;
-                list.appendChild(card);
-            });
+                // 2. Отримуємо весь персонал (щоб знати імена кур'єрів)
+                const { data: staff } = await supabase.from('staff').select('user_id, name').eq('business_id', bizId);
+                const couriersMap = {};
+                if (staff) {
+                    staff.forEach(s => { couriersMap[s.user_id] = s.name; });
+                }
 
-            document.getElementById('total-sum').innerText = total.toFixed(2) + " zł";
+                // 3. Отримуємо ВСІ замовлення за сьогодні
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const { data: orders } = await supabase.from('orders')
+                    .select('*')
+                    .eq('business_id', bizId)
+                    .gte('created_at', today.toISOString())
+                    .order('created_at', { ascending: false });
 
-        } catch (err) {
-            console.error(err);
-            loader.innerText = "Помилка завантаження";
+                const listActive = document.getElementById('list-active');
+                const listClosed = document.getElementById('list-closed');
+                
+                listActive.innerHTML = '';
+                listClosed.innerHTML = '';
+                
+                let totalEarned = 0;
+                let activeCount = 0;
+                let closedCount = 0;
+
+                if (orders && orders.length > 0) {
+                    orders.forEach(order => {
+                        const shortId = String(order.id).substring(0, 6).toUpperCase();
+                        const courierName = couriersMap[order.courier_id] || 'Невідомий кур\'єр';
+                        const payInfo = getPaymentInfo(order.pay_type);
+                        
+                        let detailsStr = '';
+                        if (order.apt) detailsStr += `Кв: ${order.apt} `;
+                        if (order.code) detailsStr += `Код: ${order.code}`;
+                        
+                        // Шаблон картки замовлення
+                        const cardHtml = `
+                            <div class="order-card">
+                                <div class="order-header">
+                                    <div class="order-id">#${shortId}</div>
+                                    <div class="badge ${order.status === 'completed' ? 'badge-completed' : 'badge-pending'}">
+                                        ${order.status === 'completed' ? 'ДОСТАВЛЕНО' : 'В ДОРОЗІ'}
+                                    </div>
+                                </div>
+                                
+                                <div class="order-row">
+                                    <div class="order-icon"><i class="fa-solid fa-location-dot"></i></div>
+                                    <div>
+                                        <div>${order.address}</div>
+                                        ${detailsStr ? `<div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">${detailsStr}</div>` : ''}
+                                    </div>
+                                </div>
+                                
+                                <div class="order-row">
+                                    <div class="order-icon"><i class="fa-solid fa-motorcycle"></i></div>
+                                    <div>${courierName}</div>
+                                </div>
+
+                                <div class="order-footer">
+                                    <div class="order-payment">
+                                        <i class="fa-solid ${payInfo.icon}" style="color: ${payInfo.color}"></i> ${payInfo.text}
+                                    </div>
+                                    <div class="order-price">${parseFloat(order.amount).toFixed(2)} ${currencySymbol}</div>
+                                </div>
+                            </div>
+                        `;
+
+                        // Розподіляємо по вкладках
+                        if (order.status === 'completed') {
+                            listClosed.innerHTML += cardHtml;
+                            totalEarned += parseFloat(order.amount || 0);
+                            closedCount++;
+                        } else {
+                            listActive.innerHTML += cardHtml;
+                            activeCount++;
+                        }
+                    });
+                }
+
+                // Виводимо загальну суму
+                document.getElementById('total-earned').innerText = `${totalEarned.toFixed(2)} ${currencySymbol}`;
+
+                // Якщо порожньо
+                if (activeCount === 0) {
+                    listActive.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fa-solid fa-box-open"></i></div>
+                            <div>Немає активних замовлень</div>
+                        </div>`;
+                }
+                if (closedCount === 0) {
+                    listClosed.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon"><i class="fa-solid fa-check-double"></i></div>
+                            <div>Сьогодні ще немає закритих замовлень</div>
+                        </div>`;
+                }
+
+            } catch (error) {
+                console.error("Помилка БД:", error);
+                document.getElementById('list-active').innerHTML = '<div class="empty-state">Помилка завантаження даних</div>';
+            }
         }
-    }
 
-    // Якщо це кур'єр — ховаємо вкладку "Активні"
-    if (userRole === 'courier') {
-        document.getElementById('active-tab-btn').style.display = 'none';
-        document.getElementById('page-title').innerText = "Моя історія";
-    }
-
-    loadOrders();
-</script>
+        // Запускаємо при старті
+        loadArchiveData();
+    </script>
 </body>
 </html>
