@@ -89,42 +89,11 @@
         .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
-        /* --- СТИЛІ ДЛЯ БЛЮРУ PRO-ФІЧ --- */
-        .pro-locked {
-            position: relative;
-            overflow: hidden;
-        }
-        .pro-locked > *:not(.pro-overlay) {
-            filter: blur(5px);
-            opacity: 0.6;
-            pointer-events: none;
-            user-select: none;
-        }
-        .pro-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.3);
-            z-index: 5;
-            cursor: pointer;
-            backdrop-filter: blur(1px);
-        }
-        .pro-badge {
-            background: linear-gradient(135deg, #a855f7, #6366f1);
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 900;
-            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        /* СТИЛІ ДЛЯ БЛЮРУ PRO-ФІЧ */
+        .pro-locked { position: relative; overflow: hidden; }
+        .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
+        .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); }
+        .pro-badge { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -263,6 +232,11 @@
     </div>
 
     <script>
+        // ГЛОБАЛЬНІ ЗМІННІ ДЛЯ ЛІМІТІВ
+        let currentPlanIsPro = true;
+        let currentCouriersCount = 0;
+        let currentManagersCount = 0;
+
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
@@ -282,17 +256,31 @@
 
         function actionUpgrade() { alert("Перехід до оплати PRO тарифу! 💳"); }
         function actionRenew() { alert("Підписку продовжено."); }
-        function actionCancel() {
-            if(confirm("Ви впевнені?")) { alert("Підписку скасовано."); closeSubscriptionMenu(); }
-        }
+        function actionCancel() { if(confirm("Ви впевнені?")) { alert("Підписку скасовано."); closeSubscriptionMenu(); } }
 
         let botUsername = "rz_city_bot"; 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
         let currencySymbol = "zł";
 
+        // ЛОГІКА ПЕРЕВІРКИ ЛІМІТІВ ПРИ ГЕНЕРАЦІЇ ПОСИЛАННЯ
         function generateInvite(role) {
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
+            
+            // Якщо тариф BASIC, перевіряємо ліміти!
+            if (!currentPlanIsPro) {
+                if (role === 'courier' && currentCouriersCount >= 2) {
+                    alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.\nОновіть тариф до PRO для безліміту.");
+                    openSubscriptionMenu();
+                    return; // Зупиняємо генерацію
+                }
+                if (role === 'manager' && currentManagersCount >= 1) {
+                    alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.\nОновіть тариф до PRO для безліміту.");
+                    openSubscriptionMenu();
+                    return; // Зупиняємо генерацію
+                }
+            }
+
             let prefix = role === 'courier' ? 'join_' : 'admin_';
             const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
             navigator.clipboard.writeText(inviteLink).then(() => {
@@ -312,36 +300,34 @@
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
                 const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
-                let isPro = true;
                 
                 if (biz) {
                     currencySymbol = biz.currency || "zł";
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
 
-                    // Визначаємо тариф
-                    isPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+                    // Зберігаємо тариф в глобальну змінну для лімітів
+                    currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     
-                    document.getElementById('display-plan').innerText = isPro ? 'PRO' : 'BASIC';
-                    document.getElementById('display-plan').style.color = isPro ? 'var(--success)' : '#8a8d91';
-                    document.getElementById('display-plan').style.background = isPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
+                    document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
+                    document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
                     
-                    document.getElementById('set-plan-status').innerText = `${isPro ? 'PRO' : 'BASIC'} (Активна)`;
-                    document.getElementById('set-plan-status').style.color = isPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (Активна)`;
+                    document.getElementById('set-plan-status').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     
-                    // Налаштування модалки підписки
-                    document.getElementById('modal-plan-name').innerText = isPro ? 'PRO Тариф' : 'BASIC Тариф';
-                    document.getElementById('modal-plan-name').style.color = isPro ? 'var(--success)' : '#8a8d91';
-                    document.getElementById('modal-plan-badge').style.background = isPro ? 'var(--success)' : '#8a8d91';
-                    document.getElementById('modal-status-card').style.background = isPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
-                    document.getElementById('modal-status-card').style.borderColor = isPro ? 'rgba(52, 199, 89, 0.3)' : '#d1d5db';
-                    document.getElementById('modal-plan-date-text').style.color = isPro ? '#2e7d32' : '#4b5563';
+                    document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? 'PRO Тариф' : 'BASIC Тариф';
+                    document.getElementById('modal-plan-name').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('modal-plan-badge').style.background = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('modal-status-card').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
+                    document.getElementById('modal-status-card').style.borderColor = currentPlanIsPro ? 'rgba(52, 199, 89, 0.3)' : '#d1d5db';
+                    document.getElementById('modal-plan-date-text').style.color = currentPlanIsPro ? '#2e7d32' : '#4b5563';
 
                     let createdDate = new Date(biz.created_at || Date.now());
                     createdDate.setDate(createdDate.getDate() + 30);
                     document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-                    if (!isPro) {
+                    if (!currentPlanIsPro) {
                         document.getElementById('btn-upgrade').style.display = 'block';
                         document.getElementById('btn-renew').style.display = 'none';
                     } else {
@@ -353,13 +339,13 @@
                     features.innerHTML = `
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд (Каса)</div>
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Замовлення без обмежень</div>
-                        <div class="feature-item ${isPro ? '' : 'feature-disabled'}"><div class="feature-icon ${isPro ? 'f-yes' : 'f-no'}">${isPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Інтерактивна теплова карта</div>
-                        <div class="feature-item ${isPro ? '' : 'feature-disabled'}"><div class="feature-icon ${isPro ? 'f-yes' : 'f-no'}">${isPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Детальна аналітика (Чеки, Час)</div>
-                        <div class="feature-item ${isPro ? '' : 'feature-disabled'}"><div class="feature-icon ${isPro ? 'f-yes' : 'f-no'}">${isPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> GPS-навігатор для кур'єрів</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Інтерактивна теплова карта</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Детальна аналітика (Чеки, Час)</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Безлімітна кількість персоналу</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> GPS-навігатор для кур'єрів</div>
                     `;
 
-                    // --- МАГІЯ БЛЮРУ ДЛЯ BASIC ТАРИФУ ---
-                    if (!isPro) {
+                    if (!currentPlanIsPro) {
                         const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
                         lockedCards.forEach(id => {
                             const el = document.getElementById(id);
@@ -368,7 +354,7 @@
                                 const overlay = document.createElement('div');
                                 overlay.className = 'pro-overlay';
                                 overlay.innerHTML = '<div class="pro-badge"><i class="fa-regular fa-gem"></i> PRO</div>';
-                                overlay.onclick = openSubscriptionMenu; // Відкриває пропозицію купити PRO
+                                overlay.onclick = openSubscriptionMenu;
                                 el.appendChild(overlay);
                             }
                         });
@@ -402,8 +388,6 @@
 
                     let totalRevenue = totalCash + totalTerminal;
                     document.getElementById('val-total').innerText = totalRevenue.toFixed(2) + ' ' + currencySymbol;
-                    
-                    // Ці дані заповнюються, але будуть під блюром, якщо це Basic
                     document.getElementById('val-cash').innerText = totalCash.toFixed(2);
                     document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
                     document.getElementById('val-orders').innerText = completedCount;
@@ -433,12 +417,21 @@
                     });
                 }
 
+                // --- ЗАВАНТАЖЕННЯ ТА ПІДРАХУНОК ПЕРСОНАЛУ ---
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
                 
+                // Обнуляємо лічильники перед підрахунком
+                currentCouriersCount = 0;
+                currentManagersCount = 0;
+
                 if (staff && staff.length > 0) {
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
+                        // Рахуємо скільки в нас кого
+                        if (person.role === 'courier') currentCouriersCount++;
+                        if (person.role === 'manager') currentManagersCount++;
+
                         let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager';
                         let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер';
                         let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
@@ -455,7 +448,6 @@
                     });
                 }
 
-                // Малюємо карту завжди, але якщо тариф BASIC - вона буде закрита блюром
                 setTimeout(() => {
                     let centerLat = 50.04132, centerLon = 21.99901;
                     if (heatData.length > 0) {
