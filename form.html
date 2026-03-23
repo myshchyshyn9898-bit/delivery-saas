@@ -177,23 +177,31 @@
             }
 
             try {
+                // ТУТ ВАЖЛИВО: Просимо user_id замість id (якщо база так налаштована) або обидва
                 const { data: couriers, error } = await supabase
                     .from('staff')
                     .select('id, user_id, name')
                     .eq('business_id', bizId)
                     .eq('role', 'courier');
 
+                if (error) {
+                    console.error("Помилка Supabase:", error);
+                    select.innerHTML = '<option value="">❌ Помилка завантаження</option>';
+                    return;
+                }
+
                 if (couriers && couriers.length > 0) {
                     select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
                     couriers.forEach(c => {
+                        // Використовуємо user_id для відправки боту
                         select.innerHTML += `<option value="${c.user_id}">🛵 ${c.name}</option>`;
                     });
                 } else {
                     select.innerHTML = '<option value="">В штаті немає кур\'єрів!</option>';
                 }
             } catch (err) {
-                console.error(err);
-                select.innerHTML = '<option value="">Помилка завантаження</option>';
+                console.error("Помилка JS:", err);
+                select.innerHTML = '<option value="">❌ Помилка скрипта</option>';
             }
         };
 
