@@ -1,6 +1,7 @@
 import asyncio
 import json
 import urllib.parse
+import aiohttp # <-- ДОДАНО ДЛЯ РОБОТИ З КАРТАМИ
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
@@ -39,6 +40,27 @@ async def show_main_menu(message: types.Message, context: dict):
         markup = kb.get_courier_kb(biz_id)
 
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
+
+# --- ГЕНЕРАТОР КАРТИ (OpenStreetMap) ---
+async def get_map_image(address: str) -> str:
+    """Шукає координати за адресою і повертає посилання на картинку карти з міткою"""
+    encoded_addr = urllib.parse.quote(address)
+    search_url = f"https://nominatim.openstreetmap.org/search?q={encoded_addr}&format=json&limit=1"
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(search_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                data = await resp.json()
+                if data:
+                    lat, lon = data[0]['lat'], data[0]['lon']
+                    # Формуємо URL для статичної картинки карти з червоною міткою
+                    map_url = f"https://staticmap.openstreetmap.de/staticmap.php?center={lat},{lon}&zoom=15&size=800x400&maptype=mapnik&markers={lat},{lon},red-pushpin"
+                    return map_url
+    except Exception as e:
+        print(f"Помилка генерації карти: {e}")
+    
+    # Якщо адресу не знайдено, віддаємо красиву стандартну заглушку карти
+    return "https://media.wired.com/photos/59269cd37034dc5f91bec0f1/master/pass/GoogleMapTA.jpg"
 
 # --- ОБРОБНИКИ КОМАНД ---
 @dp.message(Command("start"))
@@ -118,7 +140,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 if not phone_clean.startswith('+'): phone_clean = '+' + phone_clean
                 
                 courier_text = (
-                    f"[\u200B]({route_url})📦 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n"
+                    f"📦 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n"
                     f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
                     f"Статус: 🟢 Активний\n\n"
                     f"📍 **Адреса:** {data['address']}\n"
@@ -138,10 +160,15 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
                 
                 builder.adjust(1, 1)
+
+                # ГЕНЕРУЄМО КАРТИНКУ КАРТИ
+                map_image_url = await get_map_image(data['address'])
                 
-                await bot.send_message(
+                # ВІДПРАВЛЯЄМО ЯК ФОТО (send_photo замість send_message)
+                await bot.send_photo(
                     chat_id=data['courier_id'], 
-                    text=courier_text, 
+                    photo=map_image_url,
+                    caption=courier_text, 
                     reply_markup=builder.as_markup(),
                     parse_mode="Markdown"
                 )
@@ -181,8 +208,13 @@ async def finish_order_handler(callback: types.CallbackQuery):
     
     try:
         db.update_order_status(order_id, "completed")
-        new_text = callback.message.text.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
-        await callback.message.edit_text(new_text, reply_markup=None)
+        
+        # Оскільки це ФОТОГРАФІЯ, текст знаходиться у властивості caption
+        if callback.message.caption:
+            new_text = callback.message.caption.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
+            # Використовуємо edit_caption замість edit_text
+            await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
+        
         await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
     except Exception as e:
         print(f"Помилка завершення: {e}")
