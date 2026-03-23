@@ -283,8 +283,13 @@ async def finish_order_handler(callback: types.CallbackQuery):
     order_id = callback.data.replace("finish_order_", "")
     
     try:
+        # 1. Дістаємо інфо про замовлення
+        res = db.supabase.table("orders").select("*").eq("id", order_id).execute()
+        
+        # 2. Оновлюємо статус в базі
         db.update_order_status(order_id, "completed")
         
+        # 3. Змінюємо текст повідомлення кур'єра
         if callback.message.caption: # Якщо повідомлення з картинкою (PRO)
             new_text = callback.message.caption.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
             await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
@@ -293,6 +298,33 @@ async def finish_order_handler(callback: types.CallbackQuery):
             await callback.message.edit_text(text=new_text, reply_markup=None, parse_mode="Markdown")
             
         await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
+        
+        # 4. Відправляємо сповіщення МЕНЕДЖЕРАМ (не власнику!)
+        if res.data:
+            order_info = res.data[0]
+            biz_id = order_info['business_id']
+            short_id = str(order_info['id'])[:6].upper()
+            
+            admin_text = (
+                f"🔔 **Замовлення доставлено!**\n"
+                f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+                f"📦 Номер: `#{short_id}`\n"
+                f"💰 Сума: {order_info['amount']} zł\n"
+                f"🛵 Кур'єр: {callback.from_user.full_name}\n"
+                f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+                f"✅ Кур'єр знову **вільний** для роботи."
+            )
+            
+            # Шукаємо всіх працівників з роллю manager для цього бізнесу
+            managers_res = db.supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute()
+            
+            if managers_res.data:
+                for manager in managers_res.data:
+                    try:
+                        await bot.send_message(chat_id=manager['user_id'], text=admin_text, parse_mode="Markdown")
+                    except Exception as e:
+                        print(f"Не вдалося відправити сповіщення менеджеру {manager['user_id']}: {e}")
+                
     except Exception as e:
         print(f"Помилка завершення: {e}")
         await callback.answer("❌ Помилка завершення", show_alert=True)
