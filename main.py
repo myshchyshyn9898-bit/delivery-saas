@@ -4,6 +4,7 @@ import urllib.parse
 import os
 import requests
 import aiohttp
+import datetime # <--- ДОДАНО ДЛЯ ЧАСУ В ЗВІТІ
 from staticmap import StaticMap, Line, CircleMarker
 from aiogram.types import FSInputFile
 from aiogram import Bot, Dispatcher, types, F
@@ -111,6 +112,40 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
     return result_file
+
+
+# ==========================================
+# --- НОВИЙ БЛОК: ГЕНЕРАЦІЯ ЗВІТУ ---
+# ==========================================
+@dp.message(F.text.in_(["📊 Зробити звіт", "/zvit"]))
+async def cmd_generate_report(message: types.Message):
+    context = db.get_user_context(message.from_user.id)
+    if not context or context['role'] not in ['manager', 'owner']:
+        await message.answer("❌ У вас немає доступу до звітів.")
+        return
+        
+    biz = context['biz']
+    report_data, total_cash, total_term = db.get_daily_report(biz['id'])
+    
+    if not report_data:
+        await message.answer("📭 Сьогодні ще немає доставлених замовлень для звіту.")
+        return
+        
+    # Час (додаємо +1 годину для Польщі, якщо сервер в UTC)
+    now_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=1)).strftime("%H:%M")
+    
+    text = f"📊 ЗВІТ ({now_time})\n➖ ➖ ➖ ➖ ➖\n"
+    
+    for c_id, stats in report_data.items():
+        text += f"👤 {stats['name']}: {stats['count']} зам. | 💵 {stats['cash']:.2f} | 🏧 {stats['term']:.2f}\n"
+        
+    text += f"➖ ➖ ➖ ➖ ➖\n"
+    text += f"💰 Готівка: {total_cash:.2f} {biz.get('currency', 'zł')}\n"
+    text += f"💳 Термінал: {total_term:.2f} {biz.get('currency', 'zł')}"
+    
+    await message.answer(text)
+# ==========================================
+
 
 # --- ОБРОБНИКИ КОМАНД ---
 @dp.message(Command("start"))
