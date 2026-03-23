@@ -18,6 +18,7 @@ def get_owner_kb(biz_id):
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📊 Дашборд", web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}"))],
+            [KeyboardButton(text="📊 Зробити звіт")]
             [KeyboardButton(text="⚙️ Налаштування бізнесу"), KeyboardButton(text="👥 Персонал")]
         ],
         resize_keyboard=True
