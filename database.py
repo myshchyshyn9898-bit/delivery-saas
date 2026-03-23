@@ -1,20 +1,26 @@
 from supabase import create_client, Client
-import os
 
-# Дані беремо з налаштувань (пізніше винесемо в змінні середовища)
+# Дані беремо з налаштувань
 SUPABASE_URL = "https://kvanzkcwpwmfexsmldvx.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA" # Твій повний ключ
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA"
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- ФУНКЦІЇ ДЛЯ БІЗНЕСУ ---
+# ==========================================
+# ФУНКЦІЇ ДЛЯ БІЗНЕСУ ТА АДМІНІСТРУВАННЯ
+# ==========================================
 
 def get_business_by_owner(owner_id: int):
     res = supabase.table("businesses").select("*").eq("owner_id", owner_id).execute()
     return res.data[0] if res.data else None
 
+def get_business_by_id(biz_id: str):
+    """Отримуємо інфо про бізнес за його UUID"""
+    res = supabase.table("businesses").select("*").eq("id", biz_id).execute()
+    return res.data[0] if res.data else None
+
 def register_new_business(owner_id: int, biz_data: dict):
-    # Пакуємо всі дані з Web App у формат для бази
+    """Розширена реєстрація з Web App (з координатами)"""
     data = {
         "owner_id": owner_id,
         "name": biz_data.get("name"),
@@ -33,72 +39,63 @@ def register_new_business(owner_id: int, biz_data: dict):
     }
     return supabase.table("businesses").insert(data).execute()
 
-# --- ФУНКЦІЇ ДЛЯ КУР'ЄРІВ ---
+def get_all_businesses():
+    """Для панелі супер-адміна"""
+    res = supabase.table("businesses").select("*").execute()
+    return res.data
 
-def get_courier(tg_id: int):
-    res = supabase.table("couriers").select("*").eq("tg_id", tg_id).execute()
-    return res.data[0] if res.data else None
+def update_subscription(biz_id: str, is_active: bool):
+    """Для панелі супер-адміна"""
+    supabase.table("businesses").update({"is_active": is_active}).eq("id", biz_id).execute()
 
-def add_courier(tg_id: int, name: str, business_id: str):
-    data = {
-        "tg_id": tg_id,
-        "name": name,
-        "business_id": business_id
-    }
-    return supabase.table("couriers").insert(data).execute()
-# database.py (додай ці функції до існуючих)
 
-def get_user_context(tg_id: int):
+# ==========================================
+# ФУНКЦІЇ ДЛЯ КОРИСТУВАЧІВ ТА ПЕРСОНАЛУ
+# ==========================================
+
+def get_user_context(user_id: int):
     """
     Повертає роль юзера та дані його бізнесу.
-    Спочатку шукаємо чи він Власник, потім чи він Персонал.
+    Спочатку шукаємо чи він Власник, потім чи він Персонал (в таблиці staff).
     """
     # 1. Перевіряємо чи він Owner
-    biz = supabase.table("businesses").select("*").eq("owner_id", tg_id).execute()
+    biz = supabase.table("businesses").select("*").eq("owner_id", user_id).execute()
     if biz.data:
         return {"role": "owner", "biz": biz.data[0]}
 
-    # 2. Якщо не власник, шукаємо в таблиці персоналу (couriers)
-    staff = supabase.table("couriers").select("*, businesses(*)").eq("tg_id", tg_id).execute()
+    # 2. Якщо не власник, шукаємо в таблиці персоналу (staff)
+    staff = supabase.table("staff").select("*").eq("user_id", user_id).execute()
     if staff.data:
-        role = staff.data[0]['role'] # 'manager' або 'courier'
-        return {"role": role, "biz": staff.data[0]['businesses']}
+        s = staff.data[0]
+        # Отримуємо дані бізнесу, до якого він прив'язаний
+        biz_info = supabase.table("businesses").select("*").eq("id", s["business_id"]).execute()
+        if biz_info.data:
+            return {"role": s["role"], "biz": biz_info.data[0]}
 
     return None
-# database.py (добавь эти функции)
 
-def get_business_by_id(biz_id: str):
-    """Получаем инфо о бизнесе по его UUID"""
-    res = supabase.table("businesses").select("*").eq("id", biz_id).execute()
-    return res.data[0] if res.data else None
-
-def create_staff(tg_id: int, name: str, biz_id: str, role: str = 'courier'):
-    """Записываем курьера или менеджера в базу"""
+def create_staff(user_id: int, name: str, biz_id: str, role: str = 'courier'):
+    """Записуємо кур'єра або менеджера в базу (таблиця staff)"""
     data = {
-        "tg_id": tg_id,
+        "user_id": user_id,
         "name": name,
         "business_id": biz_id,
         "role": role
     }
-    return supabase.table("couriers").insert(data).execute()
-# database.py
+    return supabase.table("staff").insert(data).execute()
 
-def get_business_by_id(biz_id: str):
-    """Отримуємо інфо про бізнес за його UUID"""
-    res = supabase.table("businesses").select("*").eq("id", biz_id).execute()
+def get_courier(user_id: int):
+    """Отримуємо інфо про конкретного працівника"""
+    res = supabase.table("staff").select("*").eq("user_id", user_id).execute()
     return res.data[0] if res.data else None
 
-def create_staff(tg_id: int, name: str, biz_id: str, role: str = 'courier'):
-    """Записуємо кур'єра або менеджера в базу"""
-    data = {
-        "tg_id": tg_id,
-        "name": name,
-        "business_id": biz_id,
-        "role": role
-    }
-    return supabase.table("couriers").insert(data).execute()
+
+# ==========================================
+# ФУНКЦІЇ ДЛЯ ЗАМОВЛЕНЬ
+# ==========================================
+
 def create_new_order(order_data: dict):
-    # Пакуємо дані з форми для бази
+    """Записуємо нове замовлення в таблицю orders"""
     data = {
         "business_id": order_data['biz_id'],
         "courier_id": order_data['courier_id'],
