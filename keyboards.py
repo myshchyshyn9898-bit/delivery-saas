@@ -30,6 +30,7 @@ def get_manager_kb(biz_id):
         keyboard=[
             # ДОДАЛИ v=2& ОСЬ ТУТ 👇 ЩОБ ВБИТИ КЕШ!
             [KeyboardButton(text="📝 Нове замовлення", web_app=WebAppInfo(url=f"{URL}form.html?v=2&biz_id={biz_id}"))],
+            [KeyboardButton(text="📊 Зробити звіт")]
             [KeyboardButton(text="📂 Активні замовлення", web_app=WebAppInfo(url=f"{URL}archive.html?biz_id={biz_id}"))]
         ],
         resize_keyboard=True
