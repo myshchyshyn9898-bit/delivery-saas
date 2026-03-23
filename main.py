@@ -82,17 +82,14 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
 # --- ОБРОБКА ДАНИХ З WEB APP ---
 @dp.message(F.web_app_data)
 async def handle_web_app_data(message: types.Message, bot: Bot):
-    # Розпаковуємо JSON, який прийшов від нашого Web App
     data = json.loads(message.web_app_data.data)
     user_id = message.from_user.id
     
-    # 1. Реєстрація нового бізнесу
     if data.get("action") == "register_business":
         try:
             db.register_new_business(user_id, data)
             context = db.get_user_context(user_id)
             biz = context['biz']
-            
             await message.answer(
                 f"🎉 **Вітаємо! Ваш бізнес '{biz['name']}' успішно створено.**\n"
                 f"📦 **Тариф:** {biz['plan'].upper()} (Активовано 7 днів тріалу)\n\n"
@@ -101,35 +98,57 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 parse_mode="Markdown"
             )
         except Exception as e:
-            print(f"Помилка реєстрації: {e}")
             await message.answer("❌ Сталася помилка при реєстрації. Перевірте логи Railway.")
             
-    # 2. Створення нового замовлення (Менеджером)
+    # 2. СТВОРЕННЯ НОВОГО ЗАМОВЛЕННЯ
     elif data.get("action") == "new_order":
         try:
-            # Створюємо замовлення в базі
             new_order = db.create_new_order(data)
             
             if new_order:
                 order_id = new_order['id']
-                short_id = str(order_id)[:8] # Робимо красивий короткий ID для тексту
+                short_id = str(order_id)[:6].upper() # Короткий ID, як на скріні: #A4F6B2
                 
-                # Формуємо красивий текст для кур'єра
-                pay_icon = "💵" if data['payment'] == "cash" else "💳"
+                # Підготовка даних для красивого відображення
+                pay_type_ua = "Готівка" if data['payment'] == "cash" else ("Термінал" if data['payment'] == "terminal" else "Онлайн")
+                pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
+                
+                # Формуємо посилання для карти
+                address_query = data['address'].replace(' ', '+')
+                map_url = f"https://www.google.com/maps/search/?api=1&query={address_query}"
+                
+                # КРАСИВИЙ ТЕКСТ ЯК НА СКРІНШОТІ
+                # [\u200B] - це невидимий символ. Телеграм бачить посилання і генерує картинку карти зверху!
                 courier_text = (
-                    f"🚨 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n\n"
-                    f"📍 **Куди:** {data['address']}\n"
-                    f"💰 **Сума:** {data['amount']} {pay_icon}\n"
-                    f"📞 **Клієнт:** {data['client_name']} ({data['client_phone']})\n"
+                    f"[\u200B]({map_url})📦 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n"
+                    f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+                    f"Статус: 🟢 Активний\n\n"
+                    f"📍 **Адреса:** {data['address']}\n"
+                    f"📞 **Тел:** `{data['client_phone']}` ({data['client_name']})\n"
+                    f"{pay_icon} **Оплата:** {data['amount']} zł ({pay_type_ua})\n"
                 )
+                
                 if data['comment']:
-                    courier_text += f"💬 **Коментар:** {data['comment']}\n"
-                
-                # Кнопка для кур'єра, щоб прийняти замовлення
+                    courier_text += f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n🗣 **Коментар:** {data['comment']}\n"
+
+                # БУДУЄМО КНОПКИ (Маршрут, Дзвінок, Закрити)
                 builder = InlineKeyboardBuilder()
-                builder.button(text="✅ Прийняти в роботу", callback_data=f"accept_order_{order_id}")
                 
-                # Відправляємо повідомлення КОНКРЕТНОМУ кур'єру
+                # Кнопка 1: Відкрити Google Maps (Маршрут)
+                builder.button(text="🗺 Маршрут", url=f"https://www.google.com/maps/dir/?api=1&destination={address_query}")
+                
+                # Кнопка 2: Подзвонити (Витягуємо тільки цифри з номера)
+                phone_clean = "".join(filter(str.isdigit, data['client_phone']))
+                phone_url = f"tel:+{phone_clean}" if not phone_clean.startswith("+") else f"tel:{phone_clean}"
+                builder.button(text="📞 Подзвонити", url=phone_url)
+                
+                # Кнопка 3: Закрити замовлення
+                builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
+                
+                # Вишиковуємо кнопки кожну з нового рядка (1 в ряд)
+                builder.adjust(1, 1, 1)
+                
+                # Відправляємо кур'єру
                 await bot.send_message(
                     chat_id=data['courier_id'], 
                     text=courier_text, 
@@ -137,7 +156,6 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     parse_mode="Markdown"
                 )
                 
-                # Відповідаємо менеджеру, що все ок
                 await message.answer(f"✅ Замовлення #{short_id} успішно створено та відправлено кур'єру!")
             else:
                 await message.answer("❌ Помилка при збереженні замовлення в базу.")
@@ -166,39 +184,19 @@ async def process_staff_name(message: types.Message, state: FSMContext):
     except Exception as e:
         await message.answer(f"❌ Помилка при додаванні: {e}. Можливо, ви вже працюєте тут.")
 
-# --- ОБРОБКА КНОПОК ЗАМОВЛЕННЯ (КУР'ЄР) ---
-@dp.callback_query(F.data.startswith("accept_order_"))
-async def accept_order_handler(callback: types.CallbackQuery):
-    order_id = callback.data.replace("accept_order_", "")
-    
-    try:
-        # 1. Змінюємо статус у базі
-        db.update_order_status(order_id, "in_progress")
-        
-        # 2. Міняємо кнопку на "Доставлено"
-        builder = InlineKeyboardBuilder()
-        builder.button(text="🏁 Завершити (Доставлено)", callback_data=f"finish_order_{order_id}")
-        
-        # 3. Додаємо до тексту статус
-        new_text = callback.message.text + "\n\n🟢 **СТАТУС: В дорозі** 🛵"
-        
-        await callback.message.edit_text(new_text, reply_markup=builder.as_markup())
-        await callback.answer("🚀 Ви прийняли замовлення! Успішної дороги!")
-    except Exception as e:
-        print(f"Помилка прийняття: {e}")
-        await callback.answer("❌ Помилка при прийнятті", show_alert=True)
-
+# --- ОБРОБКА КНОПКИ "ЗАКРИТИ ЗАМОВЛЕННЯ" ---
 @dp.callback_query(F.data.startswith("finish_order_"))
 async def finish_order_handler(callback: types.CallbackQuery):
     order_id = callback.data.replace("finish_order_", "")
     
     try:
-        # 1. Змінюємо статус на завершено
+        # Змінюємо статус на завершено в БД
         db.update_order_status(order_id, "completed")
         
-        # 2. Прибираємо кнопку і пишемо, що доставлено
-        new_text = callback.message.text.replace("🟢 СТАТУС: В дорозі 🛵", "✅ **СТАТУС: ДОСТАВЛЕНО**")
+        # Красиво змінюємо текст (прибираємо зелений кружечок і ставимо галочку)
+        new_text = callback.message.text.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
         
+        # Прибираємо кнопки взагалі, бо замовлення закрите
         await callback.message.edit_text(new_text, reply_markup=None)
         await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
     except Exception as e:
@@ -230,7 +228,7 @@ async def manage_biz(callback: types.CallbackQuery):
     
     db.update_subscription(biz_id, new_status)
     await callback.answer(f"Статус змінено!")
-    await super_admin_panel(callback.message) # Оновити список
+    await super_admin_panel(callback.message)
 
 async def main():
     await dp.start_polling(bot)
