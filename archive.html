@@ -60,57 +60,53 @@
         </div>
 
         <div class="tabs">
-            <div class="tab-btn active" onclick="switchTab('active')">
+            <div class="tab-btn active" onclick="switchTab('active', this)">
                 <i class="fa-solid fa-bars-progress"></i> Активні
             </div>
-            <div class="tab-btn" onclick="switchTab('closed')">
+            <div class="tab-btn" onclick="switchTab('closed', this)">
                 <i class="fa-solid fa-box-archive"></i> Закриті
             </div>
         </div>
 
         <div id="tab-active" class="tab-content active">
             <div id="list-active">
-                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Завантаження...</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Завантаження...</div>
             </div>
         </div>
 
         <div id="tab-closed" class="tab-content">
             <div id="list-closed">
-                <div style="text-align: center; color: var(--text-muted); padding: 20px;">Завантаження...</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Завантаження...</div>
             </div>
         </div>
     </div>
 
     <script>
-        // Ініціалізація Telegram Web App
         try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.expand(); } catch(e) {}
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
         let currencySymbol = "zł";
 
-        // Налаштування Supabase
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         let supabase = null;
         if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Перемикання вкладок
-        function switchTab(tabId) {
+        // Безпечне перемикання вкладок
+        function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            if (el) el.classList.add('active');
         }
 
-        // Отримання іконки для методу оплати
         function getPaymentInfo(type) {
             if (type === 'cash') return { text: 'Готівка', icon: 'fa-money-bill-wave', color: '#34C759' };
             if (type === 'terminal') return { text: 'Термінал', icon: 'fa-credit-card', color: '#4A6CF7' };
             return { text: 'Онлайн', icon: 'fa-globe', color: '#a855f7' };
         }
 
-        // Завантаження даних
         async function loadArchiveData() {
             if (!bizId || !supabase) {
                 document.getElementById('list-active').innerHTML = '<div class="empty-state">Помилка підключення</div>';
@@ -118,20 +114,18 @@
             }
 
             try {
-                // 1. Отримуємо валюту бізнесу
                 const { data: biz } = await supabase.from('businesses').select('currency').eq('id', bizId).single();
                 if (biz) currencySymbol = biz.currency || "zł";
 
-                // 2. Отримуємо весь персонал (щоб знати імена кур'єрів)
                 const { data: staff } = await supabase.from('staff').select('user_id, name').eq('business_id', bizId);
                 const couriersMap = {};
                 if (staff) {
                     staff.forEach(s => { couriersMap[s.user_id] = s.name; });
                 }
 
-                // 3. Отримуємо ВСІ замовлення за сьогодні
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+                
                 const { data: orders } = await supabase.from('orders')
                     .select('*')
                     .eq('business_id', bizId)
@@ -158,7 +152,6 @@
                         if (order.apt) detailsStr += `Кв: ${order.apt} `;
                         if (order.code) detailsStr += `Код: ${order.code}`;
                         
-                        // Шаблон картки замовлення
                         const cardHtml = `
                             <div class="order-card">
                                 <div class="order-header">
@@ -190,7 +183,6 @@
                             </div>
                         `;
 
-                        // Розподіляємо по вкладках
                         if (order.status === 'completed') {
                             listClosed.innerHTML += cardHtml;
                             totalEarned += parseFloat(order.amount || 0);
@@ -202,10 +194,8 @@
                     });
                 }
 
-                // Виводимо загальну суму
                 document.getElementById('total-earned').innerText = `${totalEarned.toFixed(2)} ${currencySymbol}`;
 
-                // Якщо порожньо
                 if (activeCount === 0) {
                     listActive.innerHTML = `
                         <div class="empty-state">
@@ -227,7 +217,6 @@
             }
         }
 
-        // Запускаємо при старті
         loadArchiveData();
     </script>
 </body>
