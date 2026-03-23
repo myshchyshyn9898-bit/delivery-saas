@@ -124,3 +124,36 @@ def update_order_status(order_id: str, new_status: str):
         data["completed_at"] = datetime.datetime.utcnow().isoformat()
         
     supabase.table("orders").update(data).eq("id", order_id).execute()
+
+def get_daily_report(biz_id: str):
+    """Генерує дані для звіту адміна за поточний день"""
+    today = datetime.datetime.utcnow().date()
+    start_of_day = datetime.datetime(today.year, today.month, today.day).isoformat()
+    
+    # Отримуємо всі закриті замовлення за сьогодні
+    res_orders = supabase.table("orders").select("*").eq("business_id", biz_id).eq("status", "completed").gte("created_at", start_of_day).execute()
+    orders = res_orders.data if res_orders.data else []
+    
+    # Отримуємо імена персоналу
+    res_staff = supabase.table("staff").select("user_id, name").eq("business_id", biz_id).execute()
+    staff_dict = {str(s['user_id']): s['name'] for s in (res_staff.data if res_staff.data else [])}
+    
+    report = {}
+    total_cash = 0
+    total_term = 0
+    
+    for o in orders:
+        c_id = str(o['courier_id'])
+        if c_id not in report:
+            report[c_id] = {'count': 0, 'cash': 0.0, 'term': 0.0, 'name': staff_dict.get(c_id, "Невідомий")}
+        
+        report[c_id]['count'] += 1
+        amt = float(o['amount'])
+        if o['pay_type'] == 'cash':
+            report[c_id]['cash'] += amt
+            total_cash += amt
+        else: # term або online
+            report[c_id]['term'] += amt
+            total_term += amt
+            
+    return report, total_cash, total_term
