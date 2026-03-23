@@ -1,5 +1,6 @@
 import asyncio
 import json
+import urllib.parse
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
@@ -45,7 +46,6 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
     user_id = message.from_user.id
     args = command.args
 
-    # 1. Логіка приєднання персоналу (Кур'єр або Менеджер)
     if args and (args.startswith("join_") or args.startswith("admin_")):
         role = "courier" if args.startswith("join_") else "manager"
         prefix = "join_" if role == "courier" else "admin_"
@@ -66,17 +66,14 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
         )
         return
 
-    # 2. Перевірка існуючого юзера
     context = db.get_user_context(user_id)
     if not context:
-        # Якщо юзера немає - пропонуємо відкрити Web App
         await message.answer(
             "🌟 **Вітаємо в DelivePro!**\n\nЕволюція вашої доставки починається тут. Натисніть кнопку нижче, щоб налаштувати свій бізнес.",
             reply_markup=kb.reg_kb, 
             parse_mode="Markdown"
         )
     else:
-        # Якщо вже зареєстрований - показуємо його дашборд/меню
         await show_main_menu(message, context)
 
 # --- ОБРОБКА ДАНИХ З WEB APP ---
@@ -107,48 +104,41 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             
             if new_order:
                 order_id = new_order['id']
-                short_id = str(order_id)[:6].upper() # Короткий ID, як на скріні: #A4F6B2
+                short_id = str(order_id)[:6].upper()
                 
-                # Підготовка даних для красивого відображення
                 pay_type_ua = "Готівка" if data['payment'] == "cash" else ("Термінал" if data['payment'] == "terminal" else "Онлайн")
                 pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
                 
-                # Формуємо посилання для карти
-                address_query = data['address'].replace(' ', '+')
-                map_url = f"https://www.google.com/maps/search/?api=1&query={address_query}"
+                # Офіційне і безпечне кодування адреси для Google Maps
+                address_query = urllib.parse.quote(data['address'])
+                route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
                 
-                # КРАСИВИЙ ТЕКСТ ЯК НА СКРІНШОТІ
-                # [\u200B] - це невидимий символ. Телеграм бачить посилання і генерує картинку карти зверху!
+                # Чистимо телефон, щоб він 100% був клікабельним у Телеграмі
+                phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data['client_phone']))
+                if not phone_clean.startswith('+'): phone_clean = '+' + phone_clean
+                
                 courier_text = (
-                    f"[\u200B]({map_url})📦 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n"
+                    f"[\u200B]({route_url})📦 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n"
                     f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
                     f"Статус: 🟢 Активний\n\n"
                     f"📍 **Адреса:** {data['address']}\n"
-                    f"📞 **Тел:** `{data['client_phone']}` ({data['client_name']})\n"
+                    f"📞 **Тел:** {phone_clean} ({data['client_name']})\n"
                     f"{pay_icon} **Оплата:** {data['amount']} zł ({pay_type_ua})\n"
                 )
                 
                 if data['comment']:
                     courier_text += f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n🗣 **Коментар:** {data['comment']}\n"
 
-                # БУДУЄМО КНОПКИ (Маршрут, Дзвінок, Закрити)
                 builder = InlineKeyboardBuilder()
                 
-                # Кнопка 1: Відкрити Google Maps (Маршрут)
-                builder.button(text="🗺 Маршрут", url=f"https://www.google.com/maps/dir/?api=1&destination={address_query}")
+                # Кнопка 1: Відкрити маршрут (Дозволено)
+                builder.button(text="🗺 Відкрити маршрут", url=route_url)
                 
-                # Кнопка 2: Подзвонити (Витягуємо тільки цифри з номера)
-                phone_clean = "".join(filter(str.isdigit, data['client_phone']))
-                phone_url = f"tel:+{phone_clean}" if not phone_clean.startswith("+") else f"tel:{phone_clean}"
-                builder.button(text="📞 Подзвонити", url=phone_url)
-                
-                # Кнопка 3: Закрити замовлення
+                # Кнопка 2: Закрити замовлення
                 builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
                 
-                # Вишиковуємо кнопки кожну з нового рядка (1 в ряд)
-                builder.adjust(1, 1, 1)
+                builder.adjust(1, 1)
                 
-                # Відправляємо кур'єру
                 await bot.send_message(
                     chat_id=data['courier_id'], 
                     text=courier_text, 
@@ -190,13 +180,8 @@ async def finish_order_handler(callback: types.CallbackQuery):
     order_id = callback.data.replace("finish_order_", "")
     
     try:
-        # Змінюємо статус на завершено в БД
         db.update_order_status(order_id, "completed")
-        
-        # Красиво змінюємо текст (прибираємо зелений кружечок і ставимо галочку)
         new_text = callback.message.text.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
-        
-        # Прибираємо кнопки взагалі, бо замовлення закрите
         await callback.message.edit_text(new_text, reply_markup=None)
         await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
     except Exception as e:
