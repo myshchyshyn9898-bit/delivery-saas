@@ -114,5 +114,11 @@ def create_new_order(order_data: dict):
     return result.data[0] if result.data else None
 
 def update_order_status(order_id: str, new_status: str):
-    """Оновлює статус замовлення в базі"""
-    supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
+    """Оновлює статус замовлення в базі та фіксує час завершення"""
+    data = {"status": new_status}
+    
+    # Якщо статус "completed", записуємо поточний час
+    if new_status == "completed":
+        data["completed_at"] = datetime.datetime.utcnow().isoformat()
+        
+    supabase.table("orders").update(data).eq("id", order_id).execute()
