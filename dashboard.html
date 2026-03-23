@@ -28,12 +28,14 @@
 
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
         .metric-card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; position: relative; overflow: hidden; }
-        .metric-card.full-width { grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; }
+        .metric-card.full-width { grid-column: 1 / -1; }
         .metric-icon { width: 35px; height: 35px; border-radius: 10px; background: rgba(255, 118, 82, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
-        .full-width .metric-icon { background: rgba(255,255,255,0.2); color: white; }
         .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; }
         .metric-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-        .full-width .metric-label { color: rgba(255,255,255,0.8); }
+
+        .bg-gradient { background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; }
+        .bg-gradient .metric-icon { background: rgba(255,255,255,0.2); color: white; }
+        .bg-gradient .metric-label { color: rgba(255,255,255,0.8); }
 
         .section-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
 
@@ -85,12 +87,29 @@
 
     <div id="tab-home" class="tab-content active">
         <div class="metrics-grid">
-            <div class="metric-card full-width">
+            
+            <div class="metric-card full-width bg-gradient">
                 <div class="metric-icon"><i class="fa-solid fa-wallet"></i></div>
                 <div class="metric-val" id="val-total">0.00</div>
                 <div class="metric-label">Загальна каса</div>
                 <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 80px; opacity: 0.1;"></i>
             </div>
+
+            <div class="metric-card full-width" style="padding: 15px;">
+                <div style="height: 120px; border-radius: 12px; background: url('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/13/4557/2767.png') center/cover; position: relative; margin-bottom: 15px; overflow: hidden; border: 1px solid #edf1f7;">
+                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 40% 50%, rgba(255,59,48,0.3) 0%, rgba(255,149,0,0.15) 35%, rgba(255,255,255,0) 60%);"></div>
+                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; backdrop-filter: blur(4px);">Теплова карта (Beta)</div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
+                        <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
+                    </div>
+                    <div class="metric-icon" style="margin: 0;"><i class="fa-solid fa-receipt"></i></div>
+                </div>
+            </div>
+
             <div class="metric-card">
                 <div class="metric-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
                 <div class="metric-val" id="val-cash">0.00</div>
@@ -109,7 +128,7 @@
             <div class="metric-card">
                 <div class="metric-icon" style="color: var(--success); background: rgba(52,199,89,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
                 <div class="metric-val" id="val-time">-- хв</div>
-                <div class="metric-label">Сер. час доставки</div>
+                <div class="metric-label">Сер. час</div>
             </div>
         </div>
 
@@ -183,8 +202,6 @@
         function setFilter(el) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            const valTotal = document.getElementById('val-total');
-            if (valTotal) { valTotal.style.opacity = '0'; setTimeout(() => { valTotal.style.opacity = '1'; }, 200); }
         }
 
         function closeApp() {
@@ -212,10 +229,7 @@
                     window.Telegram.WebApp.ready();
                 }
 
-                if (!bizId) {
-                    document.getElementById('display-biz-name').innerText = "Тестовий режим";
-                    return;
-                }
+                if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
                 const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
@@ -224,7 +238,6 @@
                 if (!window.supabase) return;
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                // --- Завантаження назви бізнесу ---
                 const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
                 if (biz) {
                     currencySymbol = biz.currency || "zł";
@@ -232,7 +245,6 @@
                     document.getElementById('set-currency').innerText = currencySymbol;
                 }
 
-                // --- Завантаження та підрахунок замовлень (Сьогодні) ---
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
@@ -247,8 +259,6 @@
                     let totalCash = 0;
                     let totalTerminal = 0;
                     let completedCount = 0;
-                    
-                    // Змінні для підрахунку часу доставки
                     let totalDeliveryMinutes = 0;
                     let ordersWithTimeCount = 0;
 
@@ -259,28 +269,32 @@
                             if (o.pay_type === 'cash') totalCash += amt;
                             if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
                             
-                            // Математика для середнього часу доставки
                             if (o.completed_at && o.created_at) {
                                 let timeCreated = new Date(o.created_at);
                                 let timeCompleted = new Date(o.completed_at);
                                 let diffMs = timeCompleted - timeCreated;
-                                
                                 if (diffMs > 0) {
-                                    totalDeliveryMinutes += (diffMs / 1000 / 60); // Переводимо мілісекунди в хвилини
+                                    totalDeliveryMinutes += (diffMs / 1000 / 60);
                                     ordersWithTimeCount++;
                                 }
                             }
                         }
                     });
 
-                    // Оновлюємо грошові плитки
                     let totalRevenue = totalCash + totalTerminal;
                     document.getElementById('val-total').innerText = totalRevenue.toFixed(2) + ' ' + currencySymbol;
                     document.getElementById('val-cash').innerText = totalCash.toFixed(2);
                     document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
                     document.getElementById('val-orders').innerText = completedCount;
 
-                    // Оновлюємо плитку середнього часу
+                    // ПІДРАХУНОК СЕРЕДНЬОГО ЧЕКУ
+                    if (completedCount > 0) {
+                        let avgCheck = totalRevenue / completedCount;
+                        document.getElementById('val-avg-check').innerText = avgCheck.toFixed(2) + ' ' + currencySymbol;
+                    } else {
+                        document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol;
+                    }
+
                     if (ordersWithTimeCount > 0) {
                         let avgTime = Math.round(totalDeliveryMinutes / ordersWithTimeCount);
                         document.getElementById('val-time').innerText = avgTime + ' хв';
@@ -288,7 +302,6 @@
                         document.getElementById('val-time').innerText = '-- хв';
                     }
 
-                    // Список останніх замовлень
                     const feedBox = document.getElementById('recent-orders-list');
                     feedBox.innerHTML = '';
                     
@@ -312,7 +325,6 @@
                     });
                 }
 
-                // --- Завантаження персоналу ---
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
                 
@@ -333,8 +345,6 @@
                             </div>
                         `;
                     });
-                } else {
-                    staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px;">Ви поки що єдиний у команді 😊</div>`;
                 }
             } catch (error) { console.error("Помилка БД:", error); }
         }
