@@ -73,9 +73,27 @@
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px; }
         .nav-item i { font-size: 22px; }
         .nav-item.active { color: var(--primary); }
-
-        /* ДОДАНО: Фікс для карти (щоб не конфліктувала з прокруткою сторінки) */
         .leaflet-container { z-index: 1; border-radius: 12px; }
+
+        /* --- НОВІ СТИЛІ ДЛЯ МЕНЮ ПІДПИСКИ --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17, 20, 24, 0.6); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(3px); }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
+        .modal-overlay.active .bottom-sheet { bottom: 0; }
+        
+        .sheet-handle { width: 40px; height: 5px; background: #edf1f7; border-radius: 5px; margin: 0 auto 20px; }
+        
+        .feature-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .feature-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .f-yes { background: rgba(52, 199, 89, 0.1); color: var(--success); }
+        .f-no { background: #f4f7f9; color: var(--text-muted); }
+        .feature-disabled { color: var(--text-muted); text-decoration: line-through; }
+
+        .btn-sub-upgrade { background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; margin-top: 20px; }
+        .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
+        .btn-sub-upgrade:active, .btn-sub-renew:active { transform: scale(0.96); }
     </style>
 </head>
 <body>
@@ -94,7 +112,6 @@
 
     <div id="tab-home" class="tab-content active">
         <div class="metrics-grid">
-            
             <div class="metric-card full-width bg-gradient">
                 <div class="metric-icon"><i class="fa-solid fa-wallet"></i></div>
                 <div class="metric-val" id="val-total">0.00</div>
@@ -104,7 +121,6 @@
 
             <div class="metric-card full-width" style="padding: 15px;">
                 <div id="heatmap" style="height: 150px; width: 100%; margin-bottom: 15px; border: 1px solid #edf1f7;"></div>
-                
                 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                     <div>
                         <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
@@ -138,10 +154,7 @@
 
         <div class="section-title">Останні замовлення</div>
         <div class="activity-feed" id="recent-orders-list">
-            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">
-                <i class="fa-solid fa-box-open" style="font-size: 24px; color: #edf1f7; margin-bottom: 5px; display: block;"></i>
-                Сьогодні ще немає замовлень
-            </div>
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">Завантаження...</div>
         </div>
     </div>
 
@@ -153,7 +166,6 @@
         <button class="btn-invite manager" onclick="generateInvite('manager')">
             <i class="fa-solid fa-user-tie"></i> Запросити Адміна
         </button>
-
         <div class="section-title" style="margin-top: 30px;">Активний персонал</div>
         <div id="staff-list">
             <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження команди...</div>
@@ -167,10 +179,15 @@
                 <span class="set-label">Business ID</span>
                 <span class="set-val" id="set-id" style="font-size: 11px;">...</span>
             </div>
-            <div class="setting-row">
+            
+            <div class="setting-row" onclick="openSubscriptionMenu()" style="cursor: pointer;">
                 <span class="set-label">Підписка</span>
-                <span class="set-val" style="color: var(--success);" id="set-plan-status">PRO (Активна)</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="set-val" style="color: var(--success);" id="set-plan-status">PRO (Активна)</span>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
             </div>
+            
             <div class="setting-row">
                 <span class="set-label">Валюта</span>
                 <span class="set-val" id="set-currency">zł</span>
@@ -194,7 +211,31 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="subscription-modal" onclick="closeSubscriptionMenu()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">Керування підпискою</h2>
+            
+            <div style="background: rgba(52, 199, 89, 0.1); border: 1px solid rgba(52, 199, 89, 0.3); padding: 18px; border-radius: 16px; margin-bottom: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 20px; font-weight: 900; color: var(--success);" id="modal-plan-name">PRO Тариф</span>
+                    <span style="background: var(--success); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;">АКТИВНА</span>
+                </div>
+                <div style="font-size: 13px; color: #2e7d32; font-weight: 600;">Дійсна до: <span id="modal-plan-date">...</span></div>
+            </div>
+
+            <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Доступні функції:</h3>
+            <div id="modal-features-list">
+                </div>
+
+            <button class="btn-sub-upgrade" id="btn-upgrade" onclick="actionUpgrade()" style="display: none;">🚀 Оновити до PRO</button>
+            <button class="btn-sub-renew" onclick="actionRenew()">🔄 Продовжити підписку</button>
+            <button class="btn-sub-cancel" onclick="actionCancel()">Скасувати підписку</button>
+        </div>
+    </div>
+
     <script>
+        // --- ЛОГІКА ВКЛАДОК ТА ЗАКРИТТЯ ---
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
@@ -210,6 +251,31 @@
 
         function closeApp() {
             if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
+        }
+
+        // --- ЛОГІКА МЕНЮ ПІДПИСКИ ---
+        function openSubscriptionMenu() {
+            document.getElementById('subscription-modal').classList.add('active');
+            // Щоб сторінка на фоні не скролилась
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeSubscriptionMenu() {
+            document.getElementById('subscription-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function actionUpgrade() {
+            alert("Тут буде перехід до оплати через Telegram Stars або Stripe! 💳");
+        }
+        function actionRenew() {
+            alert("Ваша підписка буде автоматично продовжена в кінці терміну.");
+        }
+        function actionCancel() {
+            if(confirm("Ви впевнені, що хочете скасувати підписку? Ваш бізнес буде призупинено після закінчення оплаченого періоду.")) {
+                alert("Підписку скасовано.");
+                closeSubscriptionMenu();
+            }
         }
 
         let botUsername = "rz_city_bot"; 
@@ -228,11 +294,7 @@
 
         async function loadDashboardData() {
             try {
-                if (window.Telegram && window.Telegram.WebApp) {
-                    window.Telegram.WebApp.expand();
-                    window.Telegram.WebApp.ready();
-                }
-
+                if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
@@ -242,38 +304,54 @@
                 if (!window.supabase) return;
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+                // --- ЗАВАНТАЖЕННЯ БІЗНЕСУ ТА ЗАПОВНЕННЯ МЕНЮ ПІДПИСКИ ---
                 const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
                 if (biz) {
                     currencySymbol = biz.currency || "zł";
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
+
+                    // Логіка відображення підписки
+                    const isPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+                    document.getElementById('display-plan').innerText = isPro ? 'PRO' : 'BASIC';
+                    document.getElementById('set-plan-status').innerText = `${isPro ? 'PRO' : 'BASIC'} (Активна)`;
+                    
+                    // Заповнюємо Модалку підписки
+                    document.getElementById('modal-plan-name').innerText = isPro ? 'PRO Тариф' : 'BASIC Тариф';
+                    
+                    // Імітуємо дату закінчення (30 днів від створення)
+                    let createdDate = new Date(biz.created_at || Date.now());
+                    createdDate.setDate(createdDate.getDate() + 30);
+                    let formattedDate = createdDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    document.getElementById('modal-plan-date').innerText = formattedDate;
+
+                    // Кнопка оновлення
+                    if (!isPro) document.getElementById('btn-upgrade').style.display = 'block';
+
+                    // Список фіч
+                    const features = document.getElementById('modal-features-list');
+                    features.innerHTML = `
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Безлімітні замовлення</div>
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Дашборд керівника</div>
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Навігація для кур'єрів</div>
+                        <div class="feature-item ${isPro ? '' : 'feature-disabled'}"><div class="feature-icon ${isPro ? 'f-yes' : 'f-no'}">${isPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Теплова карта районів</div>
+                        <div class="feature-item ${isPro ? '' : 'feature-disabled'}"><div class="feature-icon ${isPro ? 'f-yes' : 'f-no'}">${isPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Безлімітна кількість персоналу</div>
+                    `;
                 }
 
+                // --- ЗАВАНТАЖЕННЯ ЗАМОВЛЕНЬ ---
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
-                const { data: orders } = await supabase
-                    .from('orders')
-                    .select('*')
-                    .eq('business_id', bizId)
-                    .gte('created_at', today.toISOString())
-                    .order('created_at', { ascending: false });
+                const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', today.toISOString()).order('created_at', { ascending: false });
 
-                // ДОДАНО: Масив для координат замовлень
                 let heatData = [];
 
                 if (orders && orders.length > 0) {
-                    let totalCash = 0;
-                    let totalTerminal = 0;
-                    let completedCount = 0;
-                    let totalDeliveryMinutes = 0;
-                    let ordersWithTimeCount = 0;
+                    let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0;
 
                     orders.forEach(o => {
-                        // ДОДАНО: Збираємо координати для теплової карти (навіть тих, що в процесі)
-                        if (o.lat && o.lon) {
-                            heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
-                        }
+                        if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
 
                         if (o.status === 'completed') {
                             completedCount++;
@@ -282,13 +360,8 @@
                             if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
                             
                             if (o.completed_at && o.created_at) {
-                                let timeCreated = new Date(o.created_at);
-                                let timeCompleted = new Date(o.completed_at);
-                                let diffMs = timeCompleted - timeCreated;
-                                if (diffMs > 0) {
-                                    totalDeliveryMinutes += (diffMs / 1000 / 60);
-                                    ordersWithTimeCount++;
-                                }
+                                let diffMs = new Date(o.completed_at) - new Date(o.created_at);
+                                if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; }
                             }
                         }
                     });
@@ -298,21 +371,8 @@
                     document.getElementById('val-cash').innerText = totalCash.toFixed(2);
                     document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
                     document.getElementById('val-orders').innerText = completedCount;
-
-                    // ДОДАНО: ПІДРАХУНОК СЕРЕДНЬОГО ЧЕКУ
-                    if (completedCount > 0) {
-                        let avgCheck = totalRevenue / completedCount;
-                        document.getElementById('val-avg-check').innerText = avgCheck.toFixed(2) + ' ' + currencySymbol;
-                    } else {
-                        document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol;
-                    }
-
-                    if (ordersWithTimeCount > 0) {
-                        let avgTime = Math.round(totalDeliveryMinutes / ordersWithTimeCount);
-                        document.getElementById('val-time').innerText = avgTime + ' хв';
-                    } else {
-                        document.getElementById('val-time').innerText = '-- хв';
-                    }
+                    document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
+                    document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ' хв' : '-- хв';
 
                     const feedBox = document.getElementById('recent-orders-list');
                     feedBox.innerHTML = '';
@@ -326,7 +386,7 @@
                         
                         feedBox.innerHTML += `
                             <div class="activity-item">
-                                <div class="act-icon" ${iconBg}>${statusIcon}</div>
+                                <div class="act-icon" style="${iconBg}">${statusIcon}</div>
                                 <div class="act-details">
                                     <div class="act-title">Замовлення #${shortId}</div>
                                     <div class="act-time">${statusText}</div>
@@ -337,6 +397,7 @@
                     });
                 }
 
+                // --- ЗАВАНТАЖЕННЯ ПЕРСОНАЛУ ---
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
                 
@@ -359,34 +420,21 @@
                     });
                 }
 
-                // ДОДАНО: МАЛЮЄМО ЖИВУ ТЕПЛОВУ КАРТУ
+                // --- ЖИВА ТЕПЛОВА КАРТА ---
                 setTimeout(() => {
-                    // Якщо замовлень з координатами немає, ставимо центр Жешува
-                    let centerLat = 50.04132;
-                    let centerLon = 21.99901;
-                    
+                    let centerLat = 50.04132, centerLon = 21.99901;
                     if (heatData.length > 0) {
-                        // Рахуємо ідеальний центр карти на основі замовлень
                         centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length;
                         centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length;
                     }
 
-                    // Ініціалізація карти Leaflet
                     let map = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
-                    
-                    // Красива світла підложка
                     L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(map);
 
-                    // Накладаємо теплові точки
                     if (heatData.length > 0) {
-                        L.heatLayer(heatData, {
-                            radius: 20, 
-                            blur: 15, 
-                            maxZoom: 14, 
-                            gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'}
-                        }).addTo(map);
+                        L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'} }).addTo(map);
                     }
-                }, 500); // Даємо 0.5с, щоб вкладка встигла з'явитися на екрані
+                }, 500);
 
             } catch (error) { console.error("Помилка БД:", error); }
         }
