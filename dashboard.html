@@ -9,6 +9,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+
     <style>
         :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --success: #34C759; --info: #4A6CF7; }
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -69,6 +73,9 @@
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px; }
         .nav-item i { font-size: 22px; }
         .nav-item.active { color: var(--primary); }
+
+        /* ДОДАНО: Фікс для карти (щоб не конфліктувала з прокруткою сторінки) */
+        .leaflet-container { z-index: 1; border-radius: 12px; }
     </style>
 </head>
 <body>
@@ -96,17 +103,14 @@
             </div>
 
             <div class="metric-card full-width" style="padding: 15px;">
-                <div style="height: 120px; border-radius: 12px; background: url('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/13/4557/2767.png') center/cover; position: relative; margin-bottom: 15px; overflow: hidden; border: 1px solid #edf1f7;">
-                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 40% 50%, rgba(255,59,48,0.3) 0%, rgba(255,149,0,0.15) 35%, rgba(255,255,255,0) 60%);"></div>
-                    <div style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: white; padding: 4px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; backdrop-filter: blur(4px);">Теплова карта (Beta)</div>
-                </div>
+                <div id="heatmap" style="height: 150px; width: 100%; margin-bottom: 15px; border: 1px solid #edf1f7;"></div>
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                     <div>
                         <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
                         <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
                     </div>
-                    <div class="metric-icon" style="margin: 0;"><i class="fa-solid fa-receipt"></i></div>
+                    <div class="metric-icon" style="margin: 0;"><i class="fa-solid fa-fire" style="color: #ff3b30;"></i></div>
                 </div>
             </div>
 
@@ -255,6 +259,9 @@
                     .gte('created_at', today.toISOString())
                     .order('created_at', { ascending: false });
 
+                // ДОДАНО: Масив для координат замовлень
+                let heatData = [];
+
                 if (orders && orders.length > 0) {
                     let totalCash = 0;
                     let totalTerminal = 0;
@@ -263,6 +270,11 @@
                     let ordersWithTimeCount = 0;
 
                     orders.forEach(o => {
+                        // ДОДАНО: Збираємо координати для теплової карти (навіть тих, що в процесі)
+                        if (o.lat && o.lon) {
+                            heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
+                        }
+
                         if (o.status === 'completed') {
                             completedCount++;
                             let amt = parseFloat(o.amount) || 0;
@@ -287,7 +299,7 @@
                     document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
                     document.getElementById('val-orders').innerText = completedCount;
 
-                    // ПІДРАХУНОК СЕРЕДНЬОГО ЧЕКУ
+                    // ДОДАНО: ПІДРАХУНОК СЕРЕДНЬОГО ЧЕКУ
                     if (completedCount > 0) {
                         let avgCheck = totalRevenue / completedCount;
                         document.getElementById('val-avg-check').innerText = avgCheck.toFixed(2) + ' ' + currencySymbol;
@@ -346,6 +358,36 @@
                         `;
                     });
                 }
+
+                // ДОДАНО: МАЛЮЄМО ЖИВУ ТЕПЛОВУ КАРТУ
+                setTimeout(() => {
+                    // Якщо замовлень з координатами немає, ставимо центр Жешува
+                    let centerLat = 50.04132;
+                    let centerLon = 21.99901;
+                    
+                    if (heatData.length > 0) {
+                        // Рахуємо ідеальний центр карти на основі замовлень
+                        centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length;
+                        centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length;
+                    }
+
+                    // Ініціалізація карти Leaflet
+                    let map = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
+                    
+                    // Красива світла підложка
+                    L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(map);
+
+                    // Накладаємо теплові точки
+                    if (heatData.length > 0) {
+                        L.heatLayer(heatData, {
+                            radius: 20, 
+                            blur: 15, 
+                            maxZoom: 14, 
+                            gradient: {0.4: 'blue', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: 'red'}
+                        }).addTo(map);
+                    }
+                }, 500); // Даємо 0.5с, щоб вкладка встигла з'явитися на екрані
+
             } catch (error) { console.error("Помилка БД:", error); }
         }
 
