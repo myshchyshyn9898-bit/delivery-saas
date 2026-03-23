@@ -112,10 +112,12 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             
             if new_order:
                 order_id = new_order['id']
+                short_id = str(order_id)[:8] # Робимо красивий короткий ID для тексту
+                
                 # Формуємо красивий текст для кур'єра
                 pay_icon = "💵" if data['payment'] == "cash" else "💳"
                 courier_text = (
-                    f"🚨 **НОВЕ ЗАМОВЛЕННЯ #{order_id}**\n\n"
+                    f"🚨 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n\n"
                     f"📍 **Куди:** {data['address']}\n"
                     f"💰 **Сума:** {data['amount']} {pay_icon}\n"
                     f"📞 **Клієнт:** {data['client_name']} ({data['client_phone']})\n"
@@ -136,7 +138,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 )
                 
                 # Відповідаємо менеджеру, що все ок
-                await message.answer(f"✅ Замовлення #{order_id} успішно створено та відправлено кур'єру!")
+                await message.answer(f"✅ Замовлення #{short_id} успішно створено та відправлено кур'єру!")
             else:
                 await message.answer("❌ Помилка при збереженні замовлення в базу.")
                 
@@ -163,6 +165,45 @@ async def process_staff_name(message: types.Message, state: FSMContext):
         await show_main_menu(message, context)
     except Exception as e:
         await message.answer(f"❌ Помилка при додаванні: {e}. Можливо, ви вже працюєте тут.")
+
+# --- ОБРОБКА КНОПОК ЗАМОВЛЕННЯ (КУР'ЄР) ---
+@dp.callback_query(F.data.startswith("accept_order_"))
+async def accept_order_handler(callback: types.CallbackQuery):
+    order_id = callback.data.replace("accept_order_", "")
+    
+    try:
+        # 1. Змінюємо статус у базі
+        db.update_order_status(order_id, "in_progress")
+        
+        # 2. Міняємо кнопку на "Доставлено"
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🏁 Завершити (Доставлено)", callback_data=f"finish_order_{order_id}")
+        
+        # 3. Додаємо до тексту статус
+        new_text = callback.message.text + "\n\n🟢 **СТАТУС: В дорозі** 🛵"
+        
+        await callback.message.edit_text(new_text, reply_markup=builder.as_markup())
+        await callback.answer("🚀 Ви прийняли замовлення! Успішної дороги!")
+    except Exception as e:
+        print(f"Помилка прийняття: {e}")
+        await callback.answer("❌ Помилка при прийнятті", show_alert=True)
+
+@dp.callback_query(F.data.startswith("finish_order_"))
+async def finish_order_handler(callback: types.CallbackQuery):
+    order_id = callback.data.replace("finish_order_", "")
+    
+    try:
+        # 1. Змінюємо статус на завершено
+        db.update_order_status(order_id, "completed")
+        
+        # 2. Прибираємо кнопку і пишемо, що доставлено
+        new_text = callback.message.text.replace("🟢 СТАТУС: В дорозі 🛵", "✅ **СТАТУС: ДОСТАВЛЕНО**")
+        
+        await callback.message.edit_text(new_text, reply_markup=None)
+        await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
+    except Exception as e:
+        print(f"Помилка завершення: {e}")
+        await callback.answer("❌ Помилка завершення", show_alert=True)
 
 # --- ПАНЕЛЬ СУПЕР-АДМІНА (/sa) ---
 @dp.message(Command("sa"))
