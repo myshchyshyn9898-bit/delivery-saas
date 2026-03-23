@@ -111,3 +111,7 @@ def create_new_order(order_data: dict):
     # Записуємо і повертаємо результат (щоб отримати ID нового замовлення)
     result = supabase.table("orders").insert(data).execute()
     return result.data[0] if result.data else None
+
+def update_order_status(order_id: str, new_status: str):
+    """Оновлює статус замовлення в базі"""
+    supabase.table("orders").update({"status": new_status}).eq("id", order_id).execute()
