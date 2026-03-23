@@ -1,3 +1,4 @@
+import datetime
 from supabase import create_client, Client
 
 # Дані беремо з налаштувань
