@@ -10,21 +10,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root {
-            --bg-color: #f4f7f9;
-            --text-main: #111418;
-            --text-muted: #8a8d91;
-            --primary: #ff7652;
-            --surface: #ffffff;
-            --success: #34C759;
-            --info: #4A6CF7;
-        }
-
-        /* Додав -webkit-tap-highlight-color щоб не було синього блимання при кліку на iOS */
+        :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --success: #34C759; --info: #4A6CF7; }
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 100px; } 
 
-        /* --- ШАПКА --- */
         .header { background: var(--surface); padding: 20px 20px 15px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; }
         .biz-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
         .biz-status { font-size: 11px; background: rgba(52, 199, 89, 0.1); color: var(--success); padding: 4px 10px; border-radius: 10px; font-weight: 800; text-transform: uppercase; }
@@ -33,12 +22,10 @@
         .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 8px; transition: 0.2s; cursor: pointer;}
         .filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        /* --- ВКЛАДКИ --- */
         .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- ПЛИТКИ --- */
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
         .metric-card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; position: relative; overflow: hidden; }
         .metric-card.full-width { grid-column: 1 / -1; background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; }
@@ -50,7 +37,6 @@
 
         .section-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
 
-        /* Останні активності */
         .activity-feed { background: var(--surface); border-radius: 20px; padding: 5px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
         .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .activity-item:last-child { border-bottom: none; }
@@ -60,7 +46,6 @@
         .act-time { font-size: 12px; color: var(--text-muted); }
         .act-price { font-size: 15px; font-weight: 800; color: var(--text-main); }
 
-        /* --- КОМАНДА --- */
         .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 12px; display: flex; align-items: center; }
         .team-avatar { width: 45px; height: 45px; border-radius: 12px; background: #edf1f7; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 15px; }
         .team-info { flex: 1; }
@@ -73,39 +58,13 @@
         .btn-invite:active { transform: scale(0.96); }
         .btn-invite.manager { background: var(--info); box-shadow: 0 8px 20px rgba(74, 108, 247, 0.25); }
 
-        /* --- НАЛАШТУВАННЯ --- */
         .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .setting-row:last-child { border-bottom: none; }
         .set-label { font-size: 15px; font-weight: 600; color: var(--text-muted); }
         .set-val { font-size: 15px; font-weight: 800; }
 
-        /* --- НИЖНЯ НАВІГАЦІЯ (Виправлено для iOS) --- */
-        .bottom-nav { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            background: var(--surface); 
-            display: flex; 
-            justify-content: space-around; 
-            padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); /* ВАЖЛИВО: Захист від системної смужки iPhone */
-            border-top: 1px solid #edf1f7; 
-            z-index: 9999; 
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.03); 
-        }
-        .nav-item { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            color: var(--text-muted); 
-            font-size: 11px; 
-            font-weight: 700; 
-            gap: 5px; 
-            transition: 0.2s; 
-            cursor: pointer; 
-            width: 33%; 
-            padding-top: 10px;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); border-top: 1px solid #edf1f7; z-index: 9999; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px; }
         .nav-item i { font-size: 22px; }
         .nav-item.active { color: var(--primary); }
     </style>
@@ -213,11 +172,9 @@
     </div>
 
     <script>
-        // 1. ФУНКЦІЇ ІНТЕРФЕЙСУ (Хоїстинг)
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
-            
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
             window.scrollTo(0, 0);
@@ -226,19 +183,15 @@
         function setFilter(el) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            
             const valTotal = document.getElementById('val-total');
-            if (valTotal) {
-                valTotal.style.opacity = '0';
-                setTimeout(() => { valTotal.style.opacity = '1'; }, 200);
-            }
+            if (valTotal) { valTotal.style.opacity = '0'; setTimeout(() => { valTotal.style.opacity = '1'; }, 200); }
         }
 
         function closeApp() {
             if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close();
         }
 
-        let botUsername = "rz_city_bot"; // Твій бот
+        let botUsername = "rz_city_bot"; 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
         let currencySymbol = "zł";
@@ -247,13 +200,11 @@
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
             let prefix = role === 'courier' ? 'join_' : 'admin_';
             const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
-            
             navigator.clipboard.writeText(inviteLink).then(() => {
                 alert(`✅ Посилання для ${role === 'courier' ? "Кур'єра" : "Менеджера"} скопійовано!\n\nНадішліть його працівнику.`);
             });
         }
 
-        // 2. БЕЗПЕЧНЕ ЗАВАНТАЖЕННЯ БАЗИ ДАНИХ ТА МАТЕМАТИКА
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) {
@@ -296,36 +247,57 @@
                     let totalCash = 0;
                     let totalTerminal = 0;
                     let completedCount = 0;
+                    
+                    // Змінні для підрахунку часу доставки
+                    let totalDeliveryMinutes = 0;
+                    let ordersWithTimeCount = 0;
 
-                    // Рахуємо гроші ТІЛЬКИ для закритих (доставлених) замовлень
                     orders.forEach(o => {
                         if (o.status === 'completed') {
                             completedCount++;
                             let amt = parseFloat(o.amount) || 0;
                             if (o.pay_type === 'cash') totalCash += amt;
                             if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
+                            
+                            // Математика для середнього часу доставки
+                            if (o.completed_at && o.created_at) {
+                                let timeCreated = new Date(o.created_at);
+                                let timeCompleted = new Date(o.completed_at);
+                                let diffMs = timeCompleted - timeCreated;
+                                
+                                if (diffMs > 0) {
+                                    totalDeliveryMinutes += (diffMs / 1000 / 60); // Переводимо мілісекунди в хвилини
+                                    ordersWithTimeCount++;
+                                }
+                            }
                         }
                     });
 
-                    // Оновлюємо плитки (відображаємо тільки гроші з completed)
+                    // Оновлюємо грошові плитки
                     let totalRevenue = totalCash + totalTerminal;
                     document.getElementById('val-total').innerText = totalRevenue.toFixed(2) + ' ' + currencySymbol;
                     document.getElementById('val-cash').innerText = totalCash.toFixed(2);
                     document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
-                    document.getElementById('val-orders').innerText = completedCount; // Кількість доставлених
+                    document.getElementById('val-orders').innerText = completedCount;
 
-                    // Оновлюємо список останніх замовлень
+                    // Оновлюємо плитку середнього часу
+                    if (ordersWithTimeCount > 0) {
+                        let avgTime = Math.round(totalDeliveryMinutes / ordersWithTimeCount);
+                        document.getElementById('val-time').innerText = avgTime + ' хв';
+                    } else {
+                        document.getElementById('val-time').innerText = '-- хв';
+                    }
+
+                    // Список останніх замовлень
                     const feedBox = document.getElementById('recent-orders-list');
                     feedBox.innerHTML = '';
                     
-                    // Беремо 10 найновіших (і активні, і завершені)
                     orders.slice(0, 10).forEach(o => {
                         let isCompleted = o.status === 'completed';
-                        // Задаємо кольори і текст статусу
                         let statusIcon = isCompleted ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
                         let iconBg = isCompleted ? 'style="color: #34C759; background: rgba(52, 199, 89, 0.1);"' : 'style="color: #FFB020; background: rgba(255, 176, 32, 0.1);"';
                         let statusText = isCompleted ? '<span style="color: #34C759;">Доставлено</span>' : '<span style="color: #FFB020;">В процесі</span>';
-                        let shortId = o.id.toString().substring(0, 5).toUpperCase(); // Красивий ID
+                        let shortId = o.id.toString().substring(0, 5).toUpperCase();
                         
                         feedBox.innerHTML += `
                             <div class="activity-item">
