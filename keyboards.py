@@ -50,8 +50,8 @@ def get_courier_kb(biz_id, user_id):
 # --- 5. МЕНЮ СУПЕР-АДМІНА (ВЛАСНИКА БОТА) ---
 def get_superadmin_kb(user_id):
     t = int(time.time())
-    # Динамічний час, щоб кеш ніколи не залипав
-    web_app_url = f"{URL}superadmin.html?tg_id={user_id}&v={t}"
+    # ЗМІНЕНО: тепер відкриває boss.html
+    web_app_url = f"{URL}boss.html?tg_id={user_id}&v={t}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👑 Панель Власника", web_app=WebAppInfo(url=web_app_url))]
