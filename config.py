@@ -1,12 +1,19 @@
 import os
+from dotenv import load_dotenv
 
-API_TOKEN = '8675947904:AAH7vzzW0MD2XMkKsnbNzm-zXRlUXz-sV1I'
-SUPABASE_URL = "https://kvanzkcwpwmfexsmldvx.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA" # Твій повний ключ
+# Завантажуємо змінні з файлу .env
+load_dotenv()
 
-# Посилання на твій бот (заміни на username свого бота)
-BOT_USERNAME = "YourBotUsername"
-# ОСЬ ЦЕЙ РЯДОК ТРЕБА ДОДАТИ:
-BASE_URL = "https://myshchyshyn9898-bit/delivery-saas"
-# config.py
-SUPER_ADMIN_IDS = [6889016268] # Твій ID та ID помічника
+# Тепер змінні безпечно підтягуються з середовища
+API_TOKEN = os.getenv("BOT_TOKEN")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# Посилання на твій бот (не забудь замінити на реальне!)
+BOT_USERNAME = "YourBotUsername" 
+
+# Головне посилання на твій GitHub Pages
+BASE_URL = "https://myshchyshyn9898-bit.github.io/delivery-saas"
+
+# Твій ID та ID помічника
+SUPER_ADMIN_IDS = [6889016268] 
