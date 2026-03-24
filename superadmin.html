@@ -6,7 +6,7 @@
     <title>Super Admin | RzCity</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -132,35 +132,39 @@
     </div>
 
     <script>
+        // Глобальні обробники помилок
         window.onerror = function(msg, url, line) {
             const dbg = document.getElementById('debug-log');
-            if(dbg) dbg.innerHTML += `<span style="color:red">❌ ERROR: ${msg} (Line ${line})</span><br>`;
+            let realMsg = msg;
+            if (msg.includes("Script error")) realMsg = "Supabase CDN Blocked by Mobile Data / Safari.";
+            if(dbg) dbg.innerHTML += `<span style="color:red">❌ ERROR: ${realMsg} (Line ${line})</span><br>`;
+            return false;
         };
         window.addEventListener("unhandledrejection", function(event) {
             const dbg = document.getElementById('debug-log');
             let err = event.reason ? (event.reason.message || event.reason) : "Unknown Error";
             if(dbg) dbg.innerHTML += `<span style="color:red">❌ PROMISE ERROR: ${err}</span><br>`;
         });
-    </script>
 
-    <script>
         const debugEl = document.getElementById('debug-log');
         function logInfo(text) { if(debugEl) debugEl.innerHTML += `> ${text}<br>`; }
-
-        try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#0f172a'; } } catch(e) {}
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         let supabase = null;
 
-        // --- ДОДАНО ВИЗНАЧЕННЯ ID ---
-        const urlParams = new URLSearchParams(window.location.search);
+        // БЕЗПЕЧНА ФУНКЦІЯ ОТРИМАННЯ ID (без символів, що ламають iOS)
         function getTelegramUserId() {
-            let idFromUrl = urlParams.get('tg_id');
-            if (idFromUrl) return idFromUrl;
-            if (window.Telegram && window.Telegram.WebApp) {
-                let idFromApp = window.Telegram.WebApp.initDataUnsafe?.user?.id;
-                if (idFromApp) return idFromApp.toString();
+            try {
+                let urlParams = new URLSearchParams(window.location.search);
+                let idFromUrl = urlParams.get('tg_id');
+                if (idFromUrl) return idFromUrl;
+                
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                    return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+                }
+            } catch(e) {
+                logInfo("Get ID error: " + e.message);
             }
             return "0";
         }
@@ -216,7 +220,7 @@
 
         async function deleteBusiness() {
             const bizId = document.getElementById('edit-biz-id').value;
-            if (!confirm("⚠️ ВИ ВПЕВНЕНІ?")) return;
+            if (!confirm("⚠️ ВИ ВПЕВНЕНІ? Це назавжди видалить бізнес!")) return;
             try {
                 const { error } = await supabase.from('businesses').delete().eq('id', bizId);
                 if (error) throw error;
@@ -232,16 +236,16 @@
             
             try {
                 if (!window.supabase) {
-                    throw new Error("Supabase JS Library not loaded.");
+                    throw new Error("Supabase JS Library not loaded. Check internet connection.");
                 }
                 logInfo("Supabase JS found.");
                 
-                // --- ЗМІНЕНО ПІДКЛЮЧЕННЯ: ТЕПЕР ПЕРЕДАЄМО ТВІЙ ID ---
                 let tgUserId = getTelegramUserId();
+                logInfo("Using ID for God Mode: " + tgUserId);
+
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
-                logInfo("Client created with God-Mode ID. Fetching businesses...");
 
                 const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
                 if (bErr) throw bErr;
@@ -340,7 +344,19 @@
             }
         }
 
-        loadSuperAdminData();
+        // БЕЗПЕЧНИЙ ЗАПУСК
+        window.onload = function() {
+            logInfo("Window loaded. Booting up...");
+            try { 
+                if (window.Telegram && window.Telegram.WebApp) { 
+                    window.Telegram.WebApp.expand(); 
+                    window.Telegram.WebApp.backgroundColor = '#0f172a'; 
+                } 
+            } catch(e) { logInfo("Tg WebApp init error: " + e.message); }
+            
+            // Даємо час скриптам завантажитись
+            setTimeout(loadSuperAdminData, 300);
+        };
     </script>
 </body>
 </html>
