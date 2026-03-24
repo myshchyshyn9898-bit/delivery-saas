@@ -94,6 +94,11 @@
         .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
         .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); }
         .pro-badge { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* --- ДОДАНО: СТИЛІ ДЛЯ ФОРМИ НАЛАШТУВАНЬ БІЗНЕСУ --- */
+        .form-input { width: 100%; padding: 16px; border: 1px solid #edf1f7; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #f4f7f9; color: var(--text-main); font-weight: 600; outline: none; }
+        .form-input:focus { border-color: var(--primary); }
+        .form-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block; font-weight: 700; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -180,6 +185,12 @@
                 <span class="set-label">Business ID</span>
                 <span class="set-val" id="set-id" style="font-size: 11px;">...</span>
             </div>
+
+            <div class="setting-row" onclick="openBizSettingsMenu()" style="cursor: pointer;">
+                <span class="set-label">Налаштування бізнесу</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+            </div>
+
             <div class="setting-row" onclick="openSubscriptionMenu()" style="cursor: pointer;">
                 <span class="set-label">Підписка</span>
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -231,6 +242,29 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="biz-settings-modal" onclick="closeBizSettingsMenu()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">Налаштування бізнесу</h2>
+            
+            <label class="form-label">Назва бізнесу</label>
+            <input type="text" id="input-biz-name" class="form-input" placeholder="Введіть назву...">
+            
+            <label class="form-label">Валюта</label>
+            <select id="input-biz-currency" class="form-input">
+                <option value="zł">Польський злотий (zł)</option>
+                <option value="₴">Українська гривня (₴)</option>
+                <option value="$">Долар США ($)</option>
+                <option value="€">Євро (€)</option>
+            </select>
+
+            <label class="form-label">Радіус доставки (км)</label>
+            <input type="number" id="input-biz-radius" class="form-input" placeholder="Наприклад: 5">
+
+            <button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 10px;">💾 Зберегти зміни</button>
+        </div>
+    </div>
+
     <script>
         // ГЛОБАЛЬНІ ЗМІННІ ДЛЯ ЛІМІТІВ ТА ФІЛЬТРА
         let currentPlanIsPro = true;
@@ -262,6 +296,48 @@
         function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
         function openSubscriptionMenu() { document.getElementById('subscription-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
         function closeSubscriptionMenu() { document.getElementById('subscription-modal').classList.remove('active'); document.body.style.overflow = ''; }
+
+        // --- ДОДАНО: ФУНКЦІЇ ДЛЯ МЕНЮ НАЛАШТУВАНЬ БІЗНЕСУ ---
+        function openBizSettingsMenu() { 
+            document.getElementById('biz-settings-modal').classList.add('active'); 
+            document.body.style.overflow = 'hidden'; 
+        }
+        function closeBizSettingsMenu() { 
+            document.getElementById('biz-settings-modal').classList.remove('active'); 
+            document.body.style.overflow = ''; 
+        }
+
+        async function saveBizSettings(btn) {
+            if (!bizId) return;
+            const newName = document.getElementById('input-biz-name').value;
+            const newCurr = document.getElementById('input-biz-currency').value;
+            const newRadius = document.getElementById('input-biz-radius').value;
+            
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+            btn.disabled = true;
+            
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                
+                let updatePayload = { name: newName, currency: newCurr };
+                // Додаємо радіус тільки якщо він введений (щоб не ламало, якщо колонки немає)
+                if (newRadius !== "") updatePayload.radius = parseInt(newRadius);
+
+                const { error } = await supabase.from('businesses').update(updatePayload).eq('id', bizId);
+                if (error) throw error;
+                
+                alert("✅ Налаштування успішно збережено!");
+                closeBizSettingsMenu();
+                loadDashboardData(); // Оновлюємо інтерфейс з новими даними
+            } catch(e) {
+                alert("❌ Помилка збереження. Перевірте, чи створена колонка 'radius' у таблиці 'businesses' в Supabase: " + e.message);
+            } finally {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            }
+        }
+        // -----------------------------------------------------
 
         function actionUpgrade() { alert("Перехід до оплати PRO тарифу! 💳"); }
         function actionRenew() { alert("Підписку продовжено."); }
@@ -315,6 +391,9 @@
             }
         }
 
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
@@ -330,8 +409,6 @@
                 document.getElementById('val-time').innerText = '-- хв';
                 document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Завантаження...</div>';
 
-                const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
                 if (!window.supabase) return;
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -351,6 +428,11 @@
                     currencySymbol = biz.currency || "zł";
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
+
+                    // --- ДОДАНО: Вставляємо дані бізнесу у форму редагування ---
+                    document.getElementById('input-biz-name').value = biz.name || '';
+                    document.getElementById('input-biz-currency').value = biz.currency || 'zł';
+                    document.getElementById('input-biz-radius').value = biz.radius || '';
 
                     currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     
@@ -470,6 +552,7 @@
                         `;
                     });
                 } else {
+                    // Якщо за період замовлень немає
                     document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">За цей період замовлень не знайдено</div>';
                 }
 
