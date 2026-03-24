@@ -88,7 +88,7 @@
         .f-yes { background: rgba(52, 199, 89, 0.1); color: var(--success); }
         .f-no { background: #f4f7f9; color: var(--text-muted); }
         .feature-disabled { color: var(--text-muted); text-decoration: line-through; }
-        .btn-sub-upgrade { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25); transition: 0.2s; margin-top: 20px; }
+        .btn-sub-upgrade { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25); transition: 0.2s; margin-top: 20px; }
         .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
@@ -386,11 +386,10 @@
             if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?`)) return;
             try {
                 const tg = window.Telegram.WebApp;
-                const userId = tg.initDataUnsafe?.user?.id || "0";
+                const tgUserId = tg.initDataUnsafe?.user?.id || "0";
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                    global: { headers: { 'x-telegram-user-id': userId.toString() } }
+                    global: { headers: { 'x-telegram-user-id': tgUserId.toString() } }
                 });
-                
                 await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
                 loadDashboardData(); 
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
@@ -414,11 +413,10 @@
                 document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Завантаження...</div>';
 
                 if (!window.supabase) return;
-                
                 const tg = window.Telegram.WebApp;
-                const userId = tg.initDataUnsafe?.user?.id || "0";
+                const tgUserId = tg.initDataUnsafe?.user?.id || "0";
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                    global: { headers: { 'x-telegram-user-id': userId.toString() } }
+                    global: { headers: { 'x-telegram-user-id': tgUserId.toString() } }
                 });
 
                 let startDate = new Date();
