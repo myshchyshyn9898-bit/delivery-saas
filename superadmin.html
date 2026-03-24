@@ -126,7 +126,6 @@
     </div>
 
     <script>
-        // Ініціалізація Телеграм
         try { 
             if (window.Telegram && window.Telegram.WebApp) { 
                 window.Telegram.WebApp.expand(); 
@@ -201,29 +200,31 @@
         async function loadSuperAdminData() {
             const listEl = document.getElementById('businesses-list');
             
-            // ФУНКЦІЯ РЕНТГЕНУ: оновлює екран на кожному кроці
-            const step = (msg) => {
-                listEl.innerHTML = `<div style="text-align: center; color: var(--warning); padding: 30px; font-weight: bold;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br><br>${msg}</div>`;
+            const step = function(msg) {
+                listEl.innerHTML = '<div style="text-align: center; color: var(--warning); padding: 30px; font-weight: bold;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br><br>' + msg + '</div>';
             };
 
             try {
-                step("Крок 1: Перевірка бібліотеки БД...");
-                if (!window.supabase) throw new Error("Бібліотека Supabase не завантажена. Блокує інтернет або браузер.");
+                step("Крок 1: Підготовка...");
+                if (!window.supabase) throw new Error("Бібліотека Supabase не завантажена.");
 
                 step("Крок 2: Отримання Telegram ID...");
-                let tgUserId = "6889016268"; // Залізобетонний дефолт
+                let tgUserId = "6889016268"; 
                 try {
                     let urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('tg_id')) tgUserId = urlParams.get('tg_id');
-                    else if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) tgUserId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+                    if (urlParams.get('tg_id')) {
+                        tgUserId = urlParams.get('tg_id');
+                    } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user && window.Telegram.WebApp.initDataUnsafe.user.id) {
+                        tgUserId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+                    }
                 } catch(e) {}
 
-                step(`Крок 3: Підключення до бази (Ваш ID: ${tgUserId})...`);
+                step("Крок 3: З'єднання з базою...");
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
 
-                step("Крок 4: Завантаження бізнесів (це може зайняти секунду)...");
+                step("Крок 4: Завантаження бізнесів...");
                 const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
                 if (bErr) throw new Error("Помилка бізнесів: " + JSON.stringify(bErr));
                 let allBusinesses = businesses || [];
@@ -233,11 +234,11 @@
                 if (oErr) throw new Error("Помилка замовлень: " + JSON.stringify(oErr));
                 let allOrders = orders || [];
 
-                step("Крок 6: Обробка та рендеринг даних...");
+                step("Крок 6: Обробка даних...");
                 
                 let sysTotalRev = 0, sysProCount = 0, sysCompletedOrders = 0;
-                allBusinesses.forEach(b => { if ((b.plan || 'basic').toLowerCase() === 'pro') sysProCount++; });
-                allOrders.forEach(o => { if (o.status === 'completed') { sysCompletedOrders++; sysTotalRev += parseFloat(o.amount || 0); }});
+                allBusinesses.forEach(function(b) { if ((b.plan || 'basic').toLowerCase() === 'pro') sysProCount++; });
+                allOrders.forEach(function(o) { if (o.status === 'completed') { sysCompletedOrders++; sysTotalRev += parseFloat(o.amount || 0); }});
 
                 document.getElementById('sys-businesses').innerText = allBusinesses.length;
                 document.getElementById('sys-pro').innerText = sysProCount;
@@ -250,9 +251,9 @@
                     return;
                 }
 
-                allBusinesses.forEach(biz => {
+                allBusinesses.forEach(function(biz) {
                     let bOrders = 0, bRevenue = 0;
-                    allOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') { bOrders++; bRevenue += parseFloat(o.amount || 0); }});
+                    allOrders.forEach(function(o) { if (o.business_id == biz.id && o.status === 'completed') { bOrders++; bRevenue += parseFloat(o.amount || 0); }});
 
                     let isPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     let badgeClass = isPro ? 'badge-pro' : 'badge-basic';
@@ -304,7 +305,6 @@
                 });
 
             } catch (error) {
-                // ВИВОДИМО ПОМИЛКУ ПРЯМО НА ЕКРАН ЖИРНИМ ТЕКСТОМ
                 let errorMsg = error.message || error;
                 listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 14px; text-align: center;">
                     <b>🚨 ПОМИЛКА СКРИПТА:</b><br><br>${errorMsg}
@@ -312,7 +312,6 @@
             }
         }
 
-        // Даємо 0.5 секунди на ініціалізацію вікна
         setTimeout(loadSuperAdminData, 500);
     </script>
 </body>
