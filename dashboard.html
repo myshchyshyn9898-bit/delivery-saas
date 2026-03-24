@@ -281,6 +281,31 @@
     </div>
 
     <script>
+        // --- 1. ІНІЦІАЛІЗАЦІЯ TELEGRAM ТА SUPABASE (З ПАСПОРТНИМ КОНТРОЛЕМ) ---
+        let tgUserId = "0";
+        try {
+            if (window.Telegram && window.Telegram.WebApp) { 
+                window.Telegram.WebApp.expand(); 
+                window.Telegram.WebApp.ready(); 
+                tgUserId = window.Telegram.WebApp.initDataUnsafe?.user?.id || "0";
+            }
+        } catch(e) { console.error("Telegram WebApp Error", e); }
+
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+
+        // Глобальний клієнт Supabase, який передає ID користувача в базу для RLS
+        let supabase = null;
+        if (window.supabase) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                global: {
+                    headers: {
+                        'x-telegram-user-id': tgUserId.toString()
+                    }
+                }
+            });
+        }
+
         let currentPlanIsPro = true;
         let currentCouriersCount = 0;
         let currentManagersCount = 0;
@@ -326,8 +351,6 @@
             btn.disabled = true;
             
             try {
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                
                 let updatePayload = { name: newName, currency: newCurr };
                 if (newRadius !== "") updatePayload.radius_km = parseInt(newRadius);
                 
@@ -373,18 +396,13 @@
         async function removeStaff(staffUserId, staffName) {
             if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?`)) return;
             try {
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
                 loadDashboardData(); 
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-
         async function loadDashboardData() {
             try {
-                if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
@@ -396,8 +414,7 @@
                 document.getElementById('val-time').innerText = '-- хв';
                 document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Завантаження...</div>';
 
-                if (!window.supabase) return;
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                if (!supabase) return;
 
                 let startDate = new Date();
                 if (currentFilter === 'today') startDate.setHours(0, 0, 0, 0);
