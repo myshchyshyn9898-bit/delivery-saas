@@ -137,16 +137,17 @@
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         
-        // ЖОРСТКО ВШИТИЙ ДОСТУП
-        const TG_ID = "6889016268";
-
-        // Формуємо заголовки для прямого запиту
-        const dbHeaders = {
-            'apikey': SUPABASE_KEY,
-            'Authorization': 'Bearer ' + SUPABASE_KEY,
-            'Content-Type': 'application/json',
-            'x-telegram-user-id': TG_ID
-        };
+        function getTelegramUserId() {
+            try {
+                let urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('tg_id')) return urlParams.get('tg_id');
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                    return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+                }
+            } catch(e) {}
+            // БЕЗПЕКА: Якщо хтось зайшов без посилання від бота - блокуємо доступ, повертаючи 0
+            return "0";
+        }
 
         function openAdminModal(id, name, plan, created_at, extra_days) {
             document.getElementById('admin-modal').classList.add('active');
@@ -177,6 +178,14 @@
             const currentExtra = parseInt(document.getElementById('edit-current-extra').value) || 0;
             
             const newExtraTotal = currentExtra + addDays;
+            const TG_ID = getTelegramUserId();
+
+            const dbHeaders = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'x-telegram-user-id': TG_ID
+            };
 
             btn.disabled = true;
             btn.innerHTML = "Збереження...";
@@ -205,6 +214,15 @@
         async function deleteBusiness() {
             const bizId = document.getElementById('edit-biz-id').value;
             if (!confirm("⚠️ ВИ ВПЕВНЕНІ? Це назавжди видалить бізнес!")) return;
+            
+            const TG_ID = getTelegramUserId();
+            const dbHeaders = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'x-telegram-user-id': TG_ID
+            };
+
             try {
                 // Прямий запит (DELETE) до бази даних
                 let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
@@ -222,6 +240,14 @@
 
         async function loadSuperAdminData() {
             const listEl = document.getElementById('businesses-list');
+            const TG_ID = getTelegramUserId();
+
+            const dbHeaders = {
+                'apikey': SUPABASE_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_KEY,
+                'Content-Type': 'application/json',
+                'x-telegram-user-id': TG_ID
+            };
             
             try {
                 // 1. Отримуємо бізнеси через NATIVE FETCH
