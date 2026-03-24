@@ -173,7 +173,7 @@
                 <select id="status-filter" class="filter-select" onchange="filterBusinesses()">
                     <option value="all">Всі</option>
                     <option value="pro">PRO</option>
-                    <option value="basic">Basic</option>
+                    <option value="basic">Basic (Trial)</option>
                     <option value="frozen">Заморожені</option>
                     <option value="expired">Боржники</option>
                 </select>
@@ -199,7 +199,7 @@
             
             <label class="form-label"><i class="fa-solid fa-layer-group"></i> Статус / Тариф</label>
             <select id="edit-plan" class="form-select">
-                <option value="basic">BASIC (Обмежений)</option>
+                <option value="basic">BASIC (Тріал / Обмежений)</option>
                 <option value="pro">PRO (Платна підписка)</option>
                 <option value="frozen" style="color: var(--frozen);">FROZEN (Заморозити доступ)</option>
             </select>
@@ -256,7 +256,8 @@
                     return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
                 }
             } catch(e) {}
-            return "0"; 
+            // ПОВЕРНУЛИ ЖОРСТКИЙ ДОСТУП, БО ТЕЛЕГРАМ ГУБИТЬ ПОСИЛАННЯ
+            return "6889016268"; 
         }
 
         const dbHeaders = {
@@ -336,6 +337,7 @@
                     headers: dbHeaders,
                     body: JSON.stringify({ plan: newPlan, extra_days: newExtraTotal })
                 });
+                
                 if (!res.ok) throw new Error(await res.text());
                 
                 closeModal('admin-modal');
