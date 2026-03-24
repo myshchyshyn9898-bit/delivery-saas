@@ -1,4 +1,4 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 import time
 
@@ -46,16 +46,14 @@ def get_courier_kb(biz_id):
         ],
         resize_keyboard=True
     )
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types.web_app_info import WebAppInfo
 
+# --- 5. МЕНЮ СУПЕР-АДМІНА (ВЛАСНИКА БОТА) ---
 def get_superadmin_kb():
-    # УВАГА: Заміни "myshchyshyn9898-bit.github.io/ТВІЙ_РЕПОЗИТОРІЙ" на свій реальний!
-    # Я додав ?v=1 в кінці, щоб збити кеш
-    web_app_url = "https://myshchyshyn9898-bit.github.io/delivery-saas/superadmin.html?v=1"
+    t = int(time.time())
+    # Динамічний час, щоб кеш ніколи не залипав
+    web_app_url = f"{URL}superadmin.html?v={t}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👑 Панель Власника", web_app=WebAppInfo(url=web_app_url))]
     ])
     return keyboard
-
