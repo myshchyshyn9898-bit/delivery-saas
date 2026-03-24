@@ -61,6 +61,8 @@
 
         .btn-save { background: var(--primary); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        
+        #debug-log { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; font-size: 10px; border-radius: 8px; word-wrap: break-word; }
     </style>
 </head>
 <body>
@@ -100,9 +102,11 @@
         <div id="businesses-list">
             <div style="text-align: center; color: var(--warning); padding: 30px; font-weight: bold;">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                ПЕРЕВІРКА КЕШУ... ЗАВАНТАЖУЮ ДАНІ...
+                ОТРИМАННЯ ДАНИХ...
             </div>
         </div>
+
+        <div id="debug-log"></div>
 
     </div>
 
@@ -122,8 +126,7 @@
             <label class="form-label">Додати днів до підписки</label>
             <input type="number" id="edit-days" class="form-input" placeholder="Наприклад: 30" value="0">
             <div style="font-size: 11px; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">
-                Поточна підписка дійсна до: <span id="current-expiry" style="color: white; font-weight: bold;">...</span><br>
-                <em>Введіть кількість днів (напр. 30), на яку хочете продовжити доступ. Залиште 0, якщо не хочете змінювати дату.</em>
+                Поточна підписка дійсна до: <span id="current-expiry" style="color: white; font-weight: bold;">...</span>
             </div>
 
             <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-floppy-disk"></i> Зберегти зміни</button>
@@ -132,15 +135,16 @@
     </div>
 
     <script>
-        // АЛЕРТ, ЩОБ ПЕРЕВІРИТИ ЧИ ВИКОНУЄТЬСЯ НОВИЙ КОД
-        alert("Привіт! Я новий код! Якщо ти це бачиш — кеш збито успішно!");
-
         const listEl = document.getElementById('businesses-list');
+        const debugEl = document.getElementById('debug-log');
+
+        function logInfo(text) {
+            debugEl.innerHTML += `> ${text}<br>`;
+            console.log(text);
+        }
 
         window.onerror = function(msg, url, line) {
-            listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px;">
-                <b>🚨 КРИТИЧНА ПОМИЛКА:</b><br>${msg}<br>Рядок: ${line}
-            </div>`;
+            logInfo(`❌ JS Error: ${msg} (Line ${line})`);
         };
 
         try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#0f172a'; } } catch(e) {}
@@ -178,8 +182,6 @@
             const newPlan = document.getElementById('edit-plan').value;
             const extraDays = parseInt(document.getElementById('edit-days').value) || 0;
 
-            const oldHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
             btn.disabled = true;
 
             try {
@@ -190,13 +192,12 @@
                 const { error } = await supabase.from('businesses').update({ plan: newPlan, extra_days: newExtraTotal }).eq('id', bizId);
                 if (error) throw error;
                 
-                alert("✅ Налаштування клієнта успішно оновлено!");
+                alert("✅ Оновлено!");
                 closeAdminModal();
                 loadSuperAdminData(); 
             } catch(e) {
                 alert("❌ Помилка збереження: " + e.message);
             } finally {
-                btn.innerHTML = oldHtml;
                 btn.disabled = false;
             }
         }
@@ -211,23 +212,32 @@
                 alert("🗑 Бізнес видалено.");
                 closeAdminModal();
                 loadSuperAdminData();
-            } catch(e) { alert("❌ Помилка видалення: " + e.message); }
+            } catch(e) { alert("❌ Помилка: " + e.message); }
         }
 
         async function loadSuperAdminData() {
+            logInfo("1. Старт функції loadSuperAdminData");
+            
             try {
                 if (!window.supabase) {
-                    throw new Error("Не вдалося завантажити бібліотеку Supabase. Перевірте інтернет-з'єднання.");
+                    throw new Error("Supabase JS не завантажено.");
                 }
+                logInfo("2. Бібліотека Supabase знайдена");
+                
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                logInfo("3. Клієнт Supabase створено");
 
                 const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
                 if (bErr) throw bErr;
+                
                 let allBusinesses = businesses || [];
+                logInfo(`4. Завантажено бізнесів: ${allBusinesses.length}`);
 
                 const { data: orders, error: oErr } = await supabase.from('orders').select('business_id, amount, status');
                 if (oErr) throw oErr;
+                
                 let allOrders = orders || [];
+                logInfo(`5. Завантажено замовлень: ${allOrders.length}`);
 
                 let sysTotalRev = 0, sysProCount = 0, sysCompletedOrders = 0;
 
@@ -242,6 +252,7 @@
                 listEl.innerHTML = '';
                 if (allBusinesses.length === 0) {
                     listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 20px;">Клієнтів ще немає.</div>';
+                    logInfo("6. Успішно (список порожній)");
                     return;
                 }
 
@@ -297,9 +308,12 @@
                         </div>
                     `;
                 });
+                
+                logInfo("6. Успішно зрендерено список");
 
             } catch (error) {
                 let errorMsg = error.message || error;
+                logInfo(`❌ CATCH ERROR: ${errorMsg}`);
                 listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px; text-align: center;">
                     <b>🚨 ПОМИЛКА:</b><br>${errorMsg}
                 </div>`;
