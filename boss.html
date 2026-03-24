@@ -240,6 +240,9 @@
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         
+        // ЖОРСТКИЙ ДОСТУП ВЛАСНИКА (Блокує помилки Телеграму)
+        const TG_ID = "6889016268";
+
         // --- ДИНАМІЧНІ ЦІНИ (Беруться з пам'яті телефону) ---
         let currentProPrice = parseFloat(localStorage.getItem('saas_price_pro')) || 150;
         let currentBasicPrice = parseFloat(localStorage.getItem('saas_price_basic')) || 0;
@@ -248,23 +251,11 @@
         let globalBusinesses = [];
         let globalOrders = [];
 
-        function getTelegramUserId() {
-            try {
-                let urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('tg_id')) return urlParams.get('tg_id');
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                    return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-                }
-            } catch(e) {}
-            // ПОВЕРНУЛИ ЖОРСТКИЙ ДОСТУП, БО ТЕЛЕГРАМ ГУБИТЬ ПОСИЛАННЯ
-            return "6889016268"; 
-        }
-
         const dbHeaders = {
             'apikey': SUPABASE_KEY,
             'Authorization': 'Bearer ' + SUPABASE_KEY,
             'Content-Type': 'application/json',
-            'x-telegram-user-id': getTelegramUserId()
+            'x-telegram-user-id': TG_ID
         };
 
         // --- UI ЛОГІКА ---
@@ -297,9 +288,8 @@
             currentBasicPrice = pBasic;
             
             closeModal('platform-settings-modal');
-            renderDashboard(); // Миттєво перемальовуємо дохід
+            renderDashboard(); 
             
-            // Легка візуальна віддача
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Збережено!';
             setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи'; }, 1000);
         }
@@ -343,7 +333,7 @@
                 closeModal('admin-modal');
                 loadData(); 
             } catch(e) {
-                alert("❌ Помилка: " + e.message);
+                alert("❌ Помилка збереження: " + e.message);
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> Підтвердити зміни';
             }
@@ -374,7 +364,7 @@
                 renderDashboard();
                 filterBusinesses(); 
             } catch (e) {
-                document.getElementById('businesses-list').innerHTML = `<div style="padding: 20px; color: var(--danger); text-align: center; font-weight: bold;">🚨 Помилка доступу. Зайдіть через бота.</div>`;
+                document.getElementById('businesses-list').innerHTML = `<div style="padding: 20px; color: var(--danger); text-align: center; font-weight: bold;">🚨 Помилка доступу: <br>${e.message}</div>`;
             }
         }
 
@@ -392,10 +382,7 @@
                 if (o.status === 'completed') sysCompletedOrders++;
             });
 
-            // РАХУЄМО ДОХІД ВЛАСНИКА (MRR) - Враховує ціни з налаштувань
             let ownerRevenue = (sysProCount * currentProPrice) + (sysBasicCount * currentBasicPrice);
-            
-            // РАХУЄМО КОНВЕРСІЮ
             let conversion = globalBusinesses.length > 0 ? ((sysProCount / globalBusinesses.length) * 100).toFixed(1) : 0;
 
             document.getElementById('sys-businesses').innerText = globalBusinesses.length;
