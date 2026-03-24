@@ -98,9 +98,9 @@
         <div class="section-title">Список клієнтів (Бізнеси)</div>
         
         <div id="businesses-list">
-            <div style="text-align: center; color: var(--text-muted); padding: 30px;">
+            <div style="text-align: center; color: var(--warning); padding: 30px; font-weight: bold;">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                Завантаження бази клієнтів...
+                ПЕРЕВІРКА КЕШУ... ЗАВАНТАЖУЮ ДАНІ...
             </div>
         </div>
 
@@ -132,20 +132,16 @@
     </div>
 
     <script>
+        // АЛЕРТ, ЩОБ ПЕРЕВІРИТИ ЧИ ВИКОНУЄТЬСЯ НОВИЙ КОД
+        alert("Привіт! Я новий код! Якщо ти це бачиш — кеш збито успішно!");
+
         const listEl = document.getElementById('businesses-list');
 
-        // БРОНЕБІЙНИЙ ВИЛОВЛЮВАЧ ПОМИЛОК
         window.onerror = function(msg, url, line) {
             listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px;">
                 <b>🚨 КРИТИЧНА ПОМИЛКА:</b><br>${msg}<br>Рядок: ${line}
             </div>`;
         };
-        window.addEventListener("unhandledrejection", function(event) {
-            let errorMsg = event.reason ? event.reason.message || event.reason : "Невідома помилка";
-            listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px;">
-                <b>🚨 ПОМИЛКА БАЗИ ДАНИХ:</b><br>${errorMsg}
-            </div>`;
-        });
 
         try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#0f172a'; } } catch(e) {}
 
@@ -187,7 +183,6 @@
             btn.disabled = true;
 
             try {
-                // Використовуємо .maybeSingle(), щоб не впало, якщо щось не так
                 const { data: bData } = await supabase.from('businesses').select('extra_days').eq('id', bizId).maybeSingle();
                 let currentExtra = (bData && bData.extra_days) ? parseInt(bData.extra_days) : 0;
                 let newExtraTotal = currentExtra + extraDays;
@@ -226,7 +221,6 @@
                 }
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                // ПРИБРАВ .order('created_at') щоб не було помилок, якщо колонки немає
                 const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
                 if (bErr) throw bErr;
                 let allBusinesses = businesses || [];
@@ -305,7 +299,6 @@
                 });
 
             } catch (error) {
-                // ВИВОДИМО ПОМИЛКУ ПРЯМО НА ЕКРАН
                 let errorMsg = error.message || error;
                 listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px; text-align: center;">
                     <b>🚨 ПОМИЛКА:</b><br>${errorMsg}
