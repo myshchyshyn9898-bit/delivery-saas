@@ -281,6 +281,9 @@
     </div>
 
     <script>
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+
         let currentPlanIsPro = true;
         let currentCouriersCount = 0;
         let currentManagersCount = 0;
@@ -288,6 +291,23 @@
         
         let bizLat = null;
         let bizLon = null;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        let botUsername = "rz_city_bot"; 
+        let currencySymbol = "zł";
+
+        // ГЕНІАЛЬНИЙ ФІКС: Отримуємо ID або з URL, або з WebApp
+        function getTelegramUserId() {
+            let idFromUrl = urlParams.get('tg_id'); // Беремо з лінки від бота
+            if (idFromUrl) return idFromUrl;
+            
+            if (window.Telegram && window.Telegram.WebApp) {
+                let idFromApp = window.Telegram.WebApp.initDataUnsafe?.user?.id;
+                if (idFromApp) return idFromApp.toString();
+            }
+            return "0";
+        }
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -326,20 +346,11 @@
             btn.disabled = true;
             
             try {
-                // Отримуємо ID користувача з Telegram WebApp
-            const tg = window.Telegram.WebApp;
-            const userId = tg.initDataUnsafe?.user?.id || "0";
+                let userId = getTelegramUserId();
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: { headers: { 'x-telegram-user-id': userId } }
+                });
 
-            // Створюємо клієнт з передачею заголовка безпеки
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-              global: {
-                headers: {
-                  'x-telegram-user-id': userId.toString()
-                }
-              }
-            });
-
-                
                 let updatePayload = { name: newName, currency: newCurr };
                 if (newRadius !== "") updatePayload.radius_km = parseInt(newRadius);
                 
@@ -367,11 +378,6 @@
         function actionRenew() { alert("Підписку продовжено."); }
         function actionCancel() { if(confirm("Ви впевнені?")) { alert("Підписку скасовано."); closeSubscriptionMenu(); } }
 
-        let botUsername = "rz_city_bot"; 
-        const urlParams = new URLSearchParams(window.location.search);
-        const bizId = urlParams.get('biz_id');
-        let currencySymbol = "zł";
-
         function generateInvite(role) {
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
             if (!currentPlanIsPro) {
@@ -385,32 +391,19 @@
         async function removeStaff(staffUserId, staffName) {
             if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?`)) return;
             try {
-                const tg = window.Telegram.WebApp;
-                const tgUserId = tg.initDataUnsafe?.user?.id || "0";
+                let userId = getTelegramUserId();
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                    global: { headers: { 'x-telegram-user-id': tgUserId.toString() } }
+                    global: { headers: { 'x-telegram-user-id': userId } }
                 });
                 await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
                 loadDashboardData(); 
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 
-                // РЕНТГЕН-АЛЕРТ: перевіряємо всі дані від Телеграм
-                let tgUserIdTest = "0";
-                if (window.Telegram && window.Telegram.WebApp) {
-                    tgUserIdTest = window.Telegram.WebApp.initDataUnsafe?.user?.id || "0";
-                    alert("ID: " + tgUserIdTest + "\n\nВсі дані: " + JSON.stringify(window.Telegram.WebApp.initDataUnsafe));
-                } else {
-                    alert("Telegram WebApp об'єкт недоступний!");
-                }
-
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
@@ -424,10 +417,10 @@
 
                 if (!window.supabase) return;
                 
-                const tg = window.Telegram.WebApp;
-                const tgUserId = tg.initDataUnsafe?.user?.id || "0";
+                let tgUserId = getTelegramUserId();
+                
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                    global: { headers: { 'x-telegram-user-id': tgUserId.toString() } }
+                    global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
 
                 let startDate = new Date();
