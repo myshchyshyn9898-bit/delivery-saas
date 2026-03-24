@@ -14,11 +14,11 @@ reg_kb = ReplyKeyboardMarkup(
 )
 
 # --- 2. МЕНЮ ВЛАСНИКА ---
-def get_owner_kb(biz_id):
+def get_owner_kb(biz_id, user_id):
     t = int(time.time())
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📊 Дашборд", web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}&v={t}"))],
+            [KeyboardButton(text="📊 Дашборд", web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}"))],
             [KeyboardButton(text="📊 Зробити звіт")],
             [KeyboardButton(text="⚙️ Налаштування бізнесу"), KeyboardButton(text="👥 Персонал")]
         ],
@@ -26,32 +26,32 @@ def get_owner_kb(biz_id):
     )
 
 # --- 3. МЕНЮ МЕНЕДЖЕРА ---
-def get_manager_kb(biz_id):
+def get_manager_kb(biz_id, user_id):
     t = int(time.time())
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📝 Нове замовлення", web_app=WebAppInfo(url=f"{URL}form.html?biz_id={biz_id}&v={t}"))],
+            [KeyboardButton(text="📝 Нове замовлення", web_app=WebAppInfo(url=f"{URL}form.html?biz_id={biz_id}&tg_id={user_id}&v={t}"))],
             [KeyboardButton(text="📊 Зробити звіт")],
-            [KeyboardButton(text="📂 Активні замовлення", web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&v={t}"))]
+            [KeyboardButton(text="📂 Активні замовлення", web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}"))]
         ],
         resize_keyboard=True
     )
 
 # --- 4. МЕНЮ КУР'ЄРА ---
-def get_courier_kb(biz_id):
+def get_courier_kb(biz_id, user_id):
     t = int(time.time())
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📦 Мої доставки", web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&v={t}"))]
+            [KeyboardButton(text="📦 Мої доставки", web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}"))]
         ],
         resize_keyboard=True
     )
 
 # --- 5. МЕНЮ СУПЕР-АДМІНА (ВЛАСНИКА БОТА) ---
-def get_superadmin_kb():
+def get_superadmin_kb(user_id):
     t = int(time.time())
     # Динамічний час, щоб кеш ніколи не залипав
-    web_app_url = f"{URL}superadmin.html?v={t}"
+    web_app_url = f"{URL}superadmin.html?tg_id={user_id}&v={t}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="👑 Панель Власника", web_app=WebAppInfo(url=web_app_url))]
