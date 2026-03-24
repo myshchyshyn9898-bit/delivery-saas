@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boss Panel 4.2 | Settings</title>
+    <title>Boss Panel 4.2 | Fixed</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -240,10 +240,9 @@
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         
-        // ЖОРСТКИЙ ДОСТУП ВЛАСНИКА (Блокує помилки Телеграму)
+        // ЖОРСТКИЙ ДОСТУП ВЛАСНИКА 
         const TG_ID = "6889016268";
 
-        // --- ДИНАМІЧНІ ЦІНИ (Беруться з пам'яті телефону) ---
         let currentProPrice = parseFloat(localStorage.getItem('saas_price_pro')) || 150;
         let currentBasicPrice = parseFloat(localStorage.getItem('saas_price_basic')) || 0;
         const CURRENCY = "zł";
@@ -258,7 +257,6 @@
             'x-telegram-user-id': TG_ID
         };
 
-        // --- UI ЛОГІКА ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -270,7 +268,6 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        // --- ГЛОБАЛЬНІ НАЛАШТУВАННЯ ---
         function openPlatformSettings() {
             document.getElementById('platform-settings-modal').classList.add('active');
             document.getElementById('setting-price-pro').value = currentProPrice;
@@ -294,7 +291,6 @@
             setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи'; }, 1000);
         }
 
-        // --- КЕРУВАННЯ КЛІЄНТОМ ---
         function openAdminModal(id, name, plan, created_at, extra_days) {
             document.getElementById('admin-modal').classList.add('active');
             document.getElementById('modal-biz-name').innerText = name;
@@ -350,7 +346,6 @@
             } catch(e) { alert("❌ Помилка: " + e.message); }
         }
 
-        // --- ДАНІ ТА РЕНДЕР ---
         async function loadData() {
             try {
                 let bRes = await fetch(SUPABASE_URL + '/rest/v1/businesses?select=*', { method: 'GET', headers: dbHeaders });
@@ -369,17 +364,13 @@
         }
 
         function renderDashboard() {
-            let sysProCount = 0, sysBasicCount = 0, sysFrozenCount = 0, sysCompletedOrders = 0;
+            let sysProCount = 0, sysBasicCount = 0, sysFrozenCount = 0;
             
             globalBusinesses.forEach(b => { 
                 let p = (b.plan || 'basic').toLowerCase();
                 if (p === 'pro') sysProCount++; 
                 else if (p === 'frozen') sysFrozenCount++;
                 else sysBasicCount++;
-            });
-            
-            globalOrders.forEach(o => { 
-                if (o.status === 'completed') sysCompletedOrders++;
             });
 
             let ownerRevenue = (sysProCount * currentProPrice) + (sysBasicCount * currentBasicPrice);
@@ -389,7 +380,7 @@
             document.getElementById('sys-pro').innerText = sysProCount;
             document.getElementById('sys-basic').innerText = sysBasicCount;
             document.getElementById('sys-frozen').innerText = sysFrozenCount;
-            document.getElementById('sys-orders').innerText = sysCompletedOrders;
+            // Рядок sys-orders успішно видалено!
             document.getElementById('owner-mrr').innerText = ownerRevenue.toLocaleString('uk-UA') + " " + CURRENCY; 
             document.getElementById('sys-conversion').innerText = conversion + "%"; 
         }
