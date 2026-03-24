@@ -34,17 +34,19 @@
         .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block; margin-top: 15px;}
         .btn-submit:active { transform: scale(0.96); }
 
-        /* --- СТИЛІ ДЛЯ АВТОЗАПОВНЕННЯ АДРЕСИ --- */
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #edf1f7; z-index: 1000;
-            max-height: 220px; overflow-y: auto; display: none; margin-top: 5px;
+            max-height: 250px; overflow-y: auto; display: none; margin-top: 5px;
         }
         .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #edf1f7; cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; }
         .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:active { background: #f4f7f9; }
-        .addr-main { font-weight: 800; color: #111418; margin-bottom: 2px; }
+        .addr-main { font-weight: 800; color: #111418; margin-bottom: 2px; display: flex; justify-content: space-between; }
         .addr-sub { font-size: 12px; color: #8a8d91; }
+        
+        /* Додали стиль для бейджа з дистанцією */
+        .dist-badge { background: #edf1f7; color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
     </style>
 </head>
 <body>
@@ -119,40 +121,62 @@
         let supabaseClient = null;
         if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- ІНІЦІАЛІЗАЦІЯ (СТАТУСИ КУР'ЄРІВ) ---
+        // --- ГЛОБАЛЬНІ ЗМІННІ БІЗНЕСУ ДЛЯ РАДІУСУ ---
+        let bizLat = null;
+        let bizLon = null;
+        let bizRadius = 10; // По замовчуванню 10 км, якщо в базі пусто
+
+        // Математична функція для розрахунку відстані по прямій між двома точками
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Радіус Землі в км
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // Повертає відстань в кілометрах
+        }
+
         async function initForm() {
             if (!bizId || !supabaseClient) return;
             try {
+                // 1. ВИТЯГУЄМО КООРДИНАТИ ТА РАДІУС БІЗНЕСУ З БАЗИ
+                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
+                if (biz) {
+                    bizLat = biz.lat || null;
+                    bizLon = biz.lng || null;
+                    bizRadius = biz.radius_km || 10; // Якщо радіус не заданий, беремо 10 км
+                }
+
+                // 2. ВИТЯГУЄМО КУР'ЄРІВ
                 const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
                 const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
                 
                 const select = document.getElementById('courier-select');
                 if (couriers && couriers.length > 0) {
                     select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
-                    
                     const busyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
                     
                     couriers.forEach(c => { 
                         const isBusy = busyIds.includes(String(c.user_id));
                         const statusText = isBusy ? "🟡 В дорозі" : "🟢 Вільний";
                         const textColor = isBusy ? "#FFB020" : "#34C759";
-                        
-                        // Кур'єр доступний для вибору в будь-якому випадку!
                         select.innerHTML += `<option value="${c.user_id || c.tg_id}" style="color: ${textColor};">🛵 ${c.name} (${statusText})</option>`; 
                     });
                 } else {
                     select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("Помилка ініціалізації:", e); }
         }
 
-        // --- ЛОГІКА АВТОЗАПОВНЕННЯ ТА ЗБЕРЕЖЕННЯ КООРДИНАТ ---
+        // --- ЛОГІКА ПОШУКУ З УРАХУВАННЯМ РАДІУСУ ---
         const addrInput = document.getElementById('address-street');
         const addrList = document.getElementById('autocomplete-list');
         let timeout = null;
         
-        let selectedLat = null; // Повернули для теплової карти
-        let selectedLon = null; // Повернули для теплової карти
+        let selectedLat = null; 
+        let selectedLon = null; 
 
         addrInput.addEventListener('input', function() {
             clearTimeout(timeout);
@@ -168,18 +192,31 @@
             addrList.style.display = 'block';
 
             timeout = setTimeout(async () => {
-                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl`;
+                // Додав параметр limit=10, щоб було з чого вибирати після фільтрації
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
                 
                 try {
                     const res = await fetch(url, { headers: { 'Accept-Language': 'pl' } });
                     const data = await res.json();
                     
+                    addrList.innerHTML = ''; 
+                    let foundValidAddress = false;
+                    
                     if (data && data.length > 0) {
-                        addrList.innerHTML = ''; 
-                        
                         data.forEach(item => {
                             const addr = item.address;
                             if (!addr) return;
+
+                            const itemLat = parseFloat(item.lat);
+                            const itemLon = parseFloat(item.lon);
+                            
+                            // РОЗРАХУНОК ВІДСТАНІ ВІД БАЗИ ДО АДРЕСИ
+                            let distance = 0;
+                            if (bizLat && bizLon) {
+                                distance = calculateDistance(bizLat, bizLon, itemLat, itemLon);
+                                // ФІЛЬТР: Якщо відстань БІЛЬША за радіус — просто пропускаємо цю адресу
+                                if (distance > bizRadius) return; 
+                            }
 
                             const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
                             const house = addr.house_number || '';
@@ -189,21 +226,34 @@
                             
                             if (!road) return; 
                             
+                            foundValidAddress = true; // Знайшли хоча б одну адресу в радіусі
+
+                            // Красивий бейдж з кілометражем
+                            const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route"></i> ${distance.toFixed(1)} км</span>` : '';
+
                             const div = document.createElement('div');
                             div.className = 'autocomplete-item';
-                            div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                            div.innerHTML = `<div class="addr-main"><span>${mainText}</span> ${distHtml}</div><div class="addr-sub">${subText}</div>`;
                             
                             div.onclick = function() {
                                 addrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
-                                selectedLat = parseFloat(item.lat); // Захоплюємо!
-                                selectedLon = parseFloat(item.lon); // Захоплюємо!
+                                selectedLat = itemLat; 
+                                selectedLon = itemLon; 
                                 addrList.style.display = 'none';
                             };
                             addrList.appendChild(div);
                         });
-                    } else {
-                        addrList.innerHTML = '<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>';
                     }
+
+                    // Якщо після фільтрації нічого не залишилось (або Nominatim нічого не дав)
+                    if (!foundValidAddress) {
+                        addrList.innerHTML = `
+                            <div class="autocomplete-item" style="color: #ff3b30; text-align: center;">
+                                <i class="fa-solid fa-triangle-exclamation"></i><br>
+                                Адресу не знайдено, або вона поза зоною доставки (${bizRadius} км).
+                            </div>`;
+                    }
+
                 } catch(e) { 
                     addrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
                 }
@@ -242,8 +292,8 @@
                 payment: selectedPayment,
                 courier_id: courierId,
                 comment: document.getElementById('order-comment').value.trim(),
-                lat: selectedLat, // Координати летять у базу!
-                lon: selectedLon  // Координати летять у базу!
+                lat: selectedLat,
+                lon: selectedLon 
             };
 
             document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
