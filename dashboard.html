@@ -14,126 +14,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 
     <style>
-        :root { 
-            --bg-color: #f4f7f9; 
-            --text-main: #111418; 
-            --text-muted: #8a8d91; 
-            --primary: #ff7652; 
-            --surface: #ffffff; 
-            --success: #34C759; 
-            --info: #4A6CF7; 
-        }
-
-        * { 
-            box-sizing: border-box; 
-            font-family: 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            user-select: none; 
-            -webkit-tap-highlight-color: transparent; 
-        }
-
+        :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --success: #34C759; --info: #4A6CF7; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 100px; } 
 
-        /* СТИЛІ ЗАГОЛОВКА */
-        .header { 
-            background: var(--surface); 
-            padding: 20px 20px 15px; 
-            border-bottom: 1px solid #edf1f7; 
-            position: sticky; 
-            top: 0; 
-            z-index: 100; 
-        }
-
-        .biz-title { 
-            font-size: 24px; 
-            font-weight: 900; 
-            letter-spacing: -0.5px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; 
-        }
-
-        .biz-status { 
-            font-size: 11px; 
-            background: rgba(52, 199, 89, 0.1); 
-            color: var(--success); 
-            padding: 4px 10px; 
-            border-radius: 10px; 
-            font-weight: 800; 
-            text-transform: uppercase; 
-        }
+        .header { background: var(--surface); padding: 20px 20px 15px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; }
+        .biz-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
+        .biz-status { font-size: 11px; background: rgba(52, 199, 89, 0.1); color: var(--success); padding: 4px 10px; border-radius: 10px; font-weight: 800; text-transform: uppercase; }
         
-        .time-filter { 
-            display: flex; 
-            background: #edf1f7; 
-            border-radius: 12px; 
-            padding: 4px; 
-            margin-top: 15px; 
-        }
+        .time-filter { display: flex; background: #edf1f7; border-radius: 12px; padding: 4px; margin-top: 15px; }
+        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 8px; transition: 0.2s; cursor: pointer;}
+        .filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        .filter-btn { 
-            flex: 1; 
-            text-align: center; 
-            padding: 8px 0; 
-            font-size: 13px; 
-            font-weight: 600; 
-            color: var(--text-muted); 
-            border-radius: 8px; 
-            transition: 0.2s; 
-            cursor: pointer;
-        }
-
-        .filter-btn.active { 
-            background: var(--surface); 
-            color: var(--text-main); 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
-        }
-
-        /* КОНТЕНТ ВКЛАДОК */
-        .tab-content { 
-            display: none; 
-            padding: 20px; 
-            animation: fadeIn 0.3s ease; 
-        }
-
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* МЕТРИКИ (Стилі карток) */
-        .metrics-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 15px; 
-            margin-bottom: 25px; 
-        }
-
-        .metric-card { 
-            background: var(--surface); 
-            border-radius: 20px; 
-            padding: 18px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.02); 
-            border: 1px solid #edf1f7; 
-            position: relative; 
-            overflow: hidden; 
-        }
-
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .metric-card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; position: relative; overflow: hidden; }
         .metric-card.full-width { grid-column: 1 / -1; }
-
-        .metric-icon { 
-            width: 35px; 
-            height: 35px; 
-            border-radius: 10px; 
-            background: rgba(255, 118, 82, 0.1); 
-            color: var(--primary); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 16px; 
-            margin-bottom: 12px; 
-        }
-
+        .metric-icon { width: 35px; height: 35px; border-radius: 10px; background: rgba(255, 118, 82, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
         .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; }
         .metric-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
 
@@ -143,8 +43,7 @@
 
         .section-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
 
-        /* СПИСОК ЗАМОВЛЕНЬ */
-        .activity-feed { background: var(--surface); border-radius: 20px; padding: 5px 15px; border: 1px solid #edf1f7; }
+        .activity-feed { background: var(--surface); border-radius: 20px; padding: 5px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
         .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .activity-item:last-child { border-bottom: none; }
         .act-icon { width: 40px; height: 40px; border-radius: 50%; background: #f4f7f9; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: var(--success); }
@@ -153,8 +52,7 @@
         .act-time { font-size: 12px; color: var(--text-muted); }
         .act-price { font-size: 15px; font-weight: 800; color: var(--text-main); }
 
-        /* КОМАНДА */
-        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; border: 1px solid #edf1f7; margin-bottom: 12px; display: flex; align-items: center; }
+        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 12px; display: flex; align-items: center; }
         .team-avatar { width: 45px; height: 45px; border-radius: 12px; background: #edf1f7; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 15px; }
         .team-info { flex: 1; }
         .team-name { font-size: 16px; font-weight: 800; }
@@ -162,41 +60,40 @@
         .role-courier { color: var(--primary); background: rgba(255, 118, 82, 0.1); }
         .role-manager { color: var(--info); background: rgba(74, 108, 247, 0.1); }
         
-        .btn-delete-staff { background: rgba(255, 59, 48, 0.1); color: #ff3b30; border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .btn-delete-staff:active { transform: scale(0.9); }
+        .btn-invite { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
+        .btn-invite:active { transform: scale(0.96); }
+        .btn-invite.manager { background: var(--info); box-shadow: 0 8px 20px rgba(74, 108, 247, 0.25); }
 
-        .btn-invite { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
-        .btn-invite.manager { background: var(--info); }
-
-        /* НАЛАШТУВАННЯ */
         .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
+        .setting-row:last-child { border-bottom: none; }
         .set-label { font-size: 15px; font-weight: 600; color: var(--text-muted); }
         .set-val { font-size: 15px; font-weight: 800; }
 
-        /* МЕНЮ НАВІГАЦІЇ */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); border-top: 1px solid #edf1f7; z-index: 1000; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; }
-        .nav-item.active { color: var(--primary); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); border-top: 1px solid #edf1f7; z-index: 9999; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px; }
         .nav-item i { font-size: 22px; }
+        .nav-item.active { color: var(--primary); }
+        .leaflet-container { z-index: 1; border-radius: 12px; }
 
-        /* МОДАЛКА ПІДПИСКИ */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17, 20, 24, 0.6); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(3px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); }
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
         .modal-overlay.active .bottom-sheet { bottom: 0; }
         .sheet-handle { width: 40px; height: 5px; background: #edf1f7; border-radius: 5px; margin: 0 auto 20px; }
-        
         .feature-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-main); }
         .feature-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
         .f-yes { background: rgba(52, 199, 89, 0.1); color: var(--success); }
         .f-no { background: #f4f7f9; color: var(--text-muted); }
         .feature-disabled { color: var(--text-muted); text-decoration: line-through; }
+        .btn-sub-upgrade { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25); transition: 0.2s; margin-top: 20px; }
+        .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
-        /* PRO ЛОГІКА (Блюр) */
+        /* СТИЛІ ДЛЯ БЛЮРУ PRO-ФІЧ */
         .pro-locked { position: relative; overflow: hidden; }
-        .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; }
-        .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; }
-        .pro-badge { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); }
+        .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
+        .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); }
+        .pro-badge { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     </style>
 </head>
 <body>
@@ -215,85 +112,132 @@
 
     <div id="tab-home" class="tab-content active">
         <div class="metrics-grid">
+            
             <div class="metric-card full-width bg-gradient">
                 <div class="metric-icon"><i class="fa-solid fa-wallet"></i></div>
                 <div class="metric-val" id="val-total">0.00</div>
                 <div class="metric-label">Загальна каса</div>
+                <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 80px; opacity: 0.1;"></i>
             </div>
 
             <div class="metric-card full-width" id="card-heatmap" style="padding: 15px;">
-                <div id="heatmap" style="height: 150px; width: 100%; border-radius: 12px; margin-bottom: 10px;"></div>
+                <div id="heatmap" style="height: 150px; width: 100%; margin-bottom: 15px; border: 1px solid #edf1f7;"></div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                    <div><div class="metric-label">Середній чек</div><div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div></div>
+                    <div>
+                        <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
+                        <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
+                    </div>
                     <div class="metric-icon" style="margin: 0;"><i class="fa-solid fa-fire" style="color: #ff3b30;"></i></div>
                 </div>
             </div>
 
-            <div class="metric-card" id="card-cash"><div class="metric-icon"><i class="fa-solid fa-money-bill-wave"></i></div><div class="metric-val" id="val-cash">0.00</div><div class="metric-label">Готівка</div></div>
-            <div class="metric-card" id="card-term"><div class="metric-icon" style="color: var(--info); background: rgba(74,108,247,0.1);"><i class="fa-solid fa-credit-card"></i></div><div class="metric-val" id="val-term">0.00</div><div class="metric-label">Термінал</div></div>
-            <div class="metric-card" id="card-orders"><div class="metric-icon" style="color: #FFB020; background: rgba(255,176,32,0.1);"><i class="fa-solid fa-bag-shopping"></i></div><div class="metric-val" id="val-orders">0</div><div class="metric-label">Замовлень</div></div>
-            <div class="metric-card" id="card-time"><div class="metric-icon" style="color: var(--success); background: rgba(52,199,89,0.1);"><i class="fa-solid fa-stopwatch"></i></div><div class="metric-val" id="val-time">-- хв</div><div class="metric-label">Сер. час</div></div>
+            <div class="metric-card" id="card-cash">
+                <div class="metric-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="metric-val" id="val-cash">0.00</div>
+                <div class="metric-label">Готівка</div>
+            </div>
+            <div class="metric-card" id="card-term">
+                <div class="metric-icon" style="color: var(--info); background: rgba(74,108,247,0.1);"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="metric-val" id="val-term">0.00</div>
+                <div class="metric-label">Термінал</div>
+            </div>
+            <div class="metric-card" id="card-orders">
+                <div class="metric-icon" style="color: #FFB020; background: rgba(255,176,32,0.1);"><i class="fa-solid fa-bag-shopping"></i></div>
+                <div class="metric-val" id="val-orders">0</div>
+                <div class="metric-label">Замовлень</div>
+            </div>
+            <div class="metric-card" id="card-time">
+                <div class="metric-icon" style="color: var(--success); background: rgba(52,199,89,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
+                <div class="metric-val" id="val-time">-- хв</div>
+                <div class="metric-label">Сер. час</div>
+            </div>
         </div>
 
         <div class="section-title">Останні замовлення</div>
         <div class="activity-feed" id="recent-orders-list">
-            <div style="text-align: center; color: var(--text-muted); padding: 15px;">Завантаження...</div>
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">Завантаження...</div>
         </div>
     </div>
 
     <div id="tab-team" class="tab-content">
         <div class="section-title">Запрошення персоналу</div>
-        <button class="btn-invite" onclick="generateInvite('courier')"><i class="fa-solid fa-motorcycle"></i> Запросити Кур'єра</button>
-        <button class="btn-invite manager" onclick="generateInvite('manager')"><i class="fa-solid fa-user-tie"></i> Запросити Адміна</button>
-        
+        <button class="btn-invite" onclick="generateInvite('courier')">
+            <i class="fa-solid fa-motorcycle"></i> Запросити Кур'єра
+        </button>
+        <button class="btn-invite manager" onclick="generateInvite('manager')">
+            <i class="fa-solid fa-user-tie"></i> Запросити Адміна
+        </button>
         <div class="section-title" style="margin-top: 30px;">Активний персонал</div>
         <div id="staff-list">
-            <div style="text-align: center; color: var(--text-muted); padding: 10px;">Тут поки нікого...</div>
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження команди...</div>
         </div>
     </div>
 
     <div id="tab-settings" class="tab-content">
         <div class="section-title">Профіль бізнесу</div>
         <div class="activity-feed" style="padding: 10px 20px;">
-            <div class="setting-row"><span class="set-label">Business ID</span><span class="set-val" id="set-id">...</span></div>
-            <div class="setting-row" onclick="openSubscriptionMenu()" style="cursor: pointer;"><span class="set-label">Підписка</span><span class="set-val" id="set-plan-status" style="color: var(--success);">PRO</span></div>
-            <div class="setting-row"><span class="set-label">Валюта</span><span class="set-val" id="set-currency">zł</span></div>
+            <div class="setting-row">
+                <span class="set-label">Business ID</span>
+                <span class="set-val" id="set-id" style="font-size: 11px;">...</span>
+            </div>
+            <div class="setting-row" onclick="openSubscriptionMenu()" style="cursor: pointer;">
+                <span class="set-label">Підписка</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="set-val" style="color: var(--success);" id="set-plan-status">PRO (Активна)</span>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
+                </div>
+            </div>
+            <div class="setting-row">
+                <span class="set-label">Валюта</span>
+                <span class="set-val" id="set-currency">zł</span>
+            </div>
         </div>
-        <button class="btn-invite" style="background: #ff3b30; margin-top: 25px; box-shadow: none;" onclick="closeApp()">Закрити Дашборд</button>
+        <button class="btn-invite" style="background: #ff3b30; margin-top: 25px; box-shadow: none;" onclick="closeApp()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Закрити Дашборд
+        </button>
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('home', this)"><i class="fa-solid fa-chart-pie"></i>Головна</div>
-        <div class="nav-item" onclick="switchTab('team', this)"><i class="fa-solid fa-users"></i>Команда</div>
-        <div class="nav-item" onclick="switchTab('settings', this)"><i class="fa-solid fa-gear"></i>Налаштування</div>
+        <div class="nav-item active" onclick="switchTab('home', this)">
+            <i class="fa-solid fa-chart-pie"></i>Головна
+        </div>
+        <div class="nav-item" onclick="switchTab('team', this)">
+            <i class="fa-solid fa-users"></i>Команда
+        </div>
+        <div class="nav-item" onclick="switchTab('settings', this)">
+            <i class="fa-solid fa-gear"></i>Налаштування
+        </div>
     </div>
 
     <div class="modal-overlay" id="subscription-modal" onclick="closeSubscriptionMenu()">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
             <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">Керування підпискою</h2>
-            <div id="modal-status-card" style="padding: 18px; border-radius: 16px; margin-bottom: 20px;">
-                <div style="font-size: 20px; font-weight: 900;" id="modal-plan-name">...</div>
-                <div style="font-size: 13px; margin-top: 5px;">Дійсна до: <span id="modal-plan-date">...</span></div>
+            
+            <div style="background: rgba(52, 199, 89, 0.1); border: 1px solid rgba(52, 199, 89, 0.3); padding: 18px; border-radius: 16px; margin-bottom: 25px;" id="modal-status-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 20px; font-weight: 900; color: var(--success);" id="modal-plan-name">PRO Тариф</span>
+                    <span style="background: var(--success); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;" id="modal-plan-badge">АКТИВНА</span>
+                </div>
+                <div style="font-size: 13px; color: #2e7d32; font-weight: 600;" id="modal-plan-date-text">Дійсна до: <span id="modal-plan-date">...</span></div>
             </div>
+
+            <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Доступні функції:</h3>
             <div id="modal-features-list"></div>
-            <button class="btn-sub-upgrade" id="btn-upgrade" onclick="alert('Перехід до оплати...')">Оновити до PRO</button>
-            <button class="btn-sub-renew" id="btn-renew" onclick="alert('Продовжено!')">Продовжити</button>
+
+            <button class="btn-sub-upgrade" id="btn-upgrade" onclick="actionUpgrade()" style="display: none;"><i class="fa-regular fa-gem"></i> Оновити до PRO</button>
+            <button class="btn-sub-renew" id="btn-renew" onclick="actionRenew()">🔄 Продовжити підписку</button>
+            <button class="btn-sub-cancel" onclick="actionCancel()">Скасувати підписку</button>
         </div>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const bizId = urlParams.get('biz_id');
-        let currentFilter = 'today';
-        let currencySymbol = "zł";
+        // ГЛОБАЛЬНІ ЗМІННІ
         let currentPlanIsPro = true;
+        let currentCouriersCount = 0;
+        let currentManagersCount = 0;
+        let currentFilter = 'today'; // ДОДАНО: Слідкуємо за активним фільтром
 
-        // ВКЛАДКИ
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
@@ -302,131 +246,251 @@
             window.scrollTo(0, 0);
         }
 
-        // ФІЛЬТР ЧАСУ
+        // ОНОВЛЕНО: Тепер фільтр не просто світиться, а викликає завантаження даних
         function setFilter(el) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
+            
             const txt = el.innerText.toLowerCase();
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
-            loadDashboardData(); 
+            
+            loadDashboardData(); // Перезавантажуємо цифри під фільтр
         }
 
         function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
-        function openSubscriptionMenu() { document.getElementById('subscription-modal').classList.add('active'); }
-        function closeSubscriptionMenu() { document.getElementById('subscription-modal').classList.remove('active'); }
+        function openSubscriptionMenu() { document.getElementById('subscription-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function closeSubscriptionMenu() { document.getElementById('subscription-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
-        // ВИДАЛЕННЯ ПЕРСОНАЛУ
-        async function removeStaff(uid, name) {
-            if (!confirm(`Звільнити працівника "${name}"?`)) return;
-            await supabase.from('staff').delete().eq('user_id', uid).eq('business_id', bizId);
-            loadDashboardData();
+        function actionUpgrade() { alert("Перехід до оплати PRO тарифу! 💳"); }
+        function actionRenew() { alert("Підписку продовжено."); }
+        function actionCancel() { if(confirm("Ви впевнені?")) { alert("Підписку скасовано."); closeSubscriptionMenu(); } }
+
+        let botUsername = "rz_city_bot"; 
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        let currencySymbol = "zł";
+
+        function generateInvite(role) {
+            if (!bizId) return alert("Помилка: Business ID не знайдено.");
+            if (!currentPlanIsPro) {
+                if (role === 'courier' && currentCouriersCount >= 2) {
+                    alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.\nОновіть тариф до PRO для безліміту.");
+                    openSubscriptionMenu();
+                    return; 
+                }
+                if (role === 'manager' && currentManagersCount >= 1) {
+                    alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.\nОновіть тариф до PRO для безліміту.");
+                    openSubscriptionMenu();
+                    return; 
+                }
+            }
+            let prefix = role === 'courier' ? 'join_' : 'admin_';
+            const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
+            navigator.clipboard.writeText(inviteLink).then(() => {
+                alert(`✅ Посилання для ${role === 'courier' ? "Кур'єра" : "Менеджера"} скопійовано!\n\nНадішліть його працівнику.`);
+            });
         }
 
-        // ЗАВАНТАЖЕННЯ ДАНИХ
         async function loadDashboardData() {
-            if (!bizId) return;
-
-            // ОБНУЛЕННЯ
-            document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
-            document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Пошук...</div>';
-            let heatData = [];
-
-            // ДАТА
-            let start = new Date();
-            if (currentFilter === 'today') start.setHours(0,0,0,0);
-            else if (currentFilter === 'week') start.setDate(start.getDate()-7);
-            else if (currentFilter === 'month') start.setMonth(start.getMonth()-1);
-
-            // БІЗНЕС
-            const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
-            if (biz) {
-                currencySymbol = biz.currency || "zł";
-                document.getElementById('display-biz-name').innerText = biz.name;
+            try {
+                if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
+                if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
-                currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+
+                // ДОДАНО: Скидання інтерфейсу в 0 перед кожним запитом (щоб не залипали цифри тижня на сьогодні)
+                document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
+                document.getElementById('val-cash').innerText = '0.00';
+                document.getElementById('val-term').innerText = '0.00';
+                document.getElementById('val-orders').innerText = '0';
+                document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol;
+                document.getElementById('val-time').innerText = '-- хв';
+                document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Пошук замовлень...</div>';
+
+                const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+                const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+                if (!window.supabase) return;
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+                // ДОДАНО: Логіка розрахунку дати початку
+                let startDate = new Date();
+                if (currentFilter === 'today') {
+                    startDate.setHours(0, 0, 0, 0);
+                } else if (currentFilter === 'week') {
+                    startDate.setDate(startDate.getDate() - 7);
+                } else if (currentFilter === 'month') {
+                    startDate.setMonth(startDate.getMonth() - 1);
+                }
+
+                const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
                 
-                // Візуальна логіка PRO/BASIC (блюр)
-                if (!currentPlanIsPro) {
-                    ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'].forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el && !el.querySelector('.pro-overlay')) {
-                            el.classList.add('pro-locked');
-                            let ov = document.createElement('div'); ov.className = 'pro-overlay';
-                            ov.innerHTML = '<div class="pro-badge">PRO</div>';
-                            ov.onclick = openSubscriptionMenu; el.appendChild(ov);
+                if (biz) {
+                    currencySymbol = biz.currency || "zł";
+                    document.getElementById('display-biz-name').innerText = biz.name;
+                    document.getElementById('set-currency').innerText = currencySymbol;
+                    currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+                    document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
+                    document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
+                    document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (Активна)`;
+                    document.getElementById('set-plan-status').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? 'PRO Тариф' : 'BASIC Тариф';
+                    document.getElementById('modal-plan-name').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('modal-plan-badge').style.background = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('modal-status-card').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
+                    document.getElementById('modal-status-card').style.borderColor = currentPlanIsPro ? 'rgba(52, 199, 89, 0.3)' : '#d1d5db';
+                    document.getElementById('modal-plan-date-text').style.color = currentPlanIsPro ? '#2e7d32' : '#4b5563';
+
+                    let createdDate = new Date(biz.created_at || Date.now());
+                    createdDate.setDate(createdDate.getDate() + 30);
+                    document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+                    if (!currentPlanIsPro) {
+                        document.getElementById('btn-upgrade').style.display = 'block';
+                        document.getElementById('btn-renew').style.display = 'none';
+                    } else {
+                        document.getElementById('btn-upgrade').style.display = 'none';
+                        document.getElementById('btn-renew').style.display = 'block';
+                    }
+
+                    const features = document.getElementById('modal-features-list');
+                    features.innerHTML = `
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд (Каса)</div>
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Замовлення без обмежень</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Інтерактивна теплова карта</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Детальна аналітика (Чеки, Час)</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Безлімітна кількість персоналу</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> GPS-навігатор для кур'єрів</div>
+                    `;
+
+                    if (!currentPlanIsPro) {
+                        const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
+                        lockedCards.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el && !el.querySelector('.pro-overlay')) { // Перевірка, щоб не множити оверлеї
+                                el.classList.add('pro-locked');
+                                const overlay = document.createElement('div');
+                                overlay.className = 'pro-overlay';
+                                overlay.innerHTML = '<div class="pro-badge"><i class="fa-regular fa-gem"></i> PRO</div>';
+                                overlay.onclick = openSubscriptionMenu;
+                                el.appendChild(overlay);
+                            }
+                        });
+                    } else {
+                        // Якщо PRO — знімаємо блюр
+                        const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
+                        lockedCards.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) {
+                                el.classList.remove('pro-locked');
+                                const overlay = el.querySelector('.pro-overlay');
+                                if (overlay) overlay.remove();
+                            }
+                        });
+                    }
+                }
+
+                // ОНОВЛЕНО: Тепер використовуємо змінну startDate у запиті
+                const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
+
+                let heatData = [];
+
+                if (orders && orders.length > 0) {
+                    let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0;
+
+                    orders.forEach(o => {
+                        if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
+
+                        if (o.status === 'completed') {
+                            completedCount++;
+                            let amt = parseFloat(o.amount) || 0;
+                            if (o.pay_type === 'cash') totalCash += amt;
+                            if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
+                            
+                            if (o.completed_at && o.created_at) {
+                                let diffMs = new Date(o.completed_at) - new Date(o.created_at);
+                                if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; }
+                            }
                         }
                     });
+
+                    let totalRevenue = totalCash + totalTerminal;
+                    document.getElementById('val-total').innerText = totalRevenue.toFixed(2) + ' ' + currencySymbol;
+                    document.getElementById('val-cash').innerText = totalCash.toFixed(2);
+                    document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
+                    document.getElementById('val-orders').innerText = completedCount;
+                    document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
+                    document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ' хв' : '-- хв';
+
+                    const feedBox = document.getElementById('recent-orders-list');
+                    feedBox.innerHTML = '';
+                    
+                    orders.slice(0, 10).forEach(o => {
+                        let isComp = o.status === 'completed';
+                        let statusIcon = isComp ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
+                        let iconBg = isComp ? 'style="color: #34C759; background: rgba(52, 199, 89, 0.1);"' : 'style="color: #FFB020; background: rgba(255, 176, 32, 0.1);"';
+                        let statusText = isComp ? '<span style="color: #34C759;">Доставлено</span>' : '<span style="color: #FFB020;">В процесі</span>';
+                        let shortId = o.id.toString().substring(0, 5).toUpperCase();
+                        
+                        feedBox.innerHTML += `
+                            <div class="activity-item">
+                                <div class="act-icon" style="${iconBg}">${statusIcon}</div>
+                                <div class="act-details">
+                                    <div class="act-title">Замовлення #${shortId}</div>
+                                    <div class="act-time">${statusText}</div>
+                                </div>
+                                <div class="act-price">${parseFloat(o.amount || 0).toFixed(2)} ${currencySymbol}</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    // Якщо за період замовлень немає
+                    document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:20px;">За цей період замовлень не знайдено</div>';
                 }
-                
-                // ВІДНОВЛЕНІ 6 ПУНКТІВ ПЕРЕВАГ
-                const fl = document.getElementById('modal-features-list');
-                const pro = currentPlanIsPro;
-                fl.innerHTML = `
-                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд (Каса)</div>
-                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Замовлення без обмежень</div>
-                    <div class="feature-item ${pro?'':'feature-disabled'}"><div class="feature-icon ${pro?'f-yes':'f-no'}"><i class="fa-solid ${pro?'fa-check':'fa-xmark'}"></i></div> Інтерактивна теплова карта</div>
-                    <div class="feature-item ${pro?'':'feature-disabled'}"><div class="feature-icon ${pro?'f-yes':'f-no'}"><i class="fa-solid ${pro?'fa-check':'fa-xmark'}"></i></div> Детальна аналітика (Чеки, Час)</div>
-                    <div class="feature-item ${pro?'':'feature-disabled'}"><div class="feature-icon ${pro?'f-yes':'f-no'}"><i class="fa-solid ${pro?'fa-check':'fa-xmark'}"></i></div> Безлімітна кількість персоналу</div>
-                    <div class="feature-item ${pro?'':'feature-disabled'}"><div class="feature-icon ${pro?'f-yes':'f-no'}"><i class="fa-solid ${pro?'fa-check':'fa-xmark'}"></i></div> GPS-навігатор для кур'єрів</div>
-                `;
-            }
 
-            // ЗАМОВЛЕННЯ
-            const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', start.toISOString()).order('created_at', { ascending: false });
+                const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
+                const staffBox = document.getElementById('staff-list');
+                currentCouriersCount = 0;
+                currentManagersCount = 0;
+                if (staff && staff.length > 0) {
+                    staffBox.innerHTML = '';
+                    staff.forEach(person => {
+                        if (person.role === 'courier') currentCouriersCount++;
+                        if (person.role === 'manager') currentManagersCount++;
+                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager';
+                        let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер';
+                        let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
+                        staffBox.innerHTML += `
+                            <div class="team-card">
+                                <div class="team-avatar">${avatar}</div>
+                                <div class="team-info">
+                                    <div class="team-name">${person.name || 'Працівник'}</div>
+                                    <div class="team-role ${roleClass}">${roleName}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
 
-            if (orders && orders.length > 0) {
-                let cash = 0, term = 0, comp = 0, min = 0, cnt = 0;
-                orders.forEach(o => {
-                    if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
-                    if (o.status === 'completed') {
-                        comp++; let a = parseFloat(o.amount)||0;
-                        if (o.pay_type === 'cash') cash += a; else term += a;
-                        if (o.completed_at) { let d = new Date(o.completed_at) - new Date(o.created_at); if(d>0) { min+=(d/1000/60); cnt++; } }
+                // ОНОВЛЕНО: Тепер мапа видаляється перед створенням нової, щоб не було помилок при зміні фільтрів
+                setTimeout(() => {
+                    if (window.dashboardMap) {
+                        window.dashboardMap.remove();
                     }
-                });
-                document.getElementById('val-total').innerText = (cash+term).toFixed(2) + ' ' + currencySymbol;
-                document.getElementById('val-cash').innerText = cash.toFixed(2);
-                document.getElementById('val-term').innerText = term.toFixed(2);
-                document.getElementById('val-orders').innerText = comp;
-                document.getElementById('val-avg-check').innerText = comp>0 ? ((cash+term)/comp).toFixed(2) : '0.00';
-                document.getElementById('val-time').innerText = cnt>0 ? Math.round(min/cnt) + ' хв' : '-- хв';
+                    let centerLat = 50.04132, centerLon = 21.99901;
+                    if (heatData.length > 0) {
+                        centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length;
+                        centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length;
+                    }
+                    window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: true }).setView([centerLat, centerLon], 12);
+                    L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
+                    if (heatData.length > 0) {
+                        L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap);
+                    }
+                }, 500);
 
-                const feed = document.getElementById('recent-orders-list'); feed.innerHTML = '';
-                orders.slice(0, 10).forEach(o => {
-                    let isC = o.status === 'completed';
-                    feed.innerHTML += `<div class="activity-item">
-                        <div class="act-icon" style="${isC?'color:#34C759; background:rgba(52,199,89,0.1);':'color:#FFB020; background:rgba(255,176,32,0.1);'}"><i class="fa-solid ${isC?'fa-check':'fa-motorcycle'}"></i></div>
-                        <div class="act-details"><div class="act-title">Замовлення #${o.id.toString().slice(0,5).toUpperCase()}</div><div class="act-time">${isC?'Доставлено':'В процесі'}</div></div>
-                        <div class="act-price">${parseFloat(o.amount||0).toFixed(2)}</div>
-                    </div>`;
-                });
-            }
-
-            // ПЕРСОНАЛ
-            const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
-            const sb = document.getElementById('staff-list');
-            if (staff) {
-                sb.innerHTML = '';
-                staff.forEach(p => {
-                    sb.innerHTML += `<div class="team-card">
-                        <div class="team-avatar">${p.role === 'courier' ? '🛵' : '👨‍💼'}</div>
-                        <div class="team-info"><div class="team-name">${p.name}</div><div class="team-role ${p.role==='courier'?'role-courier':'role-manager'}">${p.role}</div></div>
-                        <button class="btn-delete-staff" onclick="removeStaff('${p.user_id}', '${p.name}')"><i class="fa-solid fa-trash-can"></i></button>
-                    </div>`;
-                });
-            }
-
-            // МАПА
-            setTimeout(() => {
-                if (window.dashboardMap) { window.dashboardMap.remove(); }
-                let l = 50.04132, n = 21.99901;
-                if (heatData.length > 0) { l = heatData.reduce((s,p)=>s+p[0],0)/heatData.length; n = heatData.reduce((s,p)=>s+p[1],0)/heatData.length; }
-                window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: true }).setView([l, n], 12);
-                L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
-                if (heatData.length > 0) L.heatLayer(heatData, { radius: 20, blur: 15 }).addTo(window.dashboardMap);
-            }, 400);
+            } catch (error) { console.error("Помилка БД:", error); }
         }
 
         loadDashboardData();
