@@ -34,15 +34,16 @@ async def show_main_menu(message: types.Message, context: dict):
         await message.answer("⚠️ **Ваша підписка закінчилася або призупинена.**\nБудь ласка, зверніться до адміністратора.")
         return
 
+    # ДОДАНО message.from_user.id у виклики клавіатур
     if role == "owner":
         text = f"🏢 **Кабінет власника: {biz['name']}**"
-        markup = kb.get_owner_kb(biz_id)
+        markup = kb.get_owner_kb(biz_id, message.from_user.id)
     elif role == "manager":
         text = f"👨‍💼 **Панель менеджера: {biz['name']}**"
-        markup = kb.get_manager_kb(biz_id)
+        markup = kb.get_manager_kb(biz_id, message.from_user.id)
     else: # courier
         text = f"🛵 **Робоче місце кур'єра: {biz['name']}**"
-        markup = kb.get_courier_kb(biz_id)
+        markup = kb.get_courier_kb(biz_id, message.from_user.id)
 
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
 
@@ -154,10 +155,10 @@ async def cmd_generate_report(message: types.Message):
 async def cmd_boss_panel(message: types.Message):
     # Перевіряємо, чи є ID користувача у списку адмінів
     if message.from_user.id in SUPER_ADMIN_IDS:
-        # Викликаємо клавіатуру з файлу keyboards.py
+        # Викликаємо клавіатуру з файлу keyboards.py (ДОДАНО message.from_user.id)
         await message.answer(
             "Вітаю, Бос! 🫡\nОсь доступ до керування всіма бізнесами:", 
-            reply_markup=kb.get_superadmin_kb()
+            reply_markup=kb.get_superadmin_kb(message.from_user.id)
         )
     else:
         # Якщо хтось чужий введе команду, бот просто прикинеться дурником
@@ -216,7 +217,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 f"🎉 **Вітаємо! Ваш бізнес '{biz['name']}' успішно створено.**\n"
                 f"📦 **Тариф:** {biz['plan'].upper()} (Активовано 7 днів тріалу)\n\n"
                 f"Тепер ви можете перейти до повноцінного керування 👇",
-                reply_markup=kb.get_owner_kb(biz['id']),
+                reply_markup=kb.get_owner_kb(biz['id'], user_id), # ДОДАНО user_id
                 parse_mode="Markdown"
             )
         except Exception as e:
