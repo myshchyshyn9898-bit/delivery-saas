@@ -47,7 +47,6 @@
         .biz-m-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
 
         .btn-manage { background: rgba(139, 92, 246, 0.1); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); width: 100%; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-manage:active { background: rgba(139, 92, 246, 0.2); transform: scale(0.98); }
 
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.8); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(4px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
@@ -57,12 +56,11 @@
 
         .form-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block; font-weight: 700; text-transform: uppercase; }
         .form-select, .form-input { width: 100%; padding: 15px; border: 1px solid #334155; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #0f172a; color: white; font-weight: 600; outline: none; }
-        .form-select:focus, .form-input:focus { border-color: var(--primary); }
-
+        
         .btn-save { background: var(--primary); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         
-        #debug-log { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; font-size: 10px; border-radius: 8px; word-wrap: break-word; }
+        #debug-log { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px; word-wrap: break-word; min-height: 50px; }
     </style>
 </head>
 <body>
@@ -83,17 +81,17 @@
             <div class="stat-card">
                 <div class="stat-icon"><i class="fa-solid fa-store"></i></div>
                 <div class="stat-val" id="sys-businesses">0</div>
-                <div class="stat-label">Зареєстровано Бізнесів</div>
+                <div class="stat-label">Бізнесів</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon" style="color: var(--success);"><i class="fa-solid fa-gem"></i></div>
                 <div class="stat-val" id="sys-pro">0</div>
-                <div class="stat-label">Активних PRO підписок</div>
+                <div class="stat-label">PRO підписок</div>
             </div>
             <div class="stat-card">
                 <div class="stat-icon" style="color: #38bdf8;"><i class="fa-solid fa-box-open"></i></div>
                 <div class="stat-val" id="sys-orders">0</div>
-                <div class="stat-label">Замовлень в системі</div>
+                <div class="stat-label">Замовлень</div>
             </div>
         </div>
 
@@ -106,7 +104,7 @@
             </div>
         </div>
 
-        <div id="debug-log"></div>
+        <div id="debug-log">Log Console Started...<br></div>
 
     </div>
 
@@ -116,7 +114,6 @@
             <h2 style="font-size: 18px; font-weight: 900; margin-bottom: 20px; color: white;" id="modal-biz-name">Налаштування...</h2>
             
             <input type="hidden" id="edit-biz-id">
-
             <label class="form-label">Тарифний план</label>
             <select id="edit-plan" class="form-select">
                 <option value="basic">BASIC (Обмежений)</option>
@@ -126,7 +123,7 @@
             <label class="form-label">Додати днів до підписки</label>
             <input type="number" id="edit-days" class="form-input" placeholder="Наприклад: 30" value="0">
             <div style="font-size: 11px; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px;">
-                Поточна підписка дійсна до: <span id="current-expiry" style="color: white; font-weight: bold;">...</span>
+                Дійсна до: <span id="current-expiry" style="color: white; font-weight: bold;">...</span>
             </div>
 
             <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-floppy-disk"></i> Зберегти зміни</button>
@@ -135,17 +132,20 @@
     </div>
 
     <script>
-        const listEl = document.getElementById('businesses-list');
-        const debugEl = document.getElementById('debug-log');
-
-        function logInfo(text) {
-            debugEl.innerHTML += `> ${text}<br>`;
-            console.log(text);
-        }
-
         window.onerror = function(msg, url, line) {
-            logInfo(`❌ JS Error: ${msg} (Line ${line})`);
+            const dbg = document.getElementById('debug-log');
+            if(dbg) dbg.innerHTML += `<span style="color:red">❌ ERROR: ${msg} (Line ${line})</span><br>`;
         };
+        window.addEventListener("unhandledrejection", function(event) {
+            const dbg = document.getElementById('debug-log');
+            let err = event.reason ? (event.reason.message || event.reason) : "Unknown Error";
+            if(dbg) dbg.innerHTML += `<span style="color:red">❌ PROMISE ERROR: ${err}</span><br>`;
+        });
+    </script>
+
+    <script>
+        const debugEl = document.getElementById('debug-log');
+        function logInfo(text) { if(debugEl) debugEl.innerHTML += `> ${text}<br>`; }
 
         try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#0f172a'; } } catch(e) {}
 
@@ -204,8 +204,7 @@
 
         async function deleteBusiness() {
             const bizId = document.getElementById('edit-biz-id').value;
-            if (!confirm("⚠️ ВИ ВПЕВНЕНІ?\n\nЦе безповоротно видалить цей бізнес!")) return;
-
+            if (!confirm("⚠️ ВИ ВПЕВНЕНІ?")) return;
             try {
                 const { error } = await supabase.from('businesses').delete().eq('id', bizId);
                 if (error) throw error;
@@ -216,28 +215,29 @@
         }
 
         async function loadSuperAdminData() {
-            logInfo("1. Старт функції loadSuperAdminData");
+            logInfo("Starting loadSuperAdminData...");
+            const listEl = document.getElementById('businesses-list');
             
             try {
                 if (!window.supabase) {
-                    throw new Error("Supabase JS не завантажено.");
+                    throw new Error("Supabase JS Library not loaded.");
                 }
-                logInfo("2. Бібліотека Supabase знайдена");
+                logInfo("Supabase JS found.");
                 
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                logInfo("3. Клієнт Supabase створено");
+                logInfo("Client created. Fetching businesses...");
 
                 const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
                 if (bErr) throw bErr;
                 
                 let allBusinesses = businesses || [];
-                logInfo(`4. Завантажено бізнесів: ${allBusinesses.length}`);
+                logInfo("Businesses loaded: " + allBusinesses.length);
 
                 const { data: orders, error: oErr } = await supabase.from('orders').select('business_id, amount, status');
                 if (oErr) throw oErr;
                 
                 let allOrders = orders || [];
-                logInfo(`5. Завантажено замовлень: ${allOrders.length}`);
+                logInfo("Orders loaded: " + allOrders.length);
 
                 let sysTotalRev = 0, sysProCount = 0, sysCompletedOrders = 0;
 
@@ -252,7 +252,7 @@
                 listEl.innerHTML = '';
                 if (allBusinesses.length === 0) {
                     listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 20px;">Клієнтів ще немає.</div>';
-                    logInfo("6. Успішно (список порожній)");
+                    logInfo("Done (Empty).");
                     return;
                 }
 
@@ -272,7 +272,12 @@
                     if (isExpired) { badgeClass = 'badge-expired'; badgeText = 'ПРОСТРОЧЕНО'; }
 
                     let curr = biz.currency || 'zł';
-                    let safeName = String(biz.name || 'Без назви').replace(/'/g, "\\'");
+                    
+                    // БЕЗПЕЧНА НАЗВА БЕЗ ЛАПОК
+                    let safeName = "Без назви";
+                    if (biz.name) {
+                        safeName = biz.name.replace(/'/g, "").replace(/"/g, "");
+                    }
 
                     let dateString = "Невідомо";
                     if (!isNaN(createdAt.getTime())) {
@@ -283,7 +288,7 @@
                         <div class="biz-card">
                             <div class="biz-header">
                                 <div>
-                                    <div class="biz-name">${biz.name || 'Назву не вказано'}</div>
+                                    <div class="biz-name">${safeName}</div>
                                     <div class="biz-id">ID: ${biz.id}</div>
                                 </div>
                                 <div class="badge ${badgeClass}">${badgeText}</div>
@@ -309,11 +314,11 @@
                     `;
                 });
                 
-                logInfo("6. Успішно зрендерено список");
+                logInfo("Render Success!");
 
             } catch (error) {
                 let errorMsg = error.message || error;
-                logInfo(`❌ CATCH ERROR: ${errorMsg}`);
+                logInfo(`CATCH: ${errorMsg}`);
                 listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px; text-align: center;">
                     <b>🚨 ПОМИЛКА:</b><br>${errorMsg}
                 </div>`;
