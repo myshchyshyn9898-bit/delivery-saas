@@ -21,6 +21,11 @@
         .stat-title { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
         .stat-val { font-size: 26px; font-weight: 900; color: var(--text-main); }
 
+        /* ДОДАНО: Стилі для фільтрів часу */
+        .time-filter { display: flex; background: #edf1f7; border-radius: 12px; padding: 4px; margin-bottom: 15px; }
+        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 8px; transition: 0.2s; cursor: pointer;}
+        .filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
         .tabs { display: flex; background: #edf1f7; border-radius: 14px; padding: 5px; margin-bottom: 20px; }
         .tab-btn { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; font-weight: 700; color: var(--text-muted); border-radius: 10px; transition: 0.2s; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
         .tab-btn i { font-size: 16px; opacity: 0.7; transition: 0.2s; }
@@ -55,8 +60,14 @@
 
     <div class="container">
         <div class="stat-card">
-            <div class="stat-title">Зароблено за сьогодні</div>
+            <div class="stat-title">Зароблено за період</div>
             <div class="stat-val" id="total-earned">0.00 zł</div>
+        </div>
+
+        <div class="time-filter">
+            <div class="filter-btn active" onclick="setFilter(this)">Сьогодні</div>
+            <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
+            <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
         </div>
 
         <div class="tabs">
@@ -86,6 +97,9 @@
     </div>
 
     <script>
+        // ДОДАНО: Глобальна змінна для фільтра
+        let currentFilter = 'today';
+
         // НАЙНАДІЙНІША ФУНКЦІЯ ПЕРЕМИКАННЯ ВКЛАДОК
         function switchTab(tabId, element) {
             try {
@@ -96,6 +110,19 @@
             } catch(e) {
                 alert("Помилка вкладок: " + e);
             }
+        }
+
+        // ДОДАНО: Функція перемикання фільтрів
+        function setFilter(el) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            
+            const txt = el.innerText.toLowerCase();
+            if (txt.includes('сьогодні')) currentFilter = 'today';
+            else if (txt.includes('тиждень')) currentFilter = 'week';
+            else if (txt.includes('місяць')) currentFilter = 'month';
+            
+            loadArchiveData(); // Перезавантажуємо дані
         }
 
         try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.expand(); } catch(e) {}
@@ -121,6 +148,11 @@
                 return;
             }
 
+            // ДОДАНО: Обнулення UI під час завантаження нових даних
+            document.getElementById('total-earned').innerText = '0.00 ' + currencySymbol;
+            document.getElementById('list-active').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Пошук замовлень...</div>';
+            document.getElementById('list-closed').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Пошук замовлень...</div>';
+
             try {
                 const { data: biz } = await supabase.from('businesses').select('currency').eq('id', bizId).single();
                 if (biz) currencySymbol = biz.currency || "zł";
@@ -131,13 +163,21 @@
                     staff.forEach(s => { couriersMap[s.user_id] = s.name; });
                 }
 
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                // ЗМІНЕНО: Розрахунок дати початку на основі фільтра
+                let startDate = new Date();
+                if (currentFilter === 'today') {
+                    startDate.setHours(0, 0, 0, 0);
+                } else if (currentFilter === 'week') {
+                    startDate.setDate(startDate.getDate() - 7);
+                } else if (currentFilter === 'month') {
+                    startDate.setMonth(startDate.getMonth() - 1);
+                }
                 
+                // ЗМІНЕНО: Запит використовує startDate замість today
                 const { data: orders, error: ordersError } = await supabase.from('orders')
                     .select('*')
                     .eq('business_id', bizId)
-                    .gte('created_at', today.toISOString())
+                    .gte('created_at', startDate.toISOString())
                     .order('created_at', { ascending: false });
 
                 if (ordersError) throw ordersError;
@@ -217,7 +257,7 @@
                     listClosed.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon"><i class="fa-solid fa-check-double"></i></div>
-                            <div>Сьогодні ще немає закритих замовлень</div>
+                            <div>За вибраний період немає закритих замовлень</div>
                         </div>`;
                 }
 
