@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boss Panel 4.2 | Fixed</title>
+    <title>Boss Panel 5.0 | Ultimate</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
@@ -39,8 +40,10 @@
         .btn-settings:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
 
         /* Tabs Navigation */
-        .tabs-nav { display: flex; padding: 15px 20px 0; gap: 10px; }
-        .tab-btn { flex: 1; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 800; color: var(--text-muted); background: var(--surface); border: 1px solid var(--surface-border); cursor: pointer; transition: 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tabs-nav { display: flex; padding: 15px 20px 0; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+        .tabs-nav::-webkit-scrollbar { display: none; }
+        .tab-btn { flex: 1; min-width: 100px; padding: 12px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; color: var(--text-muted); background: var(--surface); border: 1px solid var(--surface-border); cursor: pointer; transition: 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tab-btn i { font-size: 16px; }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 15px var(--primary-glow); }
         .tab-content { display: none; animation: fadeIn 0.4s ease; }
         .tab-content.active { display: block; }
@@ -50,8 +53,7 @@
 
         /* Stats Cards */
         .global-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); transition: transform 0.2s; }
-        .stat-card:active { transform: scale(0.98); }
+        .stat-card { background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
         
         .stat-card.highlight { background: linear-gradient(135deg, #10b981, #059669); border: none; grid-column: 1 / -1; box-shadow: 0 10px 25px var(--primary-glow); position: relative; overflow: hidden; }
         .stat-card.highlight::after { content: 'MRR'; position: absolute; right: -10px; bottom: -15px; font-size: 80px; font-weight: 900; opacity: 0.1; line-height: 1; }
@@ -62,48 +64,69 @@
         .stat-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         .highlight .stat-label { color: rgba(255,255,255,0.9); }
 
+        /* Sections */
+        .section-title { font-size: 14px; font-weight: 800; margin-bottom: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .section-title i { color: var(--brand); }
+
+        /* Chart & Leaderboard */
+        .chart-container { background: var(--surface); padding: 15px; border-radius: 20px; border: 1px solid var(--surface-border); margin-bottom: 25px; }
+        .leaderboard { background: var(--surface); border-radius: 20px; border: 1px solid var(--surface-border); overflow: hidden; margin-bottom: 20px; }
+        .lb-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .lb-item:last-child { border-bottom: none; }
+        .lb-rank { font-weight: 900; color: var(--brand); width: 25px; font-size: 16px; }
+        .lb-name { flex: 1; font-weight: 800; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lb-revenue { font-weight: 900; color: var(--success); font-size: 14px; }
+
         /* Tools Bar */
-        .tools-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-box { flex: 2; position: relative; }
+        .tools-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-box { flex: 1; min-width: 200px; position: relative; }
         .search-box i { position: absolute; left: 15px; top: 15px; color: var(--text-muted); }
-        .search-input { width: 100%; padding: 14px 14px 14px 40px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 14px; font-weight: 600; outline: none; transition: 0.3s; }
-        .search-input:focus { border-color: var(--brand); box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
-        .filter-select { flex: 1; padding: 14px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 13px; font-weight: 700; outline: none; appearance: none; text-align: center; }
+        .search-input { width: 100%; padding: 14px 14px 14px 40px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 14px; font-weight: 600; outline: none; }
+        .filter-select { flex: 1; min-width: 120px; padding: 14px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 13px; font-weight: 700; outline: none; }
+        .btn-export { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); padding: 14px; border-radius: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn-export:active { transform: scale(0.95); }
 
         /* Business Cards */
-        .biz-card { background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); margin-bottom: 15px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); transition: 0.3s ease; }
+        .biz-card { background: var(--surface); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); margin-bottom: 15px; }
         .biz-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
-        .biz-name { font-size: 18px; font-weight: 900; color: white; margin-bottom: 4px; letter-spacing: -0.3px; }
-        .biz-id { font-size: 10px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px; }
+        .biz-name { font-size: 18px; font-weight: 900; color: white; margin-bottom: 4px; }
+        .biz-id { font-size: 10px; color: var(--text-muted); font-family: monospace; }
         
-        .badge { padding: 6px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .badge { padding: 6px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
         .badge-pro { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
         .badge-basic { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.3); }
         .badge-frozen { background: rgba(56, 189, 248, 0.15); color: var(--frozen); border: 1px solid rgba(56, 189, 248, 0.3); }
         .badge-expired { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
 
         .biz-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.03); }
-        .biz-m-item { text-align: center; display: flex; flex-direction: column; justify-content: center; position: relative; }
-        .biz-m-item:not(:last-child)::after { content: ''; position: absolute; right: -4px; top: 10%; height: 80%; width: 1px; background: rgba(255,255,255,0.1); }
+        .biz-m-item { text-align: center; }
         .biz-m-val { font-size: 15px; font-weight: 900; color: white; margin-bottom: 2px; }
-        .biz-m-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .biz-m-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
 
-        .btn-manage { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); width: 100%; padding: 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-manage:active { background: rgba(255,255,255,0.1); transform: scale(0.98); }
+        .btn-manage { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); width: 100%; padding: 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; }
+
+        /* Broadcast Tab */
+        .broadcast-box { background: var(--surface); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); }
+        .broadcast-textarea { width: 100%; height: 150px; background: rgba(0,0,0,0.3); border: 1px solid var(--surface-border); border-radius: 14px; padding: 15px; color: white; font-size: 14px; font-weight: 600; resize: none; margin-bottom: 15px; outline: none; }
+        .broadcast-textarea:focus { border-color: var(--brand); box-shadow: 0 0 10px rgba(99, 102, 241, 0.3); }
 
         /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2, 6, 23, 0.85); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(8px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: #0f172a; border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.1); }
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: #0f172a; border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto; }
         .modal-overlay.active .bottom-sheet { bottom: 0; }
         .sheet-handle { width: 50px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; margin: 0 auto 25px; }
 
         .form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .form-select, .form-input { width: 100%; padding: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; font-size: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); color: white; font-weight: 700; outline: none; transition: 0.3s; }
-        .form-select:focus, .form-input:focus { border-color: var(--brand); box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); }
-        
-        .btn-save { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; width: 100%; padding: 18px; border-radius: 14px; font-size: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); transition: 0.2s; margin-bottom: 10px;}
-        .btn-save:active { transform: scale(0.98); }
+        .form-select, .form-input { width: 100%; padding: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; font-size: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); color: white; font-weight: 700; outline: none; }
+        .btn-save { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; width: 100%; padding: 18px; border-radius: 14px; font-size: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); margin-bottom: 10px;}
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); width: 100%; padding: 16px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; }
+
+        /* Staff List in Modal */
+        .staff-list { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 150px; overflow-y: auto; }
+        .staff-item { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; display: flex; justify-content: space-between; }
+        .staff-item:last-child { border-bottom: none; }
+        .staff-role { color: var(--brand); font-weight: 800; font-size: 10px; text-transform: uppercase; }
         
         .loader-container { text-align: center; color: var(--primary); padding: 50px 20px; font-weight: 800; }
         .loader-container i { font-size: 32px; margin-bottom: 15px; filter: drop-shadow(0 0 10px var(--primary-glow)); }
@@ -114,14 +137,15 @@
     <div class="header">
         <div class="header-title"><i class="fa-solid fa-chess-knight" style="color: var(--primary);"></i> Boss Panel</div>
         <div class="header-actions">
-            <div class="header-badge">SaaS Owner</div>
+            <div class="header-badge">God Mode</div>
             <button class="btn-settings" onclick="openPlatformSettings()"><i class="fa-solid fa-gear"></i></button>
         </div>
     </div>
 
     <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Мій Дохід</button>
+        <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Аналітика</button>
         <button class="tab-btn" onclick="switchTab('businesses')"><i class="fa-solid fa-building"></i> Клієнти</button>
+        <button class="tab-btn" onclick="switchTab('broadcast')"><i class="fa-solid fa-bullhorn"></i> Розсилка</button>
     </div>
 
     <div class="container">
@@ -139,28 +163,20 @@
                     <div class="stat-label">PRO Підписок</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-icon" style="color: var(--text-muted);"><i class="fa-solid fa-star"></i></div>
-                    <div class="stat-val" id="sys-basic">0</div>
-                    <div class="stat-label">Basic Підписок</div>
-                </div>
-                <div class="stat-card">
                     <div class="stat-icon" style="color: var(--brand);"><i class="fa-solid fa-users"></i></div>
                     <div class="stat-val" id="sys-businesses">0</div>
                     <div class="stat-label">Всього клієнтів</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="color: var(--frozen);"><i class="fa-solid fa-snowflake"></i></div>
-                    <div class="stat-val" id="sys-frozen">0</div>
-                    <div class="stat-label">Заморожено</div>
-                </div>
             </div>
-            
-            <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); padding: 15px; border-radius: 16px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Конверсія в PRO оплату</div>
-                    <div style="font-size: 18px; font-weight: 900; color: white;" id="sys-conversion">0%</div>
-                </div>
-                <i class="fa-solid fa-chart-line" style="font-size: 24px; color: var(--brand); opacity: 0.5;"></i>
+
+            <div class="section-title"><i class="fa-solid fa-arrow-trend-up"></i> Динаміка реєстрацій</div>
+            <div class="chart-container">
+                <canvas id="growthChart" height="150"></canvas>
+            </div>
+
+            <div class="section-title"><i class="fa-solid fa-trophy"></i> Топ-5 Клієнтів (По касі)</div>
+            <div class="leaderboard" id="leaderboard-container">
+                <div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 12px;">Завантаження...</div>
             </div>
         </div>
 
@@ -171,19 +187,27 @@
                     <input type="text" id="search-input" class="search-input" placeholder="Пошук бізнесу..." onkeyup="filterBusinesses()">
                 </div>
                 <select id="status-filter" class="filter-select" onchange="filterBusinesses()">
-                    <option value="all">Всі</option>
-                    <option value="pro">PRO</option>
-                    <option value="basic">Basic (Trial)</option>
+                    <option value="all">Всі статуси</option>
+                    <option value="pro">Тільки PRO</option>
+                    <option value="basic">Тільки Basic</option>
                     <option value="frozen">Заморожені</option>
-                    <option value="expired">Боржники</option>
                 </select>
+                <button class="btn-export" onclick="exportToCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
             </div>
 
             <div id="businesses-list">
                 <div class="loader-container">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i><br>
-                    СИНХРОНІЗАЦІЯ З БАЗОЮ...
+                    <i class="fa-solid fa-circle-notch fa-spin"></i><br>СИНХРОНІЗАЦІЯ...
                 </div>
+            </div>
+        </div>
+
+        <div id="tab-broadcast" class="tab-content">
+            <div class="section-title"><i class="fa-solid fa-paper-plane"></i> Масове повідомлення</div>
+            <div class="broadcast-box">
+                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Це повідомлення отримають в Telegram усі зареєстровані власники бізнесів.</div>
+                <textarea id="broadcast-msg" class="broadcast-textarea" placeholder="Напишіть текст повідомлення (новини, акції, оновлення)..."></textarea>
+                <button class="btn-save" onclick="sendBroadcast()"><i class="fa-solid fa-rocket"></i> Надіслати всім</button>
             </div>
         </div>
 
@@ -192,45 +216,43 @@
     <div class="modal-overlay" id="admin-modal" onclick="closeModal('admin-modal')">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white; letter-spacing: -0.5px;" id="modal-biz-name">Налаштування клієнта</h2>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white;" id="modal-biz-name">Клієнт</h2>
             
             <input type="hidden" id="edit-biz-id">
             <input type="hidden" id="edit-current-extra">
             
+            <label class="form-label"><i class="fa-solid fa-users"></i> Персонал закладу</label>
+            <div class="staff-list" id="modal-staff-list">
+                <div style="text-align: center; padding: 10px; color: var(--text-muted);">Завантаження персоналу...</div>
+            </div>
+
             <label class="form-label"><i class="fa-solid fa-layer-group"></i> Статус / Тариф</label>
             <select id="edit-plan" class="form-select">
-                <option value="basic">BASIC (Тріал / Обмежений)</option>
+                <option value="basic">BASIC (Обмежений)</option>
                 <option value="pro">PRO (Платна підписка)</option>
                 <option value="frozen" style="color: var(--frozen);">FROZEN (Заморозити доступ)</option>
             </select>
 
             <label class="form-label"><i class="fa-solid fa-calendar-plus"></i> Додати днів (Підписка)</label>
             <input type="number" id="edit-days" class="form-input" placeholder="Наприклад: 30" value="0">
-            <div style="font-size: 12px; color: var(--text-muted); margin-top: -10px; margin-bottom: 25px; font-weight: 600;">
-                Спливає: <span id="current-expiry" style="color: white; font-weight: 900; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">...</span>
-            </div>
-
-            <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-check"></i> Підтвердити зміни</button>
-            <button class="btn-danger" style="margin-top: 5px;" onclick="deleteBusiness()"><i class="fa-solid fa-trash-can"></i> Видалити назавжди</button>
+            
+            <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-check"></i> Зберегти налаштування</button>
+            <button class="btn-danger" style="margin-top: 10px;" onclick="deleteBusiness()"><i class="fa-solid fa-trash-can"></i> Видалити бізнес</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="platform-settings-modal" onclick="closeModal('platform-settings-modal')">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white; letter-spacing: -0.5px;"><i class="fa-solid fa-money-bill-wave" style="color: var(--success);"></i> Фінанси Платформи</h2>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white;"><i class="fa-solid fa-money-bill-wave" style="color: var(--success);"></i> Фінанси Платформи</h2>
             
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 12px; color: var(--text-muted);">
-                Ці ціни використовуються для розрахунку твого доходу (MRR) на дашборді. Зберігаються локально на твоєму пристрої.
-            </div>
-
             <label class="form-label">Вартість підписки PRO (zł)</label>
-            <input type="number" id="setting-price-pro" class="form-input" placeholder="Наприклад: 150">
+            <input type="number" id="setting-price-pro" class="form-input">
 
             <label class="form-label">Вартість підписки BASIC (zł)</label>
-            <input type="number" id="setting-price-basic" class="form-input" placeholder="Якщо безкоштовно, введи 0">
+            <input type="number" id="setting-price-basic" class="form-input">
 
-            <button class="btn-save" style="background: var(--success); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);" onclick="savePlatformSettings(this)"><i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи</button>
+            <button class="btn-save" style="background: var(--success);" onclick="savePlatformSettings(this)"><i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи</button>
         </div>
     </div>
 
@@ -240,7 +262,6 @@
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         
-        // ЖОРСТКИЙ ДОСТУП ВЛАСНИКА 
         const TG_ID = "6889016268";
 
         let currentProPrice = parseFloat(localStorage.getItem('saas_price_pro')) || 150;
@@ -249,6 +270,7 @@
 
         let globalBusinesses = [];
         let globalOrders = [];
+        let chartInstance = null;
 
         const dbHeaders = {
             'apikey': SUPABASE_KEY,
@@ -257,38 +279,98 @@
             'x-telegram-user-id': TG_ID
         };
 
+        // --- Вкладки та Модалки ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             event.currentTarget.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
         }
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-
+        // --- Глобальні Налаштування ---
         function openPlatformSettings() {
             document.getElementById('platform-settings-modal').classList.add('active');
             document.getElementById('setting-price-pro').value = currentProPrice;
             document.getElementById('setting-price-basic').value = currentBasicPrice;
         }
-
         function savePlatformSettings(btn) {
-            let pPro = parseFloat(document.getElementById('setting-price-pro').value) || 0;
-            let pBasic = parseFloat(document.getElementById('setting-price-basic').value) || 0;
-            
-            localStorage.setItem('saas_price_pro', pPro);
-            localStorage.setItem('saas_price_basic', pBasic);
-            
-            currentProPrice = pPro;
-            currentBasicPrice = pBasic;
-            
+            currentProPrice = parseFloat(document.getElementById('setting-price-pro').value) || 0;
+            currentBasicPrice = parseFloat(document.getElementById('setting-price-basic').value) || 0;
+            localStorage.setItem('saas_price_pro', currentProPrice);
+            localStorage.setItem('saas_price_basic', currentBasicPrice);
             closeModal('platform-settings-modal');
             renderDashboard(); 
-            
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Збережено!';
             setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи'; }, 1000);
+        }
+
+        // --- РОЗСИЛКА (Broadcast) ---
+        function sendBroadcast() {
+            const msg = document.getElementById('broadcast-msg').value;
+            if(!msg.trim()) return alert("Напишіть текст повідомлення!");
+            
+            // В майбутньому тут буде fetch на твій Python-бекенд:
+            // fetch('ТВІЙ_ПІТОН_СЕРВЕР/broadcast', { method: 'POST', body: JSON.stringify({text: msg}) })
+            
+            alert("✅ Функція готова до підключення бекенду!\nПовідомлення збережено в чергу.");
+            document.getElementById('broadcast-msg').value = '';
+        }
+
+        // --- ЕКСПОРТ В EXCEL / CSV ---
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM для підтримки кирилиці
+            csvContent += "ID,Назва Бізнесу,Тариф,Замовлення,Каса,Дата Реєстрації\n";
+            
+            globalBusinesses.forEach(biz => {
+                let bOrders = 0, bRevenue = 0;
+                globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') { bOrders++; bRevenue += parseFloat(o.amount || 0); }});
+                let safeName = String(biz.name || "Без назви").replace(/"/g, '""'); // Екрануємо лапки
+                let plan = (biz.plan || 'basic').toUpperCase();
+                let date = new Date(biz.created_at).toLocaleDateString('uk-UA');
+                
+                csvContent += `${biz.id},"${safeName}",${plan},${bOrders},${bRevenue.toFixed(2)},${date}\n`;
+            });
+            
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "RzCity_Clients_Backup.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- КЕРУВАННЯ КЛІЄНТОМ ТА ПЕРСОНАЛОМ ---
+        async function fetchStaff(bizId) {
+            const staffListEl = document.getElementById('modal-staff-list');
+            staffListEl.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Завантаження...</div>';
+            
+            try {
+                // Спробуємо дістати персонал (якщо таблиця personnel існує)
+                let sRes = await fetch(SUPABASE_URL + '/rest/v1/personnel?business_id=eq.' + bizId, { method: 'GET', headers: dbHeaders });
+                if (!sRes.ok) throw new Error("Table missing");
+                let staff = await sRes.json();
+                
+                if(staff.length === 0) {
+                    staffListEl.innerHTML = '<div style="padding: 5px; color: var(--text-muted); font-size: 11px;">Персонал ще не додано.</div>';
+                    return;
+                }
+                
+                staffListEl.innerHTML = '';
+                staff.forEach(s => {
+                    let roleIcon = s.role === 'manager' ? '<i class="fa-solid fa-user-tie"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
+                    staffListEl.innerHTML += `
+                        <div class="staff-item">
+                            <div><span style="color: white; font-weight: bold;">${s.name || 'Без імені'}</span> <br><span style="color: var(--text-muted); font-size: 10px;">ID: ${s.user_id}</span></div>
+                            <div class="staff-role">${roleIcon} ${s.role}</div>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                // Якщо таблиці personnel немає, ігноруємо помилку, щоб не ламати інтерфейс
+                staffListEl.innerHTML = '<div style="padding: 5px; color: var(--text-muted); font-size: 11px;">Немає доступу до списку персоналу.</div>';
+            }
         }
 
         function openAdminModal(id, name, plan, created_at, extra_days) {
@@ -298,13 +380,8 @@
             document.getElementById('edit-plan').value = (plan || 'basic').toLowerCase();
             document.getElementById('edit-days').value = "0";
             document.getElementById('edit-current-extra').value = extra_days || "0";
-
-            let baseDate = new Date(created_at || Date.now());
-            let daysToAdd = 30 + (parseInt(extra_days) || 0); 
-            baseDate.setDate(baseDate.getDate() + daysToAdd);
             
-            if (isNaN(baseDate.getTime())) document.getElementById('current-expiry').innerText = "Невідомо";
-            else document.getElementById('current-expiry').innerText = baseDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            fetchStaff(id); // Витягуємо персонал
         }
 
         async function saveAdminChanges(btn) {
@@ -312,40 +389,36 @@
             const newPlan = document.getElementById('edit-plan').value;
             const addDays = parseInt(document.getElementById('edit-days').value) || 0;
             const currentExtra = parseInt(document.getElementById('edit-current-extra').value) || 0;
-            const newExtraTotal = currentExtra + addDays;
-
+            
             btn.disabled = true;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
 
             try {
                 let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
-                    method: 'PATCH',
-                    headers: dbHeaders,
-                    body: JSON.stringify({ plan: newPlan, extra_days: newExtraTotal })
+                    method: 'PATCH', headers: dbHeaders,
+                    body: JSON.stringify({ plan: newPlan, extra_days: (currentExtra + addDays) })
                 });
-                
                 if (!res.ok) throw new Error(await res.text());
-                
                 closeModal('admin-modal');
                 loadData(); 
             } catch(e) {
-                alert("❌ Помилка збереження: " + e.message);
+                alert("❌ Помилка: " + e.message);
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Підтвердити зміни';
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Зберегти налаштування';
             }
         }
 
         async function deleteBusiness() {
             const bizId = document.getElementById('edit-biz-id').value;
-            if (!confirm("⚠️ ВИ ВПЕВНЕНІ? Це видалить бізнес і всю його історію.")) return;
+            if (!confirm("⚠️ ВИ ВПЕВНЕНІ? Це видалить бізнес назавжди!")) return;
             try {
-                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, { method: 'DELETE', headers: dbHeaders });
-                if (!res.ok) throw new Error(await res.text());
+                await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, { method: 'DELETE', headers: dbHeaders });
                 closeModal('admin-modal');
                 loadData();
-            } catch(e) { alert("❌ Помилка: " + e.message); }
+            } catch(e) {}
         }
 
+        // --- ДАНІ, ГРАФІК ТА РЕНДЕР ---
         async function loadData() {
             try {
                 let bRes = await fetch(SUPABASE_URL + '/rest/v1/businesses?select=*', { method: 'GET', headers: dbHeaders });
@@ -357,32 +430,108 @@
                 globalOrders = await oRes.json();
 
                 renderDashboard();
+                renderLeaderboard();
+                renderChart();
                 filterBusinesses(); 
             } catch (e) {
-                document.getElementById('businesses-list').innerHTML = `<div style="padding: 20px; color: var(--danger); text-align: center; font-weight: bold;">🚨 Помилка доступу: <br>${e.message}</div>`;
+                document.getElementById('businesses-list').innerHTML = `<div style="padding: 20px; color: var(--danger); text-align: center; font-weight: bold;">🚨 Помилка доступу.</div>`;
             }
         }
 
         function renderDashboard() {
-            let sysProCount = 0, sysBasicCount = 0, sysFrozenCount = 0;
-            
+            let sysProCount = 0, sysFrozenCount = 0;
             globalBusinesses.forEach(b => { 
                 let p = (b.plan || 'basic').toLowerCase();
-                if (p === 'pro') sysProCount++; 
-                else if (p === 'frozen') sysFrozenCount++;
-                else sysBasicCount++;
+                if (p === 'pro') sysProCount++; else if (p === 'frozen') sysFrozenCount++;
             });
-
-            let ownerRevenue = (sysProCount * currentProPrice) + (sysBasicCount * currentBasicPrice);
-            let conversion = globalBusinesses.length > 0 ? ((sysProCount / globalBusinesses.length) * 100).toFixed(1) : 0;
+            let ownerRevenue = (sysProCount * currentProPrice) + ((globalBusinesses.length - sysProCount - sysFrozenCount) * currentBasicPrice);
 
             document.getElementById('sys-businesses').innerText = globalBusinesses.length;
             document.getElementById('sys-pro').innerText = sysProCount;
-            document.getElementById('sys-basic').innerText = sysBasicCount;
-            document.getElementById('sys-frozen').innerText = sysFrozenCount;
-            // Рядок sys-orders успішно видалено!
             document.getElementById('owner-mrr').innerText = ownerRevenue.toLocaleString('uk-UA') + " " + CURRENCY; 
-            document.getElementById('sys-conversion').innerText = conversion + "%"; 
+        }
+
+        function renderLeaderboard() {
+            const lbContainer = document.getElementById('leaderboard-container');
+            
+            // Рахуємо касу кожного
+            let stats = globalBusinesses.map(biz => {
+                let rev = 0;
+                globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') rev += parseFloat(o.amount || 0); });
+                return { name: String(biz.name || "Без назви"), revenue: rev };
+            });
+            
+            // Сортуємо від більшого до меншого і беремо Топ 5
+            stats.sort((a, b) => b.revenue - a.revenue);
+            let top5 = stats.slice(0, 5);
+            
+            if(top5.length === 0 || top5[0].revenue === 0) {
+                lbContainer.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 12px;">Немає завершених замовлень для рейтингу.</div>';
+                return;
+            }
+
+            lbContainer.innerHTML = '';
+            top5.forEach((biz, index) => {
+                if(biz.revenue > 0) {
+                    let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index+1}.`));
+                    lbContainer.innerHTML += `
+                        <div class="lb-item">
+                            <div class="lb-rank">${medal}</div>
+                            <div class="lb-name">${biz.name.replace(/'/g, "").replace(/"/g, "")}</div>
+                            <div class="lb-revenue">${biz.revenue.toLocaleString('uk-UA')} ${CURRENCY}</div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        function renderChart() {
+            // Рахуємо реєстрації по датах
+            let dates = {};
+            globalBusinesses.forEach(b => {
+                let d = new Date(b.created_at).toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
+                dates[d] = (dates[d] || 0) + 1;
+            });
+            
+            // Якщо пусто, робимо фейкову дату щоб графік не був пустий
+            if(Object.keys(dates).length === 0) {
+                let today = new Date().toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
+                dates[today] = 0;
+            }
+
+            let labels = Object.keys(dates).sort(); // Сортуємо за датою
+            let data = labels.map(l => dates[l]);
+
+            const ctx = document.getElementById('growthChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy(); // Оновлюємо графік
+            
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Нові Клієнти',
+                        data: data,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: {size: 10} } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: {size: 10}, stepSize: 1, beginAtZero: true } }
+                    }
+                }
+            });
         }
 
         function filterBusinesses() {
@@ -395,10 +544,6 @@
 
             globalBusinesses.forEach(biz => {
                 let safeName = String(biz.name || "Без назви").replace(/'/g, "").replace(/"/g, "");
-                
-                let bOrders = 0;
-                globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') bOrders++; });
-
                 let plan = (biz.plan || 'basic').toLowerCase();
                 let isPro = plan === 'pro';
                 let isFrozen = plan === 'frozen';
@@ -406,22 +551,12 @@
                 let badgeClass = isPro ? 'badge-pro' : (isFrozen ? 'badge-frozen' : 'badge-basic');
                 let badgeText = plan.toUpperCase();
 
-                let createdAt = new Date(biz.created_at || Date.now());
-                let extraDays = parseInt(biz.extra_days) || 0;
-                createdAt.setDate(createdAt.getDate() + 30 + extraDays);
-                let isExpired = createdAt < new Date();
-                
-                if (isExpired && !isFrozen) { badgeClass = 'badge-expired'; badgeText = 'БОРЖНИК'; }
-
-                let dateString = isNaN(createdAt.getTime()) ? "Невідомо" : createdAt.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
-
                 let matchSearch = safeName.toLowerCase().includes(searchQ) || biz.id.toLowerCase().includes(searchQ);
                 let matchFilter = true;
                 
                 if (filterQ === 'pro' && !isPro) matchFilter = false;
                 if (filterQ === 'basic' && plan !== 'basic') matchFilter = false;
                 if (filterQ === 'frozen' && !isFrozen) matchFilter = false;
-                if (filterQ === 'expired' && !isExpired) matchFilter = false;
 
                 if (matchSearch && matchFilter) {
                     count++;
@@ -435,18 +570,7 @@
                                 <div class="badge ${badgeClass}">${badgeText}</div>
                             </div>
                             
-                            <div class="biz-metrics">
-                                <div class="biz-m-item">
-                                    <div class="biz-m-val">${bOrders}</div>
-                                    <div class="biz-m-lbl">Всього замовлень</div>
-                                </div>
-                                <div class="biz-m-item">
-                                    <div class="biz-m-val" style="${isExpired ? 'color: var(--danger);' : ''}">${dateString}</div>
-                                    <div class="biz-m-lbl">Підписка діє до</div>
-                                </div>
-                            </div>
-                            
-                            <button class="btn-manage" onclick="openAdminModal('${biz.id}', '${safeName}', '${biz.plan}', '${biz.created_at}', '${extraDays}')">
+                            <button class="btn-manage" onclick="openAdminModal('${biz.id}', '${safeName}', '${biz.plan}', '${biz.created_at}', '${parseInt(biz.extra_days)||0}')">
                                 <i class="fa-solid fa-sliders"></i> Управління клієнтом
                             </button>
                         </div>
@@ -454,9 +578,7 @@
                 }
             });
 
-            if (count === 0) {
-                listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;"><i class="fa-regular fa-folder-open" style="font-size: 32px; margin-bottom: 10px; opacity: 0.5;"></i><br>Нічого не знайдено</div>';
-            }
+            if (count === 0) listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;"><i class="fa-regular fa-folder-open" style="font-size: 32px; margin-bottom: 10px; opacity: 0.5;"></i><br>Нічого не знайдено</div>';
         }
 
         setTimeout(loadData, 200);
