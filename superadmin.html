@@ -59,8 +59,6 @@
         
         .btn-save { background: var(--primary); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
-        
-        #debug-log { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px; word-wrap: break-word; min-height: 50px; display: none; }
     </style>
 </head>
 <body>
@@ -71,7 +69,6 @@
     </div>
 
     <div class="container">
-        
         <div class="global-stats">
             <div class="stat-card highlight">
                 <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
@@ -100,12 +97,9 @@
         <div id="businesses-list">
             <div style="text-align: center; color: var(--warning); padding: 30px; font-weight: bold;">
                 <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                ОТРИМАННЯ ДАНИХ. ..versia 24
+                ПІДГОТОВКА...
             </div>
         </div>
-
-        <div id="debug-log"></div>
-
     </div>
 
     <div class="modal-overlay" id="admin-modal" onclick="closeAdminModal()">
@@ -132,6 +126,7 @@
     </div>
 
     <script>
+        // Ініціалізація Телеграм
         try { 
             if (window.Telegram && window.Telegram.WebApp) { 
                 window.Telegram.WebApp.expand(); 
@@ -142,20 +137,6 @@
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         let supabase = null;
-
-        function getTelegramUserId() {
-            try {
-                let urlParams = new URLSearchParams(window.location.search);
-                let idFromUrl = urlParams.get('tg_id');
-                if (idFromUrl) return idFromUrl;
-                
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                    return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-                }
-            } catch(e) {}
-            // Фолбек: Завжди віддає твій ID, щоб панель працювала навіть поза Телеграмом
-            return "6889016268";
-        }
 
         function openAdminModal(id, name, plan, created_at, extra_days) {
             document.getElementById('admin-modal').classList.add('active');
@@ -169,11 +150,8 @@
             let daysToAdd = 30 + (parseInt(extra_days) || 0); 
             baseDate.setDate(baseDate.getDate() + daysToAdd);
             
-            if (isNaN(baseDate.getTime())) {
-                document.getElementById('current-expiry').innerText = "Невідомо";
-            } else {
-                document.getElementById('current-expiry').innerText = baseDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            }
+            if (isNaN(baseDate.getTime())) document.getElementById('current-expiry').innerText = "Невідомо";
+            else document.getElementById('current-expiry').innerText = baseDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
 
         function closeAdminModal() {
@@ -223,29 +201,41 @@
         async function loadSuperAdminData() {
             const listEl = document.getElementById('businesses-list');
             
-            try {
-                if (!window.supabase) {
-                    throw new Error("Не вдалося завантажити базу даних. Перевірте інтернет.");
-                }
-                
-                let tgUserId = getTelegramUserId();
+            // ФУНКЦІЯ РЕНТГЕНУ: оновлює екран на кожному кроці
+            const step = (msg) => {
+                listEl.innerHTML = `<div style="text-align: center; color: var(--warning); padding: 30px; font-weight: bold;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; margin-bottom: 10px;"></i><br><br>${msg}</div>`;
+            };
 
+            try {
+                step("Крок 1: Перевірка бібліотеки БД...");
+                if (!window.supabase) throw new Error("Бібліотека Supabase не завантажена. Блокує інтернет або браузер.");
+
+                step("Крок 2: Отримання Telegram ID...");
+                let tgUserId = "6889016268"; // Залізобетонний дефолт
+                try {
+                    let urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('tg_id')) tgUserId = urlParams.get('tg_id');
+                    else if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) tgUserId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+                } catch(e) {}
+
+                step(`Крок 3: Підключення до бази (Ваш ID: ${tgUserId})...`);
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
 
+                step("Крок 4: Завантаження бізнесів (це може зайняти секунду)...");
                 const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
-                if (bErr) throw bErr;
-                
+                if (bErr) throw new Error("Помилка бізнесів: " + JSON.stringify(bErr));
                 let allBusinesses = businesses || [];
 
+                step("Крок 5: Завантаження замовлень...");
                 const { data: orders, error: oErr } = await supabase.from('orders').select('business_id, amount, status');
-                if (oErr) throw oErr;
-                
+                if (oErr) throw new Error("Помилка замовлень: " + JSON.stringify(oErr));
                 let allOrders = orders || [];
 
+                step("Крок 6: Обробка та рендеринг даних...");
+                
                 let sysTotalRev = 0, sysProCount = 0, sysCompletedOrders = 0;
-
                 allBusinesses.forEach(b => { if ((b.plan || 'basic').toLowerCase() === 'pro') sysProCount++; });
                 allOrders.forEach(o => { if (o.status === 'completed') { sysCompletedOrders++; sysTotalRev += parseFloat(o.amount || 0); }});
 
@@ -276,11 +266,7 @@
                     if (isExpired) { badgeClass = 'badge-expired'; badgeText = 'ПРОСТРОЧЕНО'; }
 
                     let curr = biz.currency || 'zł';
-                    
-                    let safeName = "Без назви";
-                    if (biz.name) {
-                        safeName = biz.name.replace(/'/g, "").replace(/"/g, "");
-                    }
+                    let safeName = String(biz.name || "Без назви").replace(/'/g, "").replace(/"/g, "");
 
                     let dateString = "Невідомо";
                     if (!isNaN(createdAt.getTime())) {
@@ -318,14 +304,16 @@
                 });
 
             } catch (error) {
+                // ВИВОДИМО ПОМИЛКУ ПРЯМО НА ЕКРАН ЖИРНИМ ТЕКСТОМ
                 let errorMsg = error.message || error;
-                listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px; text-align: center;">
-                    <b>🚨 ПОМИЛКА:</b><br>${errorMsg}
+                listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 14px; text-align: center;">
+                    <b>🚨 ПОМИЛКА СКРИПТА:</b><br><br>${errorMsg}
                 </div>`;
             }
         }
 
-        setTimeout(loadSuperAdminData, 300);
+        // Даємо 0.5 секунди на ініціалізацію вікна
+        setTimeout(loadSuperAdminData, 500);
     </script>
 </body>
 </html>
