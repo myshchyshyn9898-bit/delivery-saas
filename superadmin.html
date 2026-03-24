@@ -132,13 +132,19 @@
     </div>
 
     <script>
-        // ГЛОБАЛЬНИЙ ВИЛОВЛЮВАЧ ПОМИЛОК
+        const listEl = document.getElementById('businesses-list');
+
+        // БРОНЕБІЙНИЙ ВИЛОВЛЮВАЧ ПОМИЛОК
         window.onerror = function(msg, url, line) {
-            alert("🚨 КРИТИЧНА ПОМИЛКА:\n" + msg + "\nРядок: " + line);
+            listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px;">
+                <b>🚨 КРИТИЧНА ПОМИЛКА:</b><br>${msg}<br>Рядок: ${line}
+            </div>`;
         };
-        // Виловлювач помилок промісів (бази даних)
         window.addEventListener("unhandledrejection", function(event) {
-            alert("🚨 ПОМИЛКА БАЗИ ДАНИХ:\n" + event.reason);
+            let errorMsg = event.reason ? event.reason.message || event.reason : "Невідома помилка";
+            listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px;">
+                <b>🚨 ПОМИЛКА БАЗИ ДАНИХ:</b><br>${errorMsg}
+            </div>`;
         });
 
         try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#0f172a'; } } catch(e) {}
@@ -158,7 +164,12 @@
             let baseDate = new Date(created_at || Date.now());
             let daysToAdd = 30 + (parseInt(extra_days) || 0); 
             baseDate.setDate(baseDate.getDate() + daysToAdd);
-            document.getElementById('current-expiry').innerText = baseDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            
+            if (isNaN(baseDate.getTime())) {
+                document.getElementById('current-expiry').innerText = "Невідомо";
+            } else {
+                document.getElementById('current-expiry').innerText = baseDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
         }
 
         function closeAdminModal() {
@@ -176,8 +187,9 @@
             btn.disabled = true;
 
             try {
-                const { data: bData } = await supabase.from('businesses').select('extra_days').eq('id', bizId).single();
-                let currentExtra = parseInt(bData.extra_days) || 0;
+                // Використовуємо .maybeSingle(), щоб не впало, якщо щось не так
+                const { data: bData } = await supabase.from('businesses').select('extra_days').eq('id', bizId).maybeSingle();
+                let currentExtra = (bData && bData.extra_days) ? parseInt(bData.extra_days) : 0;
                 let newExtraTotal = currentExtra + extraDays;
 
                 const { error } = await supabase.from('businesses').update({ plan: newPlan, extra_days: newExtraTotal }).eq('id', bizId);
@@ -187,7 +199,7 @@
                 closeAdminModal();
                 loadSuperAdminData(); 
             } catch(e) {
-                alert("❌ Помилка: " + e.message);
+                alert("❌ Помилка збереження: " + e.message);
             } finally {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
@@ -208,13 +220,14 @@
         }
 
         async function loadSuperAdminData() {
-            const listEl = document.getElementById('businesses-list');
-            
             try {
-                if (!window.supabase) throw new Error("Supabase скрипт не завантажився з інтернету.");
+                if (!window.supabase) {
+                    throw new Error("Не вдалося завантажити бібліотеку Supabase. Перевірте інтернет-з'єднання.");
+                }
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                const { data: businesses, error: bErr } = await supabase.from('businesses').select('*').order('created_at', { ascending: false });
+                // ПРИБРАВ .order('created_at') щоб не було помилок, якщо колонки немає
+                const { data: businesses, error: bErr } = await supabase.from('businesses').select('*');
                 if (bErr) throw bErr;
                 let allBusinesses = businesses || [];
 
@@ -254,6 +267,12 @@
                     if (isExpired) { badgeClass = 'badge-expired'; badgeText = 'ПРОСТРОЧЕНО'; }
 
                     let curr = biz.currency || 'zł';
+                    let safeName = String(biz.name || 'Без назви').replace(/'/g, "\\'");
+
+                    let dateString = "Невідомо";
+                    if (!isNaN(createdAt.getTime())) {
+                        dateString = createdAt.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
+                    }
 
                     listEl.innerHTML += `
                         <div class="biz-card">
@@ -274,11 +293,11 @@
                                     <div class="biz-m-lbl">Каса</div>
                                 </div>
                                 <div class="biz-m-item">
-                                    <div class="biz-m-val" style="${isExpired ? 'color: var(--danger);' : ''}">${createdAt.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'})}</div>
+                                    <div class="biz-m-val" style="${isExpired ? 'color: var(--danger);' : ''}">${dateString}</div>
                                     <div class="biz-m-lbl">Діє до</div>
                                 </div>
                             </div>
-                            <button class="btn-manage" onclick="openAdminModal('${biz.id}', '${(biz.name || 'Без назви').replace(/'/g, "\\'")}', '${biz.plan}', '${biz.created_at}', '${extraDays}')">
+                            <button class="btn-manage" onclick="openAdminModal('${biz.id}', '${safeName}', '${biz.plan}', '${biz.created_at}', '${extraDays}')">
                                 <i class="fa-solid fa-sliders"></i> Керувати підпискою
                             </button>
                         </div>
@@ -286,8 +305,11 @@
                 });
 
             } catch (error) {
-                alert("🚨 ПОМИЛКА: " + error.message);
-                listEl.innerHTML = `<div style="text-align:center; color: var(--danger); padding: 20px;">❌ Помилка завантаження бази: <br>${error.message}</div>`;
+                // ВИВОДИМО ПОМИЛКУ ПРЯМО НА ЕКРАН
+                let errorMsg = error.message || error;
+                listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px; text-align: center;">
+                    <b>🚨 ПОМИЛКА:</b><br>${errorMsg}
+                </div>`;
             }
         }
 
