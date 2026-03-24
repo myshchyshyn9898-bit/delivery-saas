@@ -132,9 +132,6 @@
     </div>
 
     <script>
-        // ТЕСТОВИЙ АЛЕРТ: Зніметься, як тільки завантажиться НОВА версія
-        alert("Панель Боса завантажується...");
-
         try { 
             if (window.Telegram && window.Telegram.WebApp) { 
                 window.Telegram.WebApp.expand(); 
@@ -156,7 +153,9 @@
                     return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
                 }
             } catch(e) {}
-            return "0";
+            // Фолбек: якщо ні з URL, ні з WebApp айді не дісталося,
+            // повертаємо твій хардкодний ID, щоб панель працювала 100%.
+            return "6889016268";
         }
 
         function openAdminModal(id, name, plan, created_at, extra_days) {
@@ -331,4 +330,3 @@
     </script>
 </body>
 </html>
- 
