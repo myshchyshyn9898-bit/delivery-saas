@@ -402,12 +402,14 @@
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 
-                // ТЕСТОВИЙ АЛЕРТ: перевіряємо, що передає Телеграм
+                // РЕНТГЕН-АЛЕРТ: перевіряємо всі дані від Телеграм
                 let tgUserIdTest = "0";
                 if (window.Telegram && window.Telegram.WebApp) {
                     tgUserIdTest = window.Telegram.WebApp.initDataUnsafe?.user?.id || "0";
+                    alert("ID: " + tgUserIdTest + "\n\nВсі дані: " + JSON.stringify(window.Telegram.WebApp.initDataUnsafe));
+                } else {
+                    alert("Telegram WebApp об'єкт недоступний!");
                 }
-                alert("Мій Телеграм ID зараз: " + tgUserIdTest);
 
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
