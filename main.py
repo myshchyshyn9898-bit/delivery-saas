@@ -147,6 +147,24 @@ async def cmd_generate_report(message: types.Message):
 # ==========================================
 
 
+# ==========================================
+# --- СЕКРЕТНА ПАНЕЛЬ ВЛАСНИКА БОТА ---
+# ==========================================
+@dp.message(Command("boss"))
+async def cmd_boss_panel(message: types.Message):
+    # Перевіряємо, чи є ID користувача у списку адмінів
+    if message.from_user.id in SUPER_ADMIN_IDS:
+        # Викликаємо клавіатуру з файлу keyboards.py
+        await message.answer(
+            "Вітаю, Бос! 🫡\nОсь доступ до керування всіма бізнесами:", 
+            reply_markup=kb.get_superadmin_kb()
+        )
+    else:
+        # Якщо хтось чужий введе команду, бот просто прикинеться дурником
+        await message.answer("Я вас не розумію 🤷‍♂️")
+# ==========================================
+
+
 # --- ОБРОБНИКИ КОМАНД ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
