@@ -232,11 +232,11 @@
     </div>
 
     <script>
-        // ГЛОБАЛЬНІ ЗМІННІ
+        // ГЛОБАЛЬНІ ЗМІННІ ДЛЯ ЛІМІТІВ ТА ФІЛЬТРА
         let currentPlanIsPro = true;
         let currentCouriersCount = 0;
         let currentManagersCount = 0;
-        let currentFilter = 'today'; // ДОДАНО: Слідкуємо за активним фільтром
+        let currentFilter = 'today';
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -246,7 +246,7 @@
             window.scrollTo(0, 0);
         }
 
-        // ОНОВЛЕНО: Тепер фільтр не просто світиться, а викликає завантаження даних
+        // Оновлена функція: змінює змінну currentFilter і перезавантажує дані
         function setFilter(el) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
@@ -256,7 +256,7 @@
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
             
-            loadDashboardData(); // Перезавантажуємо цифри під фільтр
+            loadDashboardData();
         }
 
         function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
@@ -272,8 +272,10 @@
         const bizId = urlParams.get('biz_id');
         let currencySymbol = "zł";
 
+        // ЛОГІКА ПЕРЕВІРКИ ЛІМІТІВ ПРИ ГЕНЕРАЦІЇ ПОСИЛАННЯ
         function generateInvite(role) {
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
+            
             if (!currentPlanIsPro) {
                 if (role === 'courier' && currentCouriersCount >= 2) {
                     alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.\nОновіть тариф до PRO для безліміту.");
@@ -286,11 +288,31 @@
                     return; 
                 }
             }
+
             let prefix = role === 'courier' ? 'join_' : 'admin_';
             const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
             navigator.clipboard.writeText(inviteLink).then(() => {
                 alert(`✅ Посилання для ${role === 'courier' ? "Кур'єра" : "Менеджера"} скопійовано!\n\nНадішліть його працівнику.`);
             });
+        }
+
+        // Залишено твою функцію видалення
+        async function removeStaff(staffUserId, staffName) {
+            if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?\nВін назавжди втратить доступ до бота доставки.`)) {
+                return;
+            }
+            
+            try {
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                const { error } = await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
+                
+                if (error) throw error;
+                
+                loadDashboardData(); 
+            } catch (err) {
+                console.error(err);
+                alert("❌ Виникла помилка при видаленні працівника.");
+            }
         }
 
         async function loadDashboardData() {
@@ -299,21 +321,21 @@
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
-                // ДОДАНО: Скидання інтерфейсу в 0 перед кожним запитом (щоб не залипали цифри тижня на сьогодні)
+                // Обнулення значень перед запитом, щоб не висіли старі дані
                 document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
                 document.getElementById('val-cash').innerText = '0.00';
                 document.getElementById('val-term').innerText = '0.00';
                 document.getElementById('val-orders').innerText = '0';
                 document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol;
                 document.getElementById('val-time').innerText = '-- хв';
-                document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Пошук замовлень...</div>';
+                document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Завантаження...</div>';
 
                 const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
                 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
                 if (!window.supabase) return;
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                // ДОДАНО: Логіка розрахунку дати початку
+                // Розрахунок дати на основі currentFilter
                 let startDate = new Date();
                 if (currentFilter === 'today') {
                     startDate.setHours(0, 0, 0, 0);
@@ -329,12 +351,16 @@
                     currencySymbol = biz.currency || "zł";
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
+
                     currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+                    
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
                     document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
+                    
                     document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (Активна)`;
                     document.getElementById('set-plan-status').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    
                     document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? 'PRO Тариф' : 'BASIC Тариф';
                     document.getElementById('modal-plan-name').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('modal-plan-badge').style.background = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
@@ -368,7 +394,7 @@
                         const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
                         lockedCards.forEach(id => {
                             const el = document.getElementById(id);
-                            if (el && !el.querySelector('.pro-overlay')) { // Перевірка, щоб не множити оверлеї
+                            if (el && !el.querySelector('.pro-overlay')) {
                                 el.classList.add('pro-locked');
                                 const overlay = document.createElement('div');
                                 overlay.className = 'pro-overlay';
@@ -378,7 +404,6 @@
                             }
                         });
                     } else {
-                        // Якщо PRO — знімаємо блюр
                         const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
                         lockedCards.forEach(id => {
                             const el = document.getElementById(id);
@@ -391,7 +416,7 @@
                     }
                 }
 
-                // ОНОВЛЕНО: Тепер використовуємо змінну startDate у запиті
+                // Використання startDate у запиті
                 const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
 
                 let heatData = [];
@@ -427,10 +452,10 @@
                     feedBox.innerHTML = '';
                     
                     orders.slice(0, 10).forEach(o => {
-                        let isComp = o.status === 'completed';
-                        let statusIcon = isComp ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
-                        let iconBg = isComp ? 'style="color: #34C759; background: rgba(52, 199, 89, 0.1);"' : 'style="color: #FFB020; background: rgba(255, 176, 32, 0.1);"';
-                        let statusText = isComp ? '<span style="color: #34C759;">Доставлено</span>' : '<span style="color: #FFB020;">В процесі</span>';
+                        let isCompleted = o.status === 'completed';
+                        let statusIcon = isCompleted ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
+                        let iconBg = isCompleted ? 'style="color: #34C759; background: rgba(52, 199, 89, 0.1);"' : 'style="color: #FFB020; background: rgba(255, 176, 32, 0.1);"';
+                        let statusText = isCompleted ? '<span style="color: #34C759;">Доставлено</span>' : '<span style="color: #FFB020;">В процесі</span>';
                         let shortId = o.id.toString().substring(0, 5).toUpperCase();
                         
                         feedBox.innerHTML += `
@@ -445,22 +470,26 @@
                         `;
                     });
                 } else {
-                    // Якщо за період замовлень немає
-                    document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:20px;">За цей період замовлень не знайдено</div>';
+                    document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">За цей період замовлень не знайдено</div>';
                 }
 
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
+                
                 currentCouriersCount = 0;
                 currentManagersCount = 0;
+
                 if (staff && staff.length > 0) {
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
                         if (person.role === 'courier') currentCouriersCount++;
                         if (person.role === 'manager') currentManagersCount++;
+
                         let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager';
                         let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер';
                         let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
+                        
+                        // Ось де я залишив твою кнопку видалення недоторканою
                         staffBox.innerHTML += `
                             <div class="team-card">
                                 <div class="team-avatar">${avatar}</div>
@@ -468,23 +497,31 @@
                                     <div class="team-name">${person.name || 'Працівник'}</div>
                                     <div class="team-role ${roleClass}">${roleName}</div>
                                 </div>
+                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${person.name}')" title="Звільнити">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
                             </div>
                         `;
                     });
+                } else {
+                    staffBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">В команді поки нікого немає.</div>';
                 }
 
-                // ОНОВЛЕНО: Тепер мапа видаляється перед створенням нової, щоб не було помилок при зміні фільтрів
+                // Видалення старої мапи перед завантаженням нової (щоб не було помилок при кліку)
                 setTimeout(() => {
-                    if (window.dashboardMap) {
-                        window.dashboardMap.remove();
-                    }
                     let centerLat = 50.04132, centerLon = 21.99901;
                     if (heatData.length > 0) {
                         centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length;
                         centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length;
                     }
-                    window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: true }).setView([centerLat, centerLon], 12);
+
+                    if (window.dashboardMap) {
+                        window.dashboardMap.remove();
+                    }
+
+                    window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
                     L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
+
                     if (heatData.length > 0) {
                         L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap);
                     }
