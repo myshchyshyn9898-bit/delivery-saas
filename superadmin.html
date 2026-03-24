@@ -60,7 +60,7 @@
         .btn-save { background: var(--primary); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); width: 100%; padding: 16px; border-radius: 12px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         
-        #debug-log { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px; word-wrap: break-word; min-height: 50px; }
+        #debug-log { margin-top: 20px; padding: 10px; background: #000; color: #0f0; font-family: monospace; font-size: 11px; border-radius: 8px; word-wrap: break-word; min-height: 50px; display: none; }
     </style>
 </head>
 <body>
@@ -104,7 +104,7 @@
             </div>
         </div>
 
-        <div id="debug-log">Log Console Started...<br></div>
+        <div id="debug-log"></div>
 
     </div>
 
@@ -132,26 +132,20 @@
     </div>
 
     <script>
-        // Глобальні обробники помилок
-        window.onerror = function(msg, url, line) {
-            const dbg = document.getElementById('debug-log');
-            if(dbg) dbg.innerHTML += `<span style="color:red">❌ ERROR: ${msg} (Line ${line})</span><br>`;
-            return false;
-        };
-        window.addEventListener("unhandledrejection", function(event) {
-            const dbg = document.getElementById('debug-log');
-            let err = event.reason ? (event.reason.message || event.reason) : "Unknown Error";
-            if(dbg) dbg.innerHTML += `<span style="color:red">❌ PROMISE ERROR: ${err}</span><br>`;
-        });
+        // ТЕСТОВИЙ АЛЕРТ: Зніметься, як тільки завантажиться НОВА версія
+        alert("Панель Боса завантажується...");
 
-        const debugEl = document.getElementById('debug-log');
-        function logInfo(text) { if(debugEl) debugEl.innerHTML += `> ${text}<br>`; }
+        try { 
+            if (window.Telegram && window.Telegram.WebApp) { 
+                window.Telegram.WebApp.expand(); 
+                window.Telegram.WebApp.backgroundColor = '#0f172a'; 
+            } 
+        } catch(e) {}
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         let supabase = null;
 
-        // БЕЗПЕЧНА ФУНКЦІЯ ОТРИМАННЯ ID
         function getTelegramUserId() {
             try {
                 let urlParams = new URLSearchParams(window.location.search);
@@ -161,9 +155,7 @@
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
                     return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
                 }
-            } catch(e) {
-                logInfo("Get ID error: " + e.message);
-            }
+            } catch(e) {}
             return "0";
         }
 
@@ -197,6 +189,7 @@
             const extraDays = parseInt(document.getElementById('edit-days').value) || 0;
 
             btn.disabled = true;
+            btn.innerHTML = "Збереження...";
 
             try {
                 const { data: bData } = await supabase.from('businesses').select('extra_days').eq('id', bizId).maybeSingle();
@@ -212,6 +205,7 @@
             } catch(e) {
                 alert("❌ Помилка збереження: " + e.message);
             } finally {
+                btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти зміни';
                 btn.disabled = false;
             }
         }
@@ -229,17 +223,14 @@
         }
 
         async function loadSuperAdminData() {
-            logInfo("Starting loadSuperAdminData...");
             const listEl = document.getElementById('businesses-list');
             
             try {
                 if (!window.supabase) {
-                    throw new Error("Supabase JS Library not loaded. Check internet connection.");
+                    throw new Error("Не вдалося завантажити базу даних. Перевірте інтернет.");
                 }
-                logInfo("Supabase JS found.");
                 
                 let tgUserId = getTelegramUserId();
-                logInfo("Using ID for God Mode: " + tgUserId);
 
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
@@ -249,13 +240,11 @@
                 if (bErr) throw bErr;
                 
                 let allBusinesses = businesses || [];
-                logInfo("Businesses loaded: " + allBusinesses.length);
 
                 const { data: orders, error: oErr } = await supabase.from('orders').select('business_id, amount, status');
                 if (oErr) throw oErr;
                 
                 let allOrders = orders || [];
-                logInfo("Orders loaded: " + allOrders.length);
 
                 let sysTotalRev = 0, sysProCount = 0, sysCompletedOrders = 0;
 
@@ -270,7 +259,6 @@
                 listEl.innerHTML = '';
                 if (allBusinesses.length === 0) {
                     listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 20px;">Клієнтів ще немає.</div>';
-                    logInfo("Done (Empty).");
                     return;
                 }
 
@@ -330,27 +318,16 @@
                         </div>
                     `;
                 });
-                
-                logInfo("Render Success!");
 
             } catch (error) {
                 let errorMsg = error.message || error;
-                logInfo(`CATCH: ${errorMsg}`);
                 listEl.innerHTML = `<div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); padding: 15px; border-radius: 12px; color: var(--danger); font-size: 13px; text-align: center;">
                     <b>🚨 ПОМИЛКА:</b><br>${errorMsg}
                 </div>`;
             }
         }
 
-        // ЗАПУСК ОДРАЗУ, БЕЗ ЧЕКАННЯ WINDOW.ONLOAD
-        try { 
-            if (window.Telegram && window.Telegram.WebApp) { 
-                window.Telegram.WebApp.expand(); 
-                window.Telegram.WebApp.backgroundColor = '#0f172a'; 
-            } 
-        } catch(e) { logInfo("Tg WebApp init error: " + e.message); }
-
-        loadSuperAdminData();
+        setTimeout(loadSuperAdminData, 300);
     </script>
 </body>
 </html>
