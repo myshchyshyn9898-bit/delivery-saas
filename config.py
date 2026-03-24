@@ -10,7 +10,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # Посилання на твій бот (не забудь замінити на реальне!)
-BOT_USERNAME = "YourBotUsername" 
+BOT_USERNAME = "@rz_city_bot" 
 
 # Головне посилання на твій GitHub Pages
 BASE_URL = "https://myshchyshyn9898-bit.github.io/delivery-saas"
