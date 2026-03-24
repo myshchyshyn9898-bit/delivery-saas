@@ -88,7 +88,7 @@
         .f-yes { background: rgba(52, 199, 89, 0.1); color: var(--success); }
         .f-no { background: #f4f7f9; color: var(--text-muted); }
         .feature-disabled { color: var(--text-muted); text-decoration: line-through; }
-        .btn-sub-upgrade { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25); transition: 0.2s; margin-top: 20px; }
+        .btn-sub-upgrade { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25); transition: 0.2s; margin-top: 20px; }
         .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
@@ -401,6 +401,14 @@
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
+                
+                // ТЕСТОВИЙ АЛЕРТ: перевіряємо, що передає Телеграм
+                let tgUserIdTest = "0";
+                if (window.Telegram && window.Telegram.WebApp) {
+                    tgUserIdTest = window.Telegram.WebApp.initDataUnsafe?.user?.id || "0";
+                }
+                alert("Мій Телеграм ID зараз: " + tgUserIdTest);
+
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
@@ -413,6 +421,7 @@
                 document.getElementById('recent-orders-list').innerHTML = '<div style="text-align:center; color:gray; padding:15px;">Завантаження...</div>';
 
                 if (!window.supabase) return;
+                
                 const tg = window.Telegram.WebApp;
                 const tgUserId = tg.initDataUnsafe?.user?.id || "0";
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
