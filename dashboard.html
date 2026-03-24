@@ -89,16 +89,23 @@
         .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
         .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
-        /* СТИЛІ ДЛЯ БЛЮРУ PRO-ФІЧ */
         .pro-locked { position: relative; overflow: hidden; }
         .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
         .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); }
         .pro-badge { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* --- ДОДАНО: СТИЛІ ДЛЯ ФОРМИ НАЛАШТУВАНЬ БІЗНЕСУ --- */
-        .form-input { width: 100%; padding: 16px; border: 1px solid #edf1f7; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #f4f7f9; color: var(--text-main); font-weight: 600; outline: none; }
-        .form-input:focus { border-color: var(--primary); }
+        /* --- ДОДАНО: СТИЛІ ФОРМИ ТА АВТОЗАПОВНЕННЯ (З form.html) --- */
+        .form-input { width: 100%; padding: 16px; border: 1px solid #edf1f7; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #fbfcfd; color: var(--text-main); font-weight: 600; outline: none; transition: 0.2s; }
+        .form-input:focus { border-color: var(--primary); background: white; }
         .form-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block; font-weight: 700; text-transform: uppercase; }
+        .input-group { position: relative; } /* Важливо для автозаповнення */
+        
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #edf1f7; z-index: 1000; max-height: 220px; overflow-y: auto; display: none; margin-top: 5px; }
+        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #edf1f7; cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:active { background: #f4f7f9; }
+        .addr-main { font-weight: 800; color: #111418; margin-bottom: 2px; }
+        .addr-sub { font-size: 12px; color: #8a8d91; }
     </style>
 </head>
 <body>
@@ -185,7 +192,7 @@
                 <span class="set-label">Business ID</span>
                 <span class="set-val" id="set-id" style="font-size: 11px;">...</span>
             </div>
-
+            
             <div class="setting-row" onclick="openBizSettingsMenu()" style="cursor: pointer;">
                 <span class="set-label">Налаштування бізнесу</span>
                 <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
@@ -243,12 +250,18 @@
     </div>
 
     <div class="modal-overlay" id="biz-settings-modal" onclick="closeBizSettingsMenu()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
             <div class="sheet-handle"></div>
             <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">Налаштування бізнесу</h2>
             
             <label class="form-label">Назва бізнесу</label>
             <input type="text" id="input-biz-name" class="form-input" placeholder="Введіть назву...">
+            
+            <label class="form-label">Адреса закладу (база)</label>
+            <div class="input-group">
+                <input type="text" id="input-biz-address" class="form-input" placeholder="Почніть вводити вулицю..." autocomplete="off" style="margin-bottom: 15px;">
+                <div id="biz-autocomplete-list" class="autocomplete-list"></div>
+            </div>
             
             <label class="form-label">Валюта</label>
             <select id="input-biz-currency" class="form-input">
@@ -261,16 +274,19 @@
             <label class="form-label">Радіус доставки (км)</label>
             <input type="number" id="input-biz-radius" class="form-input" placeholder="Наприклад: 5">
 
-            <button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 10px;">💾 Зберегти зміни</button>
+            <button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 5px;">💾 Зберегти зміни</button>
         </div>
     </div>
 
     <script>
-        // ГЛОБАЛЬНІ ЗМІННІ ДЛЯ ЛІМІТІВ ТА ФІЛЬТРА
         let currentPlanIsPro = true;
         let currentCouriersCount = 0;
         let currentManagersCount = 0;
         let currentFilter = 'today';
+        
+        // ДОДАНО: Глобальні змінні для координат бази
+        let bizLat = null;
+        let bizLon = null;
 
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -280,16 +296,13 @@
             window.scrollTo(0, 0);
         }
 
-        // Оновлена функція: змінює змінну currentFilter і перезавантажує дані
         function setFilter(el) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            
             const txt = el.innerText.toLowerCase();
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
-            
             loadDashboardData();
         }
 
@@ -297,21 +310,15 @@
         function openSubscriptionMenu() { document.getElementById('subscription-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
         function closeSubscriptionMenu() { document.getElementById('subscription-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
-        // --- ДОДАНО: ФУНКЦІЇ ДЛЯ МЕНЮ НАЛАШТУВАНЬ БІЗНЕСУ ---
-        function openBizSettingsMenu() { 
-            document.getElementById('biz-settings-modal').classList.add('active'); 
-            document.body.style.overflow = 'hidden'; 
-        }
-        function closeBizSettingsMenu() { 
-            document.getElementById('biz-settings-modal').classList.remove('active'); 
-            document.body.style.overflow = ''; 
-        }
+        function openBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function closeBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
         async function saveBizSettings(btn) {
             if (!bizId) return;
-            const newName = document.getElementById('input-biz-name').value;
+            const newName = document.getElementById('input-biz-name').value.trim();
             const newCurr = document.getElementById('input-biz-currency').value;
-            const newRadius = document.getElementById('input-biz-radius').value;
+            const newRadius = document.getElementById('input-biz-radius').value.trim();
+            const newAddress = document.getElementById('input-biz-address').value.trim();
             
             const oldHtml = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
@@ -321,23 +328,28 @@
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 
                 let updatePayload = { name: newName, currency: newCurr };
-                // Додаємо радіус тільки якщо він введений (щоб не ламало, якщо колонки немає)
                 if (newRadius !== "") updatePayload.radius = parseInt(newRadius);
+                
+                // Зберігаємо адресу і координати, якщо вони є
+                if (newAddress !== "") updatePayload.address = newAddress;
+                if (bizLat !== null && bizLon !== null) {
+                    updatePayload.base_lat = bizLat;
+                    updatePayload.base_lon = bizLon;
+                }
 
                 const { error } = await supabase.from('businesses').update(updatePayload).eq('id', bizId);
                 if (error) throw error;
                 
                 alert("✅ Налаштування успішно збережено!");
                 closeBizSettingsMenu();
-                loadDashboardData(); // Оновлюємо інтерфейс з новими даними
+                loadDashboardData(); 
             } catch(e) {
-                alert("❌ Помилка збереження. Перевірте, чи створена колонка 'radius' у таблиці 'businesses' в Supabase: " + e.message);
+                alert("❌ Помилка: " + e.message + "\nПереконайтесь, що в Supabase є колонки address, base_lat та base_lon!");
             } finally {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
             }
         }
-        // -----------------------------------------------------
 
         function actionUpgrade() { alert("Перехід до оплати PRO тарифу! 💳"); }
         function actionRenew() { alert("Підписку продовжено."); }
@@ -348,47 +360,23 @@
         const bizId = urlParams.get('biz_id');
         let currencySymbol = "zł";
 
-        // ЛОГІКА ПЕРЕВІРКИ ЛІМІТІВ ПРИ ГЕНЕРАЦІЇ ПОСИЛАННЯ
         function generateInvite(role) {
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
-            
             if (!currentPlanIsPro) {
-                if (role === 'courier' && currentCouriersCount >= 2) {
-                    alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.\nОновіть тариф до PRO для безліміту.");
-                    openSubscriptionMenu();
-                    return; 
-                }
-                if (role === 'manager' && currentManagersCount >= 1) {
-                    alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.\nОновіть тариф до PRO для безліміту.");
-                    openSubscriptionMenu();
-                    return; 
-                }
+                if (role === 'courier' && currentCouriersCount >= 2) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри."); openSubscriptionMenu(); return; }
+                if (role === 'manager' && currentManagersCount >= 1) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора."); openSubscriptionMenu(); return; }
             }
-
             let prefix = role === 'courier' ? 'join_' : 'admin_';
-            const inviteLink = `https://t.me/${botUsername}?start=${prefix}${bizId}`;
-            navigator.clipboard.writeText(inviteLink).then(() => {
-                alert(`✅ Посилання для ${role === 'courier' ? "Кур'єра" : "Менеджера"} скопійовано!\n\nНадішліть його працівнику.`);
-            });
+            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${bizId}`).then(() => { alert(`✅ Посилання скопійовано!`); });
         }
 
-        // Залишено твою функцію видалення
         async function removeStaff(staffUserId, staffName) {
-            if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?\nВін назавжди втратить доступ до бота доставки.`)) {
-                return;
-            }
-            
+            if (!confirm(`Ви дійсно хочете звільнити працівника "${staffName}"?`)) return;
             try {
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                const { error } = await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
-                
-                if (error) throw error;
-                
+                await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
                 loadDashboardData(); 
-            } catch (err) {
-                console.error(err);
-                alert("❌ Виникла помилка при видаленні працівника.");
-            }
+            } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
@@ -400,7 +388,6 @@
                 if (!bizId) return;
                 document.getElementById('set-id').innerText = bizId;
 
-                // Обнулення значень перед запитом, щоб не висіли старі дані
                 document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
                 document.getElementById('val-cash').innerText = '0.00';
                 document.getElementById('val-term').innerText = '0.00';
@@ -412,15 +399,10 @@
                 if (!window.supabase) return;
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                // Розрахунок дати на основі currentFilter
                 let startDate = new Date();
-                if (currentFilter === 'today') {
-                    startDate.setHours(0, 0, 0, 0);
-                } else if (currentFilter === 'week') {
-                    startDate.setDate(startDate.getDate() - 7);
-                } else if (currentFilter === 'month') {
-                    startDate.setMonth(startDate.getMonth() - 1);
-                }
+                if (currentFilter === 'today') startDate.setHours(0, 0, 0, 0);
+                else if (currentFilter === 'week') startDate.setDate(startDate.getDate() - 7);
+                else if (currentFilter === 'month') startDate.setMonth(startDate.getMonth() - 1);
 
                 const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
                 
@@ -429,20 +411,22 @@
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
 
-                    // --- ДОДАНО: Вставляємо дані бізнесу у форму редагування ---
                     document.getElementById('input-biz-name').value = biz.name || '';
                     document.getElementById('input-biz-currency').value = biz.currency || 'zł';
                     document.getElementById('input-biz-radius').value = biz.radius || '';
+                    
+                    // Відновлюємо адресу та координати в змінні
+                    document.getElementById('input-biz-address').value = biz.address || '';
+                    bizLat = biz.base_lat || null;
+                    bizLon = biz.base_lon || null;
 
                     currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
                     document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
-                    
                     document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (Активна)`;
                     document.getElementById('set-plan-status').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
-                    
                     document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? 'PRO Тариф' : 'BASIC Тариф';
                     document.getElementById('modal-plan-name').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('modal-plan-badge').style.background = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
@@ -450,16 +434,13 @@
                     document.getElementById('modal-status-card').style.borderColor = currentPlanIsPro ? 'rgba(52, 199, 89, 0.3)' : '#d1d5db';
                     document.getElementById('modal-plan-date-text').style.color = currentPlanIsPro ? '#2e7d32' : '#4b5563';
 
-                    let createdDate = new Date(biz.created_at || Date.now());
-                    createdDate.setDate(createdDate.getDate() + 30);
+                    let createdDate = new Date(biz.created_at || Date.now()); createdDate.setDate(createdDate.getDate() + 30);
                     document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
                     if (!currentPlanIsPro) {
-                        document.getElementById('btn-upgrade').style.display = 'block';
-                        document.getElementById('btn-renew').style.display = 'none';
+                        document.getElementById('btn-upgrade').style.display = 'block'; document.getElementById('btn-renew').style.display = 'none';
                     } else {
-                        document.getElementById('btn-upgrade').style.display = 'none';
-                        document.getElementById('btn-renew').style.display = 'block';
+                        document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
                     }
 
                     const features = document.getElementById('modal-features-list');
@@ -473,52 +454,32 @@
                     `;
 
                     if (!currentPlanIsPro) {
-                        const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
-                        lockedCards.forEach(id => {
+                        ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'].forEach(id => {
                             const el = document.getElementById(id);
                             if (el && !el.querySelector('.pro-overlay')) {
                                 el.classList.add('pro-locked');
-                                const overlay = document.createElement('div');
-                                overlay.className = 'pro-overlay';
-                                overlay.innerHTML = '<div class="pro-badge"><i class="fa-regular fa-gem"></i> PRO</div>';
-                                overlay.onclick = openSubscriptionMenu;
-                                el.appendChild(overlay);
+                                const overlay = document.createElement('div'); overlay.className = 'pro-overlay'; overlay.innerHTML = '<div class="pro-badge"><i class="fa-regular fa-gem"></i> PRO</div>'; overlay.onclick = openSubscriptionMenu; el.appendChild(overlay);
                             }
                         });
                     } else {
-                        const lockedCards = ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'];
-                        lockedCards.forEach(id => {
+                        ['card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'].forEach(id => {
                             const el = document.getElementById(id);
-                            if (el) {
-                                el.classList.remove('pro-locked');
-                                const overlay = el.querySelector('.pro-overlay');
-                                if (overlay) overlay.remove();
-                            }
+                            if (el) { el.classList.remove('pro-locked'); const overlay = el.querySelector('.pro-overlay'); if (overlay) overlay.remove(); }
                         });
                     }
                 }
 
-                // Використання startDate у запиті
                 const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
-
                 let heatData = [];
 
                 if (orders && orders.length > 0) {
                     let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0;
-
                     orders.forEach(o => {
                         if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
-
                         if (o.status === 'completed') {
-                            completedCount++;
-                            let amt = parseFloat(o.amount) || 0;
-                            if (o.pay_type === 'cash') totalCash += amt;
-                            if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
-                            
-                            if (o.completed_at && o.created_at) {
-                                let diffMs = new Date(o.completed_at) - new Date(o.created_at);
-                                if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; }
-                            }
+                            completedCount++; let amt = parseFloat(o.amount) || 0;
+                            if (o.pay_type === 'cash') totalCash += amt; if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
+                            if (o.completed_at && o.created_at) { let diffMs = new Date(o.completed_at) - new Date(o.created_at); if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; } }
                         }
                     });
 
@@ -530,9 +491,7 @@
                     document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
                     document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ' хв' : '-- хв';
 
-                    const feedBox = document.getElementById('recent-orders-list');
-                    feedBox.innerHTML = '';
-                    
+                    const feedBox = document.getElementById('recent-orders-list'); feedBox.innerHTML = '';
                     orders.slice(0, 10).forEach(o => {
                         let isCompleted = o.status === 'completed';
                         let statusIcon = isCompleted ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
@@ -552,37 +511,23 @@
                         `;
                     });
                 } else {
-                    // Якщо за період замовлень немає
                     document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">За цей період замовлень не знайдено</div>';
                 }
 
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
-                
-                currentCouriersCount = 0;
-                currentManagersCount = 0;
+                currentCouriersCount = 0; currentManagersCount = 0;
 
                 if (staff && staff.length > 0) {
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
-                        if (person.role === 'courier') currentCouriersCount++;
-                        if (person.role === 'manager') currentManagersCount++;
-
-                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager';
-                        let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер';
-                        let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
-                        
-                        // Ось де я залишив твою кнопку видалення недоторканою
+                        if (person.role === 'courier') currentCouriersCount++; if (person.role === 'manager') currentManagersCount++;
+                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер'; let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
                         staffBox.innerHTML += `
                             <div class="team-card">
                                 <div class="team-avatar">${avatar}</div>
-                                <div class="team-info">
-                                    <div class="team-name">${person.name || 'Працівник'}</div>
-                                    <div class="team-role ${roleClass}">${roleName}</div>
-                                </div>
-                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${person.name}')" title="Звільнити">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
+                                <div class="team-info"><div class="team-name">${person.name || 'Працівник'}</div><div class="team-role ${roleClass}">${roleName}</div></div>
+                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${person.name}')" title="Звільнити"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
                         `;
                     });
@@ -590,28 +535,82 @@
                     staffBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">В команді поки нікого немає.</div>';
                 }
 
-                // Видалення старої мапи перед завантаженням нової (щоб не було помилок при кліку)
                 setTimeout(() => {
                     let centerLat = 50.04132, centerLon = 21.99901;
-                    if (heatData.length > 0) {
-                        centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length;
-                        centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length;
-                    }
-
-                    if (window.dashboardMap) {
-                        window.dashboardMap.remove();
-                    }
-
+                    if (heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
+                    if (window.dashboardMap) { window.dashboardMap.remove(); }
                     window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
                     L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
-
-                    if (heatData.length > 0) {
-                        L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap);
-                    }
+                    if (heatData.length > 0) { L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap); }
                 }, 500);
 
             } catch (error) { console.error("Помилка БД:", error); }
         }
+
+        // --- ДОДАНО: ЛОГІКА АВТОЗАПОВНЕННЯ ДЛЯ НАЛАШТУВАНЬ ---
+        const bizAddrInput = document.getElementById('input-biz-address');
+        const bizAddrList = document.getElementById('biz-autocomplete-list');
+        let bizTimeout = null;
+
+        bizAddrInput.addEventListener('input', function() {
+            clearTimeout(bizTimeout);
+            bizLat = null; bizLon = null;
+            const query = this.value.trim();
+            
+            if (query.length < 3) { 
+                bizAddrList.style.display = 'none'; 
+                return; 
+            }
+
+            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо адресу...</div>';
+            bizAddrList.style.display = 'block';
+
+            bizTimeout = setTimeout(async () => {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl`;
+                
+                try {
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'pl' } });
+                    const data = await res.json();
+                    
+                    if (data && data.length > 0) {
+                        bizAddrList.innerHTML = ''; 
+                        
+                        data.forEach(item => {
+                            const addr = item.address;
+                            if (!addr) return;
+
+                            const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
+                            const house = addr.house_number || '';
+                            const mainText = `${road} ${house}`.trim();
+                            const city = addr.city || addr.town || addr.village || '';
+                            const subText = city ? `${city}, Польща` : 'Польща';
+                            
+                            if (!road) return; 
+                            
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                            
+                            div.onclick = function() {
+                                bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
+                                bizLat = parseFloat(item.lat); // Зберігаємо координати бази
+                                bizLon = parseFloat(item.lon);
+                                bizAddrList.style.display = 'none';
+                            };
+                            bizAddrList.appendChild(div);
+                        });
+                    } else {
+                        bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>';
+                    }
+                } catch(e) { 
+                    bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
+                }
+            }, 600); 
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== bizAddrInput && e.target !== bizAddrList) bizAddrList.style.display = 'none';
+        });
 
         loadDashboardData();
     </script>
