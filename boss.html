@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boss Panel 4.1 | MRR</title>
+    <title>Boss Panel 4.2 | Settings</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -15,7 +15,7 @@
             --bg-color: #020617; 
             --text-main: #f8fafc; 
             --text-muted: #94a3b8; 
-            --primary: #10b981; /* Змінив акцент на колір грошей */
+            --primary: #10b981; 
             --primary-glow: rgba(16, 185, 129, 0.4);
             --surface: rgba(30, 41, 59, 0.7); 
             --surface-border: rgba(255, 255, 255, 0.1);
@@ -32,7 +32,11 @@
         /* Header */
         .header { background: rgba(2, 6, 23, 0.8); backdrop-filter: blur(12px); padding: 20px; border-bottom: 1px solid var(--surface-border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
         .header-title { font-size: 22px; font-weight: 900; background: linear-gradient(to right, #fff, #a7f3d0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 10px; }
+        
+        .header-actions { display: flex; gap: 10px; align-items: center; }
         .header-badge { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 5px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .btn-settings { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-settings:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
 
         /* Tabs Navigation */
         .tabs-nav { display: flex; padding: 15px 20px 0; gap: 10px; }
@@ -49,7 +53,6 @@
         .stat-card { background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); transition: transform 0.2s; }
         .stat-card:active { transform: scale(0.98); }
         
-        /* Особлива карточка для доходу власника */
         .stat-card.highlight { background: linear-gradient(135deg, #10b981, #059669); border: none; grid-column: 1 / -1; box-shadow: 0 10px 25px var(--primary-glow); position: relative; overflow: hidden; }
         .stat-card.highlight::after { content: 'MRR'; position: absolute; right: -10px; bottom: -15px; font-size: 80px; font-weight: 900; opacity: 0.1; line-height: 1; }
         
@@ -59,7 +62,7 @@
         .stat-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         .highlight .stat-label { color: rgba(255,255,255,0.9); }
 
-        /* Tools Bar (Search & Filter) */
+        /* Tools Bar */
         .tools-bar { display: flex; gap: 10px; margin-bottom: 20px; }
         .search-box { flex: 2; position: relative; }
         .search-box i { position: absolute; left: 15px; top: 15px; color: var(--text-muted); }
@@ -85,12 +88,10 @@
         .biz-m-val { font-size: 15px; font-weight: 900; color: white; margin-bottom: 2px; }
         .biz-m-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
 
-        .avg-check { font-size: 11px; text-align: center; color: var(--text-muted); margin-bottom: 15px; background: rgba(99, 102, 241, 0.1); padding: 8px; border-radius: 8px; border: 1px dashed rgba(99, 102, 241, 0.3); }
-
         .btn-manage { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); width: 100%; padding: 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .btn-manage:active { background: rgba(255,255,255,0.1); transform: scale(0.98); }
 
-        /* Modal / Bottom Sheet */
+        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2, 6, 23, 0.85); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(8px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: #0f172a; border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.1); }
@@ -112,7 +113,10 @@
 
     <div class="header">
         <div class="header-title"><i class="fa-solid fa-chess-knight" style="color: var(--primary);"></i> Boss Panel</div>
-        <div class="header-badge">SaaS Owner</div>
+        <div class="header-actions">
+            <div class="header-badge">SaaS Owner</div>
+            <button class="btn-settings" onclick="openPlatformSettings()"><i class="fa-solid fa-gear"></i></button>
+        </div>
     </div>
 
     <div class="tabs-nav">
@@ -135,6 +139,11 @@
                     <div class="stat-label">PRO Підписок</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--text-muted);"><i class="fa-solid fa-star"></i></div>
+                    <div class="stat-val" id="sys-basic">0</div>
+                    <div class="stat-label">Basic Підписок</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-icon" style="color: var(--brand);"><i class="fa-solid fa-users"></i></div>
                     <div class="stat-val" id="sys-businesses">0</div>
                     <div class="stat-label">Всього клієнтів</div>
@@ -144,16 +153,11 @@
                     <div class="stat-val" id="sys-frozen">0</div>
                     <div class="stat-label">Заморожено</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="color: var(--text-muted);"><i class="fa-solid fa-boxes-stacked"></i></div>
-                    <div class="stat-val" id="sys-orders">0</div>
-                    <div class="stat-label">Транзакцій в системі</div>
-                </div>
             </div>
             
             <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); padding: 15px; border-radius: 16px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Конверсія в оплату</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Конверсія в PRO оплату</div>
                     <div style="font-size: 18px; font-weight: 900; color: white;" id="sys-conversion">0%</div>
                 </div>
                 <i class="fa-solid fa-chart-line" style="font-size: 24px; color: var(--brand); opacity: 0.5;"></i>
@@ -169,7 +173,7 @@
                 <select id="status-filter" class="filter-select" onchange="filterBusinesses()">
                     <option value="all">Всі</option>
                     <option value="pro">PRO</option>
-                    <option value="basic">Basic (Trial)</option>
+                    <option value="basic">Basic</option>
                     <option value="frozen">Заморожені</option>
                     <option value="expired">Боржники</option>
                 </select>
@@ -185,17 +189,17 @@
 
     </div>
 
-    <div class="modal-overlay" id="admin-modal" onclick="closeAdminModal()">
+    <div class="modal-overlay" id="admin-modal" onclick="closeModal('admin-modal')">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white; letter-spacing: -0.5px;" id="modal-biz-name">Налаштування</h2>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white; letter-spacing: -0.5px;" id="modal-biz-name">Налаштування клієнта</h2>
             
             <input type="hidden" id="edit-biz-id">
             <input type="hidden" id="edit-current-extra">
             
             <label class="form-label"><i class="fa-solid fa-layer-group"></i> Статус / Тариф</label>
             <select id="edit-plan" class="form-select">
-                <option value="basic">BASIC (Тріал / Обмежений)</option>
+                <option value="basic">BASIC (Обмежений)</option>
                 <option value="pro">PRO (Платна підписка)</option>
                 <option value="frozen" style="color: var(--frozen);">FROZEN (Заморозити доступ)</option>
             </select>
@@ -211,17 +215,35 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="platform-settings-modal" onclick="closeModal('platform-settings-modal')">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white; letter-spacing: -0.5px;"><i class="fa-solid fa-money-bill-wave" style="color: var(--success);"></i> Фінанси Платформи</h2>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 12px; color: var(--text-muted);">
+                Ці ціни використовуються для розрахунку твого доходу (MRR) на дашборді. Зберігаються локально на твоєму пристрої.
+            </div>
+
+            <label class="form-label">Вартість підписки PRO (zł)</label>
+            <input type="number" id="setting-price-pro" class="form-input" placeholder="Наприклад: 150">
+
+            <label class="form-label">Вартість підписки BASIC (zł)</label>
+            <input type="number" id="setting-price-basic" class="form-input" placeholder="Якщо безкоштовно, введи 0">
+
+            <button class="btn-save" style="background: var(--success); box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);" onclick="savePlatformSettings(this)"><i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи</button>
+        </div>
+    </div>
+
     <script>
         try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#020617'; } } catch(e) {}
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         
-        // ==========================================
-        // НАЛАШТУВАННЯ ТВОГО БІЗНЕСУ (ЗМІНИ ПІД СЕБЕ)
-        const PRO_PRICE = 150; // Скільки злотих коштує твоя підписка на місяць
+        // --- ДИНАМІЧНІ ЦІНИ (Беруться з пам'яті телефону) ---
+        let currentProPrice = parseFloat(localStorage.getItem('saas_price_pro')) || 150;
+        let currentBasicPrice = parseFloat(localStorage.getItem('saas_price_basic')) || 0;
         const CURRENCY = "zł";
-        // ==========================================
 
         let globalBusinesses = [];
         let globalOrders = [];
@@ -244,6 +266,7 @@
             'x-telegram-user-id': getTelegramUserId()
         };
 
+        // --- UI ЛОГІКА ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -251,6 +274,36 @@
             document.getElementById('tab-' + tabId).classList.add('active');
         }
 
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        // --- ГЛОБАЛЬНІ НАЛАШТУВАННЯ ---
+        function openPlatformSettings() {
+            document.getElementById('platform-settings-modal').classList.add('active');
+            document.getElementById('setting-price-pro').value = currentProPrice;
+            document.getElementById('setting-price-basic').value = currentBasicPrice;
+        }
+
+        function savePlatformSettings(btn) {
+            let pPro = parseFloat(document.getElementById('setting-price-pro').value) || 0;
+            let pBasic = parseFloat(document.getElementById('setting-price-basic').value) || 0;
+            
+            localStorage.setItem('saas_price_pro', pPro);
+            localStorage.setItem('saas_price_basic', pBasic);
+            
+            currentProPrice = pPro;
+            currentBasicPrice = pBasic;
+            
+            closeModal('platform-settings-modal');
+            renderDashboard(); // Миттєво перемальовуємо дохід
+            
+            // Легка візуальна віддача
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Збережено!';
+            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи'; }, 1000);
+        }
+
+        // --- КЕРУВАННЯ КЛІЄНТОМ ---
         function openAdminModal(id, name, plan, created_at, extra_days) {
             document.getElementById('admin-modal').classList.add('active');
             document.getElementById('modal-biz-name').innerText = name;
@@ -265,10 +318,6 @@
             
             if (isNaN(baseDate.getTime())) document.getElementById('current-expiry').innerText = "Невідомо";
             else document.getElementById('current-expiry').innerText = baseDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
-
-        function closeAdminModal() {
-            document.getElementById('admin-modal').classList.remove('active');
         }
 
         async function saveAdminChanges(btn) {
@@ -287,10 +336,9 @@
                     headers: dbHeaders,
                     body: JSON.stringify({ plan: newPlan, extra_days: newExtraTotal })
                 });
-                
                 if (!res.ok) throw new Error(await res.text());
                 
-                closeAdminModal();
+                closeModal('admin-modal');
                 loadData(); 
             } catch(e) {
                 alert("❌ Помилка: " + e.message);
@@ -302,19 +350,15 @@
         async function deleteBusiness() {
             const bizId = document.getElementById('edit-biz-id').value;
             if (!confirm("⚠️ ВИ ВПЕВНЕНІ? Це видалить бізнес і всю його історію.")) return;
-            
             try {
-                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
-                    method: 'DELETE',
-                    headers: dbHeaders
-                });
+                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, { method: 'DELETE', headers: dbHeaders });
                 if (!res.ok) throw new Error(await res.text());
-                
-                closeAdminModal();
+                closeModal('admin-modal');
                 loadData();
             } catch(e) { alert("❌ Помилка: " + e.message); }
         }
 
+        // --- ДАНІ ТА РЕНДЕР ---
         async function loadData() {
             try {
                 let bRes = await fetch(SUPABASE_URL + '/rest/v1/businesses?select=*', { method: 'GET', headers: dbHeaders });
@@ -333,26 +377,28 @@
         }
 
         function renderDashboard() {
-            let sysProCount = 0, sysFrozenCount = 0, sysCompletedOrders = 0;
+            let sysProCount = 0, sysBasicCount = 0, sysFrozenCount = 0, sysCompletedOrders = 0;
             
             globalBusinesses.forEach(b => { 
                 let p = (b.plan || 'basic').toLowerCase();
                 if (p === 'pro') sysProCount++; 
-                if (p === 'frozen') sysFrozenCount++;
+                else if (p === 'frozen') sysFrozenCount++;
+                else sysBasicCount++;
             });
             
             globalOrders.forEach(o => { 
                 if (o.status === 'completed') sysCompletedOrders++;
             });
 
-            // РАХУЄМО ДОХІД ВЛАСНИКА (MRR)
-            let ownerRevenue = sysProCount * PRO_PRICE;
+            // РАХУЄМО ДОХІД ВЛАСНИКА (MRR) - Враховує ціни з налаштувань
+            let ownerRevenue = (sysProCount * currentProPrice) + (sysBasicCount * currentBasicPrice);
             
             // РАХУЄМО КОНВЕРСІЮ
             let conversion = globalBusinesses.length > 0 ? ((sysProCount / globalBusinesses.length) * 100).toFixed(1) : 0;
 
             document.getElementById('sys-businesses').innerText = globalBusinesses.length;
             document.getElementById('sys-pro').innerText = sysProCount;
+            document.getElementById('sys-basic').innerText = sysBasicCount;
             document.getElementById('sys-frozen').innerText = sysFrozenCount;
             document.getElementById('sys-orders').innerText = sysCompletedOrders;
             document.getElementById('owner-mrr').innerText = ownerRevenue.toLocaleString('uk-UA') + " " + CURRENCY; 
