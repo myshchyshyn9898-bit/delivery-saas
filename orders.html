@@ -96,7 +96,6 @@
     </div>
 
     <script>
-        // ГЛОБАЛЬНИЙ ВИЛОВЛЮВАЧ ПОМИЛОК - покаже, якщо щось зламається
         window.onerror = function(msg, url, line) {
             alert("🚨 Помилка JS: " + msg + " (Рядок: " + line + ")");
         };
@@ -143,7 +142,6 @@
                     window.Telegram.WebApp.expand();
                 }
 
-                // Обнуляємо текст перед завантаженням
                 document.getElementById('total-earned').innerText = '0.00 ' + currencySymbol;
                 document.getElementById('list-active').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення списку...</div>';
                 document.getElementById('list-closed').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення списку...</div>';
@@ -181,12 +179,14 @@
 
                 const listActive = document.getElementById('list-active');
                 const listClosed = document.getElementById('list-closed');
-                listActive.innerHTML = '';
-                listClosed.innerHTML = '';
                 
                 let totalEarned = 0;
                 let activeCount = 0;
                 let closedCount = 0;
+
+                // --- НОВИЙ ОПТИМІЗОВАНИЙ БЛОК ---
+                let activeHtmlString = '';
+                let closedHtmlString = '';
 
                 if (orders && orders.length > 0) {
                     orders.forEach(order => {
@@ -197,7 +197,6 @@
                         if (order.pay_type === 'cash') { payText = 'Готівка'; payIcon = 'fa-money-bill-wave'; payColor = '#34C759'; }
                         if (order.pay_type === 'terminal') { payText = 'Термінал'; payIcon = 'fa-credit-card'; payColor = '#4A6CF7'; }
                         
-                        // Збираємо додаткові деталі
                         let detailsHtml = '';
                         if (order.apt || order.code) {
                             let textDetails = '';
@@ -237,11 +236,11 @@
                         `;
 
                         if (order.status === 'completed') {
-                            listClosed.innerHTML += cardHtml;
+                            closedHtmlString += cardHtml; // Додаємо у змінну, а не на сторінку
                             totalEarned += parseFloat(order.amount || 0);
                             closedCount++;
                         } else {
-                            listActive.innerHTML += cardHtml;
+                            activeHtmlString += cardHtml; // Додаємо у змінну
                             activeCount++;
                         }
                     });
@@ -249,8 +248,19 @@
 
                 document.getElementById('total-earned').innerText = totalEarned.toFixed(2) + ' ' + currencySymbol;
 
-                if (activeCount === 0) listActive.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-box-open"></i></div><div>Немає активних замовлень</div></div>';
-                if (closedCount === 0) listClosed.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-check-double"></i></div><div>За вибраний період немає закритих замовлень</div></div>';
+                // Вставляємо згенерований HTML ОДИН РАЗ
+                if (activeCount > 0) {
+                    listActive.innerHTML = activeHtmlString;
+                } else {
+                    listActive.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-box-open"></i></div><div>Немає активних замовлень</div></div>';
+                }
+
+                if (closedCount > 0) {
+                    listClosed.innerHTML = closedHtmlString;
+                } else {
+                    listClosed.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-check-double"></i></div><div>За вибраний період немає закритих замовлень</div></div>';
+                }
+                // --- КІНЕЦЬ БЛОКУ ---
 
             } catch (error) {
                 alert("🚨 Помилка виконання: " + error.message);
