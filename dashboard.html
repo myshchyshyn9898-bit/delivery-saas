@@ -257,6 +257,10 @@
             <i class="fa-solid fa-user-tie"></i> Додати Менеджера
         </button>
         
+        <button class="btn-main" style="background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 15px; padding: 12px; font-size: 13px;" onclick="resetInviteToken()">
+            <i class="fa-solid fa-rotate-right"></i> Оновити посилання (Анулювати старі)
+        </button>
+        
         <div class="section-title" style="margin-top: 35px;"><i class="fa-solid fa-users" style="color: var(--text-muted);"></i> Активний персонал</div>
         <div id="staff-list">
             <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Завантаження команди...</div>
@@ -376,11 +380,20 @@
         let revenueChart = null;
 
         let globalOrdersForExport = []; // Для CSV
+        let currentInviteToken = ''; // НОВЕ: Для збереження секретного токена
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
         let botUsername = "rz_city_bot"; 
         let currencySymbol = "zł";
+
+        // Генератор унікальних кодів (UUID) для токенів
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
 
         function getTelegramUserId() {
             return "6889016268"; // ЖОРСТКО ЗАШИТИЙ ID
@@ -520,12 +533,37 @@
 
         function generateInvite(role) {
             if (!bizId) return alert("Помилка: Business ID не знайдено.");
+            if (!currentInviteToken) return alert("Помилка безпеки: Токен запрошення відсутній. Натисніть 'Оновити посилання'.");
+            
             if (!currentPlanIsPro) {
                 if (role === 'courier' && currentCouriersCount >= 2) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри."); openSubscriptionMenu(); return; }
                 if (role === 'manager' && currentManagersCount >= 1) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора."); openSubscriptionMenu(); return; }
             }
             let prefix = role === 'courier' ? 'join_' : 'admin_';
-            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${bizId}`).then(() => { alert(`✅ Посилання скопійовано!`); });
+            // ОНОВЛЕНО: Тепер лінк містить секретний токен
+            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${bizId}_${currentInviteToken}`).then(() => { alert(`✅ Безпечне посилання скопійовано!`); });
+        }
+
+        // НОВЕ: Функція для скидання і генерації нового секретного лінку
+        async function resetInviteToken() {
+            if (!confirm("⚠️ ВИ ВПЕВНЕНІ?\n\nВсі старі посилання миттєво перестануть працювати. Вам доведеться згенерувати нові посилання для нових працівників.")) return;
+
+            try {
+                let userId = getTelegramUserId();
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: { headers: { 'x-telegram-user-id': userId } }
+                });
+
+                const newToken = generateUUID();
+
+                const { error } = await supabase.from('businesses').update({ invite_token: newToken }).eq('id', bizId);
+                if (error) throw error;
+
+                currentInviteToken = newToken;
+                alert("✅ Успіх! Старі посилання анульовано.\nТепер ви можете згенерувати нові запрошення.");
+            } catch(e) {
+                alert("❌ Помилка при оновленні: " + e.message);
+            }
         }
 
         async function removeStaff(staffUserId, staffName) {
@@ -586,6 +624,7 @@
                 
                 if (biz) {
                     currencySymbol = biz.currency || "zł";
+                    currentInviteToken = biz.invite_token; // Зберігаємо токен з БД
                     document.getElementById('display-biz-name').innerText = biz.name;
                     document.getElementById('set-currency').innerText = currencySymbol;
 
