@@ -34,6 +34,7 @@ async def show_main_menu(message: types.Message, context: dict):
         await message.answer("⚠️ **Ваша підписка закінчилася або призупинена.**\nБудь ласка, зверніться до адміністратора.")
         return
 
+    # ДОДАНО message.from_user.id у виклики клавіатур
     if role == "owner":
         text = f"🏢 **Кабінет власника: {biz['name']}**"
         markup = kb.get_owner_kb(biz_id, message.from_user.id)
@@ -65,44 +66,35 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        # Використовуємо стабільний сервер Carto Voyager
-        tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+        m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
         
-        m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
-        
-        m.add_line(Line(coordinates, '#ff6b4a', 6)) 
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 14)) 
-        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 16))       
+        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
         
         image = m.render()
         image.save(filename)
         return filename
     except Exception as e:
-        print(f"Помилка рендеру карти: {e}")
+        print(f"Помилка карти: {e}")
         return None
 
 async def get_route_map_file(biz: dict, client_address: str, order_id: str):
-    """Асинхронна обгортка для отримання координат і запуску генератора (тепер бронебійна)"""
+    """Асинхронна обгортка для отримання координат і запуску генератора"""
     c_lat, c_lon = None, None
     
     print(f"Шукаємо координати клієнта для: {client_address}")
     encoded_client = urllib.parse.quote(client_address)
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
-    # ОГОРНУВ У ТРАЙ-ЕКСПЕПТ, щоб помилка Nominatim не вбила всього бота
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                if resp.status == 200:
-                    c_data = await resp.json()
-                    if c_data and len(c_data) > 0:
-                        c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-                    else:
-                        print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
-                else:
-                    print(f"❌ Помилка Nominatim (клієнт): {resp.status}")
-    except Exception as e:
-        print(f"❌ Критична помилка Nominatim: {e}")
+    async with aiohttp.ClientSession() as session:
+        async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+            c_data = await resp.json()
+            if c_data and len(c_data) > 0:
+                c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+            else:
+                print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
 
     if not c_lat: return None 
 
@@ -112,17 +104,11 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                    if resp.status == 200:
-                        b_data = await resp.json()
-                        if b_data and len(b_data) > 0:
-                            b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
-                    else:
-                        print(f"❌ Помилка Nominatim (бізнес): {resp.status}")
-        except Exception as e:
-            print(f"❌ Критична помилка Nominatim (бізнес): {e}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                b_data = await resp.json()
+                if b_data and len(b_data) > 0:
+                    b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
@@ -146,6 +132,7 @@ async def cmd_generate_report(message: types.Message):
         await message.answer("📭 Сьогодні ще немає доставлених замовлень для звіту.")
         return
         
+    # Час (додаємо +1 годину для Польщі, якщо сервер в UTC)
     now_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=1)).strftime("%H:%M")
     
     text = f"📊 ЗВІТ ({now_time})\n➖ ➖ ➖ ➖ ➖\n"
@@ -166,12 +153,15 @@ async def cmd_generate_report(message: types.Message):
 # ==========================================
 @dp.message(Command("boss"))
 async def cmd_boss_panel(message: types.Message):
+    # Перевіряємо, чи є ID користувача у списку адмінів
     if message.from_user.id in SUPER_ADMIN_IDS:
+        # Викликаємо клавіатуру з файлу keyboards.py (ДОДАНО message.from_user.id)
         await message.answer(
             "Вітаю, Бос! 🫡\nОсь доступ до керування всіма бізнесами:", 
             reply_markup=kb.get_superadmin_kb(message.from_user.id)
         )
     else:
+        # Якщо хтось чужий введе команду, бот просто прикинеться дурником
         await message.answer("Я вас не розумію 🤷‍♂️")
 # ==========================================
 
@@ -227,7 +217,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 f"🎉 **Вітаємо! Ваш бізнес '{biz['name']}' успішно створено.**\n"
                 f"📦 **Тариф:** {biz['plan'].upper()} (Активовано 7 днів тріалу)\n\n"
                 f"Тепер ви можете перейти до повноцінного керування 👇",
-                reply_markup=kb.get_owner_kb(biz['id'], user_id),
+                reply_markup=kb.get_owner_kb(biz['id'], user_id), # ДОДАНО user_id
                 parse_mode="Markdown"
             )
         except Exception as e:
@@ -243,6 +233,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 short_id = str(order_id)[:6].upper()
                 biz = db.get_business_by_id(data['biz_id'])
                 
+                # ПЕРЕВІРКА ТАРИФУ БІЗНЕСУ (PRO чи BASIC)
                 is_pro = biz.get('plan', 'basic').lower() == 'pro'
                 
                 pay_type_ua = "Готівка" if data['payment'] == "cash" else ("Термінал" if data['payment'] == "terminal" else "Онлайн")
@@ -274,12 +265,15 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
                 builder = InlineKeyboardBuilder()
                 
+                # Якщо PRO - додаємо кнопку маршруту
                 if is_pro:
                     builder.button(text="🗺 Відкрити маршрут", url=route_url)
                 
+                # Кнопку "Доставлено" додаємо завжди
                 builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
-                builder.adjust(1) 
+                builder.adjust(1) # Кнопки будуть стовпчиком
 
+                # Якщо PRO - генеруємо та відправляємо карту
                 if is_pro:
                     map_filename = await get_route_map_file(biz, data['address'], short_id)
                     
@@ -300,6 +294,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                             reply_markup=builder.as_markup(),
                             parse_mode="Markdown"
                         )
+                # Якщо BASIC - відправляємо тільки текст без карти
                 else:
                     await bot.send_message(
                         chat_id=data['courier_id'], 
@@ -342,18 +337,23 @@ async def finish_order_handler(callback: types.CallbackQuery):
     order_id = callback.data.replace("finish_order_", "")
     
     try:
+        # 1. Дістаємо інфо про замовлення
         res = db.supabase.table("orders").select("*").eq("id", order_id).execute()
+        
+        # 2. Оновлюємо статус в базі
         db.update_order_status(order_id, "completed")
         
-        if callback.message.caption:
+        # 3. Змінюємо текст повідомлення кур'єра
+        if callback.message.caption: # Якщо повідомлення з картинкою (PRO)
             new_text = callback.message.caption.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
             await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
-        elif callback.message.text: 
+        elif callback.message.text: # Якщо повідомлення тільки з текстом (BASIC або помилка карти)
             new_text = callback.message.text.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
             await callback.message.edit_text(text=new_text, reply_markup=None, parse_mode="Markdown")
             
         await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
         
+        # 4. Відправляємо сповіщення МЕНЕДЖЕРАМ (не власнику!)
         if res.data:
             order_info = res.data[0]
             biz_id = order_info['business_id']
@@ -369,6 +369,7 @@ async def finish_order_handler(callback: types.CallbackQuery):
                 f"✅ Кур'єр знову **вільний** для роботи."
             )
             
+            # Шукаємо всіх працівників з роллю manager для цього бізнесу
             managers_res = db.supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute()
             
             if managers_res.data:
