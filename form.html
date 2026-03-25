@@ -10,61 +10,72 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* ПОКРАЩЕННЯ 1: Підтримка темної та світлої теми Telegram, твої кольори як запасні */
+        /* Фіксована преміальна світла тема */
         :root { 
-            --bg-color: var(--tg-theme-bg-color, #f4f7f9); 
-            --text-main: var(--tg-theme-text-color, #111418); 
-            --text-muted: var(--tg-theme-hint-color, #8a8d91); 
-            --primary: var(--tg-theme-button-color, #ff7652); 
-            --surface: var(--tg-theme-secondary-bg-color, #ffffff); 
-            --info: #4A6CF7; 
+            --bg-color: #f8fafc; 
+            --text-main: #0f172a; 
+            --text-muted: #64748b; 
+            --primary: #ff6b4a; 
+            --surface: #ffffff; 
+            --info: #3b82f6; 
+            --border: #e2e8f0;
         }
         
-        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 30px; } 
 
-        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid var(--bg-color); position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 800; color: var(--text-main); }
-        .container { padding: 20px; }
-        .card { background: var(--surface); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid var(--bg-color); }
-        .card-header { font-size: 15px; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
-
-        .input-group { margin-bottom: 15px; position: relative; }
-        .input-field, .select-field { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid var(--bg-color); background: var(--surface); font-size: 15px; color: var(--text-main); outline: none; transition: 0.2s; }
-        .input-field:focus, .select-field:focus { border-color: var(--primary); }
-        .input-field::placeholder { color: var(--text-muted); }
+        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 700; color: var(--text-main); box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .header i { color: var(--primary); margin-right: 6px; }
         
-        .row { display: flex; gap: 10px; }
+        .container { padding: 20px; }
+        
+        .card { background: var(--surface); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04); border: 1px solid var(--border); }
+        .card-header { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+        .card-header i { color: var(--primary); font-size: 16px; }
+
+        .input-group { margin-bottom: 16px; position: relative; }
+        .input-field, .select-field { width: 100%; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); background: #f8fafc; font-size: 15px; color: var(--text-main); outline: none; transition: all 0.2s ease; }
+        .input-field:focus, .select-field:focus { border-color: var(--primary); background: var(--surface); box-shadow: 0 0 0 4px rgba(255, 107, 74, 0.1); }
+        .input-field::placeholder { color: #94a3b8; }
+        
+        .row { display: flex; gap: 12px; }
         .row > div { flex: 1; }
 
         .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
         .chips-container input[type="radio"] { display: none; }
-        .chip { padding: 10px 14px; border-radius: 10px; border: 2px solid var(--bg-color); background: var(--surface); font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: 0.2s; flex: 1; text-align: center; display: block; }
-        .chips-container input[type="radio"]:checked + .chip { background: rgba(255, 118, 82, 0.1); border-color: var(--primary); color: var(--primary); }
+        .chip { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); background: #f8fafc; font-weight: 600; font-size: 14px; color: var(--text-muted); cursor: pointer; transition: all 0.2s ease; flex: 1; text-align: center; display: block; }
+        .chips-container input[type="radio"]:checked + .chip { background: rgba(255, 107, 74, 0.08); border-color: var(--primary); color: var(--primary); }
 
-        .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block; margin-top: 15px;}
-        .btn-submit:active { transform: scale(0.96); }
+        .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(255, 107, 74, 0.25); transition: 0.2s; display: block; margin-top: 20px; }
+        .btn-submit:active { transform: scale(0.97); }
 
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--bg-color); z-index: 1000;
-            max-height: 250px; overflow-y: auto; display: none; margin-top: 5px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid var(--border); z-index: 1000;
+            max-height: 250px; overflow-y: auto; display: none; margin-top: 6px;
         }
-        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid var(--bg-color); cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; color: var(--text-main); }
+        .autocomplete-item { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; color: var(--text-main); }
         .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:active { background: var(--bg-color); }
-        .addr-main { font-weight: 800; margin-bottom: 2px; display: flex; justify-content: space-between; color: var(--text-main); }
-        .addr-sub { font-size: 12px; color: var(--text-muted); }
+        .autocomplete-item:active { background: #f1f5f9; }
+        .addr-main { font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; color: var(--text-main); }
+        .addr-sub { font-size: 13px; color: var(--text-muted); }
         
-        .dist-badge { background: var(--bg-color); color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
+        .dist-badge { background: #f1f5f9; color: var(--text-muted); font-size: 12px; padding: 4px 8px; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+        
+        .text-center { text-align: center; }
+        .text-primary { color: var(--primary); }
+        .text-danger { color: #ef4444; }
     </style>
 </head>
 <body>
 
-    <div class="header">📝 Нове замовлення</div>
+    <div class="header">
+        <i class="fa-solid fa-clipboard-list"></i> Нове замовлення
+    </div>
 
     <div class="container">
         <div class="card">
-            <div class="card-header"><i class="fa-solid fa-user"></i> Клієнт</div>
+            <div class="card-header"><i class="fa-solid fa-user"></i> Дані клієнта</div>
             <div class="input-group">
                 <input type="text" id="client-name" class="input-field" placeholder="Ім'я клієнта (напр. Олексій)">
             </div>
@@ -102,11 +113,11 @@
             </div>
         </div>
 
-        <div class="card" style="border-color: var(--info);">
+        <div class="card" style="border-color: #bfdbfe; background: #eff6ff;">
             <div class="card-header" style="color: var(--info);"><i class="fa-solid fa-motorcycle"></i> Призначити кур'єра</div>
             <div class="input-group" style="margin-bottom: 0;">
-                <select id="courier-select" class="select-field">
-                    <option value="">⏳ Завантаження кур'єрів...</option>
+                <select id="courier-select" class="select-field" style="background: white;">
+                    <option value="">Завантаження списку...</option>
                 </select>
             </div>
         </div>
@@ -125,13 +136,16 @@
                 tg = window.Telegram.WebApp; 
                 tg.expand(); 
                 
-                // ПОКРАЩЕННЯ 2: Ініціалізація нативної кнопки MainButton
-                tg.MainButton.text = "СТВОРИТИ ТА ВІДПРАВИТИ";
-                // Беремо колір кнопки з теми тг, або залишаємо твій фірмовий
-                tg.MainButton.color = tg.themeParams.button_color || "#ff7652";
-                tg.MainButton.textColor = tg.themeParams.button_text_color || "#ffffff";
+                // Встановлюємо кольори шапки Telegram під наш світлий дизайн (якщо підтримується)
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
                 
-                // Якщо є MainButton, ховаємо звичайну HTML кнопку
+                // Нативна кнопка Telegram (жорстко задаємо наш колір, ігноруючи тему ТГ)
+                tg.MainButton.text = "СТВОРИТИ ТА ВІДПРАВИТИ";
+                tg.MainButton.color = "#ff6b4a"; 
+                tg.MainButton.textColor = "#ffffff";
+                
+                // Ховаємо звичайну кнопку
                 document.getElementById('btn-submit').style.display = 'none';
                 
                 tg.MainButton.show();
@@ -144,7 +158,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
 
-        // УВАГА: Переконайтеся, що в Supabase налаштований RLS (Row Level Security)
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         let supabaseClient = null;
@@ -153,24 +166,22 @@
         // --- ГЛОБАЛЬНІ ЗМІННІ БІЗНЕСУ ДЛЯ РАДІУСУ ---
         let bizLat = null;
         let bizLon = null;
-        let bizRadius = 10; // По замовчуванню 10 км, якщо в базі пусто
+        let bizRadius = 10;
 
-        // Математична функція для розрахунку відстані по прямій між двома точками
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Радіус Землі в км
+            const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
                       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
                       Math.sin(dLon/2) * Math.sin(dLon/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; // Повертає відстань в кілометрах
+            return R * c; 
         }
 
         async function initForm() {
             if (!bizId || !supabaseClient) return;
             try {
-                // 1. ВИТЯГУЄМО КООРДИНАТИ ТА РАДІУС БІЗНЕСУ З БАЗИ
                 const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
                 if (biz) {
                     bizLat = biz.lat || null;
@@ -178,29 +189,28 @@
                     bizRadius = biz.radius_km || 10; 
                 }
 
-                // 2. ВИТЯГУЄМО КУР'ЄРІВ
                 const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
                 const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
                 
                 const select = document.getElementById('courier-select');
                 if (couriers && couriers.length > 0) {
-                    select.innerHTML = '<option value="" disabled selected>👉 Оберіть кур\'єра...</option>';
+                    select.innerHTML = '<option value="" disabled selected>Оберіть кур\'єра зі списку...</option>';
                     const busyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
                     
                     couriers.forEach(c => { 
                         const isBusy = busyIds.includes(String(c.user_id));
-                        const statusText = isBusy ? "🟡 В дорозі" : "🟢 Вільний";
-                        const textColor = isBusy ? "#FFB020" : "#34C759";
-                        select.innerHTML += `<option value="${c.user_id || c.tg_id}" style="color: ${textColor};">🛵 ${c.name} (${statusText})</option>`; 
+                        const statusText = isBusy ? "В дорозі" : "Вільний";
+                        const textColor = isBusy ? "#f59e0b" : "#10b981"; // Оранжевий або зелений
+                        // В select не можна використовувати іконки FontAwesome, тому юзаємо текстовий кружечок
+                        select.innerHTML += `<option value="${c.user_id || c.tg_id}" style="color: ${textColor}; font-weight: 500;">● ${c.name} (${statusText})</option>`; 
                     });
                 } else {
-                    select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
+                    select.innerHTML = '<option value="">Немає доступних кур\'єрів</option>';
                 }
             } catch(e) { 
                 console.error("Помилка ініціалізації:", e); 
-                // ПОКРАЩЕННЯ 5: Обробка помилки для select
                 const select = document.getElementById('courier-select');
-                if (select) select.innerHTML = '<option value="">❌ Помилка завантаження. Спробуйте пізніше</option>';
+                if (select) select.innerHTML = '<option value="">Помилка завантаження даних</option>';
             }
         }
 
@@ -222,10 +232,9 @@
                 return; 
             }
 
-            addrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо адресу...</div>';
+            addrList.innerHTML = '<div class="autocomplete-item text-center text-primary" style="font-weight: 600;"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 8px;"></i>Шукаємо адресу...</div>';
             addrList.style.display = 'block';
 
-            // ПОКРАЩЕННЯ 3: Збільшено таймаут до 1200мс, щоб уникнути блокування від OpenStreetMap (ліміт 1 запит/сек)
             timeout = setTimeout(async () => {
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
                 
@@ -244,7 +253,6 @@
                             const itemLat = parseFloat(item.lat);
                             const itemLon = parseFloat(item.lon);
                             
-                            // РОЗРАХУНОК ВІДСТАНІ ВІД БАЗИ ДО АДРЕСИ
                             let distance = 0;
                             if (bizLat && bizLon) {
                                 distance = calculateDistance(bizLat, bizLon, itemLat, itemLon);
@@ -261,7 +269,7 @@
                             
                             foundValidAddress = true;
 
-                            const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route"></i> ${distance.toFixed(1)} км</span>` : '';
+                            const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route" style="color: var(--primary);"></i> ${distance.toFixed(1)} км</span>` : '';
 
                             const div = document.createElement('div');
                             div.className = 'autocomplete-item';
@@ -279,14 +287,14 @@
 
                     if (!foundValidAddress) {
                         addrList.innerHTML = `
-                            <div class="autocomplete-item" style="color: #ff3b30; text-align: center;">
-                                <i class="fa-solid fa-triangle-exclamation"></i><br>
+                            <div class="autocomplete-item text-center text-danger">
+                                <i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 6px; font-size: 16px;"></i><br>
                                 Адресу не знайдено, або вона поза зоною доставки (${bizRadius} км).
                             </div>`;
                     }
 
                 } catch(e) { 
-                    addrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
+                    addrList.innerHTML = '<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-circle-xmark" style="margin-right: 6px;"></i>Помилка пошуку</div>';
                 }
             }, 1200); 
         });
@@ -306,16 +314,15 @@
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
             const clientPhone = document.getElementById('client-phone').value.trim();
 
-            // ПОКРАЩЕННЯ 4: Базова валідація телефону (тільки цифри, пробіли, +, -, дужки)
             if (clientPhone && !/^[+0-9\s\-()]{7,15}$/.test(clientPhone)) {
-                if (tg && tg.showAlert) tg.showAlert("📱 Будь ласка, введіть коректний номер телефону!");
-                else alert("📱 Будь ласка, введіть коректний номер телефону!");
+                const msg = "Будь ласка, введіть коректний номер телефону!";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
                 return;
             }
 
             if (!street || !amount || !courierId) {
-                if (tg && tg.showAlert) tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
-                else alert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
+                const msg = "Заповніть обов'язкові поля: вулицю, суму та оберіть кур'єра!";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
                 return;
             }
 
@@ -335,11 +342,10 @@
                 lon: selectedLon 
             };
 
-            // ПОКРАЩЕННЯ 6: Крутилка на нативній кнопці під час відправки
             if (tg && tg.MainButton) {
                 tg.MainButton.showProgress();
             } else {
-                document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
+                document.getElementById('btn-submit').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> Відправляємо...';
             }
             
             if (tg && tg.sendData) tg.sendData(JSON.stringify(orderData));
