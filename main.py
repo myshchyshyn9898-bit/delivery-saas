@@ -66,19 +66,12 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        # Використовуємо світлий шар Carto Voyager (як у Web App)
-        tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png"
+        tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+        m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
         
-        # Робимо карту трохи більшою та пропорційнішою для Телеграму (співвідношення 16:9)
-        m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
-        
-        # Малюємо лінію в стилі Web App (помаранчева, напівпрозора, товща)
-        m.add_line(Line(coordinates, '#ff6b4a', 6)) 
-        
-        # Маркери: Початок (Бізнес) - помаранчевий (як іконка магазину)
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 14)) 
-        # Маркери: Кінець (Клієнт) - синій (як іконка клієнта)
-        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 16))       
+        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
         
         image = m.render()
         image.save(filename)
