@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DelivePro Dashboard 2.0</title>
+    <title>DelivePro Dashboard</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -18,105 +18,100 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap');
 
         :root { 
-            --bg-color: #f3f6f8; 
-            --text-main: #0f172a; 
-            --text-muted: #64748b; 
-            --primary: #FF5A5F; 
-            --primary-glow: rgba(255, 90, 95, 0.3);
+            --bg-color: #f4f7f9; 
+            --text-main: #111418; 
+            --text-muted: #8a8d91; 
+            --primary: #ff7652; 
+            --primary-glow: rgba(255, 118, 82, 0.3);
             --surface: #ffffff; 
-            --success: #10b981; 
-            --info: #3b82f6; 
+            --success: #34C759; 
+            --info: #4A6CF7; 
             --warning: #f59e0b;
-            --danger: #ef4444; 
+            --danger: #ff3b30;
         }
-        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120px; } 
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 100px; } 
 
         /* Header */
-        .header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 20px 20px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .biz-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
-        .biz-status { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .header { background: var(--surface); padding: 20px 20px 15px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; }
+        .biz-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
+        .biz-status { font-size: 11px; background: rgba(52, 199, 89, 0.1); color: var(--success); padding: 4px 10px; border-radius: 10px; font-weight: 800; text-transform: uppercase; }
         
         .time-filter-wrap { display: flex; align-items: center; margin-top: 15px; gap: 10px; }
-        .time-filter { display: flex; background: #e2e8f0; border-radius: 14px; padding: 5px; flex: 1; }
-        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 700; color: var(--text-muted); border-radius: 10px; transition: 0.3s; cursor: pointer;}
-        .filter-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        
-        /* Кнопка CSV */
-        .btn-export-mini { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        .btn-export-mini:active { transform: scale(0.9); background: rgba(16, 185, 129, 0.2); }
+        .time-filter { display: flex; background: #edf1f7; border-radius: 12px; padding: 4px; flex: 1; }
+        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 8px; transition: 0.2s; cursor: pointer;}
+        .filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .btn-export { background: rgba(52, 199, 89, 0.1); color: var(--success); border: 1px solid rgba(52, 199, 89, 0.3); border-radius: 12px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; font-size: 16px; }
+        .btn-export:active { transform: scale(0.9); }
 
-        .tab-content { display: none; padding: 20px; animation: fadeIn 0.4s ease; }
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Metrics */
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        .metric-card { background: var(--surface); border-radius: 24px; padding: 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: transform 0.2s; }
-        .metric-card:active { transform: scale(0.98); }
+        .metric-card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; position: relative; overflow: hidden; }
         .metric-card.full-width { grid-column: 1 / -1; }
         
-        .bg-gradient { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; box-shadow: 0 10px 25px var(--primary-glow); }
-        .metric-icon { width: 38px; height: 38px; border-radius: 12px; background: rgba(255, 90, 95, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+        .bg-gradient { background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; box-shadow: 0 8px 25px var(--primary-glow); }
+        .metric-icon { width: 35px; height: 35px; border-radius: 10px; background: rgba(255, 118, 82, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
         .bg-gradient .metric-icon { background: rgba(255,255,255,0.2); color: white; }
         
-        .metric-val { font-size: 26px; font-weight: 900; margin-bottom: 2px; letter-spacing: -0.5px; }
-        .metric-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .bg-gradient .metric-label { color: rgba(255,255,255,0.9); }
+        .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; }
+        .metric-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+        .bg-gradient .metric-label { color: rgba(255,255,255,0.8); }
 
-        .section-title { font-size: 16px; font-weight: 900; margin-bottom: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .section-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
 
         /* Activity Feed */
-        .activity-feed { background: var(--surface); border-radius: 24px; padding: 5px 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); }
-        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
+        .activity-feed { background: var(--surface); border-radius: 20px; padding: 5px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
+        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .activity-item:last-child { border-bottom: none; }
-        .act-icon { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; background: #f4f7f9; }
+        .act-icon { width: 40px; height: 40px; border-radius: 50%; background: #f4f7f9; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: var(--success); }
         .act-details { flex: 1; }
-        .act-title { font-size: 14px; font-weight: 800; margin-bottom: 3px; color: var(--text-main); }
-        .act-time { font-size: 12px; font-weight: 600; color: var(--text-muted); }
-        .act-price { font-size: 16px; font-weight: 900; color: var(--text-main); }
+        .act-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+        .act-time { font-size: 12px; color: var(--text-muted); }
+        .act-price { font-size: 15px; font-weight: 800; color: var(--text-main); }
 
-        /* Courier Leaderboard */
-        .courier-rank { display: flex; align-items: center; background: var(--surface); border-radius: 16px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(0,0,0,0.02); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        /* Team & Leaderboard */
+        .courier-rank { display: flex; align-items: center; background: var(--surface); border-radius: 16px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid #edf1f7; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         .cr-medal { font-size: 20px; font-weight: 900; color: var(--warning); width: 30px; text-align: center; }
         .cr-info { flex: 1; margin-left: 10px; }
         .cr-name { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 2px; }
-        .cr-stats { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+        .cr-stats { font-size: 11px; font-weight: 600; color: var(--text-muted); }
         .cr-score { text-align: right; }
         .cr-score-val { font-size: 16px; font-weight: 900; color: var(--primary); }
-        .cr-score-lbl { font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+        .cr-score-lbl { font-size: 9px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
 
-        /* Team */
-        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 12px; display: flex; align-items: center; }
-        .team-avatar { width: 45px; height: 45px; border-radius: 14px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; }
+        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 12px; display: flex; align-items: center; }
+        .team-avatar { width: 45px; height: 45px; border-radius: 12px; background: #edf1f7; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 15px; }
         .team-info { flex: 1; }
-        .team-name { font-size: 15px; font-weight: 800; }
-        .team-role { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 4px; letter-spacing: 0.5px; }
-        .role-courier { color: var(--primary); background: rgba(255, 90, 95, 0.1); }
-        .role-manager { color: var(--info); background: rgba(59, 130, 246, 0.1); }
+        .team-name { font-size: 16px; font-weight: 800; }
+        .team-role { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; display: inline-block; margin-top: 4px; }
+        .role-courier { color: var(--primary); background: rgba(255, 118, 82, 0.1); }
+        .role-manager { color: var(--info); background: rgba(74, 108, 247, 0.1); }
         
-        .btn-delete-staff { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .btn-delete-staff:active { transform: scale(0.9); }
+        .btn-delete-staff { background: rgba(255, 59, 48, 0.1); color: #ff3b30; border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .btn-delete-staff:active { transform: scale(0.9); background: rgba(255, 59, 48, 0.2); }
 
-        /* Buttons */
-        .btn-main { background: var(--text-main); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
-        .btn-main:active { transform: scale(0.96); }
-        .btn-main.manager { background: var(--info); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); }
+        .btn-invite { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
+        .btn-invite:active { transform: scale(0.96); }
+        .btn-invite.manager { background: var(--info); box-shadow: 0 8px 20px rgba(74, 108, 247, 0.25); }
 
         /* Settings */
-        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .setting-row:last-child { border-bottom: none; }
-        .set-label { font-size: 14px; font-weight: 700; color: var(--text-muted); }
-        .set-val { font-size: 14px; font-weight: 800; }
+        .set-label { font-size: 15px; font-weight: 600; color: var(--text-muted); }
+        .set-val { font-size: 15px; font-weight: 800; }
 
-        /* Floating Bottom Nav */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); border-top: 1px solid #edf1f7; z-index: 9999; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px; }
         .nav-item i { font-size: 22px; }
         .nav-item.active { color: var(--primary); }
+        .leaflet-container { z-index: 1; border-radius: 12px; }
 
-        /* Modals & Pro Locks */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.8); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(5px); }
+        /* Modals & Pro */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17, 20, 24, 0.6); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(3px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
         .modal-overlay.active .bottom-sheet { bottom: 0; }
@@ -167,7 +162,7 @@
                 <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
                 <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
             </div>
-            <button class="btn-export-mini" id="btn-csv-export" onclick="exportOrdersCSV()" title="Експорт в Excel"><i class="fa-solid fa-file-csv"></i></button>
+            <button class="btn-export" id="btn-csv-export" onclick="exportOrdersCSV()" title="Експорт в CSV"><i class="fa-solid fa-file-csv"></i></button>
         </div>
     </div>
 
@@ -189,7 +184,7 @@
                         <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
                         <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
                     </div>
-                    <div class="metric-icon" style="margin: 0; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-fire" style="color: var(--danger);"></i></div>
+                    <div class="metric-icon" style="margin: 0;"><i class="fa-solid fa-fire" style="color: #ff3b30;"></i></div>
                 </div>
             </div>
 
@@ -240,7 +235,7 @@
 
     <div id="tab-team" class="tab-content">
         
-        <div class="section-title">Рейтинг кур'єрів (PRO)</div>
+        <div class="section-title" id="title-couriers-rating">Рейтинг кур'єрів (PRO)</div>
         <div id="couriers-leaderboard" style="margin-bottom: 30px;">
             <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження...</div>
         </div>
@@ -252,6 +247,7 @@
         <button class="btn-invite manager" onclick="generateInvite('manager')">
             <i class="fa-solid fa-user-tie"></i> Запросити Адміна
         </button>
+        
         <div class="section-title" style="margin-top: 30px;">Активний персонал</div>
         <div id="staff-list">
             <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження команди...</div>
@@ -371,7 +367,7 @@
         let settingsMarker = null;
         let revenueChart = null;
 
-        let globalOrdersForExport = []; // Для CSV
+        let globalOrdersForExport = [];
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
@@ -409,15 +405,15 @@
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
-
-            // Візуальний ефект завантаження
+            
+            // Візуальний фікс "зависання"
             const actTab = document.querySelector('.tab-content.active');
             if(actTab) {
                 actTab.style.opacity = '0.5';
                 setTimeout(() => actTab.style.opacity = '1', 300);
             }
-
-            // Обнулення
+            
+            // Скидання цифр, щоб не залипали
             document.getElementById('val-total').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size:16px;"></i>';
             document.getElementById('val-cash').innerHTML = '...';
             document.getElementById('val-term').innerHTML = '...';
@@ -425,10 +421,9 @@
             document.getElementById('val-late').innerHTML = '...';
             document.getElementById('val-avg-check').innerHTML = '...';
             document.getElementById('val-time').innerHTML = '...';
-            document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">Завантаження...</div>';
-            document.getElementById('couriers-leaderboard').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження...</div>';
+            document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;"><i class="fa-solid fa-circle-notch fa-spin"></i> Завантаження...</div>';
 
-            loadDashboardData();
+            loadDashboardData(); 
         }
 
         function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
@@ -439,7 +434,6 @@
             document.getElementById('biz-settings-modal').classList.add('active'); 
             document.body.style.overflow = 'hidden'; 
             
-            // Ініціалізація міні-карти
             setTimeout(() => {
                 if(bizLat && bizLon) {
                     document.getElementById('settings-map-container').style.display = 'block';
@@ -448,6 +442,35 @@
             }, 300);
         }
         function closeBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.remove('active'); document.body.style.overflow = ''; }
+
+        // --- ЛОГІКА МІНІ-КАРТИ ---
+        function initSettingsMap(lat, lon, r) {
+            if(!settingsMap) {
+                settingsMap = L.map('settings-map-container', {zoomControl: false}).setView([lat, lon], 12);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(settingsMap);
+            } else {
+                settingsMap.setView([lat, lon], 12);
+            }
+            
+            if(settingsMarker) settingsMap.removeLayer(settingsMarker);
+            if(settingsCircle) settingsMap.removeLayer(settingsCircle);
+            
+            settingsMarker = L.marker([lat, lon]).addTo(settingsMap);
+            settingsCircle = L.circle([lat, lon], {
+                color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.2, radius: r * 1000
+            }).addTo(settingsMap);
+            
+            settingsMap.fitBounds(settingsCircle.getBounds());
+            setTimeout(() => settingsMap.invalidateSize(), 100);
+        }
+
+        function updateSettingsMap() {
+            let r = parseFloat(document.getElementById('input-biz-radius').value) || 5;
+            if(bizLat && bizLon) {
+                document.getElementById('settings-map-container').style.display = 'block';
+                initSettingsMap(bizLat, bizLon, r);
+            }
+        }
 
         async function saveBizSettings(btn) {
             if (!bizId) return;
@@ -482,7 +505,7 @@
                 closeBizSettingsMenu();
                 loadDashboardData(); 
             } catch(e) {
-                alert("❌ Помилка: " + e.message + "\nПереконайтесь, що в Supabase є колонки street та radius_km!");
+                alert("❌ Помилка: " + e.message);
             } finally {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
@@ -515,7 +538,7 @@
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
-        // ЕКСПОРТ CSV
+        // --- ЕКСПОРТ CSV ---
         function exportOrdersCSV() {
             if (!currentPlanIsPro) { openSubscriptionMenu(); return; }
             if (globalOrdersForExport.length === 0) { alert("Немає замовлень для експорту."); return; }
@@ -545,10 +568,9 @@
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 if (!bizId) return;
+
                 if (!window.supabase) return;
-                
                 let tgUserId = getTelegramUserId();
-                
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
@@ -562,12 +584,14 @@
                 
                 if (biz) {
                     currencySymbol = biz.currency || "zł";
-                    document.getElementById('display-biz-name').innerText = biz.name;
+                    document.getElementById('set-id').innerText = bizId;
+                    document.getElementById('display-biz-name').innerText = biz.name || 'Мій Бізнес';
                     document.getElementById('set-currency').innerText = currencySymbol;
 
                     document.getElementById('input-biz-name').value = biz.name || '';
                     document.getElementById('input-biz-currency').value = biz.currency || 'zł';
                     document.getElementById('input-biz-radius').value = biz.radius_km || '';
+                    bizRadius = biz.radius_km || 5;
                     
                     document.getElementById('input-biz-address').value = biz.street || '';
                     bizLat = biz.lat || null; 
@@ -575,20 +599,25 @@
 
                     currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     
+                    let statusColor = currentPlanIsPro ? 'var(--success)' : 'var(--text-muted)';
+                    let statusBg = currentPlanIsPro ? 'rgba(16, 185, 129, 0.15)' : '#f1f5f9';
+                    let planText = currentPlanIsPro ? 'PRO' : 'BASIC';
+                    
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
-                    document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
-                    document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
-                    document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (Активна)`;
-                    document.getElementById('set-plan-status').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
-                    document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? 'PRO Тариф' : 'BASIC Тариф';
-                    document.getElementById('modal-plan-name').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
-                    document.getElementById('modal-plan-badge').style.background = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('display-plan').style.color = statusColor;
+                    document.getElementById('display-plan').style.background = statusBg;
+                    document.getElementById('set-plan-status').innerText = `${planText} (Активна)`;
+                    document.getElementById('set-plan-status').style.color = statusColor;
+                    document.getElementById('modal-plan-name').innerText = `${planText} Тариф`;
+                    document.getElementById('modal-plan-name').style.color = statusColor;
+                    document.getElementById('modal-plan-badge').style.background = statusColor;
                     document.getElementById('modal-status-card').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
                     document.getElementById('modal-status-card').style.borderColor = currentPlanIsPro ? 'rgba(52, 199, 89, 0.3)' : '#d1d5db';
                     document.getElementById('modal-plan-date-text').style.color = currentPlanIsPro ? '#2e7d32' : '#4b5563';
 
-                    let createdDate = new Date(biz.created_at || Date.now()); createdDate.setDate(createdDate.getDate() + 30);
-                    document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    let createdDate = new Date(biz.created_at || Date.now()); 
+                    createdDate.setDate(createdDate.getDate() + 30 + (parseInt(biz.extra_days)||0));
+                    document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA');
 
                     if (!currentPlanIsPro) {
                         document.getElementById('btn-upgrade').style.display = 'block'; document.getElementById('btn-renew').style.display = 'none';
@@ -596,10 +625,9 @@
                         document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
                     }
 
-                    const features = document.getElementById('modal-features-list');
-                    features.innerHTML = `
+                    document.getElementById('modal-features-list').innerHTML = `
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд</div>
-                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Замовлення без обмежень</div>
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Безлімітні замовлення</div>
                         <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Експорт в Excel, Графіки, Рейтинги</div>
                         <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Інтерактивна теплова карта</div>
                         <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Безлімітна кількість персоналу</div>
@@ -611,7 +639,7 @@
                             const el = document.getElementById(id);
                             if (el && !el.querySelector('.pro-overlay')) {
                                 el.classList.add('pro-locked');
-                                const overlay = document.createElement('div'); overlay.className = 'pro-overlay'; overlay.innerHTML = '<div class="pro-badge"><i class="fa-regular fa-gem"></i> PRO</div>'; overlay.onclick = openSubscriptionMenu; el.appendChild(overlay);
+                                const overlay = document.createElement('div'); overlay.className = 'pro-overlay'; overlay.innerHTML = '<div class="pro-badge"><i class="fa-solid fa-lock"></i> PRO</div>'; overlay.onclick = openSubscriptionMenu; el.appendChild(overlay);
                             }
                         });
                     } else {
@@ -622,7 +650,7 @@
                     }
                 }
 
-                // ПІДТЯГУЄМО ПЕРСОНАЛ ТА ЗМІНЮЄМО ІКОНКИ НА ПРЕМІАЛЬНІ
+                // ПІДТЯГУЄМО ПЕРСОНАЛ
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
                 let staffMap = {}; 
@@ -632,13 +660,12 @@
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
                         let safeName = person.name || person.full_name || 'Співробітник';
-                        staffMap[person.user_id] = safeName; // Зберігаємо для рейтингу
+                        staffMap[person.user_id] = safeName;
                         
                         if (person.role === 'courier') currentCouriersCount++; if (person.role === 'manager') currentManagersCount++;
-                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; 
-                        let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер'; 
+                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер'; 
                         
-                        // НОВІ ІКОНКИ ДЛЯ ПЕРСОНАЛУ
+                        // НОВІ ІКОНКИ ПЕРСОНАЛУ
                         let avatar = person.role === 'courier' ? '<i class="fa-solid fa-helmet-safety"></i>' : '<i class="fa-solid fa-user-tie"></i>';
                         
                         staffBox.innerHTML += `
@@ -658,7 +685,7 @@
                 
                 globalOrdersForExport = orders || [];
                 let heatData = [];
-                let chartDataRaw = {};
+                let chartDataRaw = {}; 
                 let courierStats = {};
 
                 if (orders && orders.length > 0) {
@@ -714,8 +741,8 @@
                         if (revenueChart) revenueChart.destroy();
                         
                         let gradient = ctx.createLinearGradient(0, 0, 0, 160);
-                        gradient.addColorStop(0, 'rgba(255, 118, 82, 0.4)');
-                        gradient.addColorStop(1, 'rgba(255, 118, 82, 0.0)');
+                        gradient.addColorStop(0, 'rgba(255, 90, 95, 0.4)');
+                        gradient.addColorStop(1, 'rgba(255, 90, 95, 0.0)');
 
                         revenueChart = new Chart(ctx, {
                             type: 'line',
@@ -797,46 +824,22 @@
 
                     document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">За цей період замовлень не знайдено</div>';
                     document.getElementById('couriers-leaderboard').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Немає даних для рейтингу.</div>';
-                    
                     if (revenueChart) { revenueChart.destroy(); revenueChart = null; }
                 }
 
-                setTimeout(() => {
-                    let centerLat = 50.04132, centerLon = 21.99901;
-                    if (heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
-                    if (window.dashboardMap) { window.dashboardMap.remove(); }
-                    window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
-                    L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
-                    if (heatData.length > 0) { L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap); }
-                }, 500);
+                if (currentPlanIsPro) {
+                    setTimeout(() => {
+                        let centerLat = bizLat || 50.04132, centerLon = bizLon || 21.99901;
+                        if (!bizLat && heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
+                        if (window.dashboardMap) { window.dashboardMap.remove(); }
+                        window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
+                        L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
+                        if(bizLat && bizLon) L.circle([bizLat, bizLon], {color: '#FF5A5F', fillOpacity: 0.1, weight: 2, radius: bizRadius * 1000, dashArray: '5, 5'}).addTo(window.dashboardMap);
+                        if (heatData.length > 0) L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap); 
+                    }, 500);
+                }
 
             } catch (error) { console.error("Помилка БД:", error); }
-        }
-
-        // --- КАРТА В НАЛАШТУВАННЯХ ---
-        function initSettingsMap(lat, lon, r) {
-            if(!settingsMap) {
-                settingsMap = L.map('settings-map-container', {zoomControl: false}).setView([lat, lon], 12);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(settingsMap);
-            } else {
-                settingsMap.setView([lat, lon], 12);
-            }
-            if(settingsMarker) settingsMap.removeLayer(settingsMarker);
-            if(settingsCircle) settingsMap.removeLayer(settingsCircle);
-            settingsMarker = L.marker([lat, lon]).addTo(settingsMap);
-            settingsCircle = L.circle([lat, lon], {
-                color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.2, radius: r * 1000
-            }).addTo(settingsMap);
-            settingsMap.fitBounds(settingsCircle.getBounds());
-            setTimeout(() => settingsMap.invalidateSize(), 100);
-        }
-
-        function updateSettingsMap() {
-            let r = parseFloat(document.getElementById('input-biz-radius').value) || 5;
-            if(bizLat && bizLon) {
-                document.getElementById('settings-map-container').style.display = 'block';
-                initSettingsMap(bizLat, bizLon, r);
-            }
         }
 
         const bizAddrInput = document.getElementById('input-biz-address');
@@ -888,7 +891,7 @@
                                 bizLat = parseFloat(item.lat);
                                 bizLon = parseFloat(item.lon);
                                 bizAddrList.style.display = 'none';
-                                updateSettingsMap();
+                                updateSettingsMap(); 
                             };
                             bizAddrList.appendChild(div);
                         });
