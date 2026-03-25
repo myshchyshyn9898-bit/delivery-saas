@@ -393,6 +393,14 @@
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
             const clientPhone = document.getElementById('client-phone').value.trim();
 
+            // --- ДОДАНО ТІЛЬКИ ЦЕЙ БЛОК ВАЛІДАЦІЇ ---
+            if (!selectedLat || !selectedLon) {
+                const msg = "📍 Будь ласка, почніть вводити адресу і обов'язково ОБЕРІТЬ її з випадаючого списку!";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
+                return; 
+            }
+            // ----------------------------------------
+
             if (clientPhone && !/^[+0-9\s\-()]{7,15}$/.test(clientPhone)) {
                 const msg = "Будь ласка, введіть коректний номер телефону!";
                 if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
