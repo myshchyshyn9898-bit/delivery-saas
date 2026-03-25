@@ -208,14 +208,29 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
     user_id = message.from_user.id
     args = command.args
 
+    # --- НОВИЙ БЛОК ОБРОБКИ ЛІНКІВ З ТОКЕНАМИ ---
     if args and (args.startswith("join_") or args.startswith("admin_")):
-        role = "courier" if args.startswith("join_") else "manager"
-        prefix = "join_" if role == "courier" else "admin_"
-        biz_id = args.replace(prefix, "")
+        parts = args.split("_")
+        
+        # Перевіряємо чи лінк правильний (join/admin + ID бізнесу + Токен)
+        if len(parts) != 3:
+            await message.answer("❌ Це посилання недійсне або пошкоджене.")
+            return
+            
+        prefix = parts[0]
+        biz_id = parts[1]
+        token = parts[2]
+        
+        role = "courier" if prefix == "join" else "manager"
         
         biz = db.get_business_by_id(biz_id)
         if not biz:
-            await message.answer("❌ Помилка: Посилання недійсне або такий заклад не існує.")
+            await message.answer("❌ Помилка: Такий заклад не існує.")
+            return
+            
+        # Захист: порівнюємо токен з тим, що в базі
+        if str(biz.get('invite_token')) != str(token):
+            await message.answer("🛑 Це посилання застаріло або було анульоване власником!")
             return
         
         await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'], joining_role=role)
@@ -227,6 +242,7 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
             f"✏️ Введіть ваше Прізвище та Ім'я, щоб приєднатися до команди:"
         )
         return
+    # ----------------------------------------------
 
     context = db.get_user_context(user_id)
     if not context:
