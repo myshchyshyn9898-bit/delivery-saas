@@ -49,38 +49,43 @@ async def show_main_menu(message: types.Message, context: dict):
 
 # --- ГЕНЕРАТОР КАРТИ (МАРШРУТ) ---
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
-    """Синхронна функція для малювання карти (ПОВЕРНУТО РЕАЛЬНИЙ МАРШРУТ OSRM)"""
+    """Синхронна функція для малювання карти"""
     try:
-        url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
-        headers = {'User-Agent': 'DeliveProBot/1.0'}
-        r = requests.get(url, headers=headers, timeout=15)
+        coordinates = []
+        try:
+            url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
+            headers = {'User-Agent': 'DeliveProBot/1.0'}
+            # Таймаут 5 секунд, щоб бот не зависав, якщо OSRM лежить
+            r = requests.get(url, headers=headers, timeout=5) 
+            
+            if r.status_code == 200: 
+                route_data = r.json()
+                if route_data.get('routes'): 
+                    coordinates = route_data['routes'][0]['geometry']['coordinates']
+        except Exception as osrm_err:
+            print(f"OSRM не відповів, малюємо пряму лінію: {osrm_err}")
+            
+        # ЗАЛІЗОБЕТОННИЙ ФОЛБЕК: Якщо OSRM впав або не дав маршрут, малюємо пряму лінію!
+        if not coordinates:
+            coordinates = [[start_lon, start_lat], [end_lon, end_lat]]
         
-        if r.status_code != 200: 
-            print(f"OSRM помилка: {r.status_code} - {r.text}")
-            return None
-        
-        route_data = r.json()
-        if not route_data.get('routes'): 
-            print("OSRM не знайшов маршрут")
-            return None
-        
-        coordinates = route_data['routes'][0]['geometry']['coordinates']
-        
-        # Світла тема карти (стабільний сервер)
+        # Світла тема карти
         tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-        m = StaticMap(800, 450, padding_x=60, padding_y=60, url_template=tile_url)
         
-        # 1. МАЛЮЄМО МАРШРУТ ПО ДОРОГАХ (Суцільна помаранчева лінія)
-        m.add_line(Line(coordinates, '#ff6b4a', 5))
+        # Повернули оригінальні розміри, щоб сервер не блокував генерацію
+        m = StaticMap(600, 300, padding_x=40, padding_y=40, url_template=tile_url)
         
-        # 2. МАРКЕРИ (Іконки)
-        # Магазин (старт) - Помаранчевий маркер з білою обводкою
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) # Обводка
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) # Центр
+        # Малюємо суцільну помаранчеву лінію
+        m.add_line(Line(coordinates, '#ff6b4a', 5)) 
         
-        # Клієнт (фініш) - Синій маркер з білою обводкою
-        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) # Обводка
-        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) # Центр
+        # 2. МАРКЕРИ (Іконки з білою обводкою)
+        # Магазин (старт) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) 
+        
+        # Клієнт (фініш)
+        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) 
         
         image = m.render()
         image.save(filename)
@@ -89,50 +94,52 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         print(f"Помилка рендеру карти: {e}")
         return None
 
-async def get_route_map_file(biz: dict, client_address: str, order_id: str):
-    """Асинхронна обгортка для отримання координат і запуску генератора"""
-    c_lat, c_lon = None, None
+async def get_route_map_file(biz: dict, client_address: str, order_id: str, data_lat=None, data_lon=None):
+    """Асинхронна обгортка. Беремо координати напряму з WebApp, якщо є, щоб уникнути банів Nominatim"""
+    c_lat, c_lon = data_lat, data_lon
     
-    print(f"Шукаємо координати клієнта для: {client_address}")
-    encoded_client = urllib.parse.quote(client_address)
-    client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            # User-Agent для безпечного запиту до Nominatim
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-            async with session.get(client_url, headers=headers) as resp:
-                if resp.status == 200:
-                    c_data = await resp.json()
-                    if c_data and len(c_data) > 0:
-                        c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-                    else:
-                        print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
-                else:
-                    print(f"❌ Помилка Nominatim (клієнт): {resp.status}")
-    except Exception as e:
-        print(f"❌ Критична помилка Nominatim: {e}")
+    # Якщо WebApp не передав координати, тільки тоді шукаємо через Nominatim
+    if not c_lat or not c_lon:
+        print(f"Шукаємо координати клієнта для: {client_address}")
+        encoded_client = urllib.parse.quote(client_address)
+        client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {'User-Agent': 'DeliveProBot/2.0'}
+                async with session.get(client_url, headers=headers) as resp:
+                    if resp.status == 200:
+                        c_data = await resp.json()
+                        if c_data and len(c_data) > 0:
+                            c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+                        else:
+                            print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+        except Exception as e:
+            print(f"❌ Критична помилка Nominatim (клієнт): {e}")
 
+    # Якщо координати клієнта так і не знайшли — повертаємо None (карта не згенерується)
     if not c_lat: return None 
 
     biz_address = biz.get('address') if biz else None
-    b_lat, b_lon = 50.04132, 21.99901 
     
-    if biz_address:
-        encoded_biz = urllib.parse.quote(biz_address)
-        biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-                async with session.get(biz_url, headers=headers) as resp:
-                    if resp.status == 200:
-                        b_data = await resp.json()
-                        if b_data and len(b_data) > 0:
-                            b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
-                    else:
-                        print(f"❌ Помилка Nominatim (бізнес): {resp.status}")
-        except Exception as e:
-            print(f"❌ Критична помилка Nominatim (бізнес): {e}")
+    # Якщо в базі бізнесу вже є lat і lng - беремо їх, щоб не смикати API
+    b_lat, b_lon = biz.get('lat'), biz.get('lng')
+    
+    if not b_lat or not b_lon:
+        b_lat, b_lon = 50.04132, 21.99901 # дефолтні координати (Жешув)
+        if biz_address:
+            encoded_biz = urllib.parse.quote(biz_address)
+            biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
+            try:
+                async with aiohttp.ClientSession() as session:
+                    headers = {'User-Agent': 'DeliveProBot/2.0'}
+                    async with session.get(biz_url, headers=headers) as resp:
+                        if resp.status == 200:
+                            b_data = await resp.json()
+                            if b_data and len(b_data) > 0:
+                                b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+            except Exception as e:
+                print(f"❌ Критична помилка Nominatim (бізнес): {e}")
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
@@ -299,7 +306,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
                 # Якщо PRO - генеруємо та відправляємо карту
                 if is_pro:
-                    map_filename = await get_route_map_file(biz, data['address'], short_id)
+                    # ПЕРЕДАЄМО КООРДИНАТИ З WEB APP ПРЯМО СЮДИ (data.get('lat'), data.get('lon'))
+                    map_filename = await get_route_map_file(biz, data['address'], short_id, data.get('lat'), data.get('lon'))
                     
                     if map_filename and os.path.exists(map_filename):
                         photo = FSInputFile(map_filename)
