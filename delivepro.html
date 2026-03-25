@@ -237,10 +237,31 @@
 
         function initMap() {
             if (map !== null) return; 
-            map = L.map('real-map').setView([52.2297, 21.0122], 13);
+            
+            // Ставимо дефолтні координати (Жешув)
+            let defaultLat = 50.04132;
+            let defaultLon = 21.99901;
+
+            map = L.map('real-map').setView([defaultLat, defaultLon], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-            marker = L.marker([52.2297, 21.0122]).addTo(map);
-            map.on('move', function () { marker.setLatLng(map.getCenter()); });
+            
+            marker = L.marker([defaultLat, defaultLon]).addTo(map);
+            
+            // Маркер завжди залишається по центру, коли юзер рухає карту
+            map.on('move', function () { 
+                marker.setLatLng(map.getCenter()); 
+            });
+
+            // --- МАГІЯ ГЕОЛОКАЦІЇ ---
+            map.locate({setView: true, maxZoom: 16});
+            
+            map.on('locationfound', function(e) {
+                marker.setLatLng(e.latlng);
+            });
+            
+            map.on('locationerror', function(e) {
+                console.log("Доступ до локації заборонено. Залишаємо дефолтну.");
+            });
         }
 
         function nextScreen(screenId) {
