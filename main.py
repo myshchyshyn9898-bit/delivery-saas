@@ -347,6 +347,45 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             print(f"Помилка створення замовлення: {e}")
             await message.answer("❌ Сталася помилка при відправці замовлення. Перевірте базу даних.")
 
+    # ==========================================
+    # --- 3. МАСОВА РОЗСИЛКА ВІД СУПЕРАДМІНА ---
+    # ==========================================
+    elif data.get("action") == "broadcast":
+        if user_id not in SUPER_ADMIN_IDS:
+            await message.answer("❌ У вас немає прав для розсилки.")
+            return
+            
+        msg_text = data.get("text")
+        businesses = db.get_all_businesses()
+        
+        owner_ids = set()
+        if businesses:
+            for b in businesses:
+                if b.get('owner_id'):
+                    owner_ids.add(int(b['owner_id']))
+                
+        if not owner_ids:
+            await message.answer("📭 Немає жодного власника для розсилки.")
+            return
+            
+        await message.answer(f"🚀 Починаю розсилку для {len(owner_ids)} клієнтів. Зачекайте...")
+        
+        sent_count = 0
+        for oid in owner_ids:
+            try:
+                await bot.send_message(
+                    chat_id=oid, 
+                    text=f"🔔 **Повідомлення від платформи:**\n\n{msg_text}", 
+                    parse_mode="Markdown"
+                )
+                sent_count += 1
+                await asyncio.sleep(0.05)
+            except Exception as e:
+                print(f"Не вдалося відправити повідомлення власнику {oid}: {e}")
+                
+        await message.answer(f"✅ Розсилка успішно завершена!\nДоставлено: **{sent_count} з {len(owner_ids)}** користувачів.")
+    # ==========================================
+
 # --- РЕЄСТРАЦІЯ КУР'ЄРА ТА МЕНЕДЖЕРА ---
 @dp.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
