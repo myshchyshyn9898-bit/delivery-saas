@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DelivePro Dashboard 2.0</title>
+    <title>DelivePro Dashboard</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,43 +27,43 @@
             --success: #10b981; 
             --info: #3b82f6; 
             --warning: #f59e0b;
-            --danger: #ef4444;
         }
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120px; } 
 
+        /* Header */
         .header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 20px 20px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
         .biz-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
         .biz-status { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        .time-filter-wrap { display: flex; gap: 8px; margin-top: 15px; align-items: center; }
-        .time-filter { display: flex; background: #e2e8f0; border-radius: 14px; padding: 5px; flex: 1; }
+        .time-filter { display: flex; background: #e2e8f0; border-radius: 14px; padding: 5px; margin-top: 15px; }
         .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 700; color: var(--text-muted); border-radius: 10px; transition: 0.3s; cursor: pointer;}
         .filter-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .btn-export-mini { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        .btn-export-mini:active { transform: scale(0.9); background: rgba(16, 185, 129, 0.2); }
 
         .tab-content { display: none; padding: 20px; animation: fadeIn 0.4s ease; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
-        .metric-card { background: var(--surface); border-radius: 24px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: transform 0.2s; }
+        /* Metrics */
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
+        .metric-card { background: var(--surface); border-radius: 24px; padding: 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: transform 0.2s; }
         .metric-card:active { transform: scale(0.98); }
         .metric-card.full-width { grid-column: 1 / -1; }
         
         .bg-gradient { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; box-shadow: 0 10px 25px var(--primary-glow); }
-        .metric-icon { width: 36px; height: 36px; border-radius: 12px; background: rgba(255, 90, 95, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 10px; }
+        .metric-icon { width: 38px; height: 38px; border-radius: 12px; background: rgba(255, 90, 95, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
         .bg-gradient .metric-icon { background: rgba(255,255,255,0.2); color: white; }
         
-        .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; letter-spacing: -0.5px; }
-        .metric-label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .metric-val { font-size: 26px; font-weight: 900; margin-bottom: 2px; letter-spacing: -0.5px; }
+        .metric-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
         .bg-gradient .metric-label { color: rgba(255,255,255,0.9); }
 
         .section-title { font-size: 16px; font-weight: 900; margin-bottom: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
 
+        /* Chart Container */
         .chart-card { background: var(--surface); border-radius: 24px; padding: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.02); }
 
+        /* Activity Feed */
         .activity-feed { background: var(--surface); border-radius: 24px; padding: 5px 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); }
         .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
         .activity-item:last-child { border-bottom: none; }
@@ -73,15 +73,7 @@
         .act-time { font-size: 12px; font-weight: 600; }
         .act-price { font-size: 16px; font-weight: 900; color: var(--text-main); }
 
-        .courier-rank { display: flex; align-items: center; background: var(--surface); border-radius: 16px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(0,0,0,0.02); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .cr-medal { font-size: 20px; font-weight: 900; color: var(--warning); width: 30px; text-align: center; }
-        .cr-info { flex: 1; margin-left: 10px; }
-        .cr-name { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 2px; }
-        .cr-stats { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-        .cr-score { text-align: right; }
-        .cr-score-val { font-size: 16px; font-weight: 900; color: var(--primary); }
-        .cr-score-lbl { font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
-
+        /* Team */
         .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 12px; display: flex; align-items: center; }
         .team-avatar { width: 45px; height: 45px; border-radius: 14px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; }
         .team-info { flex: 1; }
@@ -93,27 +85,32 @@
         .btn-delete-staff { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
         .btn-delete-staff:active { transform: scale(0.9); }
 
+        /* Buttons */
         .btn-main { background: var(--text-main); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
         .btn-main:active { transform: scale(0.96); }
         .btn-main.manager { background: var(--info); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); }
 
+        /* Settings */
         .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
         .setting-row:last-child { border-bottom: none; }
         .set-label { font-size: 14px; font-weight: 700; color: var(--text-muted); }
         .set-val { font-size: 14px; font-weight: 800; }
 
+        /* Floating Bottom Nav */
         .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); display: flex; justify-content: space-around; padding: 15px 10px; border-radius: 30px; z-index: 9999; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.5); }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 10px; font-weight: 800; gap: 6px; transition: 0.3s; cursor: pointer; flex: 1; text-transform: uppercase; letter-spacing: 0.5px; }
         .nav-item i { font-size: 20px; transition: 0.3s; }
         .nav-item.active { color: var(--primary); }
         .nav-item.active i { transform: translateY(-3px); }
 
+        /* Modals */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.8); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(5px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
         .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--bg-color); border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.2); max-height: 92vh; overflow-y: auto; }
         .modal-overlay.active .bottom-sheet { bottom: 0; }
         .sheet-handle { width: 50px; height: 5px; background: #cbd5e1; border-radius: 5px; margin: 0 auto 25px; }
         
+        /* Pro features */
         .feature-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text-main); background: white; padding: 12px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
         .feature-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
         .f-yes { background: rgba(16, 185, 129, 0.15); color: var(--success); }
@@ -129,6 +126,7 @@
         .pro-overlay:active { background: rgba(255, 255, 255, 0.2); }
         .pro-badge { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: #fff; padding: 10px 20px; border-radius: 14px; font-size: 14px; font-weight: 900; box-shadow: 0 8px 25px var(--primary-glow); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
 
+        /* Form Inputs */
         .form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-input { width: 100%; padding: 16px; border: 2px solid transparent; border-radius: 16px; font-size: 15px; margin-bottom: 20px; background: white; color: var(--text-main); font-weight: 700; outline: none; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         .form-input:focus { border-color: var(--primary); box-shadow: 0 4px 20px var(--primary-glow); }
@@ -140,11 +138,10 @@
         .addr-main { font-weight: 800; font-size: 14px; margin-bottom: 3px; }
         .addr-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; }
         
+        /* Map styling in settings */
         #settings-map-container { width: 100%; height: 180px; border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 2px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
         
         .loader-center { text-align: center; padding: 30px; color: var(--primary); font-size: 24px; }
-        
-        #error-box { display: none; margin: 20px; padding: 15px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; color: var(--danger); text-align: center; font-weight: bold; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -154,17 +151,12 @@
             <span id="display-biz-name">Завантаження...</span>
             <span class="biz-status" id="display-plan"><i class="fa-solid fa-crown"></i> PRO</span>
         </div>
-        <div class="time-filter-wrap">
-            <div class="time-filter">
-                <div class="filter-btn active" onclick="setFilter(this)">Сьогодні</div>
-                <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
-                <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
-            </div>
-            <button class="btn-export-mini" id="btn-csv-export" onclick="exportOrdersCSV()" title="Експорт в Excel"><i class="fa-solid fa-file-csv"></i></button>
+        <div class="time-filter">
+            <div class="filter-btn active" onclick="setFilter(this)">Сьогодні</div>
+            <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
+            <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
         </div>
     </div>
-
-    <div id="error-box"></div>
 
     <div id="tab-home" class="tab-content active">
         <div class="metrics-grid">
@@ -183,7 +175,7 @@
             <div class="metric-card" id="card-term">
                 <div class="metric-icon" style="color: var(--info); background: rgba(59,130,246,0.1);"><i class="fa-solid fa-credit-card"></i></div>
                 <div class="metric-val" id="val-term">0.00</div>
-                <div class="metric-label">Безготівково</div>
+                <div class="metric-label">Термінал</div>
             </div>
         </div>
 
@@ -192,27 +184,11 @@
             <canvas id="revenueChart" height="180"></canvas>
         </div>
 
-        <div class="section-title" id="card-peak-title"><i class="fa-solid fa-fire-flame-curved" style="color: var(--warning);"></i> Пікові години</div>
-        <div class="chart-card" id="card-peak">
-            <canvas id="peakChart" height="150"></canvas>
-        </div>
-
         <div class="metrics-grid">
             <div class="metric-card" id="card-orders">
                 <div class="metric-icon" style="color: var(--warning); background: rgba(245,158,11,0.1);"><i class="fa-solid fa-bag-shopping"></i></div>
                 <div class="metric-val" id="val-orders">0</div>
                 <div class="metric-label">Замовлень</div>
-            </div>
-            <div class="metric-card" id="card-late">
-                <div class="metric-icon" style="color: var(--danger); background: rgba(239,68,68,0.1);"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <div class="metric-val" id="val-late" style="color: var(--danger);">0</div>
-                <div class="metric-label">Запізнення >45хв</div>
-            </div>
-            
-            <div class="metric-card" id="card-avg-check">
-                <div class="metric-icon" style="color: var(--primary); background: rgba(255,90,95,0.1);"><i class="fa-solid fa-receipt"></i></div>
-                <div class="metric-val" id="val-avg-check">0.00</div>
-                <div class="metric-label">Середній чек</div>
             </div>
             <div class="metric-card" id="card-time">
                 <div class="metric-icon" style="color: #8b5cf6; background: rgba(139,92,246,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
@@ -221,8 +197,14 @@
             </div>
             
             <div class="metric-card full-width" id="card-heatmap" style="padding: 15px;">
-                <div class="metric-label" style="margin-bottom: 10px;"><i class="fa-solid fa-map-location-dot"></i> Теплова карта</div>
-                <div id="heatmap" style="height: 160px; width: 100%; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); z-index: 1;"></div>
+                <div id="heatmap" style="height: 160px; width: 100%; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.05); z-index: 1;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 0 5px;">
+                    <div>
+                        <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
+                        <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
+                    </div>
+                    <div class="metric-icon" style="margin: 0; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-fire" style="color: var(--primary);"></i></div>
+                </div>
             </div>
         </div>
 
@@ -233,12 +215,6 @@
     </div>
 
     <div id="tab-team" class="tab-content">
-        
-        <div class="section-title" id="title-couriers-rating"><i class="fa-solid fa-trophy" style="color: var(--warning);"></i> Рейтинг кур'єрів</div>
-        <div id="couriers-leaderboard" style="margin-bottom: 25px;">
-            <div class="loader-center"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
-        </div>
-
         <div class="section-title"><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> Запрошення персоналу</div>
         <button class="btn-main" onclick="generateInvite('courier')">
             <i class="fa-solid fa-motorcycle"></i> Додати Кур'єра
@@ -364,9 +340,6 @@
         let settingsCircle = null;
         let settingsMarker = null;
         let revenueChart = null;
-        let peakChart = null;
-
-        let globalOrdersForExport = [];
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
@@ -380,7 +353,7 @@
                 let idFromApp = window.Telegram.WebApp.initDataUnsafe?.user?.id;
                 if (idFromApp) return idFromApp.toString();
             }
-            return "6889016268"; // ВЖЕ ТОЧНО 6889016268
+            return "6889016268"; 
         }
 
         function switchTab(tabId, el) {
@@ -402,13 +375,6 @@
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
-
-            // Легка візуальна віддача
-            const actTab = document.querySelector('.tab-content.active');
-            if(actTab) {
-                actTab.style.opacity = '0.5';
-                setTimeout(() => actTab.style.opacity = '1', 300);
-            }
             loadDashboardData(); 
         }
 
@@ -426,6 +392,7 @@
         function openBizSettingsMenu() { 
             document.getElementById('biz-settings-modal').classList.add('active'); 
             document.body.style.overflow = 'hidden'; 
+            
             setTimeout(() => {
                 if(bizLat && bizLon) {
                     document.getElementById('settings-map-container').style.display = 'block';
@@ -445,11 +412,15 @@
             } else {
                 settingsMap.setView([lat, lon], 12);
             }
+            
             if(settingsMarker) settingsMap.removeLayer(settingsMarker);
             if(settingsCircle) settingsMap.removeLayer(settingsCircle);
             
             settingsMarker = L.marker([lat, lon]).addTo(settingsMap);
-            settingsCircle = L.circle([lat, lon], { color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.2, radius: r * 1000 }).addTo(settingsMap);
+            settingsCircle = L.circle([lat, lon], {
+                color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.2, radius: r * 1000
+            }).addTo(settingsMap);
+            
             settingsMap.fitBounds(settingsCircle.getBounds());
             setTimeout(() => settingsMap.invalidateSize(), 100);
         }
@@ -475,12 +446,17 @@
             
             try {
                 let userId = getTelegramUserId();
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { global: { headers: { 'x-telegram-user-id': userId } } });
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: { headers: { 'x-telegram-user-id': userId } }
+                });
 
                 let updatePayload = { name: newName, currency: newCurr };
                 if (newRadius !== "") updatePayload.radius_km = parseInt(newRadius);
                 if (newAddress !== "") updatePayload.street = newAddress; 
-                if (bizLat !== null && bizLon !== null) { updatePayload.lat = bizLat; updatePayload.lng = bizLon; }
+                if (bizLat !== null && bizLon !== null) {
+                    updatePayload.lat = bizLat; 
+                    updatePayload.lng = bizLon; 
+                }
 
                 const { error } = await supabase.from('businesses').update(updatePayload).eq('id', bizId);
                 if (error) throw error;
@@ -488,7 +464,7 @@
                 closeBizSettingsMenu();
                 loadDashboardData(); 
             } catch(e) {
-                alert("❌ Помилка збереження.");
+                alert("❌ Помилка збереження. Спробуйте пізніше.");
             } finally {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
@@ -506,160 +482,103 @@
                 if (role === 'manager' && currentManagersCount >= 1) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати 1 адміністратора."); openSubscriptionMenu(); return; }
             }
             let prefix = role === 'courier' ? 'join_' : 'admin_';
-            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${bizId}`).then(() => { alert(`✅ Посилання скопійовано!\nНадішліть його співробітнику в Telegram.`); });
+            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${bizId}`).then(() => { 
+                alert(`✅ Посилання для запрошення скопійовано!\nНадішліть його співробітнику в Telegram.`); 
+            });
         }
 
         async function removeStaff(staffUserId, staffName) {
             if (!confirm(`Звільнити працівника "${staffName}"? Він втратить доступ до бота.`)) return;
             try {
                 let userId = getTelegramUserId();
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { global: { headers: { 'x-telegram-user-id': userId } } });
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: { headers: { 'x-telegram-user-id': userId } }
+                });
                 await supabase.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
                 loadDashboardData(); 
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
-        function exportOrdersCSV() {
-            if (!currentPlanIsPro) return openSubscriptionMenu();
-            if (globalOrdersForExport.length === 0) return alert("Немає замовлень для експорту.");
-            
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-            csvContent += "ID Замовлення,Сума,Тип Оплати,Статус,Створено,Доставлено,Кур'єр ID\n";
-            
-            globalOrdersForExport.forEach(o => {
-                let status = o.status === 'completed' ? 'Доставлено' : 'В процесі';
-                let payType = o.pay_type === 'cash' ? 'Готівка' : 'Термінал';
-                let created = o.created_at ? new Date(o.created_at).toLocaleString('uk-UA') : '';
-                let completed = o.completed_at ? new Date(o.completed_at).toLocaleString('uk-UA') : '';
-                csvContent += `${o.id},${o.amount},${payType},${status},${created},${completed},${o.courier_id || ''}\n`;
-            });
-            
-            var encodedUri = encodeURI(csvContent);
-            var link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Звіт_Замовлень_${currentFilter}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
         async function loadDashboardData() {
             try {
-                document.getElementById('error-box').style.display = 'none';
-
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
-                if (!bizId) {
-                    document.getElementById('error-box').style.display = 'block';
-                    document.getElementById('error-box').innerText = "Помилка: Не знайдено ID бізнесу.";
-                    return;
-                }
+                if (!bizId) return;
+
                 if (!window.supabase) return;
-                
                 let tgUserId = getTelegramUserId();
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { global: { headers: { 'x-telegram-user-id': tgUserId } } });
-
-                const { data: biz, error: bizError } = await supabase.from('businesses').select('*').eq('id', bizId).maybeSingle();
-                
-                if (bizError) throw new Error("Помилка доступу до бази.");
-                if (!biz) throw new Error("Бізнес не знайдено.");
-
-                currencySymbol = biz.currency || "zł";
-                document.getElementById('set-id').innerText = bizId;
-                document.getElementById('display-biz-name').innerText = biz.name || 'Мій Бізнес';
-                document.getElementById('set-currency').innerText = currencySymbol;
-
-                document.getElementById('input-biz-name').value = biz.name || '';
-                document.getElementById('input-biz-currency').value = biz.currency || 'zł';
-                document.getElementById('input-biz-radius').value = biz.radius_km || 5;
-                bizRadius = biz.radius_km || 5;
-                
-                document.getElementById('input-biz-address').value = biz.street || '';
-                bizLat = biz.lat || null; bizLon = biz.lng || null; 
-
-                currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
-                
-                let statusColor = currentPlanIsPro ? 'var(--success)' : 'var(--text-muted)';
-                let statusBg = currentPlanIsPro ? 'rgba(16, 185, 129, 0.15)' : '#f1f5f9';
-                let planText = currentPlanIsPro ? 'PRO' : 'BASIC';
-                
-                document.getElementById('display-plan').innerHTML = currentPlanIsPro ? '<i class="fa-solid fa-crown"></i> PRO' : 'BASIC';
-                document.getElementById('display-plan').style.color = statusColor;
-                document.getElementById('display-plan').style.background = statusBg;
-                document.getElementById('set-plan-status').innerText = planText;
-                document.getElementById('modal-plan-name').innerText = planText;
-                document.getElementById('modal-plan-badge').style.background = statusColor;
-                document.getElementById('modal-status-card').style.borderColor = currentPlanIsPro ? 'rgba(16, 185, 129, 0.3)' : 'rgba(0,0,0,0.1)';
-
-                let createdDate = new Date(biz.created_at || Date.now()); 
-                createdDate.setDate(createdDate.getDate() + 30 + (parseInt(biz.extra_days)||0));
-                document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA');
-
-                if (!currentPlanIsPro) {
-                    document.getElementById('btn-upgrade').style.display = 'block'; document.getElementById('btn-renew').style.display = 'none';
-                } else {
-                    document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
-                }
-
-                document.getElementById('modal-features-list').innerHTML = `
-                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд</div>
-                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Безлімітні замовлення</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Графік доходу та Пікові години</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Аналітика кур'єрів та Експорт CSV</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Теплова карта доставок</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Безлімітний персонал</div>
-                `;
-
-                ['btn-csv-export', 'card-chart', 'card-peak', 'card-heatmap', 'card-time', 'card-late', 'couriers-leaderboard'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el && !currentPlanIsPro) {
-                        if(!el.querySelector('.pro-overlay')) {
-                            el.classList.add('pro-locked');
-                            const overlay = document.createElement('div'); 
-                            overlay.className = 'pro-overlay'; 
-                            overlay.innerHTML = '<div class="pro-badge"><i class="fa-solid fa-lock"></i> PRO</div>'; 
-                            overlay.onclick = openSubscriptionMenu; 
-                            el.appendChild(overlay);
-                        }
-                        if(id === 'card-chart') document.getElementById('card-chart-title').style.opacity = '0.5';
-                        if(id === 'card-peak') document.getElementById('card-peak-title').style.opacity = '0.5';
-                        if(id === 'couriers-leaderboard') document.getElementById('title-couriers-rating').style.opacity = '0.5';
-                    } else if (el) { 
-                        el.classList.remove('pro-locked'); 
-                        const overlay = el.querySelector('.pro-overlay'); 
-                        if (overlay) overlay.remove(); 
-                        if(id === 'card-chart') document.getElementById('card-chart-title').style.opacity = '1';
-                        if(id === 'card-peak') document.getElementById('card-peak-title').style.opacity = '1';
-                        if(id === 'couriers-leaderboard') document.getElementById('title-couriers-rating').style.opacity = '1';
-                    }
+                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
 
-                const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
-                let staffMap = {};
-                const staffBox = document.getElementById('staff-list');
-                currentCouriersCount = 0; currentManagersCount = 0;
+                const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+                
+                if (biz) {
+                    currencySymbol = biz.currency || "zł";
+                    document.getElementById('set-id').innerText = bizId;
+                    document.getElementById('display-biz-name').innerText = biz.name || 'Мій Бізнес';
+                    document.getElementById('set-currency').innerText = currencySymbol;
 
-                if (staff && staff.length > 0) {
-                    staffBox.innerHTML = '';
-                    staff.forEach(person => {
-                        staffMap[person.user_id] = person.name || person.full_name || 'Кур\'єр';
-                        if (person.role === 'courier') currentCouriersCount++; 
-                        if (person.role === 'manager') currentManagersCount++;
-                        
-                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; 
-                        let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Адмін'; 
-                        let avatar = person.role === 'courier' ? '<i class="fa-solid fa-helmet-safety"></i>' : '<i class="fa-solid fa-laptop-code"></i>';
-                        let safeName = person.name || person.full_name || 'Співробітник';
-                        
-                        staffBox.innerHTML += `
-                            <div class="team-card">
-                                <div class="team-avatar" style="color: ${person.role === 'courier' ? 'var(--primary)' : 'var(--info)'}">${avatar}</div>
-                                <div class="team-info"><div class="team-name">${safeName}</div><div class="team-role ${roleClass}">${roleName}</div></div>
-                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${safeName}')" title="Звільнити"><i class="fa-solid fa-user-minus"></i></button>
-                            </div>
-                        `;
+                    document.getElementById('input-biz-name').value = biz.name || '';
+                    document.getElementById('input-biz-currency').value = biz.currency || 'zł';
+                    document.getElementById('input-biz-radius').value = biz.radius_km || 5;
+                    bizRadius = biz.radius_km || 5;
+                    
+                    document.getElementById('input-biz-address').value = biz.street || '';
+                    bizLat = biz.lat || null; 
+                    bizLon = biz.lng || null; 
+
+                    currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+                    
+                    let statusColor = currentPlanIsPro ? 'var(--success)' : 'var(--text-muted)';
+                    let statusBg = currentPlanIsPro ? 'rgba(16, 185, 129, 0.15)' : '#f1f5f9';
+                    let planText = currentPlanIsPro ? 'PRO' : 'BASIC';
+                    
+                    document.getElementById('display-plan').innerHTML = currentPlanIsPro ? '<i class="fa-solid fa-crown"></i> PRO' : 'BASIC';
+                    document.getElementById('display-plan').style.color = statusColor;
+                    document.getElementById('display-plan').style.background = statusBg;
+                    document.getElementById('set-plan-status').innerText = planText;
+                    document.getElementById('modal-plan-name').innerText = planText;
+                    document.getElementById('modal-plan-badge').style.background = statusColor;
+                    document.getElementById('modal-status-card').style.borderColor = currentPlanIsPro ? 'rgba(16, 185, 129, 0.3)' : 'rgba(0,0,0,0.1)';
+
+                    let createdDate = new Date(biz.created_at || Date.now()); 
+                    createdDate.setDate(createdDate.getDate() + 30 + (parseInt(biz.extra_days)||0));
+                    document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA');
+
+                    if (!currentPlanIsPro) {
+                        document.getElementById('btn-upgrade').style.display = 'block'; document.getElementById('btn-renew').style.display = 'none';
+                    } else {
+                        document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
+                    }
+
+                    document.getElementById('modal-features-list').innerHTML = `
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд</div>
+                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Безлімітні замовлення</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Графік доходу (Аналітика)</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Теплова карта замовлень</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Статистика часу доставки</div>
+                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Безлімітний персонал</div>
+                    `;
+
+                    ['card-chart', 'card-heatmap', 'card-time'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && !currentPlanIsPro) {
+                            if(!el.querySelector('.pro-overlay')) {
+                                el.classList.add('pro-locked');
+                                const overlay = document.createElement('div'); 
+                                overlay.className = 'pro-overlay'; 
+                                overlay.innerHTML = '<div class="pro-badge"><i class="fa-solid fa-lock"></i> PRO</div>'; 
+                                overlay.onclick = openSubscriptionMenu; 
+                                el.appendChild(overlay);
+                            }
+                            if(id === 'card-chart') document.getElementById('card-chart-title').style.opacity = '0.5';
+                        } else if (el) { 
+                            el.classList.remove('pro-locked'); 
+                            const overlay = el.querySelector('.pro-overlay'); 
+                            if (overlay) overlay.remove(); 
+                            if(id === 'card-chart') document.getElementById('card-chart-title').style.opacity = '1';
+                        }
                     });
-                } else {
-                    staffBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;"><i class="fa-solid fa-users-slash" style="font-size: 24px; opacity:0.3; margin-bottom: 10px;"></i><br>Команда порожня</div>';
                 }
 
                 let startDate = new Date();
@@ -668,47 +587,31 @@
                 else if (currentFilter === 'month') startDate.setMonth(startDate.getMonth() - 1);
 
                 const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
-                globalOrdersForExport = orders || [];
                 
                 let heatData = [];
                 let chartDataRaw = {}; 
-                let peakHoursRaw = new Array(24).fill(0);
-                let courierStats = {};
 
                 if (orders && orders.length > 0) {
-                    let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0, lateCount = 0;
+                    let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0;
                     
                     orders.forEach(o => {
                         if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
                         
-                        let d = new Date(o.created_at);
-                        peakHoursRaw[d.getHours()]++;
-
                         if (o.status === 'completed') {
                             completedCount++; 
                             let amt = parseFloat(o.amount) || 0;
                             
-                            if (o.pay_type === 'cash') totalCash += amt; else totalTerminal += amt; 
+                            if (o.pay_type === 'cash') totalCash += amt; 
+                            else totalTerminal += amt; 
                             
-                            let diffMs = 0;
                             if (o.completed_at && o.created_at) { 
-                                diffMs = new Date(o.completed_at) - new Date(o.created_at); 
-                                if (diffMs > 0) { 
-                                    totalDeliveryMinutes += (diffMs / 1000 / 60); 
-                                    ordersWithTimeCount++; 
-                                    if(diffMs > 45 * 60 * 1000) lateCount++; 
-                                } 
+                                let diffMs = new Date(o.completed_at) - new Date(o.created_at); 
+                                if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; } 
                             }
 
+                            let d = new Date(o.created_at);
                             let key = currentFilter === 'today' ? d.getHours() + ':00' : d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
                             chartDataRaw[key] = (chartDataRaw[key] || 0) + amt;
-
-                            let cid = o.courier_id;
-                            if(cid) {
-                                if(!courierStats[cid]) courierStats[cid] = {count: 0, timeTotal: 0, name: staffMap[cid] || 'Невідомий'};
-                                courierStats[cid].count++;
-                                if(diffMs > 0) courierStats[cid].timeTotal += (diffMs / 1000 / 60);
-                            }
                         }
                     });
 
@@ -717,7 +620,6 @@
                     document.getElementById('val-cash').innerText = totalCash.toFixed(2);
                     document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
                     document.getElementById('val-orders').innerText = completedCount;
-                    document.getElementById('val-late').innerText = lateCount;
                     document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
                     document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ' хв' : '-- хв';
 
@@ -727,78 +629,130 @@
                         
                         const ctx = document.getElementById('revenueChart').getContext('2d');
                         if (revenueChart) revenueChart.destroy();
+                        
                         let gradient = ctx.createLinearGradient(0, 0, 0, 180);
-                        gradient.addColorStop(0, 'rgba(255, 90, 95, 0.4)'); gradient.addColorStop(1, 'rgba(255, 90, 95, 0.0)');
+                        gradient.addColorStop(0, 'rgba(255, 90, 95, 0.4)');
+                        gradient.addColorStop(1, 'rgba(255, 90, 95, 0.0)');
 
                         revenueChart = new Chart(ctx, {
-                            type: 'line', data: { labels: labels, datasets: [{ label: 'Дохід', data: dataPoints, borderColor: '#FF5A5F', backgroundColor: gradient, borderWidth: 3, pointBackgroundColor: '#ffffff', pointBorderColor: '#FF5A5F', pointRadius: 4, fill: true, tension: 0.4 }] },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#64748b', font: {size: 10} } }, y: { grid: { color: 'rgba(0,0,0,0.05)', borderDash: [5, 5] }, ticks: { color: '#64748b', font: {size: 10}, beginAtZero: true } } }
+                            type: 'line',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    label: 'Дохід',
+                                    data: dataPoints,
+                                    borderColor: '#FF5A5F',
+                                    backgroundColor: gradient,
+                                    borderWidth: 3,
+                                    pointBackgroundColor: '#ffffff',
+                                    pointBorderColor: '#FF5A5F',
+                                    pointRadius: 4,
+                                    fill: true,
+                                    tension: 0.4 
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { color: '#64748b', font: {size: 10} } },
+                                    y: { grid: { color: 'rgba(0,0,0,0.05)', borderDash: [5, 5] }, ticks: { color: '#64748b', font: {size: 10}, beginAtZero: true } }
+                                }
+                            }
                         });
-
-                        const ctxPeak = document.getElementById('peakChart').getContext('2d');
-                        if(peakChart) peakChart.destroy();
-                        peakChart = new Chart(ctxPeak, {
-                            type: 'bar', data: { labels: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23'], datasets: [{ label: 'Замовлень', data: peakHoursRaw, backgroundColor: '#f59e0b', borderRadius: 4 }] },
-                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#64748b', font: {size: 9} } }, y: { display: false } } }
-                        });
-
-                        const lbBox = document.getElementById('couriers-leaderboard');
-                        let cArr = Object.values(courierStats).sort((a,b) => b.count - a.count);
-                        if(cArr.length > 0) {
-                            lbBox.innerHTML = '';
-                            cArr.forEach((c, index) => {
-                                let avgTime = c.count > 0 ? Math.round(c.timeTotal / c.count) : 0;
-                                let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index+1}.`));
-                                lbBox.innerHTML += `<div class="courier-rank"><div class="cr-medal">${medal}</div><div class="cr-info"><div class="cr-name">${c.name}</div><div class="cr-stats">Сер. час: ${avgTime} хв</div></div><div class="cr-score"><div class="cr-score-val">${c.count}</div><div class="cr-score-lbl">замовлень</div></div></div>`;
-                            });
-                        } else { lbBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Немає даних для рейтингу.</div>'; }
                     }
 
-                    const feedBox = document.getElementById('recent-orders-list'); feedBox.innerHTML = '';
+                    const feedBox = document.getElementById('recent-orders-list'); 
+                    feedBox.innerHTML = '';
                     orders.slice(0, 10).forEach(o => {
                         let isCompleted = o.status === 'completed';
                         let statusIcon = isCompleted ? '<i class="fa-solid fa-check-double"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
                         let iconColor = isCompleted ? 'color: var(--success); background: rgba(16,185,129,0.1);' : 'color: var(--primary); background: rgba(255,90,95,0.1);';
-                        let statusText = isCompleted ? '<span style="color: var(--success);">Доставлено</span>' : '<span style="color: var(--primary);">В процесі</span>';
+                        let statusText = isCompleted ? '<span style="color: var(--success);">Доставлено</span>' : '<span style="color: var(--primary);">Готується/В дорозі</span>';
                         let shortId = o.id.toString().substring(0, 5).toUpperCase();
                         let timeStr = new Date(o.created_at).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
 
-                        feedBox.innerHTML += `<div class="activity-item"><div class="act-icon" style="${iconColor}">${statusIcon}</div><div class="act-details"><div class="act-title">Замовлення #${shortId}</div><div class="act-time">${timeStr} • ${statusText}</div></div><div class="act-price">${parseFloat(o.amount || 0).toFixed(2)}<span style="font-size:12px;">${currencySymbol}</span></div></div>`;
+                        feedBox.innerHTML += `
+                            <div class="activity-item">
+                                <div class="act-icon" style="${iconColor}">${statusIcon}</div>
+                                <div class="act-details">
+                                    <div class="act-title">Замовлення #${shortId}</div>
+                                    <div class="act-time">${timeStr} • ${statusText}</div>
+                                </div>
+                                <div class="act-price">${parseFloat(o.amount || 0).toFixed(2)}<span style="font-size:12px;">${currencySymbol}</span></div>
+                            </div>
+                        `;
                     });
                 } else {
+                    // ФІКС: Обнуляємо всі цифри, якщо замовлень немає
                     document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
                     document.getElementById('val-cash').innerText = '0.00';
                     document.getElementById('val-term').innerText = '0.00';
                     document.getElementById('val-orders').innerText = '0';
-                    document.getElementById('val-late').innerText = '0';
                     document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol;
                     document.getElementById('val-time').innerText = '-- хв';
 
                     document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;"><i class="fa-solid fa-receipt" style="font-size: 24px; opacity:0.3; margin-bottom: 10px;"></i><br>Немає замовлень за цей період</div>';
                     
-                    if(currentPlanIsPro) {
-                        document.getElementById('couriers-leaderboard').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Немає даних для рейтингу.</div>';
-                        if(revenueChart) { revenueChart.destroy(); revenueChart = null; }
-                        if(peakChart) { peakChart.destroy(); peakChart = null; }
-                    }
+                    if(revenueChart) { revenueChart.destroy(); revenueChart = null; }
                 }
 
+                // Load Staff
+                const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
+                const staffBox = document.getElementById('staff-list');
+                currentCouriersCount = 0; currentManagersCount = 0;
+
+                if (staff && staff.length > 0) {
+                    staffBox.innerHTML = '';
+                    staff.forEach(person => {
+                        if (person.role === 'courier') currentCouriersCount++; if (person.role === 'manager') currentManagersCount++;
+                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; 
+                        let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Адмін'; 
+                        let avatar = person.role === 'courier' ? '<i class="fa-solid fa-helmet-safety"></i>' : '<i class="fa-solid fa-laptop-code"></i>';
+                        
+                        let safeName = person.name || person.full_name || 'Співробітник';
+                        
+                        staffBox.innerHTML += `
+                            <div class="team-card">
+                                <div class="team-avatar" style="color: ${person.role === 'courier' ? 'var(--primary)' : 'var(--info)'}">${avatar}</div>
+                                <div class="team-info">
+                                    <div class="team-name">${safeName}</div>
+                                    <div class="team-role ${roleClass}">${roleName}</div>
+                                </div>
+                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${safeName}')" title="Звільнити"><i class="fa-solid fa-user-minus"></i></button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    staffBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;"><i class="fa-solid fa-users-slash" style="font-size: 24px; opacity:0.3; margin-bottom: 10px;"></i><br>Команда порожня</div>';
+                }
+
+                // Малюємо теплову карту (Heatmap)
                 if (currentPlanIsPro) {
                     setTimeout(() => {
                         let centerLat = bizLat || 50.04132, centerLon = bizLon || 21.99901;
-                        if (!bizLat && heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
-                        if (window.dashboardMap) window.dashboardMap.remove(); 
+                        if (!bizLat && heatData.length > 0) { 
+                            centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; 
+                            centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; 
+                        }
+                        
+                        if (window.dashboardMap) { window.dashboardMap.remove(); }
+                        
                         window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(window.dashboardMap);
-                        if(bizLat && bizLon) L.circle([bizLat, bizLon], {color: '#FF5A5F', fillOpacity: 0.1, weight: 2, radius: bizRadius * 1000, dashArray: '5, 5'}).addTo(window.dashboardMap);
-                        if (heatData.length > 0) L.heatLayer(heatData, { radius: 25, blur: 20, maxZoom: 14, gradient: {0.4: '#3b82f6', 0.6: '#10b981', 0.8: '#f59e0b', 1.0: '#FF5A5F'} }).addTo(window.dashboardMap); 
+                        
+                        if(bizLat && bizLon) {
+                            L.circle([bizLat, bizLon], {color: '#FF5A5F', fillOpacity: 0.1, weight: 2, radius: bizRadius * 1000, dashArray: '5, 5'}).addTo(window.dashboardMap);
+                        }
+
+                        if (heatData.length > 0) { 
+                            L.heatLayer(heatData, { radius: 25, blur: 20, maxZoom: 14, gradient: {0.4: '#3b82f6', 0.6: '#10b981', 0.8: '#f59e0b', 1.0: '#FF5A5F'} }).addTo(window.dashboardMap); 
+                        }
                     }, 500);
                 }
 
-            } catch (error) { 
-                document.getElementById('error-box').style.display = 'block';
-                document.getElementById('error-box').innerText = "Помилка завантаження: " + error.message;
-            }
+            } catch (error) { console.error("Помилка:", error); }
         }
 
         const bizAddrInput = document.getElementById('input-biz-address');
@@ -806,32 +760,59 @@
         let bizTimeout = null;
 
         bizAddrInput.addEventListener('input', function() {
-            clearTimeout(bizTimeout); bizLat = null; bizLon = null; document.getElementById('settings-map-container').style.display = 'none';
+            clearTimeout(bizTimeout);
+            bizLat = null; bizLon = null;
+            document.getElementById('settings-map-container').style.display = 'none';
             const query = this.value.trim();
+            
             if (query.length < 3) { bizAddrList.style.display = 'none'; return; }
+
             bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 700;"><i class="fa-solid fa-circle-notch fa-spin"></i> Шукаємо...</div>';
             bizAddrList.style.display = 'block';
+
             bizTimeout = setTimeout(async () => {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl,ua`;
+                
                 try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl,ua`, { headers: { 'Accept-Language': 'uk' } });
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'uk' } });
                     const data = await res.json();
+                    
                     if (data && data.length > 0) {
                         bizAddrList.innerHTML = ''; 
                         data.forEach(item => {
                             const addr = item.address; if (!addr) return;
-                            const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name; const house = addr.house_number || '';
-                            const mainText = `${road} ${house}`.trim(); const city = addr.city || addr.town || addr.village || '';
+                            const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
+                            const house = addr.house_number || '';
+                            const mainText = `${road} ${house}`.trim();
+                            const city = addr.city || addr.town || addr.village || '';
+                            const country = addr.country || '';
                             if (!road) return; 
-                            const div = document.createElement('div'); div.className = 'autocomplete-item'; div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${city}, ${addr.country || ''}</div>`;
-                            div.onclick = function() { bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, ''); bizLat = parseFloat(item.lat); bizLon = parseFloat(item.lon); bizAddrList.style.display = 'none'; updateSettingsMap(); };
+                            
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${city}, ${country}</div>`;
+                            
+                            div.onclick = function() {
+                                bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
+                                bizLat = parseFloat(item.lat);
+                                bizLon = parseFloat(item.lon);
+                                bizAddrList.style.display = 'none';
+                                updateSettingsMap(); 
+                            };
                             bizAddrList.appendChild(div);
                         });
-                    } else { bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--text-muted); text-align: center;">Нічого не знайдено 😕</div>'; }
-                } catch(e) { bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--danger); text-align: center;">❌ Помилка пошуку</div>'; }
+                    } else {
+                        bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--text-muted); text-align: center;">Нічого не знайдено 😕</div>';
+                    }
+                } catch(e) { 
+                    bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--danger); text-align: center;">❌ Помилка пошуку</div>';
+                }
             }, 600); 
         });
 
-        document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && e.target !== bizAddrList) bizAddrList.style.display = 'none'; });
+        document.addEventListener('click', function(e) {
+            if (e.target !== bizAddrInput && e.target !== bizAddrList) bizAddrList.style.display = 'none';
+        });
 
         loadDashboardData();
     </script>
