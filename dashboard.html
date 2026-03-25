@@ -21,7 +21,7 @@
             --bg-color: #f3f6f8; 
             --text-main: #0f172a; 
             --text-muted: #64748b; 
-            --primary: #FF5A5F; /* Преміальний кораловий */
+            --primary: #FF5A5F; 
             --primary-glow: rgba(255, 90, 95, 0.3);
             --surface: #ffffff; 
             --success: #10b981; 
@@ -334,7 +334,7 @@
         
         let bizLat = null;
         let bizLon = null;
-        let bizRadius = 5; // default
+        let bizRadius = 5; 
         
         let settingsMap = null;
         let settingsCircle = null;
@@ -353,10 +353,9 @@
                 let idFromApp = window.Telegram.WebApp.initDataUnsafe?.user?.id;
                 if (idFromApp) return idFromApp.toString();
             }
-            return "6889016268"; // Fallback to owner for testing
+            return "6889016268"; 
         }
 
-        // --- Tabs & Modals ---
         function switchTab(tabId, el) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
@@ -364,7 +363,6 @@
             el.classList.add('active');
             window.scrollTo(0, 0);
             
-            // Fix map rendering bug when switching tabs
             if(tabId === 'home' && window.dashboardMap) {
                 setTimeout(() => window.dashboardMap.invalidateSize(), 100);
             }
@@ -377,7 +375,7 @@
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
-            loadDashboardData(); // Релоад даних
+            loadDashboardData(); 
         }
 
         function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
@@ -395,7 +393,6 @@
             document.getElementById('biz-settings-modal').classList.add('active'); 
             document.body.style.overflow = 'hidden'; 
             
-            // Initialize mini-map if coordinates exist
             setTimeout(() => {
                 if(bizLat && bizLon) {
                     document.getElementById('settings-map-container').style.display = 'block';
@@ -408,7 +405,6 @@
             document.body.style.overflow = ''; 
         }
 
-        // --- Settings Map Logic ---
         function initSettingsMap(lat, lon, r) {
             if(!settingsMap) {
                 settingsMap = L.map('settings-map-container', {zoomControl: false}).setView([lat, lon], 12);
@@ -437,7 +433,6 @@
             }
         }
 
-        // --- Save Settings ---
         async function saveBizSettings(btn) {
             if (!bizId) return;
             const newName = document.getElementById('input-biz-name').value.trim();
@@ -476,7 +471,6 @@
             }
         }
 
-        // --- Actions ---
         function actionUpgrade() { alert("Зв'яжіться з адміністратором для оплати PRO тарифу! 💳"); }
         function actionRenew() { alert("Перехід до оплати..."); }
         function actionCancel() { if(confirm("Ви втратите доступ до PRO функцій. Продовжити?")) closeSubscriptionMenu(); }
@@ -505,7 +499,6 @@
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
-        // --- Main Data Load ---
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
@@ -517,7 +510,6 @@
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
 
-                // Load Business Data
                 const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
                 
                 if (biz) {
@@ -537,7 +529,6 @@
 
                     currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
                     
-                    // Update UI based on PRO status
                     let statusColor = currentPlanIsPro ? 'var(--success)' : 'var(--text-muted)';
                     let statusBg = currentPlanIsPro ? 'rgba(16, 185, 129, 0.15)' : '#f1f5f9';
                     let planText = currentPlanIsPro ? 'PRO' : 'BASIC';
@@ -560,7 +551,6 @@
                         document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
                     }
 
-                    // Render features list
                     document.getElementById('modal-features-list').innerHTML = `
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Базовий дашборд</div>
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> Безлімітні замовлення</div>
@@ -570,7 +560,6 @@
                         <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> Безлімітний персонал</div>
                     `;
 
-                    // Lock PRO features visually
                     ['card-chart', 'card-heatmap', 'card-time'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !currentPlanIsPro) {
@@ -592,17 +581,15 @@
                     });
                 }
 
-                // Setup Date Filter
                 let startDate = new Date();
                 if (currentFilter === 'today') startDate.setHours(0, 0, 0, 0);
                 else if (currentFilter === 'week') startDate.setDate(startDate.getDate() - 7);
                 else if (currentFilter === 'month') startDate.setMonth(startDate.getMonth() - 1);
 
-                // Load Orders
                 const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
                 
                 let heatData = [];
-                let chartDataRaw = {}; // Для графіка
+                let chartDataRaw = {}; 
 
                 if (orders && orders.length > 0) {
                     let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0;
@@ -615,14 +602,13 @@
                             let amt = parseFloat(o.amount) || 0;
                             
                             if (o.pay_type === 'cash') totalCash += amt; 
-                            else totalTerminal += amt; // terminal, online, etc.
+                            else totalTerminal += amt; 
                             
                             if (o.completed_at && o.created_at) { 
                                 let diffMs = new Date(o.completed_at) - new Date(o.created_at); 
                                 if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; } 
                             }
 
-                            // Групування для графіка
                             let d = new Date(o.created_at);
                             let key = currentFilter === 'today' ? d.getHours() + ':00' : d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
                             chartDataRaw[key] = (chartDataRaw[key] || 0) + amt;
@@ -637,15 +623,13 @@
                     document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
                     document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ' хв' : '-- хв';
 
-                    // Малюємо Графік (Chart.js)
                     if(currentPlanIsPro) {
-                        let labels = Object.keys(chartDataRaw).sort(); // Сортуємо ключі (години або дні)
+                        let labels = Object.keys(chartDataRaw).sort(); 
                         let dataPoints = labels.map(k => chartDataRaw[k]);
                         
                         const ctx = document.getElementById('revenueChart').getContext('2d');
                         if (revenueChart) revenueChart.destroy();
                         
-                        // Create gradient for chart
                         let gradient = ctx.createLinearGradient(0, 0, 0, 180);
                         gradient.addColorStop(0, 'rgba(255, 90, 95, 0.4)');
                         gradient.addColorStop(1, 'rgba(255, 90, 95, 0.0)');
@@ -664,7 +648,7 @@
                                     pointBorderColor: '#FF5A5F',
                                     pointRadius: 4,
                                     fill: true,
-                                    tension: 0.4 // Плавні лінії
+                                    tension: 0.4 
                                 }]
                             },
                             options: {
@@ -679,7 +663,6 @@
                         });
                     }
 
-                    // Список замовлень
                     const feedBox = document.getElementById('recent-orders-list'); 
                     feedBox.innerHTML = '';
                     orders.slice(0, 10).forEach(o => {
@@ -688,7 +671,6 @@
                         let iconColor = isCompleted ? 'color: var(--success); background: rgba(16,185,129,0.1);' : 'color: var(--primary); background: rgba(255,90,95,0.1);';
                         let statusText = isCompleted ? '<span style="color: var(--success);">Доставлено</span>' : '<span style="color: var(--primary);">Готується/В дорозі</span>';
                         let shortId = o.id.toString().substring(0, 5).toUpperCase();
-                        
                         let timeStr = new Date(o.created_at).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
 
                         feedBox.innerHTML += `
@@ -703,8 +685,16 @@
                         `;
                     });
                 } else {
+                    // ФІКС: Обнуляємо всі цифри, якщо замовлень немає
+                    document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
+                    document.getElementById('val-cash').innerText = '0.00';
+                    document.getElementById('val-term').innerText = '0.00';
+                    document.getElementById('val-orders').innerText = '0';
+                    document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol;
+                    document.getElementById('val-time').innerText = '-- хв';
+
                     document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;"><i class="fa-solid fa-receipt" style="font-size: 24px; opacity:0.3; margin-bottom: 10px;"></i><br>Немає замовлень за цей період</div>';
-                    // Reset chart
+                    
                     if(revenueChart) { revenueChart.destroy(); revenueChart = null; }
                 }
 
@@ -752,7 +742,6 @@
                         window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
                         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(window.dashboardMap);
                         
-                        // Малюємо зону доставки бізнесу, якщо координати є
                         if(bizLat && bizLon) {
                             L.circle([bizLat, bizLon], {color: '#FF5A5F', fillOpacity: 0.1, weight: 2, radius: bizRadius * 1000, dashArray: '5, 5'}).addTo(window.dashboardMap);
                         }
@@ -766,7 +755,6 @@
             } catch (error) { console.error("Помилка:", error); }
         }
 
-        // --- Autocomplete Map Address ---
         const bizAddrInput = document.getElementById('input-biz-address');
         const bizAddrList = document.getElementById('biz-autocomplete-list');
         let bizTimeout = null;
@@ -809,7 +797,7 @@
                                 bizLat = parseFloat(item.lat);
                                 bizLon = parseFloat(item.lon);
                                 bizAddrList.style.display = 'none';
-                                updateSettingsMap(); // Show minimap
+                                updateSettingsMap(); 
                             };
                             bizAddrList.appendChild(div);
                         });
