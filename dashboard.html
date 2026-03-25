@@ -144,7 +144,6 @@
         
         .loader-center { text-align: center; padding: 30px; color: var(--primary); font-size: 24px; }
         
-        /* Error box styling */
         #error-box { display: none; margin: 20px; padding: 15px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 16px; color: var(--danger); text-align: center; font-weight: bold; font-size: 13px; }
     </style>
 </head>
@@ -234,7 +233,6 @@
     </div>
 
     <div id="tab-team" class="tab-content">
-        
         <div class="section-title" id="title-couriers-rating"><i class="fa-solid fa-trophy" style="color: var(--warning);"></i> Рейтинг кур'єрів</div>
         <div id="couriers-leaderboard" style="margin-bottom: 25px;">
             <div class="loader-center"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
@@ -374,7 +372,6 @@
         let botUsername = "rz_city_bot"; 
         let currencySymbol = "zł";
 
-        // ПОВЕРНУЛИ ЖОРСТКИЙ ФОЛБЕК ЩОБ УНИКНУТИ БЛОКУВАННЯ БАЗОЮ (RLS)
         function getTelegramUserId() {
             let idFromUrl = urlParams.get('tg_id'); 
             if (idFromUrl) return idFromUrl;
@@ -382,7 +379,7 @@
                 let idFromApp = window.Telegram.WebApp.initDataUnsafe?.user?.id;
                 if (idFromApp) return idFromApp.toString();
             }
-            return "6889016268"; // Твій ID
+            return "6889016268"; 
         }
 
         function switchTab(tabId, el) {
@@ -404,6 +401,14 @@
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
+
+            // ВІЗУАЛЬНИЙ ФІКС: Показуємо анімацію завантаження перед запитом
+            document.getElementById('val-total').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="font-size:16px;"></i>';
+            document.getElementById('val-orders').innerHTML = '-';
+            document.getElementById('val-cash').innerHTML = '-';
+            document.getElementById('val-term').innerHTML = '-';
+            document.getElementById('recent-orders-list').innerHTML = '<div class="loader-center"><i class="fa-solid fa-circle-notch fa-spin"></i></div>';
+            
             loadDashboardData(); 
         }
 
@@ -540,13 +545,12 @@
 
         async function loadDashboardData() {
             try {
-                // Приховуємо вікно помилки, якщо воно було
                 document.getElementById('error-box').style.display = 'none';
 
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
                 if (!bizId) {
                     document.getElementById('error-box').style.display = 'block';
-                    document.getElementById('error-box').innerText = "Помилка: Не знайдено ID бізнесу (biz_id) у посиланні.";
+                    document.getElementById('error-box').innerText = "Помилка: Не знайдено ID бізнесу.";
                     return;
                 }
                 if (!window.supabase) return;
@@ -556,8 +560,8 @@
 
                 const { data: biz, error: bizError } = await supabase.from('businesses').select('*').eq('id', bizId).maybeSingle();
                 
-                if (bizError) throw new Error("Помилка доступу до бази (RLS або сервер не відповідає).");
-                if (!biz) throw new Error("Бізнес не знайдено або у вас немає прав доступу до нього.");
+                if (bizError) throw new Error("Помилка доступу до бази.");
+                if (!biz) throw new Error("Бізнес не знайдено.");
 
                 currencySymbol = biz.currency || "zł";
                 document.getElementById('set-id').innerText = bizId;
@@ -762,7 +766,6 @@
                         feedBox.innerHTML += `<div class="activity-item"><div class="act-icon" style="${iconColor}">${statusIcon}</div><div class="act-details"><div class="act-title">Замовлення #${shortId}</div><div class="act-time">${timeStr} • ${statusText}</div></div><div class="act-price">${parseFloat(o.amount || 0).toFixed(2)}<span style="font-size:12px;">${currencySymbol}</span></div></div>`;
                     });
                 } else {
-                    // ФІКСЖОРСТКОГО ОБНУЛЕННЯ
                     document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
                     document.getElementById('val-cash').innerText = '0.00';
                     document.getElementById('val-term').innerText = '0.00';
@@ -772,10 +775,12 @@
                     document.getElementById('val-time').innerText = '-- хв';
 
                     document.getElementById('recent-orders-list').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;"><i class="fa-solid fa-receipt" style="font-size: 24px; opacity:0.3; margin-bottom: 10px;"></i><br>Немає замовлень за цей період</div>';
-                    document.getElementById('couriers-leaderboard').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Немає даних для рейтингу.</div>';
                     
-                    if(revenueChart) { revenueChart.destroy(); revenueChart = null; }
-                    if(peakChart) { peakChart.destroy(); peakChart = null; }
+                    if(currentPlanIsPro) {
+                        document.getElementById('couriers-leaderboard').innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Немає даних для рейтингу.</div>';
+                        if(revenueChart) { revenueChart.destroy(); revenueChart = null; }
+                        if(peakChart) { peakChart.destroy(); peakChart = null; }
+                    }
                 }
 
                 if (currentPlanIsPro) {
