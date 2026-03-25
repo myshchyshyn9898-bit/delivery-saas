@@ -5,6 +5,7 @@ import os
 import requests
 import aiohttp
 import datetime # <--- ДОДАНО ДЛЯ ЧАСУ В ЗВІТІ
+import math     # <--- ДОДАНО ДЛЯ РОЗРАХУНКУ ПУНКТИРУ
 from staticmap import StaticMap, Line, CircleMarker
 from aiogram.types import FSInputFile
 from aiogram import Bot, Dispatcher, types, F
@@ -66,18 +67,41 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-        m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
+        # Світлий стиль карти (як на скріншоті Web App)
+        tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
         
-        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
-        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
-        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
+        # 1. МАЛЮЄМО ПОМАРАНЧЕВИЙ ШТРИХ-ПУНКТИР (імітація пунктиру через рівновіддалені крапки)
+        dot_spacing = 0.0003 # Відстань між крапками (чим менше - тим густіше)
+        for i in range(len(coordinates)-1):
+            p1 = coordinates[i]
+            p2 = coordinates[i+1]
+            dist = math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+            steps = max(1, int(dist / dot_spacing))
+            
+            for j in range(steps):
+                lon = p1[0] + (p2[0] - p1[0]) * (j / steps)
+                lat = p1[1] + (p2[1] - p1[1]) * (j / steps)
+                # Малюємо крапку пунктиру
+                m.add_marker(CircleMarker((lon, lat), '#ff6b4a', 3))
+                
+        # Додаємо останню крапку наприкінці
+        m.add_marker(CircleMarker(coordinates[-1], '#ff6b4a', 3))
+
+        # 2. МАРКЕРИ (Іконки)
+        # Магазин (старт) - Помаранчевий маркер з білою обводкою
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) # Обводка
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) # Центр
+        
+        # Клієнт (фініш) - Синій маркер з білою обводкою
+        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) # Обводка
+        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) # Центр
         
         image = m.render()
         image.save(filename)
         return filename
     except Exception as e:
-        print(f"Помилка карти: {e}")
+        print(f"Помилка рендеру карти: {e}")
         return None
 
 async def get_route_map_file(biz: dict, client_address: str, order_id: str):
@@ -88,13 +112,19 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     encoded_client = urllib.parse.quote(client_address)
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
-    async with aiohttp.ClientSession() as session:
-        async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-            c_data = await resp.json()
-            if c_data and len(c_data) > 0:
-                c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-            else:
-                print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                if resp.status == 200:
+                    c_data = await resp.json()
+                    if c_data and len(c_data) > 0:
+                        c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+                    else:
+                        print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+                else:
+                    print(f"❌ Помилка Nominatim (клієнт): {resp.status}")
+    except Exception as e:
+        print(f"❌ Критична помилка Nominatim: {e}")
 
     if not c_lat: return None 
 
@@ -104,11 +134,17 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                b_data = await resp.json()
-                if b_data and len(b_data) > 0:
-                    b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                    if resp.status == 200:
+                        b_data = await resp.json()
+                        if b_data and len(b_data) > 0:
+                            b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+                    else:
+                        print(f"❌ Помилка Nominatim (бізнес): {resp.status}")
+        except Exception as e:
+            print(f"❌ Критична помилка Nominatim (бізнес): {e}")
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
