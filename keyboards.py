@@ -53,7 +53,11 @@ def get_superadmin_kb(user_id):
     # ЗМІНЕНО: тепер відкриває boss.html
     web_app_url = f"{URL}boss.html?tg_id={user_id}&v={t}"
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👑 Панель Власника", web_app=WebAppInfo(url=web_app_url))]
-    ])
+    # ЗМІНЕНО З InlineKeyboardMarkup НА ReplyKeyboardMarkup ДЛЯ РОБОТИ sendData
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="👑 Панель Власника", web_app=WebAppInfo(url=web_app_url))]
+        ],
+        resize_keyboard=True
+    )
     return keyboard
