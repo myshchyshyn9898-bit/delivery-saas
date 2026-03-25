@@ -339,19 +339,22 @@
                     return;
                 }
                 
-                staffListEl.innerHTML = '';
+                // --- ОПТИМІЗАЦІЯ DOM ---
+                let staffHtml = '';
                 staff.forEach(s => {
                     let roleIcon = s.role === 'manager' ? '<i class="fa-solid fa-user-tie"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
                     let name = s.name || s.full_name || 'Без імені';
                     let tgId = s.telegram_id || s.user_id || 'ID невідомий';
                     
-                    staffListEl.innerHTML += `
+                    staffHtml += `
                         <div class="staff-item">
                             <div><span style="color: white; font-weight: bold;">${name}</span> <br><span style="color: var(--text-muted); font-size: 10px;">ID: ${tgId}</span></div>
                             <div class="staff-role">${roleIcon} ${s.role || 'Співробітник'}</div>
                         </div>
                     `;
                 });
+                staffListEl.innerHTML = staffHtml;
+                // -----------------------
             } catch (e) {
                 staffListEl.innerHTML = '<div style="padding: 5px; color: var(--danger); font-size: 11px;">🚨 Немає доступу до таблиці staff (Перевірте RLS).</div>';
             }
@@ -451,11 +454,12 @@
                 return;
             }
 
-            lbContainer.innerHTML = '';
+            // --- ОПТИМІЗАЦІЯ DOM ---
+            let lbHtml = '';
             top5.forEach((biz, index) => {
                 if(biz.revenue > 0) {
                     let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index+1}.`));
-                    lbContainer.innerHTML += `
+                    lbHtml += `
                         <div class="lb-item">
                             <div class="lb-rank">${medal}</div>
                             <div class="lb-name">${biz.name.replace(/'/g, "").replace(/"/g, "")}</div>
@@ -464,6 +468,8 @@
                     `;
                 }
             });
+            lbContainer.innerHTML = lbHtml;
+            // -----------------------
         }
 
         function renderChart() {
@@ -518,8 +524,10 @@
             const searchQ = document.getElementById('search-input').value.toLowerCase();
             const filterQ = document.getElementById('status-filter').value;
 
-            listEl.innerHTML = '';
             let count = 0;
+            
+            // --- ОПТИМІЗАЦІЯ DOM ---
+            let listHtml = '';
 
             globalBusinesses.forEach(biz => {
                 let safeName = String(biz.name || "Без назви").replace(/'/g, "").replace(/"/g, "");
@@ -539,7 +547,7 @@
 
                 if (matchSearch && matchFilter) {
                     count++;
-                    listEl.innerHTML += `
+                    listHtml += `
                         <div class="biz-card">
                             <div class="biz-header">
                                 <div style="flex: 1; overflow: hidden;">
@@ -557,7 +565,12 @@
                 }
             });
 
-            if (count === 0) listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;"><i class="fa-regular fa-folder-open" style="font-size: 32px; margin-bottom: 10px; opacity: 0.5;"></i><br>Нічого не знайдено</div>';
+            if (count > 0) {
+                listEl.innerHTML = listHtml;
+            } else {
+                listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;"><i class="fa-regular fa-folder-open" style="font-size: 32px; margin-bottom: 10px; opacity: 0.5;"></i><br>Нічого не знайдено</div>';
+            }
+            // -----------------------
         }
 
         setTimeout(loadData, 200);
