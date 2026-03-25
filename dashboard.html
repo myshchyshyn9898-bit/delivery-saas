@@ -15,146 +15,104 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap');
+        :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --success: #34C759; --info: #4A6CF7; --danger: #ff3b30;}
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 100px; } 
 
-        :root { 
-            --bg-color: #f3f6f8; 
-            --text-main: #0f172a; 
-            --text-muted: #64748b; 
-            --primary: #FF5A5F; 
-            --primary-glow: rgba(255, 90, 95, 0.3);
-            --surface: #ffffff; 
-            --success: #10b981; 
-            --info: #3b82f6; 
-            --warning: #f59e0b;
-        }
-        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120px; } 
-
-        /* Header */
-        .header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 20px 20px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .biz-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
-        .biz-status { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .header { background: var(--surface); padding: 20px 20px 15px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; }
+        .biz-title { font-size: 24px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; }
+        .biz-status { font-size: 11px; background: rgba(52, 199, 89, 0.1); color: var(--success); padding: 4px 10px; border-radius: 10px; font-weight: 800; text-transform: uppercase; }
         
-        .time-filter-wrap { display: flex; gap: 8px; margin-top: 15px; align-items: center; }
-        .time-filter { display: flex; background: #e2e8f0; border-radius: 14px; padding: 5px; flex: 1; }
-        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 700; color: var(--text-muted); border-radius: 10px; transition: 0.3s; cursor: pointer;}
-        .filter-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .btn-export-mini { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        .btn-export-mini:active { transform: scale(0.9); background: rgba(16, 185, 129, 0.2); }
+        .time-filter-wrap { display: flex; align-items: center; margin-top: 15px; }
+        .time-filter { display: flex; background: #edf1f7; border-radius: 12px; padding: 4px; flex: 1; }
+        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 600; color: var(--text-muted); border-radius: 8px; transition: 0.2s; cursor: pointer;}
+        .filter-btn.active { background: var(--surface); color: var(--text-main); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        .tab-content { display: none; padding: 20px; animation: fadeIn 0.4s ease; }
+        .btn-export { margin-left: 10px; background: rgba(52, 199, 89, 0.1); color: var(--success); border: 1px solid rgba(52, 199, 89, 0.3); border-radius: 12px; width: 40px; height: 40px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .btn-export:active { transform: scale(0.9); }
+
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Metrics */
         .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
-        .metric-card { background: var(--surface); border-radius: 24px; padding: 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: transform 0.2s; }
-        .metric-card:active { transform: scale(0.98); }
+        .metric-card { background: var(--surface); border-radius: 20px; padding: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; position: relative; overflow: hidden; }
         .metric-card.full-width { grid-column: 1 / -1; }
-        
-        .bg-gradient { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; box-shadow: 0 10px 25px var(--primary-glow); }
-        .metric-icon { width: 38px; height: 38px; border-radius: 12px; background: rgba(255, 90, 95, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+        .metric-icon { width: 35px; height: 35px; border-radius: 10px; background: rgba(255, 118, 82, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+        .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; }
+        .metric-label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+        .bg-gradient { background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; border: none; }
         .bg-gradient .metric-icon { background: rgba(255,255,255,0.2); color: white; }
-        
-        .metric-val { font-size: 26px; font-weight: 900; margin-bottom: 2px; letter-spacing: -0.5px; }
-        .metric-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .bg-gradient .metric-label { color: rgba(255,255,255,0.9); }
+        .bg-gradient .metric-label { color: rgba(255,255,255,0.8); }
 
-        .section-title { font-size: 16px; font-weight: 900; margin-bottom: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .section-title { font-size: 18px; font-weight: 800; margin-bottom: 15px; color: var(--text-main); }
 
-        /* Chart Container */
-        .chart-card { background: var(--surface); border-radius: 24px; padding: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.02); }
-
-        /* Activity Feed */
-        .activity-feed { background: var(--surface); border-radius: 24px; padding: 5px 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); }
-        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
+        .activity-feed { background: var(--surface); border-radius: 20px; padding: 5px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
+        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .activity-item:last-child { border-bottom: none; }
-        .act-icon { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; }
+        .act-icon { width: 40px; height: 40px; border-radius: 50%; background: #f4f7f9; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: var(--success); }
         .act-details { flex: 1; }
-        .act-title { font-size: 14px; font-weight: 800; margin-bottom: 3px; color: var(--text-main); }
-        .act-time { font-size: 12px; font-weight: 600; }
-        .act-price { font-size: 16px; font-weight: 900; color: var(--text-main); }
+        .act-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+        .act-time { font-size: 12px; color: var(--text-muted); }
+        .act-price { font-size: 15px; font-weight: 800; color: var(--text-main); }
 
-        /* Courier Leaderboard */
-        .courier-rank { display: flex; align-items: center; background: var(--surface); border-radius: 16px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(0,0,0,0.02); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .cr-medal { font-size: 20px; font-weight: 900; color: var(--warning); width: 30px; text-align: center; }
-        .cr-info { flex: 1; margin-left: 10px; }
-        .cr-name { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 2px; }
-        .cr-stats { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-        .cr-score { text-align: right; }
-        .cr-score-val { font-size: 16px; font-weight: 900; color: var(--primary); }
-        .cr-score-lbl { font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
-
-        /* Team */
-        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 12px; display: flex; align-items: center; }
-        .team-avatar { width: 45px; height: 45px; border-radius: 14px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; }
+        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 12px; display: flex; align-items: center; }
+        .team-avatar { width: 45px; height: 45px; border-radius: 12px; background: #edf1f7; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 15px; }
         .team-info { flex: 1; }
-        .team-name { font-size: 15px; font-weight: 800; }
-        .team-role { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 4px; letter-spacing: 0.5px; }
-        .role-courier { color: var(--primary); background: rgba(255, 90, 95, 0.1); }
-        .role-manager { color: var(--info); background: rgba(59, 130, 246, 0.1); }
+        .team-name { font-size: 16px; font-weight: 800; }
+        .team-role { font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; display: inline-block; margin-top: 4px; }
+        .role-courier { color: var(--primary); background: rgba(255, 118, 82, 0.1); }
+        .role-manager { color: var(--info); background: rgba(74, 108, 247, 0.1); }
         
-        .btn-delete-staff { background: rgba(239, 68, 68, 0.1); color: #ff3b30; border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .btn-delete-staff:active { transform: scale(0.9); }
+        .btn-delete-staff { background: rgba(255, 59, 48, 0.1); color: #ff3b30; border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .btn-delete-staff:active { transform: scale(0.9); background: rgba(255, 59, 48, 0.2); }
 
-        /* Buttons */
-        .btn-main { background: var(--text-main); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
-        .btn-main:active { transform: scale(0.96); }
-        .btn-main.manager { background: var(--info); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); }
+        .btn-invite { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
+        .btn-invite:active { transform: scale(0.96); }
+        .btn-invite.manager { background: var(--info); box-shadow: 0 8px 20px rgba(74, 108, 247, 0.25); }
 
-        /* Settings */
-        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #edf1f7; }
         .setting-row:last-child { border-bottom: none; }
-        .set-label { font-size: 14px; font-weight: 700; color: var(--text-muted); }
-        .set-val { font-size: 14px; font-weight: 800; }
+        .set-label { font-size: 15px; font-weight: 600; color: var(--text-muted); }
+        .set-val { font-size: 15px; font-weight: 800; }
 
-        /* Floating Bottom Nav */
-        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); display: flex; justify-content: space-around; padding: 15px 10px; border-radius: 30px; z-index: 9999; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.5); }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 10px; font-weight: 800; gap: 6px; transition: 0.3s; cursor: pointer; flex: 1; text-transform: uppercase; letter-spacing: 0.5px; }
-        .nav-item i { font-size: 20px; transition: 0.3s; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); display: flex; justify-content: space-around; padding: 10px 0 calc(15px + env(safe-area-inset-bottom)); border-top: 1px solid #edf1f7; z-index: 9999; box-shadow: 0 -5px 20px rgba(0,0,0,0.03); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 11px; font-weight: 700; gap: 5px; transition: 0.2s; cursor: pointer; width: 33%; padding-top: 10px; }
+        .nav-item i { font-size: 22px; }
         .nav-item.active { color: var(--primary); }
-        .nav-item.active i { transform: translateY(-3px); }
+        .leaflet-container { z-index: 1; border-radius: 12px; }
 
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.8); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(5px); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(17, 20, 24, 0.6); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(3px); }
         .modal-overlay.active { opacity: 1; visibility: visible; }
-        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--bg-color); border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.2); max-height: 92vh; overflow-y: auto; }
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 90vh; overflow-y: auto; }
         .modal-overlay.active .bottom-sheet { bottom: 0; }
-        .sheet-handle { width: 50px; height: 5px; background: #cbd5e1; border-radius: 5px; margin: 0 auto 25px; }
-        
-        /* Pro features */
-        .feature-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text-main); background: white; padding: 12px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .feature-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-        .f-yes { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-        .f-no { background: #f1f5f9; color: var(--text-muted); }
-        .feature-disabled { color: var(--text-muted); opacity: 0.6; }
-        
-        .btn-sub-upgrade { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 25px var(--primary-glow); transition: 0.2s; margin-top: 25px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .btn-sub-upgrade:active { transform: scale(0.98); }
+        .sheet-handle { width: 40px; height: 5px; background: #edf1f7; border-radius: 5px; margin: 0 auto 20px; }
+        .feature-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .feature-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .f-yes { background: rgba(52, 199, 89, 0.1); color: var(--success); }
+        .f-no { background: #f4f7f9; color: var(--text-muted); }
+        .feature-disabled { color: var(--text-muted); text-decoration: line-through; }
+        .btn-sub-upgrade { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(168, 85, 247, 0.25); transition: 0.2s; margin-top: 20px; }
+        .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; }
+        .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 5px; }
 
-        .pro-locked { position: relative; overflow: hidden; border-color: rgba(255, 90, 95, 0.3) !important; }
-        .pro-locked > *:not(.pro-overlay) { filter: blur(6px); opacity: 0.5; pointer-events: none; }
-        .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.4); z-index: 5; cursor: pointer; backdrop-filter: blur(2px); transition: 0.3s; }
-        .pro-overlay:active { background: rgba(255, 255, 255, 0.2); }
-        .pro-badge { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: #fff; padding: 10px 20px; border-radius: 14px; font-size: 14px; font-weight: 900; box-shadow: 0 8px 25px var(--primary-glow); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .pro-locked { position: relative; overflow: hidden; }
+        .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
+        .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); }
+        .pro-badge { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 900; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.4); display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* Form Inputs */
-        .form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-input { width: 100%; padding: 16px; border: 2px solid transparent; border-radius: 16px; font-size: 15px; margin-bottom: 20px; background: white; color: var(--text-main); font-weight: 700; outline: none; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-        .form-input:focus { border-color: var(--primary); box-shadow: 0 4px 20px var(--primary-glow); }
+        .form-input { width: 100%; padding: 16px; border: 1px solid #edf1f7; border-radius: 12px; font-size: 15px; margin-bottom: 15px; background: #fbfcfd; color: var(--text-main); font-weight: 600; outline: none; transition: 0.2s; }
+        .form-input:focus { border-color: var(--primary); background: white; }
+        .form-label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; display: block; font-weight: 700; text-transform: uppercase; }
+        .input-group { position: relative; } 
         
-        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid rgba(0,0,0,0.05); z-index: 1000; max-height: 220px; overflow-y: auto; display: none; margin-top: -10px; margin-bottom: 20px; }
-        .autocomplete-item { padding: 15px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.1s; }
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #edf1f7; z-index: 1000; max-height: 220px; overflow-y: auto; display: none; margin-top: 5px; }
+        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #edf1f7; cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; }
         .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:active { background: #f8fafc; }
-        .addr-main { font-weight: 800; font-size: 14px; margin-bottom: 3px; }
-        .addr-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; }
-        
-        /* Map styling in settings */
-        #settings-map-container { width: 100%; height: 180px; border-radius: 16px; overflow: hidden; margin-bottom: 20px; border: 2px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
-        
-        .loader-center { text-align: center; padding: 30px; color: var(--primary); font-size: 24px; }
+        .autocomplete-item:active { background: #f4f7f9; }
+        .addr-main { font-weight: 800; color: #111418; margin-bottom: 2px; }
+        .addr-sub { font-size: 12px; color: #8a8d91; }
     </style>
 </head>
 <body>
@@ -162,7 +120,7 @@
     <div class="header">
         <div class="biz-title">
             <span id="display-biz-name">Завантаження...</span>
-            <span class="biz-status" id="display-plan"><i class="fa-solid fa-crown"></i> PRO</span>
+            <span class="biz-status" id="display-plan">PRO</span>
         </div>
         <div class="time-filter-wrap">
             <div class="time-filter">
@@ -170,173 +128,170 @@
                 <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
                 <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
             </div>
-            <button class="btn-export-mini" onclick="exportOrdersCSV()" title="Експорт в CSV"><i class="fa-solid fa-file-csv"></i></button>
+            <button class="btn-export" id="btn-csv-export" onclick="exportOrdersCSV()" title="Експорт в CSV"><i class="fa-solid fa-file-csv"></i></button>
         </div>
     </div>
 
     <div id="tab-home" class="tab-content active">
         <div class="metrics-grid">
+            
             <div class="metric-card full-width bg-gradient">
                 <div class="metric-icon"><i class="fa-solid fa-wallet"></i></div>
                 <div class="metric-val" id="val-total">0.00</div>
                 <div class="metric-label">Загальна каса</div>
-                <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 100px; opacity: 0.15; transform: rotate(-10deg);"></i>
+                <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 80px; opacity: 0.1;"></i>
             </div>
 
             <div class="metric-card full-width" id="card-chart" style="padding: 15px;">
                 <div class="metric-label" style="margin-bottom: 10px;"><i class="fa-solid fa-chart-area"></i> Динаміка доходу</div>
-                <canvas id="revenueChart" height="150"></canvas>
+                <div style="position: relative; height: 160px; width: 100%;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
             </div>
 
             <div class="metric-card" id="card-cash">
-                <div class="metric-icon" style="color: #10b981; background: rgba(16,185,129,0.1);"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="metric-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
                 <div class="metric-val" id="val-cash">0.00</div>
                 <div class="metric-label">Готівка</div>
             </div>
             <div class="metric-card" id="card-term">
-                <div class="metric-icon" style="color: var(--info); background: rgba(59,130,246,0.1);"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="metric-icon" style="color: var(--info); background: rgba(74,108,247,0.1);"><i class="fa-solid fa-credit-card"></i></div>
                 <div class="metric-val" id="val-term">0.00</div>
-                <div class="metric-label">Безготівково</div>
+                <div class="metric-label">Термінал</div>
             </div>
             <div class="metric-card" id="card-orders">
-                <div class="metric-icon" style="color: var(--warning); background: rgba(245,158,11,0.1);"><i class="fa-solid fa-bag-shopping"></i></div>
+                <div class="metric-icon" style="color: #FFB020; background: rgba(255,176,32,0.1);"><i class="fa-solid fa-bag-shopping"></i></div>
                 <div class="metric-val" id="val-orders">0</div>
                 <div class="metric-label">Замовлень</div>
             </div>
             
             <div class="metric-card" id="card-late">
-                <div class="metric-icon" style="color: #ff3b30; background: rgba(255,59,48,0.1);"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                <div class="metric-val" id="val-late" style="color: #ff3b30;">0</div>
+                <div class="metric-icon" style="color: var(--danger); background: rgba(255,59,48,0.1);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="metric-val" id="val-late" style="color: var(--danger);">0</div>
                 <div class="metric-label">Запізн. >45хв</div>
             </div>
             
             <div class="metric-card" id="card-time">
-                <div class="metric-icon" style="color: #8b5cf6; background: rgba(139,92,246,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
+                <div class="metric-icon" style="color: var(--success); background: rgba(52,199,89,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
                 <div class="metric-val" id="val-time">-- хв</div>
-                <div class="metric-label">Сер. час дост.</div>
+                <div class="metric-label">Сер. час</div>
             </div>
-            
+
             <div class="metric-card full-width" id="card-heatmap" style="padding: 15px;">
-                <div class="metric-label" style="margin-bottom: 10px;"><i class="fa-solid fa-map-location-dot"></i> Теплова карта</div>
-                <div id="heatmap" style="height: 160px; width: 100%; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.05); z-index: 1;"></div>
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 0 5px;">
+                <div id="heatmap" style="height: 150px; width: 100%; margin-bottom: 15px; border: 1px solid #edf1f7;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
                     <div>
                         <div class="metric-label" style="margin-bottom: 4px;">Середній чек</div>
                         <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
                     </div>
-                    <div class="metric-icon" style="margin: 0; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-fire" style="color: var(--primary);"></i></div>
+                    <div class="metric-icon" style="margin: 0;"><i class="fa-solid fa-fire" style="color: #ff3b30;"></i></div>
                 </div>
             </div>
         </div>
 
-        <div class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color: var(--text-muted);"></i> Останні замовлення</div>
+        <div class="section-title">Останні замовлення</div>
         <div class="activity-feed" id="recent-orders-list">
-            <div class="loader-center"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">Завантаження...</div>
         </div>
     </div>
 
     <div id="tab-team" class="tab-content">
         
-        <div class="section-title" id="title-couriers-rating"><i class="fa-solid fa-trophy" style="color: var(--warning);"></i> Рейтинг кур'єрів</div>
-        <div id="couriers-leaderboard" style="margin-bottom: 25px;">
-            <div class="loader-center"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+        <div class="section-title">Рейтинг кур'єрів (PRO)</div>
+        <div id="couriers-leaderboard" style="margin-bottom: 30px;">
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження...</div>
         </div>
 
-        <div class="section-title"><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> Запрошення персоналу</div>
-        <button class="btn-main" onclick="generateInvite('courier')">
-            <i class="fa-solid fa-motorcycle"></i> Додати Кур'єра
+        <div class="section-title">Запрошення персоналу</div>
+        <button class="btn-invite" onclick="generateInvite('courier')">
+            <i class="fa-solid fa-motorcycle"></i> Запросити Кур'єра
         </button>
-        <button class="btn-main manager" onclick="generateInvite('manager')">
-            <i class="fa-solid fa-user-tie"></i> Додати Менеджера
+        <button class="btn-invite manager" onclick="generateInvite('manager')">
+            <i class="fa-solid fa-user-tie"></i> Запросити Адміна
         </button>
-        
-        <div class="section-title" style="margin-top: 35px;"><i class="fa-solid fa-users" style="color: var(--text-muted);"></i> Активний персонал</div>
+        <div class="section-title" style="margin-top: 30px;">Активний персонал</div>
         <div id="staff-list">
-            <div class="loader-center"><i class="fa-solid fa-circle-notch fa-spin"></i></div>
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">Завантаження команди...</div>
         </div>
     </div>
 
     <div id="tab-settings" class="tab-content">
-        <div class="section-title"><i class="fa-solid fa-building" style="color: var(--primary);"></i> Профіль бізнесу</div>
+        <div class="section-title">Профіль бізнесу</div>
         <div class="activity-feed" style="padding: 10px 20px;">
             <div class="setting-row">
-                <span class="set-label">ID Закладу</span>
-                <span class="set-val" id="set-id" style="font-size: 11px; font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">...</span>
+                <span class="set-label">Business ID</span>
+                <span class="set-val" id="set-id" style="font-size: 11px;">...</span>
             </div>
             
             <div class="setting-row" onclick="openBizSettingsMenu()" style="cursor: pointer;">
-                <span class="set-label">Редагувати профіль</span>
-                <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
+                <span class="set-label">Налаштування бізнесу</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
             </div>
 
             <div class="setting-row" onclick="openSubscriptionMenu()" style="cursor: pointer;">
                 <span class="set-label">Підписка</span>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="set-val" style="color: var(--success); background: rgba(16,185,129,0.1); padding: 4px 10px; border-radius: 8px;" id="set-plan-status">PRO</span>
-                    <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
+                    <span class="set-val" style="color: var(--success);" id="set-plan-status">PRO (Активна)</span>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 12px;"></i>
                 </div>
             </div>
             <div class="setting-row">
-                <span class="set-label">Валюта системи</span>
-                <span class="set-val" id="set-currency" style="background: #f1f5f9; padding: 4px 10px; border-radius: 8px;">zł</span>
+                <span class="set-label">Валюта</span>
+                <span class="set-val" id="set-currency">zł</span>
             </div>
         </div>
-        <button class="btn-main" style="background: white; color: #ff3b30; border: 2px solid rgba(255,59,48,0.2); margin-top: 30px; box-shadow: none;" onclick="closeApp()">
-            <i class="fa-solid fa-power-off"></i> Вийти
+        <button class="btn-invite" style="background: #ff3b30; margin-top: 25px; box-shadow: none;" onclick="closeApp()">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Закрити Дашборд
         </button>
     </div>
 
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('home', this)">
-            <i class="fa-solid fa-house"></i><span>Головна</span>
+            <i class="fa-solid fa-chart-pie"></i>Головна
         </div>
         <div class="nav-item" onclick="switchTab('team', this)">
-            <i class="fa-solid fa-users"></i><span>Команда</span>
+            <i class="fa-solid fa-users"></i>Команда
         </div>
         <div class="nav-item" onclick="switchTab('settings', this)">
-            <i class="fa-solid fa-gear"></i><span>Налашт.</span>
+            <i class="fa-solid fa-gear"></i>Налаштування
         </div>
     </div>
 
     <div class="modal-overlay" id="subscription-modal" onclick="closeSubscriptionMenu()">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 20px; text-align: center;">Тарифний план</h2>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">Керування підпискою</h2>
             
-            <div style="background: white; border: 2px solid rgba(16, 185, 129, 0.3); padding: 20px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(16,185,129,0.1);" id="modal-status-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 24px; font-weight: 900; color: var(--success);" id="modal-plan-name">PRO</span>
-                    <span style="background: var(--success); color: white; padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 900; letter-spacing: 1px;" id="modal-plan-badge">АКТИВНА</span>
+            <div style="background: rgba(52, 199, 89, 0.1); border: 1px solid rgba(52, 199, 89, 0.3); padding: 18px; border-radius: 16px; margin-bottom: 25px;" id="modal-status-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 20px; font-weight: 900; color: var(--success);" id="modal-plan-name">PRO Тариф</span>
+                    <span style="background: var(--success); color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px;" id="modal-plan-badge">АКТИВНА</span>
                 </div>
-                <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;" id="modal-plan-date-text">Оплачено до: <span id="modal-plan-date" style="color: var(--text-main); font-weight: 800;">...</span></div>
+                <div style="font-size: 13px; color: #2e7d32; font-weight: 600;" id="modal-plan-date-text">Дійсна до: <span id="modal-plan-date">...</span></div>
             </div>
 
+            <h3 style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px;">Доступні функції:</h3>
             <div id="modal-features-list"></div>
 
-            <button class="btn-sub-upgrade" id="btn-upgrade" onclick="actionUpgrade()" style="display: none;"><i class="fa-solid fa-rocket"></i> Отримати PRO доступ</button>
-            <button class="btn-main" id="btn-renew" style="background: var(--text-main); color: white;" onclick="actionRenew()">💳 Продовжити підписку</button>
-            <div style="text-align: center; margin-top: 15px;"><span style="color: var(--text-muted); font-size: 13px; font-weight: 600; text-decoration: underline; cursor: pointer;" onclick="actionCancel()">Скасувати підписку</span></div>
+            <button class="btn-sub-upgrade" id="btn-upgrade" onclick="actionUpgrade()" style="display: none;"><i class="fa-regular fa-gem"></i> Оновити до PRO</button>
+            <button class="btn-sub-renew" id="btn-renew" onclick="actionRenew()">🔄 Продовжити підписку</button>
+            <button class="btn-sub-cancel" onclick="actionCancel()">Скасувати підписку</button>
         </div>
     </div>
 
     <div class="modal-overlay" id="biz-settings-modal" onclick="closeBizSettingsMenu()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 40px;">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 25px;">Редагувати профіль</h2>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;">Налаштування бізнесу</h2>
             
-            <label class="form-label">Назва закладу</label>
-            <input type="text" id="input-biz-name" class="form-input" placeholder="Наприклад: My Burger">
+            <label class="form-label">Назва бізнесу</label>
+            <input type="text" id="input-biz-name" class="form-input" placeholder="Введіть назву...">
             
-            <label class="form-label">Адреса закладу (Центр зони)</label>
-            <div style="position: relative;">
-                <input type="text" id="input-biz-address" class="form-input" placeholder="Введіть вулицю та місто..." autocomplete="off" style="margin-bottom: 15px;">
+            <label class="form-label">Адреса закладу (база)</label>
+            <div class="input-group">
+                <input type="text" id="input-biz-address" class="form-input" placeholder="Почніть вводити вулицю..." autocomplete="off" style="margin-bottom: 15px;">
                 <div id="biz-autocomplete-list" class="autocomplete-list"></div>
             </div>
-            
-            <label class="form-label">Радіус безкоштовної доставки (км)</label>
-            <input type="number" id="input-biz-radius" class="form-input" placeholder="Наприклад: 5" onchange="updateSettingsMap()">
-
-            <div id="settings-map-container"></div>
             
             <label class="form-label">Валюта</label>
             <select id="input-biz-currency" class="form-input">
@@ -346,7 +301,10 @@
                 <option value="€">Євро (€)</option>
             </select>
 
-            <button class="btn-main" onclick="saveBizSettings(this)" style="margin-top: 10px;">💾 Зберегти налаштування</button>
+            <label class="form-label">Радіус доставки (км)</label>
+            <input type="number" id="input-biz-radius" class="form-input" placeholder="Наприклад: 5">
+
+            <button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 5px;">💾 Зберегти зміни</button>
         </div>
     </div>
 
@@ -361,23 +319,24 @@
         
         let bizLat = null;
         let bizLon = null;
-        let bizRadius = 5; 
-        
-        let settingsMap = null;
-        let settingsCircle = null;
-        let settingsMarker = null;
-        let revenueChart = null;
 
-        let globalOrdersForExport = [];
+        let globalOrdersForExport = []; // Для CSV
+        let revenueChart = null; // Для графіка
 
-        const urlParams = new URLSearchParams(window.location.search);
+        const urlParams = newSearchParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
         let botUsername = "rz_city_bot"; 
         let currencySymbol = "zł";
 
         function getTelegramUserId() {
-            // ЖОРСТКИЙ ID ЯК ТИ ПРОСИВ ДЛЯ ТЕСТІВ І ЩОБ НЕ БЛОКУВАЛО
-            return "6889016268"; 
+            let idFromUrl = urlParams.get('tg_id'); 
+            if (idFromUrl) return idFromUrl;
+            
+            if (window.Telegram && window.Telegram.WebApp) {
+                let idFromApp = window.Telegram.WebApp.initDataUnsafe?.user?.id;
+                if (idFromApp) return idFromApp.toString();
+            }
+            return "6889016268"; // Жорсткий бекап
         }
 
         function switchTab(tabId, el) {
@@ -387,6 +346,7 @@
             el.classList.add('active');
             window.scrollTo(0, 0);
             
+            // Якщо відкрили головну і карта вже є, перемалюємо її розмір
             if(tabId === 'home' && window.dashboardMap) {
                 setTimeout(() => window.dashboardMap.invalidateSize(), 100);
             }
@@ -399,64 +359,23 @@
             if (txt.includes('сьогодні')) currentFilter = 'today';
             else if (txt.includes('тиждень')) currentFilter = 'week';
             else if (txt.includes('місяць')) currentFilter = 'month';
-            
-            loadDashboardData(); 
+
+            // Візуальний ефект завантаження
+            const actTab = document.querySelector('.tab-content.active');
+            if(actTab) {
+                actTab.style.opacity = '0.5';
+                setTimeout(() => actTab.style.opacity = '1', 300);
+            }
+
+            loadDashboardData();
         }
 
         function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
-        
-        function openSubscriptionMenu() { 
-            document.getElementById('subscription-modal').classList.add('active'); 
-            document.body.style.overflow = 'hidden'; 
-        }
-        function closeSubscriptionMenu() { 
-            document.getElementById('subscription-modal').classList.remove('active'); 
-            document.body.style.overflow = ''; 
-        }
+        function openSubscriptionMenu() { document.getElementById('subscription-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function closeSubscriptionMenu() { document.getElementById('subscription-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
-        function openBizSettingsMenu() { 
-            document.getElementById('biz-settings-modal').classList.add('active'); 
-            document.body.style.overflow = 'hidden'; 
-            
-            setTimeout(() => {
-                if(bizLat && bizLon) {
-                    document.getElementById('settings-map-container').style.display = 'block';
-                    initSettingsMap(bizLat, bizLon, bizRadius);
-                }
-            }, 300);
-        }
-        function closeBizSettingsMenu() { 
-            document.getElementById('biz-settings-modal').classList.remove('active'); 
-            document.body.style.overflow = ''; 
-        }
-
-        function initSettingsMap(lat, lon, r) {
-            if(!settingsMap) {
-                settingsMap = L.map('settings-map-container', {zoomControl: false}).setView([lat, lon], 12);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(settingsMap);
-            } else {
-                settingsMap.setView([lat, lon], 12);
-            }
-            
-            if(settingsMarker) settingsMap.removeLayer(settingsMarker);
-            if(settingsCircle) settingsMap.removeLayer(settingsCircle);
-            
-            settingsMarker = L.marker([lat, lon]).addTo(settingsMap);
-            settingsCircle = L.circle([lat, lon], {
-                color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.2, radius: r * 1000
-            }).addTo(settingsMap);
-            
-            settingsMap.fitBounds(settingsCircle.getBounds());
-            setTimeout(() => settingsMap.invalidateSize(), 100);
-        }
-
-        function updateSettingsMap() {
-            let r = parseFloat(document.getElementById('input-biz-radius').value) || 5;
-            if(bizLat && bizLon) {
-                document.getElementById('settings-map-container').style.display = 'block';
-                initSettingsMap(bizLat, bizLon, r);
-            }
-        }
+        function openBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function closeBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
         async function saveBizSettings(btn) {
             if (!bizId) return;
@@ -487,10 +406,11 @@
                 const { error } = await supabase.from('businesses').update(updatePayload).eq('id', bizId);
                 if (error) throw error;
                 
+                alert("✅ Налаштування успішно збережено!");
                 closeBizSettingsMenu();
                 loadDashboardData(); 
             } catch(e) {
-                alert("❌ Помилка: " + e.message + "\nПереконайтесь, що в Supabase є колонки street та radius_km!");
+                alert("❌ Помилка: " + e.message);
             } finally {
                 btn.innerHTML = oldHtml;
                 btn.disabled = false;
@@ -523,6 +443,7 @@
             } catch (err) { alert("❌ Виникла помилка при видаленні."); }
         }
 
+        // ЕКСПОРТ CSV
         function exportOrdersCSV() {
             if (!currentPlanIsPro) { openSubscriptionMenu(); return; }
             if (globalOrdersForExport.length === 0) { alert("Немає замовлень для експорту."); return; }
@@ -542,7 +463,7 @@
             var encodedUri = encodeURI(csvContent);
             var link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Zvit_Zamovlen_${currentFilter}.csv`);
+            link.setAttribute("download", `Звіт_Замовлень_${currentFilter}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -551,9 +472,11 @@
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
+
                 if (!bizId) return;
 
-                // ФІКС "ЗАЛИПАННЯ": СКИДАЄМО ДАНІ ПЕРЕД ЗАВАНТАЖЕННЯМ
+                // ФІКС ОБНУЛЕННЯ ДАНИХ ПРИ ПЕРЕМИКАННІ ФІЛЬТРА
+                document.getElementById('set-id').innerText = bizId;
                 document.getElementById('val-total').innerText = '0.00 ' + currencySymbol;
                 document.getElementById('val-cash').innerText = '0.00';
                 document.getElementById('val-term').innerText = '0.00';
@@ -624,6 +547,7 @@
                         <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}</div> Безлімітна кількість персоналу</div>
                     `;
 
+                    // БЛОКУВАННЯ PRO ФІЧ
                     if (!currentPlanIsPro) {
                         ['btn-csv-export', 'card-chart', 'card-late', 'couriers-leaderboard', 'card-heatmap', 'card-cash', 'card-term', 'card-orders', 'card-time'].forEach(id => {
                             const el = document.getElementById(id);
@@ -640,6 +564,7 @@
                     }
                 }
 
+                // ПІДТЯГУЄМО ПЕРСОНАЛ
                 const { data: staff } = await supabase.from('staff').select('*').eq('business_id', bizId);
                 const staffBox = document.getElementById('staff-list');
                 let staffMap = {}; 
@@ -649,7 +574,7 @@
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
                         let safeName = person.name || person.full_name || 'Співробітник';
-                        staffMap[person.user_id] = safeName;
+                        staffMap[person.user_id] = safeName; // Зберігаємо для рейтингу
                         
                         if (person.role === 'courier') currentCouriersCount++; if (person.role === 'manager') currentManagersCount++;
                         let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; let roleName = person.role === 'courier' ? 'Кур\'єр' : 'Менеджер'; let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
@@ -665,7 +590,9 @@
                     staffBox.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">В команді поки нікого немає.</div>';
                 }
 
+                // ПІДТЯГУЄМО ЗАМОВЛЕННЯ
                 const { data: orders } = await supabase.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
+                
                 globalOrdersForExport = orders || [];
                 let heatData = [];
                 let chartDataRaw = {}; 
@@ -676,7 +603,7 @@
                     
                     orders.forEach(o => {
                         if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
-                        
+
                         if (o.status === 'completed') {
                             completedCount++; let amt = parseFloat(o.amount) || 0;
                             if (o.pay_type === 'cash') totalCash += amt; if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
@@ -687,14 +614,16 @@
                                 if (diffMs > 0) { 
                                     totalDeliveryMinutes += (diffMs / 1000 / 60); 
                                     ordersWithTimeCount++; 
-                                    if(diffMs > 45 * 60 * 1000) lateCount++; 
+                                    if(diffMs > 45 * 60 * 1000) lateCount++; // Рахуємо запізнення
                                 } 
                             }
-
+                            
+                            // Для графіка
                             let d = new Date(o.created_at);
                             let key = currentFilter === 'today' ? d.getHours() + ':00' : d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
                             chartDataRaw[key] = (chartDataRaw[key] || 0) + amt;
-                            
+
+                            // Збираємо стату для кур'єрів
                             let cid = o.courier_id;
                             if (cid) {
                                 if (!courierStats[cid]) courierStats[cid] = {count: 0, timeTotal: 0, name: staffMap[cid] || 'Невідомий'};
@@ -713,6 +642,7 @@
                     document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
                     document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ' хв' : '-- хв';
 
+                    // МАЛЮЄМО ГРАФІК (ЯКЩО PRO)
                     if (currentPlanIsPro) {
                         let labels = Object.keys(chartDataRaw).sort(); 
                         let dataPoints = labels.map(k => chartDataRaw[k]);
@@ -720,7 +650,7 @@
                         const ctx = document.getElementById('revenueChart').getContext('2d');
                         if (revenueChart) revenueChart.destroy();
                         
-                        let gradient = ctx.createLinearGradient(0, 0, 0, 180);
+                        let gradient = ctx.createLinearGradient(0, 0, 0, 160);
                         gradient.addColorStop(0, 'rgba(255, 90, 95, 0.4)');
                         gradient.addColorStop(1, 'rgba(255, 90, 95, 0.0)');
 
@@ -746,12 +676,13 @@
                                 maintainAspectRatio: false,
                                 plugins: { legend: { display: false } },
                                 scales: {
-                                    x: { grid: { display: false }, ticks: { color: '#64748b', font: {size: 10} } },
-                                    y: { grid: { color: 'rgba(0,0,0,0.05)', borderDash: [5, 5] }, ticks: { color: '#64748b', font: {size: 10}, beginAtZero: true } }
+                                    x: { grid: { display: false }, ticks: { color: '#8a8d91', font: {size: 10} } },
+                                    y: { grid: { color: 'rgba(0,0,0,0.05)', borderDash: [5, 5] }, ticks: { color: '#8a8d91', font: {size: 10}, beginAtZero: true } }
                                 }
                             }
                         });
-
+                        
+                        // МАЛЮЄМО РЕЙТИНГ КУР'ЄРІВ
                         const lbBox = document.getElementById('couriers-leaderboard');
                         let cArr = Object.values(courierStats).sort((a,b) => b.count - a.count);
                         if(cArr.length > 0) {
@@ -760,7 +691,7 @@
                                 let avgTime = c.count > 0 ? Math.round(c.timeTotal / c.count) : 0;
                                 let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index+1}.`));
                                 lbBox.innerHTML += `
-                                    <div class="team-card" style="margin-bottom: 8px;">
+                                    <div class="team-card" style="margin-bottom: 8px; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.02);">
                                         <div style="font-size: 20px; font-weight: 900; margin-right: 15px; width: 25px; text-align: center;">${medal}</div>
                                         <div class="team-info">
                                             <div class="team-name">${c.name}</div>
