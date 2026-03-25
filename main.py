@@ -5,7 +5,6 @@ import os
 import requests
 import aiohttp
 import datetime # <--- ДОДАНО ДЛЯ ЧАСУ В ЗВІТІ
-import math     # <--- ДОДАНО ДЛЯ РОЗРАХУНКУ ПУНКТИРУ
 from staticmap import StaticMap, Line, CircleMarker
 from aiogram.types import FSInputFile
 from aiogram import Bot, Dispatcher, types, F
@@ -67,27 +66,15 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        # Світлий стиль карти (як на скріншоті Web App)
-        tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        # Використовуємо стабільний сервер Carto (який точно не блокує запити)
+        tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+        
+        # Робимо карту трохи більшою та пропорційнішою для Телеграму
         m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
         
-        # 1. МАЛЮЄМО ПОМАРАНЧЕВИЙ ШТРИХ-ПУНКТИР (імітація пунктиру через рівновіддалені крапки)
-        dot_spacing = 0.0003 # Відстань між крапками (чим менше - тим густіше)
-        for i in range(len(coordinates)-1):
-            p1 = coordinates[i]
-            p2 = coordinates[i+1]
-            dist = math.hypot(p1[0] - p2[0], p1[1] - p2[1])
-            steps = max(1, int(dist / dot_spacing))
-            
-            for j in range(steps):
-                lon = p1[0] + (p2[0] - p1[0]) * (j / steps)
-                lat = p1[1] + (p2[1] - p1[1]) * (j / steps)
-                # Малюємо крапку пунктиру
-                m.add_marker(CircleMarker((lon, lat), '#ff6b4a', 3))
-                
-        # Додаємо останню крапку наприкінці
-        m.add_marker(CircleMarker(coordinates[-1], '#ff6b4a', 3))
-
+        # Малюємо красиву суцільну помаранчеву лінію (без крапок, щоб не крашило)
+        m.add_line(Line(coordinates, '#ff6b4a', 5)) 
+        
         # 2. МАРКЕРИ (Іконки)
         # Магазин (старт) - Помаранчевий маркер з білою обводкою
         m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) # Обводка
@@ -101,7 +88,7 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         image.save(filename)
         return filename
     except Exception as e:
-        print(f"Помилка рендеру карти: {e}")
+        print(f"Помилка карти: {e}")
         return None
 
 async def get_route_map_file(biz: dict, client_address: str, order_id: str):
