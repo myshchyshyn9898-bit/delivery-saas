@@ -49,7 +49,7 @@ async def show_main_menu(message: types.Message, context: dict):
 
 # --- ГЕНЕРАТОР КАРТИ (МАРШРУТ) ---
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
-    """Синхронна функція для малювання карти"""
+    """Синхронна функція для малювання карти (ПОВЕРНУТО РЕАЛЬНИЙ МАРШРУТ OSRM)"""
     try:
         url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
         headers = {'User-Agent': 'DeliveProBot/1.0'}
@@ -66,18 +66,27 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
+        # Світла тема карти (стабільний сервер)
         tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
-        m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
+        m = StaticMap(800, 450, padding_x=60, padding_y=60, url_template=tile_url)
         
-        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
-        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
-        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
+        # 1. МАЛЮЄМО МАРШРУТ ПО ДОРОГАХ (Суцільна помаранчева лінія)
+        m.add_line(Line(coordinates, '#ff6b4a', 5))
+        
+        # 2. МАРКЕРИ (Іконки)
+        # Магазин (старт) - Помаранчевий маркер з білою обводкою
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) # Обводка
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) # Центр
+        
+        # Клієнт (фініш) - Синій маркер з білою обводкою
+        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) # Обводка
+        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) # Центр
         
         image = m.render()
         image.save(filename)
         return filename
     except Exception as e:
-        print(f"Помилка карти: {e}")
+        print(f"Помилка рендеру карти: {e}")
         return None
 
 async def get_route_map_file(biz: dict, client_address: str, order_id: str):
@@ -88,13 +97,21 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     encoded_client = urllib.parse.quote(client_address)
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
-    async with aiohttp.ClientSession() as session:
-        async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-            c_data = await resp.json()
-            if c_data and len(c_data) > 0:
-                c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-            else:
-                print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+    try:
+        async with aiohttp.ClientSession() as session:
+            # User-Agent для безпечного запиту до Nominatim
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+            async with session.get(client_url, headers=headers) as resp:
+                if resp.status == 200:
+                    c_data = await resp.json()
+                    if c_data and len(c_data) > 0:
+                        c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+                    else:
+                        print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+                else:
+                    print(f"❌ Помилка Nominatim (клієнт): {resp.status}")
+    except Exception as e:
+        print(f"❌ Критична помилка Nominatim: {e}")
 
     if not c_lat: return None 
 
@@ -104,11 +121,18 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                b_data = await resp.json()
-                if b_data and len(b_data) > 0:
-                    b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+                async with session.get(biz_url, headers=headers) as resp:
+                    if resp.status == 200:
+                        b_data = await resp.json()
+                        if b_data and len(b_data) > 0:
+                            b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+                    else:
+                        print(f"❌ Помилка Nominatim (бізнес): {resp.status}")
+        except Exception as e:
+            print(f"❌ Критична помилка Nominatim (бізнес): {e}")
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
