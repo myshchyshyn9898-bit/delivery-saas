@@ -66,23 +66,12 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         
         coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        # Використовуємо стабільний сервер Carto (який точно не блокує запити)
         tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
+        m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
         
-        # Робимо карту трохи більшою та пропорційнішою для Телеграму
-        m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
-        
-        # Малюємо красиву суцільну помаранчеву лінію (без крапок, щоб не крашило)
-        m.add_line(Line(coordinates, '#ff6b4a', 5)) 
-        
-        # 2. МАРКЕРИ (Іконки)
-        # Магазин (старт) - Помаранчевий маркер з білою обводкою
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) # Обводка
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) # Центр
-        
-        # Клієнт (фініш) - Синій маркер з білою обводкою
-        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) # Обводка
-        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) # Центр
+        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
         
         image = m.render()
         image.save(filename)
@@ -99,19 +88,13 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     encoded_client = urllib.parse.quote(client_address)
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                if resp.status == 200:
-                    c_data = await resp.json()
-                    if c_data and len(c_data) > 0:
-                        c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-                    else:
-                        print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
-                else:
-                    print(f"❌ Помилка Nominatim (клієнт): {resp.status}")
-    except Exception as e:
-        print(f"❌ Критична помилка Nominatim: {e}")
+    async with aiohttp.ClientSession() as session:
+        async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+            c_data = await resp.json()
+            if c_data and len(c_data) > 0:
+                c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+            else:
+                print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
 
     if not c_lat: return None 
 
@@ -121,17 +104,11 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                    if resp.status == 200:
-                        b_data = await resp.json()
-                        if b_data and len(b_data) > 0:
-                            b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
-                    else:
-                        print(f"❌ Помилка Nominatim (бізнес): {resp.status}")
-        except Exception as e:
-            print(f"❌ Критична помилка Nominatim (бізнес): {e}")
+        async with aiohttp.ClientSession() as session:
+            async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                b_data = await resp.json()
+                if b_data and len(b_data) > 0:
+                    b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
