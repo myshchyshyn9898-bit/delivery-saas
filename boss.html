@@ -297,8 +297,20 @@
         function sendBroadcast() {
             const msg = document.getElementById('broadcast-msg').value;
             if(!msg.trim()) return alert("Напишіть текст повідомлення!");
-            alert("✅ Функція готова до підключення бекенду!\nПовідомлення збережено в чергу.");
-            document.getElementById('broadcast-msg').value = '';
+            
+            // Перевіряємо, чи ми в Telegram
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                // Відправляємо дані в бота
+                window.Telegram.WebApp.sendData(JSON.stringify({
+                    action: "broadcast",
+                    text: msg.trim()
+                }));
+                
+                document.getElementById('broadcast-msg').value = '';
+                document.getElementById('broadcast-msg').placeholder = 'Відправляємо...';
+            } else {
+                alert("Помилка: Відкрийте цю панель через Telegram бота, щоб відправити розсилку.");
+            }
         }
 
         function exportToCSV() {
