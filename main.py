@@ -51,7 +51,6 @@ async def show_main_menu(message: types.Message, context: dict):
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
     """Синхронна функція для малювання карти"""
     try:
-        print(f"--- РЕНДЕР КАРТИ: {start_lat},{start_lon} -> {end_lat},{end_lon} ---")
         url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
         headers = {'User-Agent': 'DeliveProBot/1.0'}
         r = requests.get(url, headers=headers, timeout=15)
@@ -70,36 +69,32 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         tile_url = "https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png"
         m = StaticMap(600, 300, padding_x=30, padding_y=30, url_template=tile_url)
         
-        # ОСЬ ТУТ ЗМІНЕНО КОЛЬОРИ НА ПОТРІБНІ (Помаранчевий і Синій)
-        m.add_line(Line(coordinates, '#ff6b4a', 5)) 
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 12)) 
-        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 12))       
+        m.add_line(Line(coordinates, '#4A6CF7', 5)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#34C759', 12)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#FF3B30', 12))       
         
         image = m.render()
         image.save(filename)
-        print("--- КАРТА УСПІШНО ЗБЕРЕЖЕНА ---")
         return filename
     except Exception as e:
         print(f"Помилка карти: {e}")
         return None
 
-async def get_route_map_file(biz: dict, client_address: str, order_id: str, web_lat=None, web_lon=None):
+async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     """Асинхронна обгортка для отримання координат і запуску генератора"""
-    # Беремо точні координати з WebApp (щоб менше грузити Nominatim)
-    c_lat, c_lon = web_lat, web_lon
+    c_lat, c_lon = None, None
     
-    if not c_lat or not c_lon:
-        print(f"Шукаємо координати клієнта для: {client_address}")
-        encoded_client = urllib.parse.quote(client_address)
-        client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
-                c_data = await resp.json()
-                if c_data and len(c_data) > 0:
-                    c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
-                else:
-                    print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+    print(f"Шукаємо координати клієнта для: {client_address}")
+    encoded_client = urllib.parse.quote(client_address)
+    client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+            c_data = await resp.json()
+            if c_data and len(c_data) > 0:
+                c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+            else:
+                print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
 
     if not c_lat: return None 
 
@@ -280,8 +275,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
                 # Якщо PRO - генеруємо та відправляємо карту
                 if is_pro:
-                    # Передаємо координати, якщо WebApp їх відправив
-                    map_filename = await get_route_map_file(biz, data['address'], short_id, data.get('lat'), data.get('lon'))
+                    map_filename = await get_route_map_file(biz, data['address'], short_id)
                     
                     if map_filename and os.path.exists(map_filename):
                         photo = FSInputFile(map_filename)
