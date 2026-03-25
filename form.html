@@ -10,43 +10,52 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        :root { --bg-color: #f4f7f9; --text-main: #111418; --text-muted: #8a8d91; --primary: #ff7652; --surface: #ffffff; --info: #4A6CF7; }
+        /* ПОКРАЩЕННЯ 1: Підтримка темної та світлої теми Telegram, твої кольори як запасні */
+        :root { 
+            --bg-color: var(--tg-theme-bg-color, #f4f7f9); 
+            --text-main: var(--tg-theme-text-color, #111418); 
+            --text-muted: var(--tg-theme-hint-color, #8a8d91); 
+            --primary: var(--tg-theme-button-color, #ff7652); 
+            --surface: var(--tg-theme-secondary-bg-color, #ffffff); 
+            --info: #4A6CF7; 
+        }
+        
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 30px; } 
 
-        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 800; }
+        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid var(--bg-color); position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 800; color: var(--text-main); }
         .container { padding: 20px; }
-        .card { background: var(--surface); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
+        .card { background: var(--surface); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid var(--bg-color); }
         .card-header { font-size: 15px; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
 
         .input-group { margin-bottom: 15px; position: relative; }
-        .input-field, .select-field { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #edf1f7; background: #fbfcfd; font-size: 15px; color: var(--text-main); outline: none; transition: 0.2s; }
-        .input-field:focus, .select-field:focus { border-color: var(--primary); background: white; }
+        .input-field, .select-field { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid var(--bg-color); background: var(--surface); font-size: 15px; color: var(--text-main); outline: none; transition: 0.2s; }
+        .input-field:focus, .select-field:focus { border-color: var(--primary); }
+        .input-field::placeholder { color: var(--text-muted); }
         
         .row { display: flex; gap: 10px; }
         .row > div { flex: 1; }
 
         .chips-container { display: flex; gap: 8px; flex-wrap: wrap; }
         .chips-container input[type="radio"] { display: none; }
-        .chip { padding: 10px 14px; border-radius: 10px; border: 2px solid #edf1f7; background: #fbfcfd; font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: 0.2s; flex: 1; text-align: center; display: block; }
+        .chip { padding: 10px 14px; border-radius: 10px; border: 2px solid var(--bg-color); background: var(--surface); font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: 0.2s; flex: 1; text-align: center; display: block; }
         .chips-container input[type="radio"]:checked + .chip { background: rgba(255, 118, 82, 0.1); border-color: var(--primary); color: var(--primary); }
 
         .btn-submit { background: var(--primary); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(255, 118, 82, 0.25); transition: 0.2s; display: block; margin-top: 15px;}
         .btn-submit:active { transform: scale(0.96); }
 
         .autocomplete-list {
-            position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #edf1f7; z-index: 1000;
+            position: absolute; top: 100%; left: 0; right: 0; background: var(--surface); border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid var(--bg-color); z-index: 1000;
             max-height: 250px; overflow-y: auto; display: none; margin-top: 5px;
         }
-        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid #edf1f7; cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; }
+        .autocomplete-item { padding: 12px 15px; border-bottom: 1px solid var(--bg-color); cursor: pointer; font-size: 14px; line-height: 1.4; transition: 0.1s; color: var(--text-main); }
         .autocomplete-item:last-child { border-bottom: none; }
-        .autocomplete-item:active { background: #f4f7f9; }
-        .addr-main { font-weight: 800; color: #111418; margin-bottom: 2px; display: flex; justify-content: space-between; }
-        .addr-sub { font-size: 12px; color: #8a8d91; }
+        .autocomplete-item:active { background: var(--bg-color); }
+        .addr-main { font-weight: 800; margin-bottom: 2px; display: flex; justify-content: space-between; color: var(--text-main); }
+        .addr-sub { font-size: 12px; color: var(--text-muted); }
         
-        /* Додали стиль для бейджа з дистанцією */
-        .dist-badge { background: #edf1f7; color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
+        .dist-badge { background: var(--bg-color); color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 6px; font-weight: 800; }
     </style>
 </head>
 <body>
@@ -111,11 +120,31 @@
 
     <script>
         let tg = null;
-        try { if (window.Telegram && window.Telegram.WebApp) { tg = window.Telegram.WebApp; tg.expand(); } } catch(e) {}
+        try { 
+            if (window.Telegram && window.Telegram.WebApp) { 
+                tg = window.Telegram.WebApp; 
+                tg.expand(); 
+                
+                // ПОКРАЩЕННЯ 2: Ініціалізація нативної кнопки MainButton
+                tg.MainButton.text = "СТВОРИТИ ТА ВІДПРАВИТИ";
+                // Беремо колір кнопки з теми тг, або залишаємо твій фірмовий
+                tg.MainButton.color = tg.themeParams.button_color || "#ff7652";
+                tg.MainButton.textColor = tg.themeParams.button_text_color || "#ffffff";
+                
+                // Якщо є MainButton, ховаємо звичайну HTML кнопку
+                document.getElementById('btn-submit').style.display = 'none';
+                
+                tg.MainButton.show();
+                tg.MainButton.onClick(function() {
+                    window.submitOrder();
+                });
+            } 
+        } catch(e) { console.error("Помилка Telegram WebApp:", e); }
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
 
+        // УВАГА: Переконайтеся, що в Supabase налаштований RLS (Row Level Security)
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
         let supabaseClient = null;
@@ -146,7 +175,7 @@
                 if (biz) {
                     bizLat = biz.lat || null;
                     bizLon = biz.lng || null;
-                    bizRadius = biz.radius_km || 10; // Якщо радіус не заданий, беремо 10 км
+                    bizRadius = biz.radius_km || 10; 
                 }
 
                 // 2. ВИТЯГУЄМО КУР'ЄРІВ
@@ -167,7 +196,12 @@
                 } else {
                     select.innerHTML = '<option value="">📭 В штаті немає кур\'єрів!</option>';
                 }
-            } catch(e) { console.error("Помилка ініціалізації:", e); }
+            } catch(e) { 
+                console.error("Помилка ініціалізації:", e); 
+                // ПОКРАЩЕННЯ 5: Обробка помилки для select
+                const select = document.getElementById('courier-select');
+                if (select) select.innerHTML = '<option value="">❌ Помилка завантаження. Спробуйте пізніше</option>';
+            }
         }
 
         // --- ЛОГІКА ПОШУКУ З УРАХУВАННЯМ РАДІУСУ ---
@@ -191,8 +225,8 @@
             addrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо адресу...</div>';
             addrList.style.display = 'block';
 
+            // ПОКРАЩЕННЯ 3: Збільшено таймаут до 1200мс, щоб уникнути блокування від OpenStreetMap (ліміт 1 запит/сек)
             timeout = setTimeout(async () => {
-                // Додав параметр limit=10, щоб було з чого вибирати після фільтрації
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
                 
                 try {
@@ -214,7 +248,6 @@
                             let distance = 0;
                             if (bizLat && bizLon) {
                                 distance = calculateDistance(bizLat, bizLon, itemLat, itemLon);
-                                // ФІЛЬТР: Якщо відстань БІЛЬША за радіус — просто пропускаємо цю адресу
                                 if (distance > bizRadius) return; 
                             }
 
@@ -226,9 +259,8 @@
                             
                             if (!road) return; 
                             
-                            foundValidAddress = true; // Знайшли хоча б одну адресу в радіусі
+                            foundValidAddress = true;
 
-                            // Красивий бейдж з кілометражем
                             const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route"></i> ${distance.toFixed(1)} км</span>` : '';
 
                             const div = document.createElement('div');
@@ -245,7 +277,6 @@
                         });
                     }
 
-                    // Якщо після фільтрації нічого не залишилось (або Nominatim нічого не дав)
                     if (!foundValidAddress) {
                         addrList.innerHTML = `
                             <div class="autocomplete-item" style="color: #ff3b30; text-align: center;">
@@ -257,7 +288,7 @@
                 } catch(e) { 
                     addrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
                 }
-            }, 600); 
+            }, 1200); 
         });
 
         document.addEventListener('click', function(e) {
@@ -273,6 +304,14 @@
             const amount = document.getElementById('order-amount').value.trim();
             const courierId = document.getElementById('courier-select').value;
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
+            const clientPhone = document.getElementById('client-phone').value.trim();
+
+            // ПОКРАЩЕННЯ 4: Базова валідація телефону (тільки цифри, пробіли, +, -, дужки)
+            if (clientPhone && !/^[+0-9\s\-()]{7,15}$/.test(clientPhone)) {
+                if (tg && tg.showAlert) tg.showAlert("📱 Будь ласка, введіть коректний номер телефону!");
+                else alert("📱 Будь ласка, введіть коректний номер телефону!");
+                return;
+            }
 
             if (!street || !amount || !courierId) {
                 if (tg && tg.showAlert) tg.showAlert("📍 Введіть вулицю, суму та обов'язково оберіть кур'єра!");
@@ -284,7 +323,7 @@
                 action: "new_order",
                 biz_id: bizId,
                 client_name: document.getElementById('client-name').value.trim() || "Клієнт",
-                client_phone: document.getElementById('client-phone').value.trim(),
+                client_phone: clientPhone,
                 address: street, 
                 apt: apt,        
                 code: code,      
@@ -296,7 +335,12 @@
                 lon: selectedLon 
             };
 
-            document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
+            // ПОКРАЩЕННЯ 6: Крутилка на нативній кнопці під час відправки
+            if (tg && tg.MainButton) {
+                tg.MainButton.showProgress();
+            } else {
+                document.getElementById('btn-submit').innerText = "⏳ Відправляємо...";
+            }
             
             if (tg && tg.sendData) tg.sendData(JSON.stringify(orderData));
             else console.log("Тестовий режим:", orderData);
