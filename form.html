@@ -9,6 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
         /* Фіксована преміальна світла тема */
         :root { 
@@ -65,6 +68,18 @@
         .text-center { text-align: center; }
         .text-primary { color: var(--primary); }
         .text-danger { color: #ef4444; }
+
+        /* Стилі для контейнера карти */
+        .map-preview {
+            height: 160px;
+            width: 100%;
+            border-radius: 12px;
+            margin-top: 16px;
+            border: 1px solid var(--border);
+            display: none; /* Приховано до моменту вибору адреси */
+            z-index: 1; /* Щоб не перекривало autocomplete */
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
@@ -96,6 +111,8 @@
                 <div class="input-group" style="margin-bottom: 0;"><input type="text" id="address-apt" class="input-field" placeholder="Квартира"></div>
                 <div class="input-group" style="margin-bottom: 0;"><input type="text" id="address-code" class="input-field" placeholder="Домофон"></div>
             </div>
+
+            <div id="map-preview" class="map-preview"></div>
         </div>
 
         <div class="card">
@@ -136,16 +153,13 @@
                 tg = window.Telegram.WebApp; 
                 tg.expand(); 
                 
-                // Встановлюємо кольори шапки Telegram під наш світлий дизайн (якщо підтримується)
                 if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
                 if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
                 
-                // Нативна кнопка Telegram (жорстко задаємо наш колір, ігноруючи тему ТГ)
                 tg.MainButton.text = "СТВОРИТИ ТА ВІДПРАВИТИ";
                 tg.MainButton.color = "#ff6b4a"; 
                 tg.MainButton.textColor = "#ffffff";
                 
-                // Ховаємо звичайну кнопку
                 document.getElementById('btn-submit').style.display = 'none';
                 
                 tg.MainButton.show();
@@ -163,10 +177,14 @@
         let supabaseClient = null;
         if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- ГЛОБАЛЬНІ ЗМІННІ БІЗНЕСУ ДЛЯ РАДІУСУ ---
+        // --- ГЛОБАЛЬНІ ЗМІННІ БІЗНЕСУ ---
         let bizLat = null;
         let bizLon = null;
         let bizRadius = 10;
+
+        // --- ГЛОБАЛЬНІ ЗМІННІ ДЛЯ КАРТИ ---
+        let map = null;
+        let mapLayer = null;
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; 
@@ -200,8 +218,7 @@
                     couriers.forEach(c => { 
                         const isBusy = busyIds.includes(String(c.user_id));
                         const statusText = isBusy ? "В дорозі" : "Вільний";
-                        const textColor = isBusy ? "#f59e0b" : "#10b981"; // Оранжевий або зелений
-                        // В select не можна використовувати іконки FontAwesome, тому юзаємо текстовий кружечок
+                        const textColor = isBusy ? "#f59e0b" : "#10b981"; 
                         select.innerHTML += `<option value="${c.user_id || c.tg_id}" style="color: ${textColor}; font-weight: 500;">● ${c.name} (${statusText})</option>`; 
                     });
                 } else {
@@ -212,6 +229,63 @@
                 const select = document.getElementById('courier-select');
                 if (select) select.innerHTML = '<option value="">Помилка завантаження даних</option>';
             }
+        }
+
+        // Функція для малювання карти і маршруту
+        function updateMapPreview(clientLat, clientLon) {
+            const mapContainer = document.getElementById('map-preview');
+            mapContainer.style.display = 'block'; // Показуємо блок
+
+            // Якщо карта ще не створена, ініціалізуємо її
+            if (!map) {
+                // zoomControl: false прибирає кнопки +/- щоб зекономити місце
+                map = L.map('map-preview', { zoomControl: false, attributionControl: false });
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 19
+                }).addTo(map);
+                mapLayer = L.layerGroup().addTo(map);
+            }
+
+            mapLayer.clearLayers(); // Очищаємо попередні лінії/маркери
+
+            const clientPoint = [clientLat, clientLon];
+            
+            // Кастомні іконки FontAwesome для карти
+            const clientIcon = L.divIcon({
+                html: '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>',
+                className: '', iconSize: [28, 28], iconAnchor: [14, 28]
+            });
+
+            const bizIcon = L.divIcon({
+                html: '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>',
+                className: '', iconSize: [24, 24], iconAnchor: [12, 24]
+            });
+
+            // Якщо є координати бізнесу - малюємо лінію
+            if (bizLat && bizLon) {
+                const bizPoint = [bizLat, bizLon];
+                L.marker(bizPoint, {icon: bizIcon}).addTo(mapLayer);
+                L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
+
+                // Малюємо пунктирну лінію між точками
+                const polyline = L.polyline([bizPoint, clientPoint], {
+                    color: '#ff6b4a', 
+                    weight: 3, 
+                    dashArray: '6, 8', 
+                    opacity: 0.8
+                }).addTo(mapLayer);
+
+                // Автоматично центруємо карту, щоб було видно обидві точки з відступами
+                map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+            } else {
+                // Якщо координати бізнесу невідомі, просто показуємо точку клієнта
+                L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
+                map.setView(clientPoint, 15);
+            }
+
+            // Коли div з display:none стає display:block, Leaflet іноді глючить з розміром.
+            // InvalidateSize фіксить цю проблему
+            setTimeout(() => { map.invalidateSize(); }, 100);
         }
 
         // --- ЛОГІКА ПОШУКУ З УРАХУВАННЯМ РАДІУСУ ---
@@ -225,6 +299,8 @@
         addrInput.addEventListener('input', function() {
             clearTimeout(timeout);
             selectedLat = null; selectedLon = null;
+            document.getElementById('map-preview').style.display = 'none'; // Ховаємо карту при зміні тексту
+            
             const query = this.value.trim();
             
             if (query.length < 3) { 
@@ -280,6 +356,9 @@
                                 selectedLat = itemLat; 
                                 selectedLon = itemLon; 
                                 addrList.style.display = 'none';
+                                
+                                // Викликаємо малювання карти після вибору адреси
+                                updateMapPreview(selectedLat, selectedLon);
                             };
                             addrList.appendChild(div);
                         });
