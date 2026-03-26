@@ -56,7 +56,7 @@
         /* Header */
         .header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 20px 20px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
         .biz-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; position: relative; }
-        .biz-status { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; vertical-align: middle;}
+        .biz-status { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; vertical-align: middle; margin-left: 8px;}
         
         .time-filter-wrap { display: flex; gap: 8px; margin-top: 15px; align-items: center; }
         .time-filter { display: flex; background: #e2e8f0; border-radius: 14px; padding: 5px; flex: 1; }
@@ -182,167 +182,13 @@
 </head>
 <body>
 
-    <script>
-        // СИСТЕМА МОВИ ТА СЛОВНИК МАЄ БУТИ НА САМОМУ ПОЧАТКУ
-        let tgLang = 'en';
-        try { if (window.Telegram?.WebApp?.initDataUnsafe?.user) tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en'; } catch(e) {}
-        let savedLang = localStorage.getItem('appLang');
-        let currentLang = savedLang || tgLang;
-        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
-
-        const i18n = {
-            'uk': {
-                tab_today: "Сьогодні", tab_week: "Тиждень", tab_month: "Місяць",
-                metric_total: "Загальна каса", metric_heat: "Теплова карта", metric_avg: "Середній чек",
-                metric_chart: "Динаміка доходу", metric_cash: "Готівка", metric_term: "Термінал",
-                metric_orders: "Замовлень", metric_time: "Сер. час", metric_late: "Запізнення (> 45 хв)",
-                title_recent: "Останні замовлення", title_rating: "Рейтинг кур'єрів (PRO)", 
-                title_invite: "Запрошення персоналу", btn_add_c: "Додати Кур'єра", btn_add_m: "Додати Менеджера", 
-                btn_reset: "Оновити посилання (Анулювати старі)", title_active: "Активний персонал",
-                title_profile: "Профіль бізнесу", lbl_biz_id: "ID Закладу", lbl_edit: "Редагувати профіль",
-                lbl_sub: "Підписка", lbl_cur: "Валюта системи", btn_logout: "Вийти",
-                nav_home: "Головна", nav_team: "Команда", nav_settings: "Налаштування",
-                modal_plan: "Тарифний план", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
-                btn_pro: "Отримати PRO доступ", btn_renew: "Продовжити підписку", btn_cancel: "Скасувати підписку",
-                set_title: "Налаштування бізнесу", set_name: "Назва бізнесу", set_addr: "Адреса закладу (база)",
-                set_rad: "Радіус доставки (км)", set_cur: "Валюта", btn_save: "💾 Зберегти зміни",
-                // Динамічні
-                loading: "Завантаження...", empty_team: "В команді поки нікого немає.", empty_orders: "За цей період замовлень не знайдено",
-                empty_rating: "Немає даних для рейтингу.", err_export: "Немає замовлень для експорту.",
-                status_done: "Доставлено", status_proc: "В процесі", min: "хв", order: "Замовлення", avg_time_lbl: "Сер. час:",
-                orders_lbl: "замовлень", role_c: "Кур'єр", role_m: "Менеджер",
-                search_load: "Шукаємо адресу...", search_empty: "Нічого не знайдено 😕", search_err: "❌ Помилка пошуку",
-                alert_save: "✅ Налаштування успішно збережено!", alert_err: "❌ Помилка: ", confirm_reset: "⚠️ ВИ ВПЕВНЕНІ?\n\nВсі старі посилання миттєво перестануть працювати.",
-                alert_reset: "✅ Успіх! Старі посилання анульовано.", confirm_del: "Ви дійсно хочете звільнити працівника",
-                limit_c: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.",
-                limit_m: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.",
-                err_biz: "Помилка: Business ID не знайдено.", err_tok: "Помилка безпеки: Токен запрошення відсутній.",
-                success_copy: "✅ Безпечне посилання скопійовано!",
-                f1: "Базовий дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
-                f4: "Інтерактивна теплова карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал"
-            },
-            'ru': {
-                tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
-                metric_total: "Общая касса", metric_heat: "Тепловая карта", metric_avg: "Средний чек",
-                metric_chart: "Динамика дохода", metric_cash: "Наличные", metric_term: "Терминал",
-                metric_orders: "Заказов", metric_time: "Ср. время", metric_late: "Опоздания (> 45 мин)",
-                title_recent: "Последние заказы", title_rating: "Рейтинг курьеров (PRO)", 
-                title_invite: "Приглашение персонала", btn_add_c: "Добавить Курьера", btn_add_m: "Добавить Менеджера", 
-                btn_reset: "Обновить ссылки (Аннулировать старые)", title_active: "Активный персонал",
-                title_profile: "Профиль бизнеса", lbl_biz_id: "ID Заведения", lbl_edit: "Редактировать профиль",
-                lbl_sub: "Подписка", lbl_cur: "Валюта системы", btn_logout: "Выйти",
-                nav_home: "Главная", nav_team: "Команда", nav_settings: "Настройки",
-                modal_plan: "Тарифный план", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
-                btn_pro: "Получить PRO доступ", btn_renew: "Продлить подписку", btn_cancel: "Отменить подписку",
-                set_title: "Настройки бизнеса", set_name: "Название заведения", set_addr: "Адрес заведения (база)",
-                set_rad: "Радиус доставки (км)", set_cur: "Валюта", btn_save: "💾 Сохранить изменения",
-                // Динамічні
-                loading: "Загрузка...", empty_team: "В команде пока никого нет.", empty_orders: "За этот период заказов не найдено",
-                empty_rating: "Нет данных для рейтинга.", err_export: "Нет заказов для экспорта.",
-                status_done: "Доставлено", status_proc: "В процессе", min: "мин", order: "Заказ", avg_time_lbl: "Ср. время:",
-                orders_lbl: "заказов", role_c: "Курьер", role_m: "Менеджер",
-                search_load: "Ищем адрес...", search_empty: "Ничего не найдено 😕", search_err: "❌ Ошибка поиска",
-                alert_save: "✅ Настройки успешно сохранены!", alert_err: "❌ Ошибка: ", confirm_reset: "⚠️ ВЫ УВЕРЕНЫ?\n\nВсе старые ссылки мгновенно перестанут работать.",
-                alert_reset: "✅ Успех! Старые ссылки аннулированы.", confirm_del: "Вы действительно хотите уволить сотрудника",
-                limit_c: "⚠️ ЛИМИТ ИСЧЕРПАН!\n\nВ тарифе BASIC можно добавить максимум 2 курьера.",
-                limit_m: "⚠️ ЛИМИТ ИСЧЕРПАН!\n\nВ тарифе BASIC можно добавить максимум 1 администратора.",
-                err_biz: "Ошибка: Business ID не найден.", err_tok: "Ошибка безопасности: Токен приглашения отсутствует.",
-                success_copy: "✅ Безопасная ссылка скопирована!",
-                f1: "Базовый дашборд", f2: "Безлимитные заказы", f3: "Экспорт CSV, График и Рейтинг",
-                f4: "Интерактивная тепловая карта", f5: "Статистика времени и Опозданий", f6: "Безлимитный персонал"
-            },
-            'pl': {
-                tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
-                metric_total: "Całkowity utarg", metric_heat: "Mapa cieplna", metric_avg: "Średni paragon",
-                metric_chart: "Dynamika dochodu", metric_cash: "Gotówka", metric_term: "Terminal",
-                metric_orders: "Zamówień", metric_time: "Śr. czas", metric_late: "Spóźnienia (> 45 min)",
-                title_recent: "Ostatnie zamówienia", title_rating: "Ranking kurierów (PRO)", 
-                title_invite: "Zaproszenie personelu", btn_add_c: "Dodaj Kuriera", btn_add_m: "Dodaj Menedżera", 
-                btn_reset: "Odśwież linki (Anuluj stare)", title_active: "Aktywny personel",
-                title_profile: "Profil firmy", lbl_biz_id: "ID Lokalu", lbl_edit: "Edytuj profil",
-                lbl_sub: "Subskrypcja", lbl_cur: "Waluta systemu", btn_logout: "Wyloguj",
-                nav_home: "Główna", nav_team: "Zespół", nav_settings: "Ustawienia",
-                modal_plan: "Plan taryfowy", plan_active: "AKTYWNA", plan_paid: "Opłacono do:",
-                btn_pro: "Kup dostęp PRO", btn_renew: "Przedłuż subskrypcję", btn_cancel: "Anuluj subskrypcję",
-                set_title: "Ustawienia firmy", set_name: "Nazwa lokalu", set_addr: "Adres lokalu (baza)",
-                set_rad: "Promień dostawy (km)", set_cur: "Waluta", btn_save: "💾 Zapisz zmiany",
-                // Динамічні
-                loading: "Ładowanie...", empty_team: "W zespole nikogo nie ma.", empty_orders: "Brak zamówień w tym okresie",
-                empty_rating: "Brak danych do rankingu.", err_export: "Brak zamówień do eksportu.",
-                status_done: "Dostarczono", status_proc: "W trakcie", min: "min", order: "Zamówienie", avg_time_lbl: "Śr. czas:",
-                orders_lbl: "zamówień", role_c: "Kurier", role_m: "Menedżer",
-                search_load: "Szukamy adresu...", search_empty: "Nic nie znaleziono 😕", search_err: "❌ Błąd wyszukiwania",
-                alert_save: "✅ Ustawienia zapisane pomyślnie!", alert_err: "❌ Błąd: ", confirm_reset: "⚠️ JESTEŚ PEWIEN?\n\nWszystkie stare linki natychmiast przestaną działać.",
-                alert_reset: "✅ Sukces! Stare linki anulowane.", confirm_del: "Czy na pewno chcesz zwolnić pracownika",
-                limit_c: "⚠️ LIMIT WYCZERPANY!\n\nW planie BASIC można dodać max 2 kurierów.",
-                limit_m: "⚠️ LIMIT WYCZERPANY!\n\nW planie BASIC można dodać max 1 administratora.",
-                err_biz: "Błąd: Nie znaleziono Business ID.", err_tok: "Błąd bezp.: Brak tokenu zaproszenia.",
-                success_copy: "✅ Bezpieczny link skopiowany!",
-                f1: "Podstawowy panel", f2: "Nielimitowane zamówienia", f3: "Eksport CSV, Wykres i Ranking",
-                f4: "Interaktywna mapa cieplna", f5: "Statystyki czasu i Spóźnień", f6: "Nielimitowany personel"
-            },
-            'en': {
-                tab_today: "Today", tab_week: "Week", tab_month: "Month",
-                metric_total: "Total Revenue", metric_heat: "Heatmap", metric_avg: "Avg Check",
-                metric_chart: "Revenue Dynamics", metric_cash: "Cash", metric_term: "Terminal",
-                metric_orders: "Orders", metric_time: "Avg Time", metric_late: "Late (> 45 min)",
-                title_recent: "Recent Orders", title_rating: "Courier Ranking (PRO)", 
-                title_invite: "Invite Staff", btn_add_c: "Add Courier", btn_add_m: "Add Manager", 
-                btn_reset: "Reset Links (Revoke old)", title_active: "Active Staff",
-                title_profile: "Business Profile", lbl_biz_id: "Business ID", lbl_edit: "Edit Profile",
-                lbl_sub: "Subscription", lbl_cur: "System Currency", btn_logout: "Logout",
-                nav_home: "Home", nav_team: "Team", nav_settings: "Settings",
-                modal_plan: "Subscription Plan", plan_active: "ACTIVE", plan_paid: "Paid until:",
-                btn_pro: "Get PRO Access", btn_renew: "Renew Subscription", btn_cancel: "Cancel Subscription",
-                set_title: "Business Settings", set_name: "Business Name", set_addr: "Business Address (Base)",
-                set_rad: "Delivery Radius (km)", set_cur: "Currency", btn_save: "💾 Save Changes",
-                // Динамічні
-                loading: "Loading...", empty_team: "No team members yet.", empty_orders: "No orders found for this period",
-                empty_rating: "No data for ranking.", err_export: "No orders to export.",
-                status_done: "Delivered", status_proc: "In Progress", min: "min", order: "Order", avg_time_lbl: "Avg time:",
-                orders_lbl: "orders", role_c: "Courier", role_m: "Manager",
-                search_load: "Searching address...", search_empty: "Nothing found 😕", search_err: "❌ Search error",
-                alert_save: "✅ Settings saved successfully!", alert_err: "❌ Error: ", confirm_reset: "⚠️ ARE YOU SURE?\n\nAll old links will stop working immediately.",
-                alert_reset: "✅ Success! Old links revoked.", confirm_del: "Are you sure you want to dismiss",
-                limit_c: "⚠️ LIMIT REACHED!\n\nIn BASIC plan you can add max 2 couriers.",
-                limit_m: "⚠️ LIMIT REACHED!\n\nIn BASIC plan you can add max 1 administrator.",
-                err_biz: "Error: Business ID not found.", err_tok: "Security Error: Invite token missing.",
-                success_copy: "✅ Secure link copied!",
-                f1: "Basic dashboard", f2: "Unlimited orders", f3: "CSV Export, Chart & Ranking",
-                f4: "Interactive Heatmap", f5: "Time & Late Statistics", f6: "Unlimited staff"
-            }
-        };
-
-        function t(key) { return i18n[currentLang][key] || key; }
-
-        function setLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('appLang', lang); 
-            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
-            
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
-            });
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-i18n-placeholder');
-                if (i18n[lang][key]) el.placeholder = i18n[lang][key];
-            });
-
-            // Оновлюємо динамічні дані, якщо вони вже були завантажені
-            if (typeof bizId !== 'undefined' && bizId) loadDashboardData();
-        }
-
-        function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
-        document.addEventListener('click', (e) => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
-    </script>
-
     <div class="header">
-        <div class="biz-title">
-            <div style="flex:1;">
+        <div class="biz-title" style="position: relative;">
+            <div style="display: flex; align-items: center;">
                 <span id="display-biz-name" data-i18n="loading">Завантаження...</span>
                 <span class="biz-status" id="display-plan"><i class="fa-solid fa-crown"></i> PRO</span>
             </div>
+            
             <div class="lang-switcher" onclick="toggleLangMenu()">
                 <i class="fa-solid fa-globe"></i> <span id="current-lang-display">UK</span>
             </div>
@@ -356,9 +202,9 @@
         
         <div class="time-filter-wrap">
             <div class="time-filter">
-                <div class="filter-btn active" onclick="setFilter(this)" data-i18n="tab_today">Сьогодні</div>
-                <div class="filter-btn" onclick="setFilter(this)" data-i18n="tab_week">Тиждень</div>
-                <div class="filter-btn" onclick="setFilter(this)" data-i18n="tab_month">Місяць</div>
+                <div class="filter-btn active" onclick="setFilter(this, 'today')" data-i18n="tab_today">Сьогодні</div>
+                <div class="filter-btn" onclick="setFilter(this, 'week')" data-i18n="tab_week">Тиждень</div>
+                <div class="filter-btn" onclick="setFilter(this, 'month')" data-i18n="tab_month">Місяць</div>
             </div>
             <button class="btn-export-mini" id="btn-csv-export" onclick="exportOrdersCSV()" title="Експорт в Excel"><i class="fa-solid fa-file-csv"></i></button>
         </div>
@@ -521,16 +367,16 @@
             <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;" data-i18n="set_title">Налаштування бізнесу</h2>
             
             <label class="form-label" data-i18n="set_name">Назва бізнесу</label>
-            <input type="text" id="input-biz-name" class="form-input" style="margin-bottom: 15px;">
+            <input type="text" id="input-biz-name" class="form-input" data-i18n-placeholder="set_name_ph" placeholder="Введіть назву..." style="margin-bottom: 15px;">
             
             <label class="form-label" data-i18n="set_addr">Адреса закладу (база)</label>
             <div class="input-group">
-                <input type="text" id="input-biz-address" class="form-input" autocomplete="off">
+                <input type="text" id="input-biz-address" class="form-input" data-i18n-placeholder="set_addr_ph" placeholder="Почніть вводити вулицю..." autocomplete="off">
                 <div id="biz-autocomplete-list" class="autocomplete-list"></div>
             </div>
             
             <label class="form-label" style="margin-top: 15px;" data-i18n="set_rad">Радіус доставки (км)</label>
-            <input type="number" id="input-biz-radius" class="form-input" style="margin-bottom: 0;">
+            <input type="number" id="input-biz-radius" class="form-input" data-i18n-placeholder="set_rad_ph" placeholder="Наприклад: 5" onchange="updateSettingsMap()" style="margin-bottom: 0;">
 
             <div id="settings-map-container"></div>
 
@@ -546,10 +392,187 @@
         </div>
     </div>
 
-    <script>
-        // ВИКЛИКАЄМО МОВУ ВПЕРШЕ ДО ЗАВАНТАЖЕННЯ ДАНИХ
-        setLanguage(currentLang);
 
+    <script>
+        // 1. БЕЗПЕЧНЕ ВИЗНАЧЕННЯ МОВИ ТА СЛОВНИК
+        let tgLang = 'en';
+        try { 
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en'; 
+            }
+        } catch(e) {}
+        
+        let savedLang = localStorage.getItem('appLang');
+        let currentLang = savedLang || tgLang;
+        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
+
+        const i18n = {
+            'uk': {
+                tab_today: "Сьогодні", tab_week: "Тиждень", tab_month: "Місяць",
+                metric_total: "Загальна каса", metric_heat: "Теплова карта", metric_avg: "Середній чек",
+                metric_chart: "Динаміка доходу", metric_cash: "Готівка", metric_term: "Термінал",
+                metric_orders: "Замовлень", metric_time: "Сер. час", metric_late: "Запізнення (> 45 хв)",
+                title_recent: "Останні замовлення", title_rating: "Рейтинг кур'єрів (PRO)", 
+                title_invite: "Запрошення персоналу", btn_add_c: "Додати Кур'єра", btn_add_m: "Додати Менеджера", 
+                btn_reset: "Оновити посилання (Анулювати старі)", title_active: "Активний персонал",
+                title_profile: "Профіль бізнесу", lbl_biz_id: "ID Закладу", lbl_edit: "Редагувати профіль",
+                lbl_sub: "Підписка", lbl_cur: "Валюта системи", btn_logout: "Вийти",
+                nav_home: "Головна", nav_team: "Команда", nav_settings: "Налаштування",
+                modal_plan: "Тарифний план", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
+                btn_pro: "Отримати PRO доступ", btn_renew: "Продовжити підписку", btn_cancel: "Скасувати підписку",
+                set_title: "Налаштування бізнесу", set_name: "Назва бізнесу", set_addr: "Адреса закладу (база)",
+                set_rad: "Радіус доставки (км)", set_cur: "Валюта", btn_save: "💾 Зберегти зміни",
+                set_name_ph: "Введіть назву...", set_addr_ph: "Почніть вводити вулицю...", set_rad_ph: "Наприклад: 5",
+                tariff: "Тариф",
+                loading: "Завантаження...", empty_team: "В команді поки нікого немає.", empty_orders: "За цей період замовлень не знайдено",
+                empty_rating: "Немає даних для рейтингу.", err_export: "Немає замовлень для експорту.",
+                status_done: "Доставлено", status_proc: "В процесі", min: "хв", order: "Замовлення", avg_time_lbl: "Сер. час:",
+                orders_lbl: "замовлень", role_c: "Кур'єр", role_m: "Менеджер",
+                search_load: "Шукаємо адресу...", search_empty: "Нічого не знайдено 😕", search_err: "❌ Помилка пошуку",
+                alert_save: "✅ Налаштування успішно збережено!", alert_err: "❌ Помилка: ", confirm_reset: "⚠️ ВИ ВПЕВНЕНІ?\n\nВсі старі посилання миттєво перестануть працювати.",
+                alert_reset: "✅ Успіх! Старі посилання анульовано.", confirm_del: "Ви дійсно хочете звільнити працівника",
+                limit_c: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.",
+                limit_m: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.",
+                err_biz: "Помилка: Business ID не знайдено.", err_tok: "Помилка безпеки: Токен запрошення відсутній.",
+                success_copy: "✅ Безпечне посилання скопійовано!",
+                f1: "Базовий дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
+                f4: "Інтерактивна теплова карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал"
+            },
+            'ru': {
+                tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
+                metric_total: "Общая касса", metric_heat: "Тепловая карта", metric_avg: "Средний чек",
+                metric_chart: "Динамика дохода", metric_cash: "Наличные", metric_term: "Терминал",
+                metric_orders: "Заказов", metric_time: "Ср. время", metric_late: "Опоздания (> 45 мин)",
+                title_recent: "Последние заказы", title_rating: "Рейтинг курьеров (PRO)", 
+                title_invite: "Приглашение персонала", btn_add_c: "Добавить Курьера", btn_add_m: "Добавить Менеджера", 
+                btn_reset: "Обновить ссылки (Аннулировать старые)", title_active: "Активный персонал",
+                title_profile: "Профиль бизнеса", lbl_biz_id: "ID Заведения", lbl_edit: "Редактировать профиль",
+                lbl_sub: "Подписка", lbl_cur: "Валюта системы", btn_logout: "Выйти",
+                nav_home: "Главная", nav_team: "Команда", nav_settings: "Настройки",
+                modal_plan: "Тарифный план", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
+                btn_pro: "Получить PRO доступ", btn_renew: "Продлить подписку", btn_cancel: "Отменить подписку",
+                set_title: "Настройки бизнеса", set_name: "Название заведения", set_addr: "Адрес заведения (база)",
+                set_rad: "Радиус доставки (км)", set_cur: "Валюта", btn_save: "💾 Сохранить изменения",
+                set_name_ph: "Введите название...", set_addr_ph: "Начните вводить улицу...", set_rad_ph: "Например: 5",
+                tariff: "Тариф",
+                loading: "Загрузка...", empty_team: "В команде пока никого нет.", empty_orders: "За этот период заказов не найдено",
+                empty_rating: "Нет данных для рейтинга.", err_export: "Нет заказов для экспорта.",
+                status_done: "Доставлено", status_proc: "В процессе", min: "мин", order: "Заказ", avg_time_lbl: "Ср. время:",
+                orders_lbl: "заказов", role_c: "Курьер", role_m: "Менеджер",
+                search_load: "Ищем адрес...", search_empty: "Ничего не найдено 😕", search_err: "❌ Ошибка поиска",
+                alert_save: "✅ Настройки успешно сохранены!", alert_err: "❌ Ошибка: ", confirm_reset: "⚠️ ВЫ УВЕРЕНЫ?\n\nВсе старые ссылки мгновенно перестанут работать.",
+                alert_reset: "✅ Успех! Старые ссылки аннулированы.", confirm_del: "Вы действительно хотите уволить сотрудника",
+                limit_c: "⚠️ ЛИМИТ ИСЧЕРПАН!\n\nВ тарифе BASIC можно добавить максимум 2 курьера.",
+                limit_m: "⚠️ ЛИМИТ ИСЧЕРПАН!\n\nВ тарифе BASIC можно добавить максимум 1 администратора.",
+                err_biz: "Ошибка: Business ID не найден.", err_tok: "Ошибка безопасности: Токен приглашения отсутствует.",
+                success_copy: "✅ Безопасная ссылка скопирована!",
+                f1: "Базовый дашборд", f2: "Безлимитные заказы", f3: "Экспорт CSV, График и Рейтинг",
+                f4: "Интерактивная тепловая карта", f5: "Статистика времени и Опозданий", f6: "Безлимитный персонал"
+            },
+            'pl': {
+                tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
+                metric_total: "Całkowity utarg", metric_heat: "Mapa cieplna", metric_avg: "Średni paragon",
+                metric_chart: "Dynamika dochodu", metric_cash: "Gotówka", metric_term: "Terminal",
+                metric_orders: "Zamówień", metric_time: "Śr. czas", metric_late: "Spóźnienia (> 45 min)",
+                title_recent: "Ostatnie zamówienia", title_rating: "Ranking kurierów (PRO)", 
+                title_invite: "Zaproszenie personelu", btn_add_c: "Dodaj Kuriera", btn_add_m: "Dodaj Menedżera", 
+                btn_reset: "Odśwież linki (Anuluj stare)", title_active: "Aktywny personel",
+                title_profile: "Profil firmy", lbl_biz_id: "ID Lokalu", lbl_edit: "Edytuj profil",
+                lbl_sub: "Subskrypcja", lbl_cur: "Waluta systemu", btn_logout: "Wyloguj",
+                nav_home: "Główna", nav_team: "Zespół", nav_settings: "Ustawienia",
+                modal_plan: "Plan taryfowy", plan_active: "AKTYWNA", plan_paid: "Opłacono do:",
+                btn_pro: "Kup dostęp PRO", btn_renew: "Przedłuż subskrypcję", btn_cancel: "Anuluj subskrypcję",
+                set_title: "Ustawienia firmy", set_name: "Nazwa lokalu", set_addr: "Adres lokalu (baza)",
+                set_rad: "Promień dostawy (km)", set_cur: "Waluta", btn_save: "💾 Zapisz zmiany",
+                set_name_ph: "Wprowadź nazwę...", set_addr_ph: "Zacznij wpisywać ulicę...", set_rad_ph: "Na przykład: 5",
+                tariff: "Plan",
+                loading: "Ładowanie...", empty_team: "W zespole nikogo nie ma.", empty_orders: "Brak zamówień w tym okresie",
+                empty_rating: "Brak danych do rankingu.", err_export: "Brak zamówień do eksportu.",
+                status_done: "Dostarczono", status_proc: "W trakcie", min: "min", order: "Zamówienie", avg_time_lbl: "Śr. czas:",
+                orders_lbl: "zamówień", role_c: "Kurier", role_m: "Menedżer",
+                search_load: "Szukamy adresu...", search_empty: "Nic nie znaleziono 😕", search_err: "❌ Błąd wyszukiwania",
+                alert_save: "✅ Ustawienia zapisane pomyślnie!", alert_err: "❌ Błąd: ", confirm_reset: "⚠️ JESTEŚ PEWIEN?\n\nWszystkie stare linki natychmiast przestaną działać.",
+                alert_reset: "✅ Sukces! Stare linki anulowane.", confirm_del: "Czy na pewno chcesz zwolnić pracownika",
+                limit_c: "⚠️ LIMIT WYCZERPANY!\n\nW planie BASIC można dodać max 2 kurierów.",
+                limit_m: "⚠️ LIMIT WYCZERPANY!\n\nW planie BASIC można dodać max 1 administratora.",
+                err_biz: "Błąd: Nie znaleziono Business ID.", err_tok: "Błąd bezp.: Brak tokenu zaproszenia.",
+                success_copy: "✅ Bezpieczny link skopiowany!",
+                f1: "Podstawowy panel", f2: "Nielimitowane zamówienia", f3: "Eksport CSV, Wykres i Ranking",
+                f4: "Interaktywna mapa cieplna", f5: "Statystyki czasu i Spóźnień", f6: "Nielimitowany personel"
+            },
+            'en': {
+                tab_today: "Today", tab_week: "Week", tab_month: "Month",
+                metric_total: "Total Revenue", metric_heat: "Heatmap", metric_avg: "Avg Check",
+                metric_chart: "Revenue Dynamics", metric_cash: "Cash", metric_term: "Terminal",
+                metric_orders: "Orders", metric_time: "Avg Time", metric_late: "Late (> 45 min)",
+                title_recent: "Recent Orders", title_rating: "Courier Ranking (PRO)", 
+                title_invite: "Invite Staff", btn_add_c: "Add Courier", btn_add_m: "Add Manager", 
+                btn_reset: "Reset Links (Revoke old)", title_active: "Active Staff",
+                title_profile: "Business Profile", lbl_biz_id: "Business ID", lbl_edit: "Edit Profile",
+                lbl_sub: "Subscription", lbl_cur: "System Currency", btn_logout: "Logout",
+                nav_home: "Home", nav_team: "Team", nav_settings: "Settings",
+                modal_plan: "Subscription Plan", plan_active: "ACTIVE", plan_paid: "Paid until:",
+                btn_pro: "Get PRO Access", btn_renew: "Renew Subscription", btn_cancel: "Cancel Subscription",
+                set_title: "Business Settings", set_name: "Business Name", set_addr: "Business Address (Base)",
+                set_rad: "Delivery Radius (km)", set_cur: "Currency", btn_save: "💾 Save Changes",
+                set_name_ph: "Enter name...", set_addr_ph: "Start typing street...", set_rad_ph: "Example: 5",
+                tariff: "Plan",
+                loading: "Loading...", empty_team: "No team members yet.", empty_orders: "No orders found for this period",
+                empty_rating: "No data for ranking.", err_export: "No orders to export.",
+                status_done: "Delivered", status_proc: "In Progress", min: "min", order: "Order", avg_time_lbl: "Avg time:",
+                orders_lbl: "orders", role_c: "Courier", role_m: "Manager",
+                search_load: "Searching address...", search_empty: "Nothing found 😕", search_err: "❌ Search error",
+                alert_save: "✅ Settings saved successfully!", alert_err: "❌ Error: ", confirm_reset: "⚠️ ARE YOU SURE?\n\nAll old links will stop working immediately.",
+                alert_reset: "✅ Success! Old links revoked.", confirm_del: "Are you sure you want to dismiss",
+                limit_c: "⚠️ LIMIT REACHED!\n\nIn BASIC plan you can add max 2 couriers.",
+                limit_m: "⚠️ LIMIT REACHED!\n\nIn BASIC plan you can add max 1 administrator.",
+                err_biz: "Error: Business ID not found.", err_tok: "Security Error: Invite token missing.",
+                success_copy: "✅ Secure link copied!",
+                f1: "Basic dashboard", f2: "Unlimited orders", f3: "CSV Export, Chart & Ranking",
+                f4: "Interactive Heatmap", f5: "Time & Late Statistics", f6: "Unlimited staff"
+            }
+        };
+
+        function t(key) { return i18n[currentLang][key] || key; }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('appLang', lang); 
+            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (i18n[lang][key]) el.placeholder = i18n[lang][key];
+            });
+
+            // Якщо Дашборд уже завантажив дані, перекладаємо динамічні елементи
+            if (typeof bizId !== 'undefined' && bizId && document.getElementById('display-plan').innerText !== "PRO") {
+                document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
+                document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('plan_active')})`;
+                document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? `PRO ${t('tariff')}` : `BASIC ${t('tariff')}`;
+                
+                document.getElementById('modal-features-list').innerHTML = `
+                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f1')}</div>
+                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f2')}</div>
+                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f3')}</div>
+                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f4')}</div>
+                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f5')}</div>
+                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f6')}</div>
+                `;
+                
+                loadDashboardData(); // Перезавантажуємо списки щоб оновити тексти
+            }
+        }
+
+        function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
+        document.addEventListener('click', (e) => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
+
+
+        // 2. ВАШІ ОРИГІНАЛЬНІ ЗМІННІ ТА ФУНКЦІЇ SUPABASE
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
 
@@ -577,10 +600,7 @@
         }
 
         function getTelegramUserId() {
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
-            }
-            return "6889016268"; // Fallback 
+            return "6889016268"; // Ваша оригінальна функція
         }
 
         function switchTab(tabId, el) {
@@ -592,13 +612,18 @@
             if(tabId === 'home' && window.dashboardMap) { setTimeout(() => window.dashboardMap.invalidateSize(), 100); }
         }
 
-        function setFilter(el) {
+        // БЕЗПЕЧНА зміна фільтрів, яка не залежить від мови
+        function setFilter(el, filterType) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
-            const txt = el.getAttribute('data-i18n');
-            if (txt === 'tab_today') currentFilter = 'today';
-            else if (txt === 'tab_week') currentFilter = 'week';
-            else if (txt === 'tab_month') currentFilter = 'month';
+            
+            if (filterType) { currentFilter = filterType; } 
+            else {
+                const txt = el.getAttribute('data-i18n');
+                if (txt === 'tab_today') currentFilter = 'today';
+                else if (txt === 'tab_week') currentFilter = 'week';
+                else if (txt === 'tab_month') currentFilter = 'month';
+            }
             
             const actTab = document.querySelector('.tab-content.active');
             if(actTab) { actTab.style.opacity = '0.5'; setTimeout(() => actTab.style.opacity = '1', 300); }
@@ -762,6 +787,19 @@
                     document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
                     
+                    document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('plan_active')})`;
+                    document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? `PRO ${t('tariff')}` : `BASIC ${t('tariff')}`;
+
+                    let createdDate = new Date(biz.created_at || Date.now()); 
+                    createdDate.setDate(createdDate.getDate() + 30 + (parseInt(biz.extra_days)||0));
+                    document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA');
+
+                    if (!currentPlanIsPro) {
+                        document.getElementById('btn-upgrade').style.display = 'block'; document.getElementById('btn-renew').style.display = 'none';
+                    } else {
+                        document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
+                    }
+
                     document.getElementById('modal-features-list').innerHTML = `
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f1')}</div>
                         <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f2')}</div>
@@ -970,6 +1008,9 @@
 
         document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && e.target !== bizAddrList) bizAddrList.style.display = 'none'; });
 
+        // ФІНАЛЬНИЙ ЗАПУСК
+        setLanguage(currentLang);
+        loadDashboardData();
     </script>
 </body>
 </html>
