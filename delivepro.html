@@ -537,13 +537,14 @@
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
             
-            // Переклад CSS-анімацій через змінні (Магія 🪄)
+            // Переклад CSS-анімацій через змінні
             document.documentElement.style.setProperty('--txt-process', `"${i18n[lang].anim_process}"`);
             document.documentElement.style.setProperty('--txt-delivered', `"${i18n[lang].anim_deliv}"`);
 
             // Оновлюємо кнопку "Далі", якщо ми на останньому слайді
             if (currentSlide === totalSlides - 1) {
-                document.getElementById('btn-onboard-next').innerText = i18n[lang].btn_plan;
+                let btn = document.getElementById('btn-onboard-next');
+                btn.innerText = i18n[lang].btn_plan;
             }
         }
 
@@ -626,14 +627,14 @@
                 return; 
             }
 
-            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо...</div>';
+            // Текст загрузки також можна перекласти, але поки лишимо універсальну іконку
+            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
             bizAddrList.style.display = 'block';
 
             bizTimeout = setTimeout(async () => {
                 const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', ' + country)}&format=json&addressdetails=1&limit=5`;
                 
                 try {
-                    // Використовуємо поточну мову для пошуку адреси (наприклад, щоб видавало "Варшава" замість "Warsaw")
                     const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
                     const data = await res.json();
                     
@@ -666,10 +667,10 @@
                             bizAddrList.appendChild(div);
                         });
                     } else {
-                        bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>';
+                        bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>`;
                     }
                 } catch(e) { 
-                    bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
+                    bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>`;
                 }
             }, 600); 
         });
@@ -684,7 +685,6 @@
             window.scrollTo(0, 0);
 
             if (screenId === 'screen-register') {
-                // Перекладаємо кнопку залежно від мови
                 document.getElementById('btn-finish').innerText = i18n[currentLang].btn_create;
                 
                 if (!map) initMap();
@@ -695,11 +695,14 @@
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
                 currentSlide++;
-                document.getElementById('carousel').style.transform = `translateX(-${currentSlide * 100}%)`;
+                // ФІКС математики зсуву для 4 слайдів
+                document.getElementById('carousel').style.transform = `translateX(-${currentSlide * (100 / totalSlides)}%)`;
                 document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
                 
                 if (currentSlide === totalSlides - 1) {
-                    document.getElementById('btn-onboard-next').innerText = i18n[currentLang].btn_plan;
+                    let btn = document.getElementById('btn-onboard-next');
+                    btn.innerText = i18n[currentLang].btn_plan;
+                    btn.setAttribute('data-i18n', 'btn_plan');
                 }
             } else {
                 nextScreen('screen-pricing');
