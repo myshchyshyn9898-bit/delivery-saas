@@ -552,15 +552,6 @@
             navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${currentInviteToken}`).then(() => { alert(`✅ Безпечне посилання скопійовано!`); });
         }
 
-            
-            if (!currentPlanIsPro) {
-                if (role === 'courier' && currentCouriersCount >= 2) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри."); openSubscriptionMenu(); return; }
-                if (role === 'manager' && currentManagersCount >= 1) { alert("⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора."); openSubscriptionMenu(); return; }
-            }
-            let prefix = role === 'courier' ? 'join_' : 'admin_';
-            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${bizId}_${currentInviteToken}`).then(() => { alert(`✅ Безпечне посилання скопійовано!`); });
-        }
-
         async function resetInviteToken() {
             if (!confirm("⚠️ ВИ ВПЕВНЕНІ?\n\nВсі старі посилання миттєво перестануть працювати. Вам доведеться згенерувати нові посилання для нових працівників.")) return;
 
