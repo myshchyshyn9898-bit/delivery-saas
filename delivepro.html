@@ -86,12 +86,12 @@
         .btn:active { transform: scale(0.96); background: var(--primary-dark); }
         .btn-trial { background: #111418; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
 
-        .carousel { display: flex; transition: transform 0.4s ease-out; height: 100%; width: 100%; }
-        .slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; padding: 20px 5px; align-items: center; }
+        .carousel { display: flex; transition: transform 0.4s ease-out; height: 100%; }
+        .slide { min-width: 100vw; height: 100%; display: flex; flex-direction: column; padding: 20px 5px; align-items: center; }
         .visual-container { width: 100%; height: 220px; background: white; border-radius: 25px; margin: 30px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
         .title-block { text-align: center; }
         .title { font-size: 28px; font-weight: 900; margin-bottom: 15px; letter-spacing: -0.5px; }
-        .desc { font-size: 15px; color: var(--text-muted); line-height: 1.5; }
+        .desc { font-size: 15px; color: var(--text-muted); line-height: 1.5; padding: 0 10px; }
         .dots { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .dot { width: 12px; height: 12px; border-radius: 50%; background: #e0e0e0; transition: 0.3s ease; }
         .dot.active { background: var(--primary); width: 30px; border-radius: 6px; }
@@ -414,8 +414,29 @@
     </div>
 
     <script>
+        // ОГОЛОШУЄМО ЗМІННІ ДО ЇХ ВИКОРИСТАННЯ
+        let selectedPlan = 'pro';
+        let currentSlide = 0;
+        const totalSlides = 4; 
+
+        let map = null;
+        let marker = null;
+        let radiusCircle = null; 
+
         let tg = window.Telegram.WebApp;
         tg.expand(); 
+
+        // Безпечне отримання мови Telegram (без оператора ?.)
+        let tgLang = 'en';
+        try {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en';
+            }
+        } catch(e) {}
+        
+        let savedLang = localStorage.getItem('appLang');
+        let currentLang = savedLang || tgLang;
+        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
 
         // =========================================
         // --- СИСТЕМА БАГАТОМОВНОСТІ (i18n) ---
@@ -515,18 +536,6 @@
             }
         };
 
-        // Залізобетонна перевірка мови без використання `?.` (щоб не ламати старі браузери)
-        let tgLang = 'en';
-        try {
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
-                tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en';
-            }
-        } catch(e) {}
-        
-        let savedLang = localStorage.getItem('appLang');
-        let currentLang = savedLang || tgLang;
-        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
-
         function setLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('appLang', lang); 
@@ -547,7 +556,7 @@
 
             if (currentSlide === totalSlides - 1) {
                 let btn = document.getElementById('btn-onboard-next');
-                btn.innerText = i18n[lang].btn_plan;
+                if(btn) btn.innerText = i18n[lang].btn_plan;
             }
         }
 
@@ -561,16 +570,9 @@
             }
         });
 
+        // Викликаємо встановлення мови ТІЛЬКИ ПІСЛЯ оголошення всіх змінних
         setLanguage(currentLang);
         // =========================================
-
-        let selectedPlan = 'pro';
-        let currentSlide = 0;
-        const totalSlides = 4; 
-
-        let map = null;
-        let marker = null;
-        let radiusCircle = null; 
 
         function initMap() {
             if (map !== null) return; 
@@ -628,7 +630,7 @@
                 return; 
             }
 
-            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо...</div>';
+            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
             bizAddrList.style.display = 'block';
 
             bizTimeout = setTimeout(async () => {
@@ -667,10 +669,10 @@
                             bizAddrList.appendChild(div);
                         });
                     } else {
-                        bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>`;
+                        bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">😕</div>`;
                     }
                 } catch(e) { 
-                    bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>`;
+                    bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌</div>`;
                 }
             }, 600); 
         });
@@ -695,7 +697,7 @@
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
                 currentSlide++;
-                document.getElementById('carousel').style.transform = `translateX(-${currentSlide * 100}vw)`;
+                document.getElementById('carousel').style.transform = "translateX(-" + (currentSlide * 100) + "vw)";
                 document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
                 
                 if (currentSlide === totalSlides - 1) {
