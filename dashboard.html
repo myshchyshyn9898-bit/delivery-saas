@@ -145,24 +145,62 @@
         .modal-overlay.active .bottom-sheet { bottom: 0; }
         .sheet-handle { width: 50px; height: 5px; background: #cbd5e1; border-radius: 5px; margin: 0 auto 25px; }
         
-        /* PRO Features Beautiful Styles */
-        .feature-item { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 14px; font-weight: 700; color: var(--text-main); background: #f8fafc; padding: 12px 16px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
-        .feature-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
-        .f-yes { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-        .f-no { background: rgba(138, 141, 145, 0.15); color: var(--text-muted); }
-        .feature-disabled { color: var(--text-muted); opacity: 0.6; background: transparent; box-shadow: none; border-color: transparent; }
-        
         .btn-sub-upgrade { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 25px rgba(255, 90, 95, 0.4); transition: 0.2s; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
         .btn-sub-upgrade:active { transform: scale(0.98); }
         .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; }
         .btn-sub-renew:active { transform: scale(0.98); }
-        .btn-sub-cancel { background: transparent; color: #ff3b30; border: none; width: 100%; padding: 16px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 5px; text-decoration: underline; display: block; text-align: center; }
 
         .pro-locked { position: relative; overflow: hidden; border-color: rgba(255, 90, 95, 0.3) !important; }
         .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
         .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); transition: 0.3s; }
         .pro-overlay:active { background: rgba(255, 255, 255, 0.1); }
         .pro-badge { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: #fff; padding: 10px 20px; border-radius: 14px; font-size: 14px; font-weight: 900; box-shadow: 0 8px 25px rgba(255, 90, 95, 0.4); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- НОВІ СТИЛІ ДЛЯ ПІДПИСОК --- */
+        .status-card-dynamic {
+            background: var(--surface);
+            border: 2px solid #edf1f7;
+            padding: 22px;
+            border-radius: 24px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        .status-card-dynamic.is-trial { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); }
+        .status-card-dynamic.is-pro { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.1); }
+        .status-card-dynamic.is-expired { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.1); background: #fffcfc; }
+
+        .trial-progress-bg { background: #f1f5f9; height: 10px; border-radius: 6px; margin-top: 18px; overflow: hidden; position: relative; }
+        .trial-progress-bar { background: linear-gradient(90deg, #3b82f6, #8b5cf6); height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .plan-mini {
+            border: 2px solid #edf1f7;
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: 0.2s ease;
+            background: var(--surface);
+            position: relative;
+        }
+        .plan-mini:active { transform: scale(0.98); }
+        .plan-mini.selected {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 8px 25px var(--primary-glow);
+        }
+        .plan-mini::after {
+            content: ''; position: absolute; top: 20px; right: 20px; width: 22px; height: 22px;
+            border-radius: 50%; border: 2px solid #cbd5e1; transition: 0.2s;
+        }
+        .plan-mini.selected::after { border-color: var(--primary); background: var(--primary); box-shadow: inset 0 0 0 4px white; }
+
+        .p-mini-title { font-size: 18px; font-weight: 900; color: var(--text-main); margin-bottom: 4px; }
+        .p-mini-price { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 12px; }
+        .p-mini-feat { font-size: 12px; color: var(--text-muted); font-weight: 600; line-height: 1.6; }
+        .p-mini-feat i { color: var(--success); margin-right: 8px; font-size: 13px; }
 
         /* Form Inputs */
         .form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -343,21 +381,45 @@
     <div class="modal-overlay" id="subscription-modal" onclick="closeSubscriptionMenu()">
         <div class="bottom-sheet" onclick="event.stopPropagation()">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 20px; text-align: center;" data-i18n="modal_plan">Тарифний план</h2>
+            <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 20px; text-align: center; letter-spacing: -0.5px;" data-i18n="modal_plan">Управління підпискою</h2>
             
-            <div style="background: white; border: 2px solid rgba(16, 185, 129, 0.3); padding: 20px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(16,185,129,0.15);" id="modal-status-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 24px; font-weight: 900; color: var(--success);" id="modal-plan-name">PRO Тариф</span>
-                    <span style="background: var(--success); color: white; padding: 6px 12px; border-radius: 10px; font-size: 11px; font-weight: 900; letter-spacing: 1px;" id="modal-plan-badge" data-i18n="plan_active">АКТИВНА</span>
+            <div id="modal-status-card" class="status-card-dynamic">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 20px; font-weight: 900; letter-spacing: -0.5px;" id="modal-plan-name">...</span>
+                    <span style="color: white; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; letter-spacing: 1px;" id="modal-plan-badge">...</span>
                 </div>
-                <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;"><span data-i18n="plan_paid">Оплачено до:</span> <span id="modal-plan-date" style="color: var(--text-main); font-weight: 800;">...</span></div>
+                <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;" id="modal-plan-desc">...</div>
+                
+                <div class="trial-progress-bg" id="trial-progress-container" style="display: none;">
+                    <div class="trial-progress-bar" id="trial-progress-bar" style="width: 0%;"></div>
+                </div>
             </div>
 
-            <div id="modal-features-list"></div>
+            <div id="plans-selection-block">
+                <h3 style="font-size: 12px; font-weight: 800; margin: 0 0 12px 5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" id="plan-select-title">Оберіть тариф:</h3>
+                
+                <div class="plan-mini" id="dash-plan-basic" onclick="selectDashPlan('basic')">
+                    <div class="p-mini-title">Basic</div>
+                    <div class="p-mini-price">29.99 zł <span style="color:var(--text-muted); font-weight:600;" data-i18n="pr_month">/ міс</span></div>
+                    <div class="p-mini-feat">
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_b1">До 2 кур'єрів у штаті</span></div>
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_b2">Базова статистика</span></div>
+                    </div>
+                </div>
 
-            <button class="btn-sub-upgrade" id="btn-upgrade" onclick="actionUpgrade()" style="display: none;"><i class="fa-solid fa-rocket"></i> <span data-i18n="btn_pro">Отримати PRO доступ</span></button>
-            <button class="btn-sub-renew" id="btn-renew" onclick="actionRenew()"><i class="fa-solid fa-credit-card"></i> <span data-i18n="btn_renew">Продовжити підписку</span></button>
-            <div style="margin-top: 15px;"><span class="btn-sub-cancel" onclick="actionCancel()" data-i18n="btn_cancel">Скасувати підписку</span></div>
+                <div class="plan-mini selected" id="dash-plan-pro" onclick="selectDashPlan('pro')">
+                    <div class="p-mini-title">Pro <span style="background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; font-size: 9px; padding: 3px 8px; border-radius: 8px; margin-left: 6px; vertical-align: middle;">MAX</span></div>
+                    <div class="p-mini-price">59.99 zł <span style="color:var(--text-muted); font-weight:600;" data-i18n="pr_month">/ міс</span></div>
+                    <div class="p-mini-feat">
+                        <div><i class="fa-solid fa-check"></i> <b><span data-i18n="pr_p1_b">Необмежена</span></b>&nbsp;<span data-i18n="pr_p1">кількість кур'єрів</span></div>
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_p2">Глибока аналітика та експорт</span></div>
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_p3">Управління менеджерами</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-sub-upgrade" id="btn-upgrade-pay" onclick="actionPayWhop()" style="margin-top: 25px;"><i class="fa-solid fa-rocket"></i> <span id="btn-pay-text" data-i18n="btn_pay">Оплатити</span> <span id="pay-price" style="opacity: 0.9; margin-left: 5px;">59.99 zł</span></button>
+            <button class="btn-sub-renew" id="btn-manage-sub" onclick="actionManageWhop()" style="display: none;"><i class="fa-solid fa-gear"></i> <span data-i18n="btn_manage">Керувати підпискою</span></button>
         </div>
     </div>
 
@@ -418,8 +480,7 @@
                 title_profile: "Профіль бізнесу", lbl_biz_id: "ID Закладу", lbl_edit: "Редагувати профіль",
                 lbl_sub: "Підписка", lbl_cur: "Валюта системи", btn_logout: "Вийти",
                 nav_home: "Головна", nav_team: "Команда", nav_settings: "Налаштування",
-                modal_plan: "Тарифний план", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
-                btn_pro: "Отримати PRO доступ", btn_renew: "Продовжити підписку", btn_cancel: "Скасувати підписку",
+                modal_plan: "Управління підпискою", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
                 set_title: "Налаштування бізнесу", set_name: "Назва бізнесу", set_addr: "Адреса закладу (база)",
                 set_rad: "Радіус доставки (км)", set_cur: "Валюта", btn_save: "💾 Зберегти зміни",
                 set_name_ph: "Введіть назву...", set_addr_ph: "Почніть вводити вулицю...", set_rad_ph: "Наприклад: 5",
@@ -436,7 +497,13 @@
                 err_biz: "Помилка: Business ID не знайдено.", err_tok: "Помилка безпеки: Токен запрошення відсутній.",
                 success_copy: "✅ Безпечне посилання скопійовано!",
                 f1: "Базовий дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
-                f4: "Інтерактивна теплова карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал"
+                f4: "Інтерактивна теплова карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал",
+                pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Теплова карта та глибока аналітика", pr_p3: "Управління менеджерами",
+                btn_pay: "Оплатити", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
+                txt_left: "Залишилося", txt_days: "днів", txt_avail: "Доступно до", txt_next_pay: "Наступне автоматичне списання:", txt_max: "Усі преміум функції розблоковано. Дякуємо, що ви з нами!", txt_expired: "Ваш тріал або підписка завершилася. Оберіть тариф для розблокування.",
+                title_sel_plan: "Оберіть тариф для продовження:", title_upsell: "⚡️ Хочете більше можливостей?", title_sel_unlock: "Оберіть тариф для розблокування:",
+                badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКУВАННЯ",
+                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРИТО"
             },
             'ru': {
                 tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
@@ -449,8 +516,7 @@
                 title_profile: "Профиль бизнеса", lbl_biz_id: "ID Заведения", lbl_edit: "Редактировать профиль",
                 lbl_sub: "Подписка", lbl_cur: "Валюта системы", btn_logout: "Выйти",
                 nav_home: "Главная", nav_team: "Команда", nav_settings: "Настройки",
-                modal_plan: "Тарифный план", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
-                btn_pro: "Получить PRO доступ", btn_renew: "Продлить подписку", btn_cancel: "Отменить подписку",
+                modal_plan: "Управление подпиской", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
                 set_title: "Настройки бизнеса", set_name: "Название заведения", set_addr: "Адрес заведения (база)",
                 set_rad: "Радиус доставки (км)", set_cur: "Валюта", btn_save: "💾 Сохранить изменения",
                 set_name_ph: "Введите название...", set_addr_ph: "Начните вводить улицу...", set_rad_ph: "Например: 5",
@@ -467,7 +533,13 @@
                 err_biz: "Ошибка: Business ID не найден.", err_tok: "Ошибка безопасности: Токен приглашения отсутствует.",
                 success_copy: "✅ Безопасная ссылка скопирована!",
                 f1: "Базовый дашборд", f2: "Безлимитные заказы", f3: "Экспорт CSV, График и Рейтинг",
-                f4: "Интерактивная тепловая карта", f5: "Статистика времени и Опозданий", f6: "Безлимитный персонал"
+                f4: "Интерактивная тепловая карта", f5: "Статистика времени и Опозданий", f6: "Безлимитный персонал",
+                pr_month: "/ мес", pr_b1: "До 2 курьеров в штате", pr_b2: "Базовая статистика", pr_p1_b: "Неограниченное", pr_p1: "количество курьеров", pr_p2: "Тепловая карта и глубокая аналитика", pr_p3: "Управление менеджерами",
+                btn_pay: "Оплатить", btn_manage: "Управление подпиской (Whop)", btn_upgrade_now: "Обновить до PRO", btn_unlock: "Разблокировать",
+                txt_left: "Осталось", txt_days: "дней", txt_avail: "Доступно до", txt_next_pay: "Следующее списание:", txt_max: "Все функции разблокированы. Спасибо, что вы с нами!", txt_expired: "Ваш триал или подписка завершилась. Выберите тариф.",
+                title_sel_plan: "Выберите тариф для продления:", title_upsell: "⚡️ Хотите больше возможностей?", title_sel_unlock: "Выберите тариф для разблокировки:",
+                badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКИРОВКА",
+                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРЫТ"
             },
             'pl': {
                 tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
@@ -480,8 +552,7 @@
                 title_profile: "Profil firmy", lbl_biz_id: "ID Lokalu", lbl_edit: "Edytuj profil",
                 lbl_sub: "Subskrypcja", lbl_cur: "Waluta systemu", btn_logout: "Wyloguj",
                 nav_home: "Główna", nav_team: "Zespół", nav_settings: "Ustawienia",
-                modal_plan: "Plan taryfowy", plan_active: "AKTYWNA", plan_paid: "Opłacono do:",
-                btn_pro: "Kup dostęp PRO", btn_renew: "Przedłuż subskrypcję", btn_cancel: "Anuluj subskrypcję",
+                modal_plan: "Zarządzanie subskrypcją", plan_active: "AKTYWNA", plan_paid: "Opłacono do:",
                 set_title: "Ustawienia firmy", set_name: "Nazwa lokalu", set_addr: "Adres lokalu (baza)",
                 set_rad: "Promień dostawy (km)", set_cur: "Waluta", btn_save: "💾 Zapisz zmiany",
                 set_name_ph: "Wprowadź nazwę...", set_addr_ph: "Zacznij wpisywać ulicę...", set_rad_ph: "Na przykład: 5",
@@ -498,7 +569,13 @@
                 err_biz: "Błąd: Nie znaleziono Business ID.", err_tok: "Błąd bezp.: Brak tokenu zaproszenia.",
                 success_copy: "✅ Bezpieczny link skopiowany!",
                 f1: "Podstawowy panel", f2: "Nielimitowane zamówienia", f3: "Eksport CSV, Wykres i Ranking",
-                f4: "Interaktywna mapa cieplna", f5: "Statystyki czasu i Spóźnień", f6: "Nielimitowany personel"
+                f4: "Interaktywna mapa cieplna", f5: "Statystyki czasu i Spóźnień", f6: "Nielimitowany personel",
+                pr_month: "/ m-c", pr_b1: "Do 2 kurierów w zespole", pr_b2: "Podstawowe statystyki", pr_p1_b: "Nielimitowana", pr_p1: "liczba kurierów", pr_p2: "Mapa cieplna i głęboka analityka", pr_p3: "Zarządzanie menedżerami",
+                btn_pay: "Zapłać", btn_manage: "Zarządzaj subskrypcją (Whop)", btn_upgrade_now: "Zaktualizuj do PRO", btn_unlock: "Odblokuj",
+                txt_left: "Pozostało", txt_days: "dni", txt_avail: "Dostępne do", txt_next_pay: "Następna płatność:", txt_max: "Wszystkie funkcje odblokowane. Dziękujemy!", txt_expired: "Twój okres próbny lub subskrypcja wygasła. Wybierz plan.",
+                title_sel_plan: "Wybierz plan do przedłużenia:", title_upsell: "⚡️ Chcesz więcej funkcji?", title_sel_unlock: "Wybierz plan, aby odblokować:",
+                badge_active: "AKTYWNIE", badge_paid: "OPŁACONE", badge_block: "ZABLOKOWANE",
+                state_basic: "PLAN BASIC", state_pro: "PLAN PRO", state_closed: "DOSTĘP ZAMKNIĘTY"
             },
             'en': {
                 tab_today: "Today", tab_week: "Week", tab_month: "Month",
@@ -511,8 +588,7 @@
                 title_profile: "Business Profile", lbl_biz_id: "Business ID", lbl_edit: "Edit Profile",
                 lbl_sub: "Subscription", lbl_cur: "System Currency", btn_logout: "Logout",
                 nav_home: "Home", nav_team: "Team", nav_settings: "Settings",
-                modal_plan: "Subscription Plan", plan_active: "ACTIVE", plan_paid: "Paid until:",
-                btn_pro: "Get PRO Access", btn_renew: "Renew Subscription", btn_cancel: "Cancel Subscription",
+                modal_plan: "Manage Subscription", plan_active: "ACTIVE", plan_paid: "Paid until:",
                 set_title: "Business Settings", set_name: "Business Name", set_addr: "Business Address (Base)",
                 set_rad: "Delivery Radius (km)", set_cur: "Currency", btn_save: "💾 Save Changes",
                 set_name_ph: "Enter name...", set_addr_ph: "Start typing street...", set_rad_ph: "Example: 5",
@@ -529,7 +605,13 @@
                 err_biz: "Error: Business ID not found.", err_tok: "Security Error: Invite token missing.",
                 success_copy: "✅ Secure link copied!",
                 f1: "Basic dashboard", f2: "Unlimited orders", f3: "CSV Export, Chart & Ranking",
-                f4: "Interactive Heatmap", f5: "Time & Late Statistics", f6: "Unlimited staff"
+                f4: "Interactive Heatmap", f5: "Time & Late Statistics", f6: "Unlimited staff",
+                pr_month: "/ mo", pr_b1: "Up to 2 couriers", pr_b2: "Basic statistics", pr_p1_b: "Unlimited", pr_p1: "couriers", pr_p2: "Heatmap & deep analytics", pr_p3: "Manager roles",
+                btn_pay: "Pay", btn_manage: "Manage Subscription (Whop)", btn_upgrade_now: "Upgrade to PRO", btn_unlock: "Unlock",
+                txt_left: "Left", txt_days: "days", txt_avail: "Available until", txt_next_pay: "Next billing date:", txt_max: "All premium features unlocked. Thank you!", txt_expired: "Your trial or subscription has ended. Choose a plan.",
+                title_sel_plan: "Select plan to continue:", title_upsell: "⚡️ Want more features?", title_sel_unlock: "Select plan to unlock:",
+                badge_active: "ACTIVE", badge_paid: "PAID", badge_block: "BLOCKED",
+                state_basic: "BASIC PLAN", state_pro: "PRO PLAN", state_closed: "ACCESS DENIED"
             }
         };
 
@@ -549,22 +631,10 @@
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
 
-            // Якщо Дашборд уже завантажив дані, перекладаємо динамічні елементи
-            if (typeof bizId !== 'undefined' && bizId && document.getElementById('display-plan').innerText !== "PRO") {
-                document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
-                document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('plan_active')})`;
-                document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? `PRO ${t('tariff')}` : `BASIC ${t('tariff')}`;
-                
-                document.getElementById('modal-features-list').innerHTML = `
-                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f1')}</div>
-                    <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f2')}</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f3')}</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f4')}</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f5')}</div>
-                    <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f6')}</div>
-                `;
-                
-                loadDashboardData(); // Перезавантажуємо списки щоб оновити тексти
+            // Оновлюємо динамічні елементи підписки, якщо вони є
+            if (typeof bizId !== 'undefined' && bizId) {
+                document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('badge_active')})`;
+                loadDashboardData(); 
             }
         }
 
@@ -591,6 +661,8 @@
         const bizId = urlParams.get('biz_id');
         let botUsername = "rz_city_bot"; 
         let currencySymbol = "zł";
+
+        let selectedDashPlan = 'pro';
 
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -692,9 +764,125 @@
             finally { btn.innerHTML = oldHtml; btn.disabled = false; }
         }
 
-        function actionUpgrade() { alert("PRO! 💳"); }
-        function actionRenew() { alert("Renew"); }
-        function actionCancel() { if(confirm("Are you sure?")) { alert("Canceled."); closeSubscriptionMenu(); } }
+        // --- НОВІ ФУНКЦІЇ ДЛЯ ПІДПИСОК WHOP ---
+        function selectDashPlan(plan) {
+            selectedDashPlan = plan;
+            document.getElementById('dash-plan-basic').classList.remove('selected');
+            document.getElementById('dash-plan-pro').classList.remove('selected');
+            document.getElementById(`dash-plan-${plan}`).classList.add('selected');
+            document.getElementById('pay-price').innerText = plan === 'pro' ? '59.99 zł' : '29.99 zł';
+        }
+
+        function renderSubscriptionUI(biz) {
+            let dbPlan = biz.plan || 'trial'; 
+            let createdAt = new Date(biz.created_at || Date.now());
+            let expireDate = new Date(createdAt);
+
+            const statusCard = document.getElementById('modal-status-card');
+            const badge = document.getElementById('modal-plan-badge');
+            const planName = document.getElementById('modal-plan-name');
+            const planDesc = document.getElementById('modal-plan-desc');
+            const progressCont = document.getElementById('trial-progress-container');
+            const btnPay = document.getElementById('btn-upgrade-pay');
+            const btnManage = document.getElementById('btn-manage-sub');
+            const plansBlock = document.getElementById('plans-selection-block');
+            const basicCard = document.getElementById('dash-plan-basic');
+            const proCard = document.getElementById('dash-plan-pro');
+
+            statusCard.className = 'status-card-dynamic';
+
+            if (dbPlan === 'trial') {
+                expireDate.setDate(expireDate.getDate() + 7);
+                let daysLeft = Math.max(0, Math.ceil((expireDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24)));
+                let percentUsed = ((7 - daysLeft) / 7) * 100;
+
+                statusCard.classList.add('is-trial');
+                planName.innerText = 'FREE TRIAL (PRO)'; planName.style.color = 'var(--text-main)';
+                badge.innerText = t('badge_active'); badge.style.background = 'var(--info)';
+                planDesc.innerHTML = `${t('txt_left')} <b style="color: var(--text-main);">${daysLeft} ${t('txt_days')}</b>. ${t('txt_avail')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                
+                progressCont.style.display = 'block';
+                setTimeout(() => { document.getElementById('trial-progress-bar').style.width = `${percentUsed}%`; }, 100);
+                
+                plansBlock.style.display = 'block'; basicCard.style.display = 'block'; proCard.style.display = 'block';
+                document.getElementById('plan-select-title').innerText = t('title_sel_plan');
+                
+                btnPay.style.display = 'block'; btnManage.style.display = 'none';
+                document.getElementById('btn-pay-text').innerText = t('btn_pay');
+                selectDashPlan('pro');
+            } 
+            else if (dbPlan === 'basic') {
+                expireDate.setDate(expireDate.getDate() + 30);
+                statusCard.classList.add('is-pro');
+                planName.innerText = t('state_basic'); planName.style.color = 'var(--text-main)';
+                badge.innerText = t('badge_paid'); badge.style.background = 'var(--success)';
+                planDesc.innerHTML = `${t('txt_next_pay')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                progressCont.style.display = 'none';
+
+                plansBlock.style.display = 'block';
+                document.getElementById('plan-select-title').innerText = t('title_upsell');
+                basicCard.style.display = 'none'; 
+                proCard.style.display = 'block';
+                selectDashPlan('pro');
+                
+                btnPay.style.display = 'block'; btnManage.style.display = 'block';
+                document.getElementById('btn-pay-text').innerText = t('btn_upgrade_now');
+                document.getElementById('pay-price').innerText = "";
+            }
+            else if (dbPlan === 'pro') {
+                expireDate.setDate(expireDate.getDate() + 30);
+                statusCard.classList.add('is-pro');
+                planName.innerText = t('state_pro'); planName.style.color = 'var(--success)';
+                badge.innerText = 'MAXIMUM'; badge.style.background = 'linear-gradient(135deg, var(--primary), #ffa07a)';
+                planDesc.innerHTML = `${t('txt_max')} ${t('txt_next_pay')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                progressCont.style.display = 'none';
+
+                plansBlock.style.display = 'none';
+                btnPay.style.display = 'none';
+                btnManage.style.display = 'block';
+            }
+            else if (dbPlan === 'expired') {
+                statusCard.classList.add('is-expired');
+                planName.innerText = t('state_closed'); planName.style.color = 'var(--danger)';
+                badge.innerText = t('badge_block'); badge.style.background = 'var(--danger)';
+                planDesc.innerHTML = t('txt_expired');
+                progressCont.style.display = 'none';
+                
+                plansBlock.style.display = 'block'; basicCard.style.display = 'block'; proCard.style.display = 'block';
+                document.getElementById('plan-select-title').innerText = t('title_sel_unlock');
+                
+                btnPay.style.display = 'block'; btnManage.style.display = 'none';
+                document.getElementById('btn-pay-text').innerText = t('btn_unlock');
+                selectDashPlan('pro');
+
+                document.getElementById('subscription-modal').onclick = null;
+                document.getElementById('subscription-modal').classList.add('active');
+            }
+        }
+
+        function actionPayWhop() {
+            if (!bizId) return;
+            let tgUserId = getTelegramUserId();
+            
+            // 🔴 СЮДИ ВСТАВ ЛІНКИ З WHOP 🔴
+            const linkPro = "https://whop.com/checkout/ТВІЙ_КОД_PRO";
+            const linkBasic = "https://whop.com/checkout/ТВІЙ_КОД_BASIC";
+            
+            const baseLink = selectedDashPlan === 'pro' ? linkPro : linkBasic;
+            const checkoutUrl = `${baseLink}?custom_fields[biz_id]=${bizId}&custom_fields[tg_user_id]=${tgUserId}`;
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.openLink(checkoutUrl);
+            } else { window.open(checkoutUrl, "_blank"); }
+        }
+
+        function actionManageWhop() {
+            if (window.Telegram && window.Telegram.WebApp) { 
+                window.Telegram.WebApp.openLink("https://whop.com/orders/"); 
+            } else {
+                window.open("https://whop.com/orders/", "_blank");
+            }
+        }
 
         function generateInvite(role) {
             if (!bizId) return alert(t('err_biz'));
@@ -781,35 +969,16 @@
                     document.getElementById('input-biz-address').value = biz.street || '';
                     bizLat = biz.lat || null; bizLon = biz.lng || null; 
 
-                    currentPlanIsPro = (biz.plan || 'basic').toLowerCase() === 'pro';
+                    currentPlanIsPro = (biz.plan === 'pro' || biz.plan === 'trial');
                     
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
                     document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
                     
-                    document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('plan_active')})`;
-                    document.getElementById('modal-plan-name').innerText = currentPlanIsPro ? `PRO ${t('tariff')}` : `BASIC ${t('tariff')}`;
+                    // Виклик нової функції малювання підписки
+                    renderSubscriptionUI(biz);
 
-                    let createdDate = new Date(biz.created_at || Date.now()); 
-                    createdDate.setDate(createdDate.getDate() + 30 + (parseInt(biz.extra_days)||0));
-                    document.getElementById('modal-plan-date').innerText = createdDate.toLocaleDateString('uk-UA');
-
-                    if (!currentPlanIsPro) {
-                        document.getElementById('btn-upgrade').style.display = 'block'; document.getElementById('btn-renew').style.display = 'none';
-                    } else {
-                        document.getElementById('btn-upgrade').style.display = 'none'; document.getElementById('btn-renew').style.display = 'block';
-                    }
-
-                    document.getElementById('modal-features-list').innerHTML = `
-                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f1')}</div>
-                        <div class="feature-item"><div class="feature-icon f-yes"><i class="fa-solid fa-check"></i></div> ${t('f2')}</div>
-                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f3')}</div>
-                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f4')}</div>
-                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f5')}</div>
-                        <div class="feature-item ${currentPlanIsPro ? '' : 'feature-disabled'}"><div class="feature-icon ${currentPlanIsPro ? 'f-yes' : 'f-no'}">${currentPlanIsPro ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-lock"></i>'}</div> ${t('f6')}</div>
-                    `;
-
-                    if (!currentPlanIsPro) {
+                    if (!currentPlanIsPro && biz.plan !== 'expired') {
                         ['btn-csv-export', 'card-chart', 'card-late', 'couriers-leaderboard', 'card-heatmap'].forEach(id => {
                             const el = document.getElementById(id);
                             if (el && !el.querySelector('.pro-overlay')) {
