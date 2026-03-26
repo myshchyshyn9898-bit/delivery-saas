@@ -75,46 +75,79 @@
         /* --- ЖИВІ АНІМАЦІЇ ПРОДУКТУ (ОНБОРДИНГ) --- */
         /* ========================================= */
         
-        /* Слайд 1: Аналітика */
-        .anim-dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 85%; }
-        .anim-d-card { background: white; border-radius: 16px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #edf1f7; }
-        .anim-d-main { grid-column: 1 / -1; background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; position: relative; overflow: hidden; }
-        .anim-d-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-bottom: 8px; }
-        .anim-d-val { font-size: 20px; font-weight: 900; margin-bottom: 2px; }
-        .anim-d-lbl { font-size: 9px; font-weight: 800; text-transform: uppercase; opacity: 0.8; }
-        .anim-d-main .anim-d-val { animation: countUp 4s infinite alternate ease-in-out; }
-        @keyframes countUp { 0%, 20% { opacity: 0.5; transform: scale(0.95); } 80%, 100% { opacity: 1; transform: scale(1); } }
+        /* Слайд 1: Скрол Аналітики */
+        .anim-scroll-view { width: 85%; height: 180px; overflow: hidden; position: relative; border-radius: 16px; box-shadow: inset 0 -20px 20px -20px rgba(0,0,0,0.1); }
+        .anim-dash-scroll { display: flex; flex-direction: column; gap: 10px; animation: dashScroll 6s infinite alternate ease-in-out; padding-bottom: 20px; }
+        .anim-d-card { background: white; border-radius: 16px; padding: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #edf1f7; display: flex; align-items: center; gap: 10px; }
+        .anim-d-main { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; flex-direction: column; align-items: flex-start; }
+        .anim-d-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+        .anim-d-val { font-size: 22px; font-weight: 900; line-height: 1; }
+        .anim-d-lbl { font-size: 10px; font-weight: 800; text-transform: uppercase; opacity: 0.8; margin-top: 4px;}
+        
+        .anim-heatmap { height: 60px; width: 100%; background: #eef2f6; border-radius: 8px; margin-top: 5px; position: relative; overflow: hidden; }
+        .anim-heat-blob { position: absolute; border-radius: 50%; filter: blur(8px); opacity: 0.6; }
+        
+        @keyframes dashScroll { 0%, 15% { transform: translateY(0); } 85%, 100% { transform: translateY(-130px); } }
 
-        /* Слайд 2: Персонал */
-        .anim-team { width: 85%; display: flex; flex-direction: column; gap: 10px; }
+        /* Слайд 2: Персонал (Додавання/Видалення) */
+        .anim-team { width: 85%; display: flex; flex-direction: column; gap: 8px; position: relative; }
         .anim-t-item { background: white; border-radius: 12px; padding: 10px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border: 1px solid #edf1f7; }
         .anim-t-ava { width: 36px; height: 36px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .anim-t-info { flex: 1; }
         .anim-t-info div:first-child { font-size: 13px; font-weight: 800; color: var(--text-main); }
         .anim-t-info div:last-child { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 4px; }
-        .anim-t-btn { background: rgba(59, 130, 246, 0.1); color: var(--info); border: 1px dashed var(--info); padding: 10px; border-radius: 12px; text-align: center; font-size: 12px; font-weight: 800; position: relative; overflow: hidden; animation: btnPress 4s infinite; }
-        @keyframes btnPress { 0%, 10% { transform: scale(1); background: rgba(59, 130, 246, 0.1); } 15% { transform: scale(0.95); background: rgba(59, 130, 246, 0.2); } 20%, 100% { transform: scale(1); background: rgba(59, 130, 246, 0.1); } }
+        .anim-t-btn { background: rgba(59, 130, 246, 0.1); color: var(--info); border: 1px dashed var(--info); padding: 10px; border-radius: 12px; text-align: center; font-size: 12px; font-weight: 800; transition: 0.2s; }
+        
+        .anim-new-staff { animation: staffLifecycle 6s infinite; overflow: hidden; transform-origin: top; }
+        .anim-del-btn { color: #ff3b30; background: rgba(239,68,68,0.1); width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        
+        @keyframes staffLifecycle { 
+            0%, 20% { max-height: 0; opacity: 0; margin-bottom: 0; padding: 0; border-width: 0; transform: scaleY(0); } 
+            25%, 75% { max-height: 60px; opacity: 1; margin-bottom: 0; padding: 10px; border-width: 1px; transform: scaleY(1); } 
+            80%, 100% { max-height: 0; opacity: 0; margin-bottom: 0; padding: 0; border-width: 0; transform: scaleY(0); } 
+        }
 
-        /* Слайд 3: Форма та Карта */
+        /* Слайд 3: Форма та Псевдо-Карта */
         .anim-form { width: 85%; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.05); border: 1px solid #edf1f7; position: relative; }
-        .anim-f-input { border: 2px solid var(--primary); border-radius: 12px; padding: 12px; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
-        .anim-f-drop { position: absolute; top: 60px; left: 15px; right: 15px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #edf1f7; padding: 10px; z-index: 10; animation: dropShow 5s infinite; }
-        .anim-f-map { height: 70px; background: #eef2f6; border-radius: 12px; margin-top: 10px; border: 2px solid #edf1f7; position: relative; overflow: hidden; animation: mapShow 5s infinite; display: flex; align-items: center; justify-content: center;}
-        .anim-f-marker { width: 20px; height: 20px; background: var(--primary); border-radius: 50%; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; z-index: 2; }
-        .anim-f-circle { position: absolute; width: 60px; height: 60px; background: rgba(255, 90, 95, 0.2); border: 1px dashed var(--primary); border-radius: 50%; }
-        @keyframes dropShow { 0%, 20% { opacity: 0; transform: translateY(-5px); visibility: hidden; } 25%, 45% { opacity: 1; transform: translateY(0); visibility: visible; } 50%, 100% { opacity: 0; visibility: hidden; } }
-        @keyframes mapShow { 0%, 45% { height: 0; opacity: 0; margin-top: 0; border-width: 0; } 55%, 90% { height: 70px; opacity: 1; margin-top: 10px; border-width: 2px; } 100% { height: 0; opacity: 0; margin-top: 0; border-width: 0; } }
+        .anim-f-input { border: 2px solid #edf1f7; border-radius: 12px; padding: 12px; font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text-main); transition: 0.3s; animation: inputFocus 6s infinite;}
+        .anim-f-drop { position: absolute; top: 60px; left: 15px; right: 15px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #edf1f7; padding: 10px; z-index: 10; animation: dropShow 6s infinite; }
+        
+        .anim-pseudo-map { height: 80px; background: #eef2f6; border-radius: 12px; margin-top: 10px; border: 2px solid #edf1f7; position: relative; overflow: hidden; animation: mapShow 6s infinite; display: flex; align-items: center; justify-content: space-between; padding: 0 15px;}
+        .anim-pm-route { position: absolute; left: 35px; right: 35px; height: 2px; border-top: 3px dashed var(--primary); top: 50%; transform: translateY(-50%); z-index: 1; animation: drawDashed 6s infinite;}
+        .anim-pm-store { width: 24px; height: 24px; background: #111418; color: white; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .anim-pm-client { width: 24px; height: 24px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; border: 3px solid white; z-index: 2; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        
+        @keyframes inputFocus { 0%, 15% { border-color: #edf1f7; } 20%, 90% { border-color: var(--primary); } 100% { border-color: #edf1f7; } }
+        @keyframes dropShow { 0%, 25% { opacity: 0; transform: translateY(-5px); visibility: hidden; } 30%, 45% { opacity: 1; transform: translateY(0); visibility: visible; } 50%, 100% { opacity: 0; visibility: hidden; } }
+        @keyframes mapShow { 0%, 45% { height: 0; opacity: 0; margin-top: 0; border-width: 0; } 55%, 90% { height: 80px; opacity: 1; margin-top: 10px; border-width: 2px; } 100% { height: 0; opacity: 0; margin-top: 0; border-width: 0; } }
+        @keyframes drawDashed { 0%, 55% { clip-path: inset(0 100% 0 0); } 70%, 100% { clip-path: inset(0 0 0 0); } }
 
-        /* Слайд 4: Кур'єр (Telegram) */
-        .anim-tg { width: 80%; background: #e4eaf0; border-radius: 20px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: inset 0 4px 10px rgba(0,0,0,0.02); }
+        /* Слайд 4: Кур'єр (Telegram + Кнопка) */
+        .anim-tg { width: 85%; background: #e4eaf0; border-radius: 20px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: inset 0 4px 10px rgba(0,0,0,0.02); }
         .anim-tg-msg { background: white; border-radius: 16px 16px 16px 4px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .anim-tg-img { height: 65px; background: #d0d7e1; border-radius: 10px; margin-bottom: 8px; position: relative; overflow: hidden; }
-        .anim-tg-line { position: absolute; top: 50%; left: 10%; right: 10%; height: 2px; border-top: 3px dashed var(--primary); transform: translateY(-50%); }
-        .anim-tg-txt { font-size: 10px; font-weight: 600; line-height: 1.4; color: #111418; }
-        .anim-tg-btn-group { display: flex; gap: 6px; margin-top: 6px; }
-        .anim-tg-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 9px; font-weight: 800; text-align: center; }
+        .anim-tg-map-img { height: 70px; background: #d0d7e1; border-radius: 10px; margin-bottom: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;}
+        .anim-tg-map-img::before { content: ''; position: absolute; width: 60%; height: 2px; border-top: 2px dashed #111418; }
+        .anim-tg-map-img::after { content: '📍'; position: absolute; right: 15%; font-size: 16px; top: 15px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
+        
+        .anim-tg-txt { font-size: 11px; font-weight: 600; line-height: 1.4; color: #111418; }
+        .anim-tg-btn-group { display: flex; gap: 6px; margin-top: 8px; }
+        .anim-tg-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: 10px; font-weight: 800; text-align: center; }
         .anim-tg-btn.b-blue { background: rgba(59, 130, 246, 0.1); color: var(--info); }
-        .anim-tg-btn.b-green { background: rgba(52, 199, 89, 0.1); color: var(--success); position: relative; animation: clickGreen 4s infinite; }
-        @keyframes clickGreen { 0%, 50% { transform: scale(1); background: rgba(52, 199, 89, 0.1); color: var(--success); } 55% { transform: scale(0.95); background: var(--success); color: white; } 60%, 100% { transform: scale(1); background: var(--success); color: white; } }
+        
+        .anim-status-btn { background: rgba(52, 199, 89, 0.1); color: var(--acc-green); position: relative; animation: clickStatus 5s infinite; display: flex; align-items: center; justify-content: center;}
+        .anim-status-btn::after { content: "⏳ В процесі"; animation: statusText 5s infinite; }
+        
+        @keyframes clickStatus { 
+            0%, 45% { background: rgba(52, 199, 89, 0.1); color: var(--acc-green); transform: scale(1); } 
+            50% { transform: scale(0.92); background: var(--acc-green); color: white; } 
+            55%, 90% { transform: scale(1); background: var(--acc-green); color: white; } 
+            100% { background: rgba(52, 199, 89, 0.1); color: var(--acc-green); transform: scale(1); }
+        }
+        @keyframes statusText { 
+            0%, 45% { content: "⏳ В процесі"; } 
+            50%, 90% { content: "✅ Доставлено"; } 
+            100% { content: "⏳ В процесі"; }
+        }
         /* ========================================= */
 
         /* --- ЕКРАН ТАРИФІВ ТА ІНШЕ --- */
@@ -170,29 +203,38 @@
     <div id="screen-onboard" class="screen">
         <div class="carousel" id="carousel">
             <div class="slide">
-                <div class="title-block"><div class="title">Глибока Аналітика</div><div class="desc">Контролюйте доходи, середній час та теплову карту доставки у реальному часі.</div></div>
+                <div class="title-block"><div class="title">Глибока Аналітика</div><div class="desc">Контролюйте доходи, час та зони доставки у реальному часі.</div></div>
                 <div class="visual-container">
-                    <div class="anim-dash-grid">
-                        <div class="anim-d-card anim-d-main">
-                            <div class="anim-d-icon" style="background: rgba(255,255,255,0.2);"><i class="fa-solid fa-wallet"></i></div>
-                            <div class="anim-d-val">15,420 zł</div>
-                            <div class="anim-d-lbl">Загальна каса</div>
-                        </div>
-                        <div class="anim-d-card">
-                            <div class="anim-d-icon" style="background: rgba(59,130,246,0.1); color: var(--info);"><i class="fa-solid fa-credit-card"></i></div>
-                            <div class="anim-d-val" style="color: var(--text-main);">7,200</div>
-                            <div class="anim-d-lbl" style="color: var(--text-muted);">Термінал</div>
-                        </div>
-                        <div class="anim-d-card">
-                            <div class="anim-d-icon" style="background: rgba(52,199,89,0.1); color: var(--success);"><i class="fa-solid fa-money-bill"></i></div>
-                            <div class="anim-d-val" style="color: var(--text-main);">8,220</div>
-                            <div class="anim-d-lbl" style="color: var(--text-muted);">Готівка</div>
+                    <div class="anim-scroll-view">
+                        <div class="anim-dash-scroll">
+                            <div class="anim-d-card anim-d-main">
+                                <div class="anim-d-icon" style="background: rgba(255,255,255,0.2);"><i class="fa-solid fa-wallet"></i></div>
+                                <div class="anim-d-val">15,420 zł</div>
+                                <div class="anim-d-lbl">Загальна каса</div>
+                            </div>
+                            <div style="display:flex; gap:10px;">
+                                <div class="anim-d-card" style="flex:1;"><div class="anim-d-icon" style="background: rgba(59,130,246,0.1); color: var(--info);"><i class="fa-solid fa-credit-card"></i></div><div><div class="anim-d-val" style="font-size:16px;">7,200</div><div class="anim-d-lbl">Термінал</div></div></div>
+                                <div class="anim-d-card" style="flex:1;"><div class="anim-d-icon" style="background: rgba(52,199,89,0.1); color: var(--success);"><i class="fa-solid fa-money-bill"></i></div><div><div class="anim-d-val" style="font-size:16px;">8,220</div><div class="anim-d-lbl">Готівка</div></div></div>
+                            </div>
+                            <div class="anim-d-card" style="flex-direction:column; align-items:flex-start;">
+                                <div class="anim-d-lbl" style="color:var(--text-muted);"><i class="fa-solid fa-map-location-dot"></i> Теплова карта</div>
+                                <div class="anim-heatmap">
+                                    <div class="anim-heat-blob" style="width:40px; height:40px; background:red; top:10px; left:20px;"></div>
+                                    <div class="anim-heat-blob" style="width:30px; height:30px; background:orange; top:20px; left:50px;"></div>
+                                    <div class="anim-heat-blob" style="width:50px; height:50px; background:yellow; top:5px; right:10px;"></div>
+                                </div>
+                            </div>
+                            <div class="anim-d-card" style="justify-content:space-between;">
+                                <div><div class="anim-d-lbl" style="color:var(--text-muted);">Запізнення (> 45 хв)</div><div class="anim-d-val" style="color:var(--danger); font-size:18px;">2</div></div>
+                                <div class="anim-d-icon" style="background:rgba(239,68,68,0.1); color:var(--danger); margin:0;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+            
             <div class="slide">
-                <div class="title-block"><div class="title">Керування командою</div><div class="desc">Додавайте менеджерів та кур'єрів в один клік. Гнучке налаштування доступу.</div></div>
+                <div class="title-block"><div class="title">Керування командою</div><div class="desc">Додавайте та видаляйте менеджерів і кур'єрів в один клік.</div></div>
                 <div class="visual-container">
                     <div class="anim-team">
                         <div class="anim-t-item">
@@ -201,37 +243,47 @@
                         </div>
                         <div class="anim-t-item">
                             <div class="anim-t-ava">🛵</div>
-                            <div class="anim-t-info"><div>Іван Кур'єр</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);">КУР'ЄР</div></div>
+                            <div class="anim-t-info"><div>Іван К.</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);">КУР'ЄР</div></div>
                         </div>
-                        <div class="anim-t-btn"><i class="fa-solid fa-plus"></i> Додати персонал</div>
+                        <div class="anim-t-item anim-new-staff">
+                            <div class="anim-t-ava">🛵</div>
+                            <div class="anim-t-info"><div>Максим В.</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);">КУР'ЄР</div></div>
+                            <div class="anim-del-btn"><i class="fa-solid fa-trash-can"></i></div>
+                        </div>
+                        <div class="anim-t-btn" style="margin-top:5px;"><i class="fa-solid fa-plus"></i> Додати персонал</div>
                     </div>
                 </div>
             </div>
+            
             <div class="slide">
-                <div class="title-block"><div class="title">Розумна форма</div><div class="desc">Автоматичний пошук адреси, перевірка радіусу та відображення на міні-карті.</div></div>
+                <div class="title-block"><div class="title">Розумна форма</div><div class="desc">Автоматичний пошук адреси, перевірка зони та швидке створення маршруту.</div></div>
                 <div class="visual-container">
                     <div class="anim-form">
-                        <div class="anim-f-input"><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> вул. Франка Ів...|</div>
+                        <div class="anim-f-input"><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> <span class="anim-text">вул. Франка Івана...|</span></div>
                         <div class="anim-f-drop">
-                            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--text-main);">вул. Франка Івана, 12 <span style="color:var(--primary); background:rgba(255,90,95,0.1); padding:2px 6px; border-radius:4px;">1.5 км</span></div>
+                            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--text-main);">вул. Франка Івана, 12 <span style="color:var(--primary); background:rgba(255,90,95,0.1); padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-route"></i> 1.5 км</span></div>
                         </div>
-                        <div class="anim-f-map">
-                            <div class="anim-f-circle"></div>
-                            <div class="anim-f-marker"></div>
+                        <div class="anim-pseudo-map">
+                            <div class="anim-pm-store"><i class="fa-solid fa-store"></i></div>
+                            <div class="anim-pm-route"></div>
+                            <div class="anim-pm-client"><i class="fa-solid fa-location-dot"></i></div>
                         </div>
                     </div>
                 </div>
             </div>
+            
             <div class="slide">
-                <div class="title-block"><div class="title">Робоче місце кур'єра</div><div class="desc">Деталі, карта маршруту та закриття замовлень — усе в єдиному повідомленні Telegram.</div></div>
+                <div class="title-block"><div class="title">Робоче місце кур'єра</div><div class="desc">Карта маршруту та закриття замовлень — усе в єдиному повідомленні Telegram.</div></div>
                 <div class="visual-container">
                     <div class="anim-tg">
                         <div class="anim-tg-msg">
-                            <div class="anim-tg-img"><div class="anim-tg-line"></div></div>
+                            <div class="anim-tg-map-img">
+                                <div style="width:20px; height:20px; background:#111418; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-size:8px; position:absolute; left:15%; top:25px; z-index:2;"><i class="fa-solid fa-store"></i></div>
+                            </div>
                             <div class="anim-tg-txt"><b>📦 Замовлення #A1B2C</b><br>📍 вул. Шевченка, 12</div>
                             <div class="anim-tg-btn-group">
-                                <div class="anim-tg-btn b-blue">🗺 Маршрут</div>
-                                <div class="anim-tg-btn b-green">✅ Доставлено</div>
+                                <div class="anim-tg-btn b-blue"><i class="fa-solid fa-map-location-dot"></i> Маршрут</div>
+                                <div class="anim-tg-btn anim-status-btn"></div>
                             </div>
                         </div>
                     </div>
