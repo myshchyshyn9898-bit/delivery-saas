@@ -50,7 +50,18 @@ TEXTS = {
         'finish_err': "❌ Помилка завершення",
         'sa_empty': "📭 Бізнесів поки немає.",
         'sa_manage': "🚀 Керування SaaS:",
-        'sa_changed': "Статус змінено!"
+        'sa_changed': "Статус змінено!",
+        
+        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
+        'btn_open_app': "🚀 Відкрити DelivePro",
+        'btn_dashboard': "📊 Дашборд",
+        'btn_report': "📊 Зробити звіт",
+        'btn_settings': "⚙️ Налаштування бізнесу",
+        'btn_staff': "👥 Персонал",
+        'btn_new_order': "📝 Нове замовлення",
+        'btn_active_orders': "📂 Активні замовлення",
+        'btn_my_deliveries': "📦 Мої доставки",
+        'btn_boss_panel': "👑 Панель Власника"
     },
     'ru': {
         'sub_expired': "⚠️ **Ваша подписка закончилась или приостановлена.**\nПожалуйста, обратитесь к администратору.",
@@ -101,7 +112,18 @@ TEXTS = {
         'finish_err': "❌ Ошибка завершения",
         'sa_empty': "📭 Бизнесов пока нет.",
         'sa_manage': "🚀 Управление SaaS:",
-        'sa_changed': "Статус изменен!"
+        'sa_changed': "Статус изменен!",
+
+        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
+        'btn_open_app': "🚀 Открыть DelivePro",
+        'btn_dashboard': "📊 Дашборд",
+        'btn_report': "📊 Сделать отчет",
+        'btn_settings': "⚙️ Настройки бизнеса",
+        'btn_staff': "👥 Персонал",
+        'btn_new_order': "📝 Новый заказ",
+        'btn_active_orders': "📂 Активные заказы",
+        'btn_my_deliveries': "📦 Мои доставки",
+        'btn_boss_panel': "👑 Панель Владельца"
     },
     'pl': {
         'sub_expired': "⚠️ **Twoja subskrypcja wygasła lub została zawieszona.**\nProszę skontaktować się z administratorem.",
@@ -152,7 +174,18 @@ TEXTS = {
         'finish_err': "❌ Błąd zakończenia",
         'sa_empty': "📭 Na razie brak firm.",
         'sa_manage': "🚀 Zarządzanie SaaS:",
-        'sa_changed': "Status zmieniony!"
+        'sa_changed': "Status zmieniony!",
+
+        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
+        'btn_open_app': "🚀 Otwórz DelivePro",
+        'btn_dashboard': "📊 Panel",
+        'btn_report': "📊 Zrób raport",
+        'btn_settings': "⚙️ Ustawienia firmy",
+        'btn_staff': "👥 Personel",
+        'btn_new_order': "📝 Nowe zamówienie",
+        'btn_active_orders': "📂 Aktywne zamówienia",
+        'btn_my_deliveries': "📦 Moje dostawy",
+        'btn_boss_panel': "👑 Panel Właściciela"
     },
     'en': {
         'sub_expired': "⚠️ **Your subscription has expired or been suspended.**\nPlease contact the administrator.",
@@ -203,17 +236,25 @@ TEXTS = {
         'finish_err': "❌ Completion error",
         'sa_empty': "📭 No businesses yet.",
         'sa_manage': "🚀 SaaS Management:",
-        'sa_changed': "Status changed!"
+        'sa_changed': "Status changed!",
+        
+        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
+        'btn_open_app': "🚀 Open DelivePro",
+        'btn_dashboard': "📊 Dashboard",
+        'btn_report': "📊 Make Report",
+        'btn_settings': "⚙️ Business Settings",
+        'btn_staff': "👥 Staff",
+        'btn_new_order': "📝 New Order",
+        'btn_active_orders': "📂 Active Orders",
+        'btn_my_deliveries': "📦 My Deliveries",
+        'btn_boss_panel': "👑 Boss Panel"
     }
 }
 
 def get_text(lang_code: str, key: str, **kwargs) -> str:
     """Отримує переклад з TEXTS. Якщо мови нема - бере англійську. Дозволяє форматування."""
     lang = lang_code if lang_code in TEXTS else 'en'
-    
-    # Запасний варіант, якщо ключа раптом немає
     text = TEXTS[lang].get(key, TEXTS['en'].get(key, key))
-    
     if kwargs:
         return text.format(**kwargs)
     return text
