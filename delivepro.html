@@ -86,9 +86,8 @@
         .btn:active { transform: scale(0.96); background: var(--primary-dark); }
         .btn-trial { background: #111418; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
 
-        /* ВІДКОЧЕНО ДО НАДІЙНОЇ СТРУКТУРИ КАРУСЕЛІ */
         .carousel { display: flex; transition: transform 0.4s ease-out; height: 100%; width: 100%; }
-        .slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; padding: 20px 5px; align-items: center; box-sizing: border-box; }
+        .slide { min-width: 100%; flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; padding: 20px 10px; align-items: center; box-sizing: border-box; }
         
         .visual-container { width: 100%; height: 220px; background: white; border-radius: 25px; margin: 30px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
         .title-block { text-align: center; width: 100%; }
@@ -373,7 +372,8 @@
         <div class="form-card">
             <div class="form-card-header"><i class="fa-solid fa-location-dot"></i> <span data-i18n="reg_h2">Локація</span></div>
             <div class="input-group">
-                <input type="text" id="biz-country" class="input-field" data-i18n-placeholder="reg_ph_country" placeholder="Країна (напр. Польща)" style="margin-bottom: 10px;" value="Польща">
+                <input type="text" id="biz-country" class="input-field" data-i18n-placeholder="reg_ph_country" data-i18n-val="country_def" style="margin-bottom: 10px;">
+                
                 <input type="text" id="biz-city" class="input-field" data-i18n-placeholder="reg_ph_city" placeholder="Місто (напр. Варшава)" style="margin-bottom: 10px;">
                 
                 <div style="position: relative;">
@@ -416,7 +416,6 @@
     </div>
 
     <script>
-        // ОГОЛОШУЄМО ЗМІННІ ДО ЇХ ВИКОРИСТАННЯ
         let selectedPlan = 'pro';
         let currentSlide = 0;
         const totalSlides = 4; 
@@ -428,7 +427,6 @@
         let tg = window.Telegram.WebApp;
         tg.expand(); 
 
-        // Безпечне отримання мови Telegram (без оператора ?.)
         let tgLang = 'en';
         try {
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
@@ -461,7 +459,7 @@
                 btn_trial: "Почати 7 днів безкоштовно", txt_cancel: "Скасувати можна в будь-який момент",
                 reg_title: "Профіль бізнесу", reg_h1: "Основне",
                 reg_ph_name: "Назва закладу (напр. Hero Sushi)", reg_ph_desc: "Короткий опис закладу...", reg_ph_phone: "Контактний телефон",
-                reg_h2: "Локація", reg_ph_country: "Країна (напр. Польща)", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту",
+                reg_h2: "Локація", reg_ph_country: "Країна (напр. Польща)", country_def: "Польща", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту",
                 reg_h3: "Фінанси та Оплата", cur_pl: "Польський Злотий (zł)", cur_ua: "Українська Гривня (₴)", cur_eu: "Євро (€)",
                 reg_pay_lbl: "Приймаємо до оплати:", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
                 btn_create: "Створити кабінет", alert_err: "📍 Будь ласка, введіть хоча б Назву закладу та Місто.", alert_load: "⏳ Створюємо кабінет...",
@@ -484,7 +482,7 @@
                 btn_trial: "Начать 7 дней бесплатно", txt_cancel: "Отменить можно в любой момент",
                 reg_title: "Профиль бизнеса", reg_h1: "Основное",
                 reg_ph_name: "Название заведения (напр. Hero Sushi)", reg_ph_desc: "Краткое описание заведения...", reg_ph_phone: "Контактный телефон",
-                reg_h2: "Локация", reg_ph_country: "Страна (напр. Польша)", reg_ph_city: "Город (напр. Варшава)", reg_ph_street: "Улица и номер (начните вводить...)", reg_ph_radius: "Радиус доставки (км)", reg_map_hint: "Выберите адрес из списка или подвиньте карту",
+                reg_h2: "Локация", reg_ph_country: "Страна (напр. Польша)", country_def: "Польша", reg_ph_city: "Город (напр. Варшава)", reg_ph_street: "Улица и номер (начните вводить...)", reg_ph_radius: "Радиус доставки (км)", reg_map_hint: "Выберите адрес из списка или подвиньте карту",
                 reg_h3: "Финансы и Оплата", cur_pl: "Польский Злотый (zł)", cur_ua: "Украинская Гривна (₴)", cur_eu: "Евро (€)",
                 reg_pay_lbl: "Принимаем к оплате:", pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
                 btn_create: "Создать кабинет", alert_err: "📍 Пожалуйста, введите хотя бы Название заведения и Город.", alert_load: "⏳ Создаем кабинет...",
@@ -507,7 +505,7 @@
                 btn_trial: "Zacznij 7 dni za darmo", txt_cancel: "Możesz anulować w dowolnym momencie",
                 reg_title: "Profil firmy", reg_h1: "Podstawowe",
                 reg_ph_name: "Nazwa lokalu (np. Hero Sushi)", reg_ph_desc: "Krótki opis lokalu...", reg_ph_phone: "Telefon kontaktowy",
-                reg_h2: "Lokalizacja", reg_ph_country: "Kraj (np. Polska)", reg_ph_city: "Miasto (np. Warszawa)", reg_ph_street: "Ulica i numer (zacznij wpisywać...)", reg_ph_radius: "Promień dostawy (km)", reg_map_hint: "Wybierz adres z listy lub przesuń mapę",
+                reg_h2: "Lokalizacja", reg_ph_country: "Kraj (np. Polska)", country_def: "Polska", reg_ph_city: "Miasto (np. Warszawa)", reg_ph_street: "Ulica i numer (zacznij wpisywać...)", reg_ph_radius: "Promień dostawy (km)", reg_map_hint: "Wybierz adres z listy lub przesuń mapę",
                 reg_h3: "Finanse i Płatności", cur_pl: "Polski Złoty (zł)", cur_ua: "Hrywnia Ukraińska (₴)", cur_eu: "Euro (€)",
                 reg_pay_lbl: "Akceptujemy płatności:", pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
                 btn_create: "Utwórz konto", alert_err: "📍 Proszę podać przynajmniej Nazwę lokalu i Miasto.", alert_load: "⏳ Tworzenie konta...",
@@ -530,7 +528,7 @@
                 btn_trial: "Start 7 days for free", txt_cancel: "Cancel anytime",
                 reg_title: "Business Profile", reg_h1: "General",
                 reg_ph_name: "Business name (e.g. Hero Sushi)", reg_ph_desc: "Short description...", reg_ph_phone: "Contact phone",
-                reg_h2: "Location", reg_ph_country: "Country (e.g. Poland)", reg_ph_city: "City (e.g. Warsaw)", reg_ph_street: "Street and number (start typing...)", reg_ph_radius: "Delivery radius (km)", reg_map_hint: "Select an address from the list or move the map",
+                reg_h2: "Location", reg_ph_country: "Country (e.g. Poland)", country_def: "Poland", reg_ph_city: "City (e.g. Warsaw)", reg_ph_street: "Street and number (start typing...)", reg_ph_radius: "Delivery radius (km)", reg_map_hint: "Select an address from the list or move the map",
                 reg_h3: "Finance & Payments", cur_pl: "Polish Złoty (zł)", cur_ua: "Ukrainian Hryvnia (₴)", cur_eu: "Euro (€)",
                 reg_pay_lbl: "Accepted payment methods:", pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
                 btn_create: "Create account", alert_err: "📍 Please enter at least the Business Name and City.", alert_load: "⏳ Creating account...",
@@ -552,6 +550,12 @@
                 const key = el.getAttribute('data-i18n-placeholder');
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
+
+            // НОВЕ: Змінює саме ЗНАЧЕННЯ інпуту (value)
+            document.querySelectorAll('[data-i18n-val]').forEach(el => {
+                const key = el.getAttribute('data-i18n-val');
+                if (i18n[lang][key]) el.value = i18n[lang][key];
+            });
             
             document.documentElement.style.setProperty('--txt-process', `"${i18n[lang].anim_process}"`);
             document.documentElement.style.setProperty('--txt-delivered', `"${i18n[lang].anim_deliv}"`);
@@ -572,7 +576,6 @@
             }
         });
 
-        // Викликаємо встановлення мови ТІЛЬКИ ПІСЛЯ оголошення всіх змінних
         setLanguage(currentLang);
         // =========================================
 
@@ -632,7 +635,6 @@
                 return; 
             }
 
-            // Текст загрузки також можна перекласти, але поки лишимо універсальну іконку
             bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
             bizAddrList.style.display = 'block';
 
@@ -700,10 +702,7 @@
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
                 currentSlide++;
-                
-                // ВИПРАВЛЕНО: Жорсткий математичний зсув у % від ширини батьківського контейнера
                 document.getElementById('carousel').style.transform = `translateX(-${currentSlide * 100}%)`;
-                
                 document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
                 
                 if (currentSlide === totalSlides - 1) {
