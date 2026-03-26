@@ -86,7 +86,7 @@
         .btn:active { transform: scale(0.96); background: var(--primary-dark); }
         .btn-trial { background: #111418; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
 
-        .carousel { display: flex; transition: transform 0.4s ease-out; height: 100%; }
+        .carousel { display: flex; transition: transform 0.4s ease-out; height: 100%; width: 100%; }
         .slide { min-width: 100%; height: 100%; display: flex; flex-direction: column; padding: 20px 5px; align-items: center; }
         .visual-container { width: 100%; height: 220px; background: white; border-radius: 25px; margin: 30px 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 20px rgba(0,0,0,0.03); position: relative; overflow: hidden; }
         .title-block { text-align: center; }
@@ -515,33 +515,36 @@
             }
         };
 
-        // Отримуємо мову з Telegram, або з локальної пам'яті. Якщо невідома - ставимо EN
-        let tgLang = window.Telegram.WebApp.initDataUnsafe?.user?.language_code || 'en';
+        // Залізобетонна перевірка мови без використання `?.` (щоб не ламати старі браузери)
+        let tgLang = 'en';
+        try {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en';
+            }
+        } catch(e) {}
+        
         let savedLang = localStorage.getItem('appLang');
         let currentLang = savedLang || tgLang;
         if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
 
         function setLanguage(lang) {
             currentLang = lang;
-            localStorage.setItem('appLang', lang); // Зберігаємо для Дашборду
+            localStorage.setItem('appLang', lang); 
             document.getElementById('current-lang-display').innerText = lang.toUpperCase();
             
-            // Переклад текстів
             document.querySelectorAll('[data-i18n]').forEach(el => {
                 const key = el.getAttribute('data-i18n');
                 if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
             });
-            // Переклад плейсхолдерів в інпутах
+            
             document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
                 const key = el.getAttribute('data-i18n-placeholder');
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
             
-            // Переклад CSS-анімацій через змінні
             document.documentElement.style.setProperty('--txt-process', `"${i18n[lang].anim_process}"`);
             document.documentElement.style.setProperty('--txt-delivered', `"${i18n[lang].anim_deliv}"`);
 
-            // Оновлюємо кнопку "Далі", якщо ми на останньому слайді
             if (currentSlide === totalSlides - 1) {
                 let btn = document.getElementById('btn-onboard-next');
                 btn.innerText = i18n[lang].btn_plan;
@@ -552,14 +555,12 @@
             document.getElementById('lang-menu').classList.toggle('show');
         }
         
-        // Закривати меню при кліку будь-де
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) {
                 document.getElementById('lang-menu').classList.remove('show');
             }
         });
 
-        // Ініціалізація мови при старті
         setLanguage(currentLang);
         // =========================================
 
@@ -627,8 +628,7 @@
                 return; 
             }
 
-            // Текст загрузки також можна перекласти, але поки лишимо універсальну іконку
-            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i></div>';
+            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо...</div>';
             bizAddrList.style.display = 'block';
 
             bizTimeout = setTimeout(async () => {
@@ -695,8 +695,7 @@
         function nextSlide() {
             if (currentSlide < totalSlides - 1) {
                 currentSlide++;
-                // ФІКС математики зсуву для 4 слайдів
-                document.getElementById('carousel').style.transform = `translateX(-${currentSlide * (100 / totalSlides)}%)`;
+                document.getElementById('carousel').style.transform = `translateX(-${currentSlide * 100}vw)`;
                 document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === currentSlide));
                 
                 if (currentSlide === totalSlides - 1) {
