@@ -46,7 +46,7 @@
             display: none; flex-direction: column; min-width: 130px;
         }
         .lang-menu.show { display: flex; animation: dropIn 0.2s ease; }
-        .lang-item { padding: 12px 15px; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.2s; display: flex; align-items: center; gap: 10px; color: var(--text-main);}
+        .lang-item { padding: 12px 15px; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.1s; display: flex; align-items: center; gap: 10px; color: var(--text-main);}
         .lang-item:last-child { border-bottom: none; }
         .lang-item:active { background: #f1f5f9; color: var(--primary); }
         @keyframes dropIn { 0% { opacity: 0; transform: translateY(-5px); } 100% { opacity: 1; transform: translateY(0); } }
@@ -104,107 +104,6 @@
     </style>
 </head>
 <body>
-
-    <script>
-        let tg = null;
-        let tgLang = 'en';
-        try { 
-            if (window.Telegram && window.Telegram.WebApp) { 
-                tg = window.Telegram.WebApp; 
-                tg.expand(); 
-                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
-                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    tgLang = tg.initDataUnsafe.user.language_code || 'en';
-                }
-            } 
-        } catch(e) { console.error("Помилка Telegram WebApp:", e); }
-
-        let savedLang = localStorage.getItem('appLang');
-        let currentLang = savedLang || tgLang;
-        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
-
-        const i18n = {
-            'uk': {
-                title_main: "Нове замовлення", card_client: "Дані клієнта", ph_name: "Ім'я клієнта (напр. Олексій)", ph_phone: "Телефон (+48...)",
-                card_addr: "Адреса доставки", ph_street: "Вулиця та номер (почніть вводити...)", ph_apt: "Квартира", ph_code: "Домофон",
-                card_pay: "Оплата", ph_amount: "Сума замовлення (zł)", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
-                card_courier: "Призначити кур'єра", select_c: "Оберіть кур'єра зі списку...", no_c: "Немає доступних кур'єрів",
-                err_data: "Помилка завантаження даних", c_busy: "В дорозі", c_free: "Вільний", ph_comment: "Коментар (необов'язково)",
-                btn_submit: "Створити та Відправити", btn_loading: "Відправляємо...", tg_btn_submit: "СТВОРИТИ ТА ВІДПРАВИТИ",
-                search_load: "Шукаємо адресу...", search_empty: "Адресу не знайдено, або вона поза зоною доставки ({r} км).", search_err: "Помилка пошуку",
-                country_def: "Польща", km: "км", err_addr: "📍 Будь ласка, почніть вводити адресу і обов'язково ОБЕРІТЬ її з випадаючого списку!",
-                err_phone: "Будь ласка, введіть коректний номер телефону!", err_req: "Заповніть обов'язкові поля: вулицю, суму та оберіть кур'єра!",
-                load_list: "Завантаження списку..."
-            },
-            'ru': {
-                title_main: "Новый заказ", card_client: "Данные клиента", ph_name: "Имя клиента (напр. Алексей)", ph_phone: "Телефон (+48...)",
-                card_addr: "Адрес доставки", ph_street: "Улица и номер (начните вводить...)", ph_apt: "Квартира", ph_code: "Домофон",
-                card_pay: "Оплата", ph_amount: "Сумма заказа (zł)", pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
-                card_courier: "Назначить курьера", select_c: "Выберите курьера из списка...", no_c: "Нет доступных курьеров",
-                err_data: "Ошибка загрузки данных", c_busy: "В пути", c_free: "Свободен", ph_comment: "Комментарий (необязательно)",
-                btn_submit: "Создать и Отправить", btn_loading: "Отправляем...", tg_btn_submit: "СОЗДАТЬ И ОТПРАВИТЬ",
-                search_load: "Ищем адрес...", search_empty: "Адрес не найден, или он вне зоны доставки ({r} км).", search_err: "Ошибка поиска",
-                country_def: "Польша", km: "км", err_addr: "📍 Пожалуйста, начните вводить адрес и обязательно ВЫБЕРИТЕ его из списка!",
-                err_phone: "Пожалуйста, введите корректный номер телефона!", err_req: "Заполните обязательные поля: улицу, сумму и выберите курьера!",
-                load_list: "Загрузка списка..."
-            },
-            'pl': {
-                title_main: "Nowe zamówienie", card_client: "Dane klienta", ph_name: "Imię klienta (np. Jan)", ph_phone: "Telefon (+48...)",
-                card_addr: "Adres dostawy", ph_street: "Ulica i numer (zacznij wpisywać...)", ph_apt: "Mieszkanie", ph_code: "Domofon",
-                card_pay: "Płatność", ph_amount: "Kwota zamówienia (zł)", pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
-                card_courier: "Przypisz kuriera", select_c: "Wybierz kuriera z listy...", no_c: "Brak dostępnych kurierów",
-                err_data: "Błąd ładowania danych", c_busy: "W trasie", c_free: "Wolny", ph_comment: "Komentarz (opcjonalnie)",
-                btn_submit: "Utwórz i Wyślij", btn_loading: "Wysyłanie...", tg_btn_submit: "UTWÓRZ I WYŚLIJ",
-                search_load: "Szukamy adresu...", search_empty: "Nie znaleziono adresu lub jest poza strefą dostawy ({r} km).", search_err: "Błąd wyszukiwania",
-                country_def: "Polska", km: "km", err_addr: "📍 Proszę zacząć wpisywać adres i koniecznie WYBRAĆ go z listy rozwijanej!",
-                err_phone: "Proszę wprowadzić poprawny numer telefonu!", err_req: "Wypełnij wymagane pola: ulicę, kwotę i wybierz kuriera!",
-                load_list: "Ładowanie listy..."
-            },
-            'en': {
-                title_main: "New Order", card_client: "Client Data", ph_name: "Client name (e.g. Alex)", ph_phone: "Phone (+48...)",
-                card_addr: "Delivery Address", ph_street: "Street and number (start typing...)", ph_apt: "Apt", ph_code: "Intercom",
-                card_pay: "Payment", ph_amount: "Order amount (zł)", pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
-                card_courier: "Assign Courier", select_c: "Select courier from list...", no_c: "No available couriers",
-                err_data: "Data loading error", c_busy: "On the way", c_free: "Free", ph_comment: "Comment (optional)",
-                btn_submit: "Create & Send", btn_loading: "Sending...", tg_btn_submit: "CREATE & SEND",
-                search_load: "Searching address...", search_empty: "Address not found or out of delivery zone ({r} km).", search_err: "Search error",
-                country_def: "Poland", km: "km", err_addr: "📍 Please start typing the address and make sure to SELECT it from the list!",
-                err_phone: "Please enter a valid phone number!", err_req: "Fill in the required fields: street, amount, and select a courier!",
-                load_list: "Loading list..."
-            }
-        };
-
-        function t(key) { return i18n[currentLang][key] || key; }
-
-        function setLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('appLang', lang); 
-            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
-            
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
-            });
-            
-            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-                const key = el.getAttribute('data-i18n-placeholder');
-                if (i18n[lang][key]) el.placeholder = i18n[lang][key];
-            });
-
-            // Оновлюємо текст кнопки Telegram
-            if (tg && tg.MainButton) {
-                tg.MainButton.text = t('tg_btn_submit');
-            }
-
-            // Перемальовуємо список кур'єрів, щоб оновити статуси ("В дорозі" / "Вільний")
-            renderCouriers();
-        }
-
-        function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
-        document.addEventListener('click', (e) => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
-
-    </script>
 
     <div class="header">
         <div><i class="fa-solid fa-clipboard-list"></i> <span data-i18n="title_main">Нове замовлення</span></div>
@@ -278,17 +177,76 @@
     </div>
 
     <script>
-        // Ініціалізація мови ПІСЛЯ завантаження HTML елементів
-        setLanguage(currentLang);
+        // 1. ОГОЛОШЕННЯ ВСІХ ЗМІННИХ
+        let tg = null;
+        let tgLang = 'en';
         
-        if (tg && tg.MainButton) {
-            document.getElementById('btn-submit').style.display = 'none';
-            tg.MainButton.text = t('tg_btn_submit');
-            tg.MainButton.color = "#ff6b4a"; 
-            tg.MainButton.textColor = "#ffffff";
-            tg.MainButton.show();
-            tg.MainButton.onClick(function() { window.submitOrder(); });
-        }
+        try { 
+            if (window.Telegram && window.Telegram.WebApp) { 
+                tg = window.Telegram.WebApp; 
+                tg.expand(); 
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    tgLang = tg.initDataUnsafe.user.language_code || 'en';
+                }
+            } 
+        } catch(e) { console.error("Помилка Telegram WebApp:", e); }
+
+        let savedLang = localStorage.getItem('appLang');
+        let currentLang = savedLang || tgLang;
+        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
+
+        const i18n = {
+            'uk': {
+                title_main: "Нове замовлення", card_client: "Дані клієнта", ph_name: "Ім'я клієнта (напр. Олексій)", ph_phone: "Телефон (+48...)",
+                card_addr: "Адреса доставки", ph_street: "Вулиця та номер (почніть вводити...)", ph_apt: "Квартира", ph_code: "Домофон",
+                card_pay: "Оплата", ph_amount: "Сума замовлення (zł)", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
+                card_courier: "Призначити кур'єра", select_c: "Оберіть кур'єра зі списку...", no_c: "Немає доступних кур'єрів",
+                err_data: "Помилка завантаження даних", c_busy: "В дорозі", c_free: "Вільний", ph_comment: "Коментар (необов'язково)",
+                btn_submit: "Створити та Відправити", btn_loading: "Відправляємо...", tg_btn_submit: "СТВОРИТИ ТА ВІДПРАВИТИ",
+                search_load: "Шукаємо адресу...", search_empty: "Адресу не знайдено, або вона поза зоною доставки ({r} км).", search_err: "Помилка пошуку",
+                country_def: "Польща", km: "км", err_addr: "📍 Будь ласка, почніть вводити адресу і обов'язково ОБЕРІТЬ її з випадаючого списку!",
+                err_phone: "Будь ласка, введіть коректний номер телефону!", err_req: "Заповніть обов'язкові поля: вулицю, суму та оберіть кур'єра!",
+                load_list: "Завантаження списку..."
+            },
+            'ru': {
+                title_main: "Новый заказ", card_client: "Данные клиента", ph_name: "Имя клиента (напр. Алексей)", ph_phone: "Телефон (+48...)",
+                card_addr: "Адрес доставки", ph_street: "Улица и номер (начните вводить...)", ph_apt: "Квартира", ph_code: "Домофон",
+                card_pay: "Оплата", ph_amount: "Сумма заказа (zł)", pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
+                card_courier: "Назначить курьера", select_c: "Выберите курьера из списка...", no_c: "Нет доступных курьеров",
+                err_data: "Ошибка загрузки данных", c_busy: "В пути", c_free: "Свободен", ph_comment: "Комментарий (необязательно)",
+                btn_submit: "Создать и Отправить", btn_loading: "Отправляем...", tg_btn_submit: "СОЗДАТЬ И ОТПРАВИТЬ",
+                search_load: "Ищем адрес...", search_empty: "Адрес не найден, или он вне зоны доставки ({r} км).", search_err: "Ошибка поиска",
+                country_def: "Польша", km: "км", err_addr: "📍 Пожалуйста, начните вводить адрес и обязательно ВЫБЕРИТЕ его из списка!",
+                err_phone: "Пожалуйста, введите корректный номер телефона!", err_req: "Заполните обязательные поля: улицу, сумму и выберите курьера!",
+                load_list: "Загрузка списка..."
+            },
+            'pl': {
+                title_main: "Nowe zamówienie", card_client: "Dane klienta", ph_name: "Imię klienta (np. Jan)", ph_phone: "Telefon (+48...)",
+                card_addr: "Adres dostawy", ph_street: "Ulica i numer (zacznij wpisywać...)", ph_apt: "Mieszkanie", ph_code: "Domofon",
+                card_pay: "Płatność", ph_amount: "Kwota zamówienia (zł)", pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
+                card_courier: "Przypisz kuriera", select_c: "Wybierz kuriera z listy...", no_c: "Brak dostępnych kurierów",
+                err_data: "Błąd ładowania danych", c_busy: "W trasie", c_free: "Wolny", ph_comment: "Komentarz (opcjonalnie)",
+                btn_submit: "Utwórz i Wyślij", btn_loading: "Wysyłanie...", tg_btn_submit: "UTWÓRZ I WYŚLIJ",
+                search_load: "Szukamy adresu...", search_empty: "Nie znaleziono adresu lub jest poza strefą dostawy ({r} km).", search_err: "Błąd wyszukiwania",
+                country_def: "Polska", km: "km", err_addr: "📍 Proszę zacząć wpisywać adres i koniecznie WYBRAĆ go z listy rozwijanej!",
+                err_phone: "Proszę wprowadzić poprawny numer telefonu!", err_req: "Wypełnij wymagane pola: ulicę, kwotę i wybierz kuriera!",
+                load_list: "Ładowanie listy..."
+            },
+            'en': {
+                title_main: "New Order", card_client: "Client Data", ph_name: "Client name (e.g. Alex)", ph_phone: "Phone (+48...)",
+                card_addr: "Delivery Address", ph_street: "Street and number (start typing...)", ph_apt: "Apt", ph_code: "Intercom",
+                card_pay: "Payment", ph_amount: "Order amount (zł)", pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
+                card_courier: "Assign Courier", select_c: "Select courier from list...", no_c: "No available couriers",
+                err_data: "Data loading error", c_busy: "On the way", c_free: "Free", ph_comment: "Comment (optional)",
+                btn_submit: "Create & Send", btn_loading: "Sending...", tg_btn_submit: "CREATE & SEND",
+                search_load: "Searching address...", search_empty: "Address not found or out of delivery zone ({r} km).", search_err: "Search error",
+                country_def: "Poland", km: "km", err_addr: "📍 Please start typing the address and make sure to SELECT it from the list!",
+                err_phone: "Please enter a valid phone number!", err_req: "Fill in the required fields: street, amount, and select a courier!",
+                load_list: "Loading list..."
+            }
+        };
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
@@ -298,30 +256,22 @@
         let supabaseClient = null;
         if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- ГЛОБАЛЬНІ ЗМІННІ БІЗНЕСУ ---
         let bizLat = null;
         let bizLon = null;
         let bizRadius = 10;
         
-        // Зберігаємо списки для миттєвого перекладу
         let globalCouriers = [];
         let globalBusyIds = [];
 
-        // --- ГЛОБАЛЬНІ ЗМІННІ ДЛЯ КАРТИ ---
         let map = null;
         let mapLayer = null;
 
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; 
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; 
-        }
-        
+        let selectedLat = null; 
+        let selectedLon = null; 
+
+        // 2. ОГОЛОШЕННЯ ВСІХ ФУНКЦІЙ
+        function t(key) { return i18n[currentLang][key] || key; }
+
         function renderCouriers() {
             const select = document.getElementById('courier-select');
             if (!select || globalCouriers.length === 0) return;
@@ -335,35 +285,41 @@
             });
         }
 
-        async function initForm() {
-            if (!bizId || !supabaseClient) return;
-            try {
-                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
-                if (biz) {
-                    bizLat = biz.lat || null;
-                    bizLon = biz.lng || null;
-                    bizRadius = biz.radius_km || 10; 
-                }
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('appLang', lang); 
+            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+            });
+            
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (i18n[lang][key]) el.placeholder = i18n[lang][key];
+            });
 
-                const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
-                const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
-                
-                const select = document.getElementById('courier-select');
-                if (couriers && couriers.length > 0) {
-                    globalCouriers = couriers;
-                    globalBusyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
-                    renderCouriers();
-                } else {
-                    select.innerHTML = `<option value="">${t('no_c')}</option>`;
-                }
-            } catch(e) { 
-                console.error("Помилка ініціалізації:", e); 
-                const select = document.getElementById('courier-select');
-                if (select) select.innerHTML = `<option value="">${t('err_data')}</option>`;
+            if (tg && tg.MainButton) {
+                tg.MainButton.text = t('tg_btn_submit');
             }
+
+            renderCouriers();
         }
 
-        // Функція для малювання карти і маршруту
+        function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; 
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; 
+        }
+
         function updateMapPreview(clientLat, clientLon) {
             const mapContainer = document.getElementById('map-preview');
             mapContainer.style.display = 'block'; 
@@ -403,102 +359,34 @@
             setTimeout(() => { map.invalidateSize(); }, 100);
         }
 
-        // --- ЛОГІКА ПОШУКУ З УРАХУВАННЯМ РАДІУСУ ---
-        const addrInput = document.getElementById('address-street');
-        const addrList = document.getElementById('autocomplete-list');
-        let timeout = null;
-        
-        let selectedLat = null; 
-        let selectedLon = null; 
-
-        addrInput.addEventListener('input', function() {
-            clearTimeout(timeout);
-            selectedLat = null; selectedLon = null;
-            document.getElementById('map-preview').style.display = 'none'; 
-            
-            const query = this.value.trim();
-            
-            if (query.length < 3) { 
-                addrList.style.display = 'none'; 
-                return; 
-            }
-
-            addrList.innerHTML = `<div class="autocomplete-item text-center text-primary" style="font-weight: 600;"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 8px;"></i>${t('search_load')}</div>`;
-            addrList.style.display = 'block';
-
-            timeout = setTimeout(async () => {
-                // Використовуємо мову юзера для кращих результатів Nominatim
-                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
-                
-                try {
-                    const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
-                    const data = await res.json();
-                    
-                    addrList.innerHTML = ''; 
-                    let foundValidAddress = false;
-                    
-                    if (data && data.length > 0) {
-                        data.forEach(item => {
-                            const addr = item.address;
-                            if (!addr) return;
-
-                            const itemLat = parseFloat(item.lat);
-                            const itemLon = parseFloat(item.lon);
-                            
-                            let distance = 0;
-                            if (bizLat && bizLon) {
-                                distance = calculateDistance(bizLat, bizLon, itemLat, itemLon);
-                                if (distance > bizRadius) return; 
-                            }
-
-                            const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
-                            const house = addr.house_number || '';
-                            const mainText = `${road} ${house}`.trim();
-                            const city = addr.city || addr.town || addr.village || '';
-                            const countryDef = t('country_def');
-                            const subText = city ? `${city}, ${countryDef}` : countryDef;
-                            
-                            if (!road) return; 
-                            
-                            foundValidAddress = true;
-
-                            const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route" style="color: var(--primary);"></i> ${distance.toFixed(1)} ${t('km')}</span>` : '';
-
-                            const div = document.createElement('div');
-                            div.className = 'autocomplete-item';
-                            div.innerHTML = `<div class="addr-main"><span>${mainText}</span> ${distHtml}</div><div class="addr-sub">${subText}</div>`;
-                            
-                            div.onclick = function() {
-                                addrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
-                                selectedLat = itemLat; 
-                                selectedLon = itemLon; 
-                                addrList.style.display = 'none';
-                                updateMapPreview(selectedLat, selectedLon);
-                            };
-                            addrList.appendChild(div);
-                        });
-                    }
-
-                    if (!foundValidAddress) {
-                        const emptyMsg = t('search_empty').replace('{r}', bizRadius);
-                        addrList.innerHTML = `
-                            <div class="autocomplete-item text-center text-danger">
-                                <i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 6px; font-size: 16px;"></i><br>
-                                ${emptyMsg}
-                            </div>`;
-                    }
-
-                } catch(e) { 
-                    addrList.innerHTML = `<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-circle-xmark" style="margin-right: 6px;"></i>${t('search_err')}</div>`;
+        async function initForm() {
+            if (!bizId || !supabaseClient) return;
+            try {
+                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
+                if (biz) {
+                    bizLat = biz.lat || null;
+                    bizLon = biz.lng || null;
+                    bizRadius = biz.radius_km || 10; 
                 }
-            }, 1200); 
-        });
 
-        document.addEventListener('click', function(e) {
-            if (e.target !== addrInput && e.target !== addrList) addrList.style.display = 'none';
-        });
+                const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
+                const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
+                
+                const select = document.getElementById('courier-select');
+                if (couriers && couriers.length > 0) {
+                    globalCouriers = couriers;
+                    globalBusyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
+                    renderCouriers();
+                } else {
+                    select.innerHTML = `<option value="">${t('no_c')}</option>`;
+                }
+            } catch(e) { 
+                console.error("Помилка ініціалізації:", e); 
+                const select = document.getElementById('courier-select');
+                if (select) select.innerHTML = `<option value="">${t('err_data')}</option>`;
+            }
+        }
 
-        // --- ВІДПРАВКА ЗАМОВЛЕННЯ ---
         window.submitOrder = function() {
             const street = document.getElementById('address-street').value.trim();
             const apt = document.getElementById('address-apt').value.trim();
@@ -553,7 +441,107 @@
             else console.log("Тестовий режим:", orderData);
         };
 
-        initForm();
+        // 3. ДОДАВАННЯ ОБРОБНИКІВ ПОДІЙ ТА ЗАПУСК
+        document.addEventListener('DOMContentLoaded', () => {
+            const addrInput = document.getElementById('address-street');
+            const addrList = document.getElementById('autocomplete-list');
+            let timeout = null;
+
+            addrInput.addEventListener('input', function() {
+                clearTimeout(timeout);
+                selectedLat = null; selectedLon = null;
+                document.getElementById('map-preview').style.display = 'none'; 
+                
+                const query = this.value.trim();
+                if (query.length < 3) { addrList.style.display = 'none'; return; }
+
+                addrList.innerHTML = `<div class="autocomplete-item text-center text-primary" style="font-weight: 600;"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 8px;"></i>${t('search_load')}</div>`;
+                addrList.style.display = 'block';
+
+                timeout = setTimeout(async () => {
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
+                    
+                    try {
+                        const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
+                        const data = await res.json();
+                        
+                        addrList.innerHTML = ''; 
+                        let foundValidAddress = false;
+                        
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                const addr = item.address;
+                                if (!addr) return;
+
+                                const itemLat = parseFloat(item.lat);
+                                const itemLon = parseFloat(item.lon);
+                                
+                                let distance = 0;
+                                if (bizLat && bizLon) {
+                                    distance = calculateDistance(bizLat, bizLon, itemLat, itemLon);
+                                    if (distance > bizRadius) return; 
+                                }
+
+                                const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
+                                const house = addr.house_number || '';
+                                const mainText = `${road} ${house}`.trim();
+                                const city = addr.city || addr.town || addr.village || '';
+                                const countryDef = t('country_def');
+                                const subText = city ? `${city}, ${countryDef}` : countryDef;
+                                
+                                if (!road) return; 
+                                
+                                foundValidAddress = true;
+
+                                const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route" style="color: var(--primary);"></i> ${distance.toFixed(1)} ${t('km')}</span>` : '';
+
+                                const div = document.createElement('div');
+                                div.className = 'autocomplete-item';
+                                div.innerHTML = `<div class="addr-main"><span>${mainText}</span> ${distHtml}</div><div class="addr-sub">${subText}</div>`;
+                                
+                                div.onclick = function() {
+                                    addrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
+                                    selectedLat = itemLat; 
+                                    selectedLon = itemLon; 
+                                    addrList.style.display = 'none';
+                                    updateMapPreview(selectedLat, selectedLon);
+                                };
+                                addrList.appendChild(div);
+                            });
+                        }
+
+                        if (!foundValidAddress) {
+                            const emptyMsg = t('search_empty').replace('{r}', bizRadius);
+                            addrList.innerHTML = `
+                                <div class="autocomplete-item text-center text-danger">
+                                    <i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 6px; font-size: 16px;"></i><br>
+                                    ${emptyMsg}
+                                </div>`;
+                        }
+
+                    } catch(e) { 
+                        addrList.innerHTML = `<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-circle-xmark" style="margin-right: 6px;"></i>${t('search_err')}</div>`;
+                    }
+                }, 1200); 
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target !== addrInput && e.target !== addrList) addrList.style.display = 'none';
+            });
+
+            setLanguage(currentLang);
+            
+            if (tg && tg.MainButton) {
+                document.getElementById('btn-submit').style.display = 'none';
+                tg.MainButton.text = t('tg_btn_submit');
+                tg.MainButton.color = "#ff6b4a"; 
+                tg.MainButton.textColor = "#ffffff";
+                tg.MainButton.show();
+                tg.MainButton.onClick(function() { window.submitOrder(); });
+            }
+
+            initForm();
+        });
     </script>
 </body>
 </html>
