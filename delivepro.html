@@ -263,15 +263,15 @@
                     <div class="anim-team">
                         <div class="anim-t-item">
                             <div class="anim-t-ava">👨‍💼</div>
-                            <div class="anim-t-info"><div>Олексій М.</div><div style="background: rgba(59,130,246,0.1); color: var(--info);" data-i18n="lbl_manager">МЕНЕДЖЕР</div></div>
+                            <div class="anim-t-info"><div data-i18n="name_manager">Олексій М.</div><div style="background: rgba(59,130,246,0.1); color: var(--info);" data-i18n="lbl_manager">МЕНЕДЖЕР</div></div>
                         </div>
                         <div class="anim-t-item">
                             <div class="anim-t-ava">🛵</div>
-                            <div class="anim-t-info"><div>Іван К.</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);" data-i18n="lbl_courier">КУР'ЄР</div></div>
+                            <div class="anim-t-info"><div data-i18n="name_courier1">Іван К.</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);" data-i18n="lbl_courier">КУР'ЄР</div></div>
                         </div>
                         <div class="anim-t-item anim-new-staff">
                             <div class="anim-t-ava">🛵</div>
-                            <div class="anim-t-info"><div>Максим В.</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);" data-i18n="lbl_courier">КУР'ЄР</div></div>
+                            <div class="anim-t-info"><div data-i18n="name_courier2">Максим В.</div><div style="background: rgba(255,90,95,0.1); color: var(--primary);" data-i18n="lbl_courier">КУР'ЄР</div></div>
                             <div class="anim-del-btn"><i class="fa-solid fa-trash-can"></i></div>
                         </div>
                         <div class="anim-t-btn" style="margin-top:5px;"><i class="fa-solid fa-plus"></i> <span data-i18n="btn_add_staff">Додати персонал</span></div>
@@ -283,9 +283,12 @@
                 <div class="title-block"><div class="title" data-i18n="s3_title">Розумна форма</div><div class="desc" data-i18n="s3_desc">Автоматичний пошук адреси, перевірка зони та швидке створення маршруту.</div></div>
                 <div class="visual-container">
                     <div class="anim-form">
-                        <div class="anim-f-input"><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> <span class="anim-text">вул. Франка Івана...|</span></div>
+                        <div class="anim-f-input"><i class="fa-solid fa-location-dot" style="color: var(--primary);"></i> <span class="anim-text" data-i18n="s3_input_street">вул. Франка Івана...|</span></div>
                         <div class="anim-f-drop">
-                            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--text-main);">вул. Франка Івана, 12 <span style="color:var(--primary); background:rgba(255,90,95,0.1); padding:2px 6px; border-radius:4px;"><i class="fa-solid fa-route"></i> 1.5 км</span></div>
+                            <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:800; color:var(--text-main);">
+                                <span data-i18n="s3_drop_street">вул. Франка Івана, 12</span> 
+                                <span style="color:var(--primary); background:rgba(255,90,95,0.1); padding:2px 6px; border-radius:4px;" data-i18n="s3_dist"><i class="fa-solid fa-route"></i> 1.5 км</span>
+                            </div>
                         </div>
                         <div class="anim-pseudo-map">
                             <div class="anim-pm-store"><i class="fa-solid fa-store"></i></div>
@@ -304,7 +307,7 @@
                             <div class="anim-tg-map-img">
                                 <div style="width:20px; height:20px; background:#111418; border-radius:4px; display:flex; align-items:center; justify-content:center; color:white; font-size:8px; position:absolute; left:15%; top:25px; z-index:2;"><i class="fa-solid fa-store"></i></div>
                             </div>
-                            <div class="anim-tg-txt"><b data-i18n="txt_order_num">📦 Замовлення #A1B2C</b><br>📍 вул. Шевченка, 12</div>
+                            <div class="anim-tg-txt"><b data-i18n="txt_order_num">📦 Замовлення #A1B2C</b><br><span data-i18n="s4_street">📍 вул. Шевченка, 12</span></div>
                             <div class="anim-tg-btn-group">
                                 <div class="anim-tg-btn b-blue"><i class="fa-solid fa-map-location-dot"></i> <span data-i18n="btn_route">Маршрут</span></div>
                                 <div class="anim-tg-btn anim-status-btn"></div>
@@ -373,7 +376,6 @@
             <div class="form-card-header"><i class="fa-solid fa-location-dot"></i> <span data-i18n="reg_h2">Локація</span></div>
             <div class="input-group">
                 <input type="text" id="biz-country" class="input-field" data-i18n-placeholder="reg_ph_country" data-i18n-val="country_def" style="margin-bottom: 10px;">
-                
                 <input type="text" id="biz-city" class="input-field" data-i18n-placeholder="reg_ph_city" placeholder="Місто (напр. Варшава)" style="margin-bottom: 10px;">
                 
                 <div style="position: relative;">
@@ -448,10 +450,12 @@
                 s1_title: "Глибока Аналітика", s1_desc: "Контролюйте доходи, час та зони доставки у реальному часі.",
                 lbl_total_cash: "Загальна каса", lbl_terminal: "Термінал", lbl_cash: "Готівка", lbl_heatmap: "Теплова карта", lbl_late: "Запізнення (> 45 хв)",
                 s2_title: "Керування командою", s2_desc: "Додавайте та видаляйте менеджерів і кур'єрів в один клік.",
+                name_manager: "Олексій М.", name_courier1: "Іван К.", name_courier2: "Максим В.",
                 lbl_manager: "МЕНЕДЖЕР", lbl_courier: "КУР'ЄР", btn_add_staff: "Додати персонал",
                 s3_title: "Розумна форма", s3_desc: "Автоматичний пошук адреси, перевірка зони та швидке створення маршруту.",
+                s3_input_street: "вул. Франка Івана...|", s3_drop_street: "вул. Франка Івана, 12", s3_dist: '<i class="fa-solid fa-route"></i> 1.5 км',
                 s4_title: "Робоче місце кур'єра", s4_desc: "Карта маршруту та закриття замовлень — усе в єдиному повідомленні Telegram.",
-                txt_order_num: "📦 Замовлення #A1B2C", btn_route: "Маршрут",
+                txt_order_num: "📦 Замовлення #A1B2C", s4_street: "📍 вул. Шевченка, 12", btn_route: "Маршрут",
                 btn_next: "Далі", btn_plan: "Обрати тариф",
                 pr_title: "Оберіть підписку", pr_month: "/ міс", 
                 pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_b3: "Техпідтримка",
@@ -471,10 +475,12 @@
                 s1_title: "Глубокая Аналитика", s1_desc: "Контролируйте доходы, время и зоны доставки в реальном времени.",
                 lbl_total_cash: "Общая касса", lbl_terminal: "Терминал", lbl_cash: "Наличные", lbl_heatmap: "Тепловая карта", lbl_late: "Опоздания (> 45 мин)",
                 s2_title: "Управление командой", s2_desc: "Добавляйте и удаляйте менеджеров и курьеров в один клик.",
+                name_manager: "Алексей М.", name_courier1: "Иван К.", name_courier2: "Максим В.",
                 lbl_manager: "МЕНЕДЖЕР", lbl_courier: "КУРЬЕР", btn_add_staff: "Добавить персонал",
                 s3_title: "Умная форма", s3_desc: "Автоматический поиск адреса, проверка зоны и быстрое создание маршрута.",
+                s3_input_street: "ул. Ивана Франко...|", s3_drop_street: "ул. Ивана Франко, 12", s3_dist: '<i class="fa-solid fa-route"></i> 1.5 км',
                 s4_title: "Рабочее место курьера", s4_desc: "Карта маршрута и закрытие заказов — всё в одном сообщении Telegram.",
-                txt_order_num: "📦 Заказ #A1B2C", btn_route: "Маршрут",
+                txt_order_num: "📦 Заказ #A1B2C", s4_street: "📍 ул. Шевченко, 12", btn_route: "Маршрут",
                 btn_next: "Далее", btn_plan: "Выбрать тариф",
                 pr_title: "Выберите подписку", pr_month: "/ мес", 
                 pr_b1: "До 2 курьеров в штате", pr_b2: "Базовая статистика", pr_b3: "Техподдержка",
@@ -494,10 +500,12 @@
                 s1_title: "Głęboka Analityka", s1_desc: "Kontroluj dochody, czas i strefy dostaw w czasie rzeczywistym.",
                 lbl_total_cash: "Całkowity utarg", lbl_terminal: "Terminal", lbl_cash: "Gotówka", lbl_heatmap: "Mapa cieplna", lbl_late: "Spóźnienia (> 45 min)",
                 s2_title: "Zarządzanie zespołem", s2_desc: "Dodawaj i usuwaj menedżerów i kurierów jednym kliknięciem.",
+                name_manager: "Aleksy M.", name_courier1: "Jan K.", name_courier2: "Maksym W.",
                 lbl_manager: "MENEDŻER", lbl_courier: "KURIER", btn_add_staff: "Dodaj personel",
                 s3_title: "Inteligentny formularz", s3_desc: "Automatyczne wyszukiwanie adresu, sprawdzanie strefy i szybkie tworzenie trasy.",
+                s3_input_street: "ul. Adama Mickiewicza...|", s3_drop_street: "ul. Adama Mickiewicza, 12", s3_dist: '<i class="fa-solid fa-route"></i> 1.5 km',
                 s4_title: "Miejsce pracy kuriera", s4_desc: "Mapa trasy i zamykanie zamówień — wszystko w jednej wiadomości Telegram.",
-                txt_order_num: "📦 Zamówienie #A1B2C", btn_route: "Trasa",
+                txt_order_num: "📦 Zamówienie #A1B2C", s4_street: "📍 ul. Szewska, 12", btn_route: "Trasa",
                 btn_next: "Dalej", btn_plan: "Wybierz plan",
                 pr_title: "Wybierz subskrypcję", pr_month: "/ m-c", 
                 pr_b1: "Do 2 kurierów w zespole", pr_b2: "Podstawowe statystyki", pr_b3: "Wsparcie techniczne",
@@ -517,10 +525,12 @@
                 s1_title: "Deep Analytics", s1_desc: "Control revenue, time, and delivery zones in real-time.",
                 lbl_total_cash: "Total Revenue", lbl_terminal: "Terminal", lbl_cash: "Cash", lbl_heatmap: "Heatmap", lbl_late: "Late (> 45 min)",
                 s2_title: "Team Management", s2_desc: "Add and remove managers and couriers in one click.",
+                name_manager: "Alex M.", name_courier1: "John K.", name_courier2: "Max W.",
                 lbl_manager: "MANAGER", lbl_courier: "COURIER", btn_add_staff: "Add staff",
                 s3_title: "Smart Form", s3_desc: "Auto address search, zone check, and fast route creation.",
+                s3_input_street: "Baker Street...|", s3_drop_street: "Baker Street, 12", s3_dist: '<i class="fa-solid fa-route"></i> 1.5 km',
                 s4_title: "Courier Workspace", s4_desc: "Route map and order completion — all in a single Telegram message.",
-                txt_order_num: "📦 Order #A1B2C", btn_route: "Route",
+                txt_order_num: "📦 Order #A1B2C", s4_street: "📍 High Street, 12", btn_route: "Route",
                 btn_next: "Next", btn_plan: "Choose plan",
                 pr_title: "Choose Subscription", pr_month: "/ mo", 
                 pr_b1: "Up to 2 couriers", pr_b2: "Basic statistics", pr_b3: "Tech support",
@@ -551,7 +561,6 @@
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
 
-            // НОВЕ: Змінює саме ЗНАЧЕННЯ інпуту (value)
             document.querySelectorAll('[data-i18n-val]').forEach(el => {
                 const key = el.getAttribute('data-i18n-val');
                 if (i18n[lang][key]) el.value = i18n[lang][key];
