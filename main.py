@@ -17,6 +17,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from config import API_TOKEN, SUPER_ADMIN_IDS
 import database as db
 import keyboards as kb
+from texts import get_text as _  # <--- ІМПОРТ НАШОГО СЛОВНИКА
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
@@ -27,23 +28,24 @@ class RegStaff(StatesGroup):
 
 # --- ДОПОМІЖНА ФУНКЦІЯ МЕНЮ ---
 async def show_main_menu(message: types.Message, context: dict):
+    lang = message.from_user.language_code
     role = context['role']
     biz = context['biz']
     biz_id = biz['id']
 
     if not biz['is_active']:
-        await message.answer("⚠️ **Ваша підписка закінчилася або призупинена.**\nБудь ласка, зверніться до адміністратора.")
+        await message.answer(_(lang, 'sub_expired'))
         return
 
     # ДОДАНО message.from_user.id у виклики клавіатур
     if role == "owner":
-        text = f"🏢 **Кабінет власника: {biz['name']}**"
+        text = _(lang, 'owner_panel', name=biz['name'])
         markup = kb.get_owner_kb(biz_id, message.from_user.id)
     elif role == "manager":
-        text = f"👨‍💼 **Панель менеджера: {biz['name']}**"
+        text = _(lang, 'manager_panel', name=biz['name'])
         markup = kb.get_manager_kb(biz_id, message.from_user.id)
     else: # courier
-        text = f"🛵 **Робоче місце кур'єра: {biz['name']}**"
+        text = _(lang, 'courier_panel', name=biz['name'])
         markup = kb.get_courier_kb(biz_id, message.from_user.id)
 
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
@@ -156,29 +158,31 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
 # ==========================================
 @dp.message(F.text.in_(["📊 Зробити звіт", "/zvit"]))
 async def cmd_generate_report(message: types.Message):
+    lang = message.from_user.language_code
     context = db.get_user_context(message.from_user.id)
     if not context or context['role'] not in ['manager', 'owner']:
-        await message.answer("❌ У вас немає доступу до звітів.")
+        await message.answer(_(lang, 'no_zvit_access'))
         return
         
     biz = context['biz']
+    currency = biz.get('currency', 'zł')
     report_data, total_cash, total_term = db.get_daily_report(biz['id'])
     
     if not report_data:
-        await message.answer("📭 Сьогодні ще немає доставлених замовлень для звіту.")
+        await message.answer(_(lang, 'zvit_empty'))
         return
         
     # Час (додаємо +1 годину для Польщі, якщо сервер в UTC)
     now_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=1)).strftime("%H:%M")
     
-    text = f"📊 ЗВІТ ({now_time})\n➖ ➖ ➖ ➖ ➖\n"
+    text = _(lang, 'zvit_title', time=now_time)
     
     for c_id, stats in report_data.items():
-        text += f"👤 {stats['name']}: {stats['count']} зам. | 💵 {stats['cash']:.2f} | 🏧 {stats['term']:.2f}\n"
+        text += f"👤 {stats['name']}: {stats['count']} | 💵 {stats['cash']:.2f} | 🏧 {stats['term']:.2f}\n"
         
     text += f"➖ ➖ ➖ ➖ ➖\n"
-    text += f"💰 Готівка: {total_cash:.2f} {biz.get('currency', 'zł')}\n"
-    text += f"💳 Термінал: {total_term:.2f} {biz.get('currency', 'zł')}"
+    text += _(lang, 'zvit_cash', cash=f"{total_cash:.2f}", cur=currency)
+    text += _(lang, 'zvit_term', term=f"{total_term:.2f}", cur=currency)
     
     await message.answer(text)
 # ==========================================
@@ -189,16 +193,17 @@ async def cmd_generate_report(message: types.Message):
 # ==========================================
 @dp.message(Command("boss"))
 async def cmd_boss_panel(message: types.Message):
+    lang = message.from_user.language_code
     # Перевіряємо, чи є ID користувача у списку адмінів
     if message.from_user.id in SUPER_ADMIN_IDS:
         # Викликаємо клавіатуру з файлу keyboards.py (ДОДАНО message.from_user.id)
         await message.answer(
-            "Вітаю, Бос! 🫡\nОсь доступ до керування всіма бізнесами:", 
+            _(lang, 'boss_panel'), 
             reply_markup=kb.get_superadmin_kb(message.from_user.id)
         )
     else:
         # Якщо хтось чужий введе команду, бот просто прикинеться дурником
-        await message.answer("Я вас не розумію 🤷‍♂️")
+        await message.answer(_(lang, 'dont_understand'))
 # ==========================================
 
 
@@ -206,6 +211,7 @@ async def cmd_boss_panel(message: types.Message):
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
     user_id = message.from_user.id
+    lang = message.from_user.language_code
     args = command.args
 
     # --- ОНОВЛЕНИЙ БЛОК ОБРОБКИ КОРОТКИХ ЛІНКІВ З ТОКЕНАМИ ---
@@ -219,31 +225,28 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
         try:
             res = db.supabase.table("businesses").select("*").eq("invite_token", token).execute()
             if not res.data:
-                await message.answer("🛑 Це посилання недійсне, застаріло або було анульоване власником!")
+                await message.answer(_(lang, 'link_invalid'))
                 return
             
             biz = res.data[0]
             biz_id = biz['id']
         except Exception as e:
             print("Помилка пошуку токена:", e)
-            await message.answer("❌ Сталася помилка при перевірці посилання. Спробуйте пізніше.")
+            await message.answer(_(lang, 'link_error'))
             return
         
         await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'], joining_role=role)
         await state.set_state(RegStaff.waiting_for_name)
         
-        role_ua = "Кур'єра 🛵" if role == "courier" else "Менеджера 👨‍💼"
-        await message.answer(
-            f"👋 Вітаємо!\nВи отримали запрошення на посаду **{role_ua}** у заклад **{biz['name']}**.\n\n"
-            f"✏️ Введіть ваше Прізвище та Ім'я, щоб приєднатися до команди:"
-        )
+        role_ua = _(lang, 'role_c_full') if role == "courier" else _(lang, 'role_m_full')
+        await message.answer(_(lang, 'invite_welcome', role=role_ua, biz_name=biz['name']))
         return
     # ----------------------------------------------
 
     context = db.get_user_context(user_id)
     if not context:
         await message.answer(
-            "🌟 **Вітаємо в DelivePro!**\n\nЕволюція вашої доставки починається тут. Натисніть кнопку нижче, щоб налаштувати свій бізнес.",
+            _(lang, 'start_welcome'),
             reply_markup=kb.reg_kb, 
             parse_mode="Markdown"
         )
@@ -255,6 +258,7 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
 async def handle_web_app_data(message: types.Message, bot: Bot):
     data = json.loads(message.web_app_data.data)
     user_id = message.from_user.id
+    lang = message.from_user.language_code
     
     if data.get("action") == "register_business":
         try:
@@ -262,14 +266,12 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             context = db.get_user_context(user_id)
             biz = context['biz']
             await message.answer(
-                f"🎉 **Вітаємо! Ваш бізнес '{biz['name']}' успішно створено.**\n"
-                f"📦 **Тариф:** {biz['plan'].upper()} (Активовано 7 днів тріалу)\n\n"
-                f"Тепер ви можете перейти до повноцінного керування 👇",
+                _(lang, 'biz_created', biz_name=biz['name'], plan=biz['plan'].upper()),
                 reply_markup=kb.get_owner_kb(biz['id'], user_id), # ДОДАНО user_id
                 parse_mode="Markdown"
             )
         except Exception as e:
-            await message.answer("❌ Сталася помилка при реєстрації. Перевірте логи Railway.")
+            await message.answer(_(lang, 'reg_error'))
             
     # 2. СТВОРЕННЯ НОВОГО ЗАМОВЛЕННЯ
     elif data.get("action") == "new_order":
@@ -280,17 +282,27 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 order_id = new_order['id']
                 short_id = str(order_id)[:6].upper()
                 biz = db.get_business_by_id(data['biz_id'])
+                currency = biz.get('currency', 'zł')
                 
                 # ПЕРЕВІРКА ТАРИФУ БІЗНЕСУ (PRO чи BASIC)
                 is_pro = biz.get('plan', 'basic').lower() == 'pro'
+
+                # Визначаємо мову для повідомлення кур'єру (якщо не знаємо - беремо мову менеджера)
+                courier_lang = lang 
+                try:
+                    # Спроба отримати мову безпосередньо кур'єра
+                    c_info = await bot.get_chat(data['courier_id'])
+                    # Залежно від API, іноді get_chat повертає мову
+                except:
+                    pass
                 
-                pay_type_ua = "Готівка" if data['payment'] == "cash" else ("Термінал" if data['payment'] == "terminal" else "Онлайн")
+                pay_type_str = _(courier_lang, 'pay_' + data['payment']) 
                 pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
                 
                 details_parts = []
-                if data.get('apt'): details_parts.append(f"Кв/Оф: {data['apt']}")
-                if data.get('code'): details_parts.append(f"Домофон: {data['code']}")
-                details_text = f"🏢 **Деталі:** {', '.join(details_parts)}\n" if details_parts else ""
+                if data.get('apt'): details_parts.append(_(courier_lang, 'apt_prefix', apt=data['apt']))
+                if data.get('code'): details_parts.append(_(courier_lang, 'code_prefix', code=data['code']))
+                details_text = _(courier_lang, 'details_prefix', details=', '.join(details_parts)) if details_parts else ""
 
                 address_query = urllib.parse.quote(data['address'])
                 route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
@@ -298,27 +310,24 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data['client_phone']))
                 if not phone_clean.startswith('+'): phone_clean = '+' + phone_clean
                 
-                courier_text = (
-                    f"📦 **НОВЕ ЗАМОВЛЕННЯ #{short_id}**\n"
-                    f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-                    f"Статус: 🟢 Активний\n\n"
-                    f"📍 **Адреса:** {data['address']}\n"
-                    f"{details_text}"
-                    f"📞 **Тел:** {phone_clean} ({data['client_name']})\n"
-                    f"{pay_icon} **Оплата:** {data['amount']} zł ({pay_type_ua})\n"
-                )
+                status_active = _(courier_lang, 'status_active_full')
+
+                courier_text = _(courier_lang, 'order_new', 
+                                 short_id=short_id, status=status_active, address=data['address'], 
+                                 details_text=details_text, phone=phone_clean, client_name=data['client_name'], 
+                                 pay_icon=pay_icon, amount=data['amount'], cur=currency, pay_type=pay_type_str)
                 
                 if data.get('comment'):
-                    courier_text += f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n🗣 **Коментар:** {data['comment']}\n"
+                    courier_text += _(courier_lang, 'comment_prefix', comment=data['comment'])
 
                 builder = InlineKeyboardBuilder()
                 
                 # Якщо PRO - додаємо кнопку маршруту
                 if is_pro:
-                    builder.button(text="🗺 Відкрити маршрут", url=route_url)
+                    builder.button(text=_(courier_lang, 'btn_route'), url=route_url)
                 
                 # Кнопку "Доставлено" додаємо завжди
-                builder.button(text="✅ Доставлено (Закрити)", callback_data=f"finish_order_{order_id}")
+                builder.button(text=_(courier_lang, 'btn_finish'), callback_data=f"finish_order_{order_id}")
                 builder.adjust(1) # Кнопки будуть стовпчиком
 
                 # Якщо PRO - генеруємо та відправляємо карту
@@ -351,20 +360,20 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                         parse_mode="Markdown"
                     )
                 
-                await message.answer(f"✅ Замовлення #{short_id} успішно створено та відправлено кур'єру!")
+                await message.answer(_(lang, 'order_sent', short_id=short_id))
             else:
-                await message.answer("❌ Помилка при збереженні замовлення в базу.")
+                await message.answer(_(lang, 'order_save_err'))
                 
         except Exception as e:
             print(f"Помилка створення замовлення: {e}")
-            await message.answer("❌ Сталася помилка при відправці замовлення. Перевірте базу даних.")
+            await message.answer(_(lang, 'order_send_err'))
 
     # ==========================================
     # --- 3. МАСОВА РОЗСИЛКА ВІД СУПЕРАДМІНА ---
     # ==========================================
     elif data.get("action") == "broadcast":
         if user_id not in SUPER_ADMIN_IDS:
-            await message.answer("❌ У вас немає прав для розсилки.")
+            await message.answer(_(lang, 'broadcast_no_access'))
             return
             
         msg_text = data.get("text")
@@ -377,17 +386,19 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     owner_ids.add(int(b['owner_id']))
                 
         if not owner_ids:
-            await message.answer("📭 Немає жодного власника для розсилки.")
+            await message.answer(_(lang, 'broadcast_empty'))
             return
             
-        await message.answer(f"🚀 Починаю розсилку для {len(owner_ids)} клієнтів. Зачекайте...")
+        await message.answer(_(lang, 'broadcast_start', count=len(owner_ids)))
         
         sent_count = 0
         for oid in owner_ids:
             try:
+                # В ідеалі ми маємо знати мову власника, але відправляємо текст який написав адмін (поки базуємося на укр)
+                msg_final = _('uk', 'broadcast_msg', text=msg_text) 
                 await bot.send_message(
                     chat_id=oid, 
-                    text=f"🔔 **Повідомлення від платформи:**\n\n{msg_text}", 
+                    text=msg_final, 
                     parse_mode="Markdown"
                 )
                 sent_count += 1
@@ -395,13 +406,14 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             except Exception as e:
                 print(f"Не вдалося відправити повідомлення власнику {oid}: {e}")
                 
-        await message.answer(f"✅ Розсилка успішно завершена!\nДоставлено: **{sent_count} з {len(owner_ids)}** користувачів.")
+        await message.answer(_(lang, 'broadcast_done', sent=sent_count, total=len(owner_ids)))
     # ==========================================
 
 # --- РЕЄСТРАЦІЯ КУР'ЄРА ТА МЕНЕДЖЕРА ---
 @dp.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
     name = message.text
+    lang = message.from_user.language_code
     data = await state.get_data()
     biz_id = data['joining_biz_id']
     role = data.get('joining_role', 'courier')
@@ -411,17 +423,18 @@ async def process_staff_name(message: types.Message, state: FSMContext):
         await state.clear()
         
         context = db.get_user_context(message.from_user.id)
-        role_ua = "Кур'єр" if role == "courier" else "Менеджер"
+        role_ua = _(lang, 'role_c') if role == "courier" else _(lang, 'role_m')
         
-        await message.answer(f"✅ Вітаємо, {name}! Ви успішно приєдналися до команди як {role_ua}.")
+        await message.answer(_(lang, 'staff_added', name=name, role=role_ua))
         await show_main_menu(message, context)
     except Exception as e:
-        await message.answer(f"❌ Помилка при додаванні: {e}. Можливо, ви вже працюєте тут.")
+        await message.answer(_(lang, 'staff_add_err'))
 
 # --- ОБРОБКА КНОПКИ "ЗАКРИТИ ЗАМОВЛЕННЯ" ---
 @dp.callback_query(F.data.startswith("finish_order_"))
 async def finish_order_handler(callback: types.CallbackQuery):
     order_id = callback.data.replace("finish_order_", "")
+    lang = callback.from_user.language_code
     
     try:
         # 1. Дістаємо інфо про замовлення
@@ -430,31 +443,26 @@ async def finish_order_handler(callback: types.CallbackQuery):
         # 2. Оновлюємо статус в базі
         db.update_order_status(order_id, "completed")
         
+        status_active = _(lang, 'status_active_full')
+        status_done = _(lang, 'status_done_full')
+
         # 3. Змінюємо текст повідомлення кур'єра
         if callback.message.caption: # Якщо повідомлення з картинкою (PRO)
-            new_text = callback.message.caption.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
+            new_text = callback.message.caption.replace(status_active, status_done)
             await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
         elif callback.message.text: # Якщо повідомлення тільки з текстом (BASIC або помилка карти)
-            new_text = callback.message.text.replace("Статус: 🟢 Активний", "Статус: ✅ ДОСТАВЛЕНО")
+            new_text = callback.message.text.replace(status_active, status_done)
             await callback.message.edit_text(text=new_text, reply_markup=None, parse_mode="Markdown")
             
-        await callback.answer("🎉 Замовлення успішно завершено! Гроші в касі.")
+        await callback.answer(_(lang, 'finish_success'))
         
         # 4. Відправляємо сповіщення МЕНЕДЖЕРАМ (не власнику!)
         if res.data:
             order_info = res.data[0]
             biz_id = order_info['business_id']
             short_id = str(order_info['id'])[:6].upper()
-            
-            admin_text = (
-                f"🔔 **Замовлення доставлено!**\n"
-                f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-                f"📦 Номер: `#{short_id}`\n"
-                f"💰 Сума: {order_info['amount']} zł\n"
-                f"🛵 Кур'єр: {callback.from_user.full_name}\n"
-                f"⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-                f"✅ Кур'єр знову **вільний** для роботи."
-            )
+            biz = db.get_business_by_id(biz_id)
+            currency = biz.get('currency', 'zł')
             
             # Шукаємо всіх працівників з роллю manager для цього бізнесу
             managers_res = db.supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute()
@@ -462,22 +470,24 @@ async def finish_order_handler(callback: types.CallbackQuery):
             if managers_res.data:
                 for manager in managers_res.data:
                     try:
+                        admin_text = _(lang, 'finish_notify', short_id=short_id, amount=order_info['amount'], cur=currency, courier_name=callback.from_user.full_name)
                         await bot.send_message(chat_id=manager['user_id'], text=admin_text, parse_mode="Markdown")
                     except Exception as e:
                         print(f"Не вдалося відправити сповіщення менеджеру {manager['user_id']}: {e}")
                 
     except Exception as e:
         print(f"Помилка завершення: {e}")
-        await callback.answer("❌ Помилка завершення", show_alert=True)
+        await callback.answer(_(lang, 'finish_err'), show_alert=True)
 
 # --- ПАНЕЛЬ СУПЕР-АДМІНА (/sa) ---
 @dp.message(Command("sa"))
 async def super_admin_panel(message: types.Message):
+    lang = message.from_user.language_code
     if message.from_user.id not in SUPER_ADMIN_IDS: return
     
     businesses = db.get_all_businesses()
     if not businesses:
-        await message.answer("📭 Бізнесів поки немає.")
+        await message.answer(_(lang, 'sa_empty'))
         return
 
     builder = InlineKeyboardBuilder()
@@ -485,16 +495,17 @@ async def super_admin_panel(message: types.Message):
         status = "🟢" if b['is_active'] else "🔴"
         builder.button(text=f"{status} {b['name']}", callback_data=f"manage_biz_{b['id']}")
     builder.adjust(1)
-    await message.answer("🚀 Керування SaaS:", reply_markup=builder.as_markup())
+    await message.answer(_(lang, 'sa_manage'), reply_markup=builder.as_markup())
 
 @dp.callback_query(F.data.startswith("manage_biz_"))
 async def manage_biz(callback: types.CallbackQuery):
+    lang = callback.from_user.language_code
     biz_id = callback.data.replace("manage_biz_", "")
     biz = db.get_business_by_id(biz_id)
     new_status = not biz['is_active']
     
     db.update_subscription(biz_id, new_status)
-    await callback.answer(f"Статус змінено!")
+    await callback.answer(_(lang, 'sa_changed'))
     await super_admin_panel(callback.message)
 
 async def main():
