@@ -1,11 +1,12 @@
 import datetime
+from datetime import timedelta, timezone
 from supabase import create_client, Client
+
 # Імпортуємо вже готові змінні, які config.py дістав із системних змінних Railway
 from config import SUPABASE_URL, SUPABASE_KEY 
 
 # Тепер ініціалізуємо клієнта, використовуючи імпортовані дані
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-# Далі твій код без змін...
 
 # ==========================================
 # ФУНКЦІЇ ДЛЯ БІЗНЕСУ ТА АДМІНІСТРУВАННЯ
@@ -21,7 +22,12 @@ def get_business_by_id(biz_id: str):
     return res.data[0] if res.data else None
 
 def register_new_business(owner_id: int, biz_data: dict):
-    """Розширена реєстрація з Web App (з координатами)"""
+    """Розширена реєстрація з Web App (з координатами та Тріалом на 7 днів)"""
+    
+    # Розраховуємо дату закінчення безкоштовного тріалу (сьогодні + 7 днів)
+    now = datetime.datetime.now(timezone.utc)
+    trial_end = now + timedelta(days=7)
+
     data = {
         "owner_id": owner_id,
         "name": biz_data.get("name"),
@@ -35,7 +41,8 @@ def register_new_business(owner_id: int, biz_data: dict):
         "radius_km": int(biz_data.get("radius", 5)),
         "currency": biz_data.get("currency", "zł"),
         "payments": biz_data.get("payments", []),
-        "plan": biz_data.get("plan", "pro"),
+        "plan": "trial",  # Всі нові заклади отримують статус trial
+        "subscription_expires_at": trial_end.isoformat(), # Дата закінчення
         "is_active": True
     }
     return supabase.table("businesses").insert(data).execute()
@@ -49,6 +56,52 @@ def update_subscription(biz_id: str, is_active: bool):
     """Для панелі супер-адміна"""
     supabase.table("businesses").update({"is_active": is_active}).eq("id", biz_id).execute()
 
+# ==========================================
+# ФУНКЦІЇ ДЛЯ ПІДПИСОК ТА WHOP (ОХОРОНЕЦЬ)
+# ==========================================
+
+def get_actual_plan(biz_id: str) -> str:
+    """
+    Розумна перевірка тарифу. 
+    Якщо час вийшов — автоматично переводить в 'expired'.
+    """
+    res = supabase.table("businesses").select("plan, subscription_expires_at").eq("id", biz_id).execute()
+    if not res.data:
+        return "expired"
+        
+    biz = res.data[0]
+    plan = biz.get("plan", "expired")
+    expires_at_str = biz.get("subscription_expires_at")
+    
+    # Якщо немає дати, або статус вже expired, повертаємо як є
+    if not expires_at_str or plan == "expired":
+        return plan
+        
+    # Конвертуємо рядок з бази в об'єкт datetime
+    expires_at = datetime.datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+    now = datetime.datetime.now(timezone.utc)
+    
+    # Перевіряємо, чи не закінчився час (тріалу або підписки)
+    if now > expires_at:
+        # Час вийшов! Оновлюємо базу
+        supabase.table("businesses").update({"plan": "expired"}).eq("id", biz_id).execute()
+        return "expired"
+        
+    return plan
+
+def activate_whop_subscription(biz_id: str, plan_name: str, membership_id: str):
+    """
+    Функція для Webhook: активує підписку після успішної оплати на Whop.
+    """
+    now = datetime.datetime.now(timezone.utc)
+    next_month = now + timedelta(days=30) # Додаємо 30 днів доступу
+    
+    data = {
+        "plan": plan_name,
+        "subscription_expires_at": next_month.isoformat(),
+        "whop_membership_id": membership_id
+    }
+    return supabase.table("businesses").update(data).eq("id", biz_id).execute()
 
 # ==========================================
 # ФУНКЦІЇ ДЛЯ КОРИСТУВАЧІВ ТА ПЕРСОНАЛУ
@@ -90,7 +143,6 @@ def get_courier(user_id: int):
     res = supabase.table("staff").select("*").eq("user_id", user_id).execute()
     return res.data[0] if res.data else None
 
-
 # ==========================================
 # ФУНКЦІЇ ДЛЯ ЗАМОВЛЕНЬ
 # ==========================================
@@ -106,8 +158,8 @@ def create_new_order(order_data: dict):
         "amount": order_data.get('amount'),
         "pay_type": order_data.get('payment'),
         "comment": order_data.get('comment'),
-        "lat": order_data.get('lat'),  # <--- ДОДАНО: Широта
-        "lon": order_data.get('lon'),  # <--- ДОДАНО: Довгота
+        "lat": order_data.get('lat'), 
+        "lon": order_data.get('lon'), 
         "status": "pending" # Статус: очікує прийняття кур'єром
     }
     
