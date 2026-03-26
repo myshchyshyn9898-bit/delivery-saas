@@ -37,16 +37,16 @@ async def show_main_menu(message: types.Message, context: dict):
         await message.answer(_(lang, 'sub_expired'))
         return
 
-    # ДОДАНО message.from_user.id у виклики клавіатур
+    # ДОДАНО message.from_user.id та lang у виклики клавіатур
     if role == "owner":
         text = _(lang, 'owner_panel', name=biz['name'])
-        markup = kb.get_owner_kb(biz_id, message.from_user.id)
+        markup = kb.get_owner_kb(biz_id, message.from_user.id, lang)
     elif role == "manager":
         text = _(lang, 'manager_panel', name=biz['name'])
-        markup = kb.get_manager_kb(biz_id, message.from_user.id)
+        markup = kb.get_manager_kb(biz_id, message.from_user.id, lang)
     else: # courier
         text = _(lang, 'courier_panel', name=biz['name'])
-        markup = kb.get_courier_kb(biz_id, message.from_user.id)
+        markup = kb.get_courier_kb(biz_id, message.from_user.id, lang)
 
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
 
@@ -156,7 +156,9 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
 # ==========================================
 # --- НОВИЙ БЛОК: ГЕНЕРАЦІЯ ЗВІТУ ---
 # ==========================================
-@dp.message(F.text.in_(["📊 Зробити звіт", "/zvit"]))
+report_buttons = ["📊 Зробити звіт", "📊 Сделать отчет", "📊 Zrób raport", "📊 Make Report", "/zvit"]
+
+@dp.message(F.text.in_(report_buttons))
 async def cmd_generate_report(message: types.Message):
     lang = message.from_user.language_code
     context = db.get_user_context(message.from_user.id)
@@ -196,10 +198,10 @@ async def cmd_boss_panel(message: types.Message):
     lang = message.from_user.language_code
     # Перевіряємо, чи є ID користувача у списку адмінів
     if message.from_user.id in SUPER_ADMIN_IDS:
-        # Викликаємо клавіатуру з файлу keyboards.py (ДОДАНО message.from_user.id)
+        # Викликаємо клавіатуру з файлу keyboards.py (ДОДАНО message.from_user.id ТА lang)
         await message.answer(
             _(lang, 'boss_panel'), 
-            reply_markup=kb.get_superadmin_kb(message.from_user.id)
+            reply_markup=kb.get_superadmin_kb(message.from_user.id, lang)
         )
     else:
         # Якщо хтось чужий введе команду, бот просто прикинеться дурником
@@ -247,7 +249,7 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
     if not context:
         await message.answer(
             _(lang, 'start_welcome'),
-            reply_markup=kb.reg_kb, 
+            reply_markup=kb.get_reg_kb(lang), 
             parse_mode="Markdown"
         )
     else:
@@ -267,7 +269,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             biz = context['biz']
             await message.answer(
                 _(lang, 'biz_created', biz_name=biz['name'], plan=biz['plan'].upper()),
-                reply_markup=kb.get_owner_kb(biz['id'], user_id), # ДОДАНО user_id
+                reply_markup=kb.get_owner_kb(biz['id'], user_id, lang), # ДОДАНО lang
                 parse_mode="Markdown"
             )
         except Exception as e:
