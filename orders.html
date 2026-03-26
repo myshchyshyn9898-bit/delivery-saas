@@ -14,7 +14,29 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-color); color: var(--text-main); padding-bottom: 30px; } 
 
-        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; text-align: center; font-size: 18px; font-weight: 800; }
+        .header { background: var(--surface); padding: 20px; border-bottom: 1px solid #edf1f7; position: sticky; top: 0; z-index: 10; font-size: 18px; font-weight: 800; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* --- ПЕРЕМИКАЧ МОВИ --- */
+        .lang-switcher {
+            background: rgba(255,255,255,0.9);
+            padding: 6px 10px; border-radius: 10px; font-size: 11px; font-weight: 800;
+            cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex; align-items: center; gap: 6px; border: 1px solid #edf1f7;
+            transition: 0.2s; color: var(--text-main);
+        }
+        .lang-switcher:active { transform: scale(0.95); }
+        .lang-menu {
+            position: absolute; top: 60px; right: 20px; z-index: 1000;
+            background: var(--surface); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #edf1f7; overflow: hidden;
+            display: none; flex-direction: column; min-width: 130px;
+        }
+        .lang-menu.show { display: flex; animation: dropIn 0.2s ease; }
+        .lang-item { padding: 12px 15px; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 1px solid #edf1f7; transition: 0.1s; display: flex; align-items: center; gap: 10px; color: var(--text-main);}
+        .lang-item:last-child { border-bottom: none; }
+        .lang-item:active { background: #f1f5f9; color: var(--primary); }
+        @keyframes dropIn { 0% { opacity: 0; transform: translateY(-5px); } 100% { opacity: 1; transform: translateY(0); } }
+
         .container { padding: 15px; }
 
         .stat-card { background: var(--surface); border-radius: 20px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; margin-bottom: 15px; border-left: 5px solid var(--primary); }
@@ -55,33 +77,44 @@
 </head>
 <body>
 
-    <div class="header">📋 Замовлення</div>
+    <div class="header">
+        <div>📋 <span data-i18n="title_main">Замовлення</span></div>
+        <div class="lang-switcher" onclick="toggleLangMenu()">
+            <i class="fa-solid fa-globe"></i> <span id="current-lang-display">UK</span>
+        </div>
+        <div class="lang-menu" id="lang-menu">
+            <div class="lang-item" onclick="setLanguage('uk')">🇺🇦 Українська</div>
+            <div class="lang-item" onclick="setLanguage('en')">🇬🇧 English</div>
+            <div class="lang-item" onclick="setLanguage('pl')">🇵🇱 Polski</div>
+            <div class="lang-item" onclick="setLanguage('ru')">🇷🇺 Русский</div>
+        </div>
+    </div>
 
     <div class="container">
         <div class="stat-card">
-            <div class="stat-title">Зароблено за період</div>
+            <div class="stat-title" data-i18n="earned">Зароблено за період</div>
             <div class="stat-val" id="total-earned">0.00 zł</div>
         </div>
 
         <div class="time-filter">
-            <div class="filter-btn active" onclick="setFilter(this)">Сьогодні</div>
-            <div class="filter-btn" onclick="setFilter(this)">Тиждень</div>
-            <div class="filter-btn" onclick="setFilter(this)">Місяць</div>
+            <div class="filter-btn active" onclick="setFilter(this, 'today')" data-i18n="tab_today">Сьогодні</div>
+            <div class="filter-btn" onclick="setFilter(this, 'week')" data-i18n="tab_week">Тиждень</div>
+            <div class="filter-btn" onclick="setFilter(this, 'month')" data-i18n="tab_month">Місяць</div>
         </div>
 
         <div class="tabs">
             <div class="tab-btn active" onclick="switchTab('active', this)">
-                <i class="fa-solid fa-list-ul"></i> Активні
+                <i class="fa-solid fa-list-ul"></i> <span data-i18n="tab_active">Активні</span>
             </div>
             <div class="tab-btn" onclick="switchTab('closed', this)">
-                <i class="fa-solid fa-check-double"></i> Закриті
+                <i class="fa-solid fa-check-double"></i> <span data-i18n="tab_closed">Закриті</span>
             </div>
         </div>
 
         <div id="tab-active" class="tab-content active">
             <div id="list-active">
                 <div style="text-align: center; color: var(--text-muted); padding: 20px;">
-                    <i class="fa-solid fa-spinner fa-spin"></i> ЗАВАНТАЖЕННЯ ДАНИХ...
+                    <i class="fa-solid fa-spinner fa-spin"></i> <span data-i18n="loading">ЗАВАНТАЖЕННЯ ДАНИХ...</span>
                 </div>
             </div>
         </div>
@@ -89,13 +122,93 @@
         <div id="tab-closed" class="tab-content">
             <div id="list-closed">
                 <div style="text-align: center; color: var(--text-muted); padding: 20px;">
-                    <i class="fa-solid fa-spinner fa-spin"></i> ЗАВАНТАЖЕННЯ ДАНИХ...
+                    <i class="fa-solid fa-spinner fa-spin"></i> <span data-i18n="loading">ЗАВАНТАЖЕННЯ ДАНИХ...</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ==============================================
+        // --- СИСТЕМА БАГАТОМОВНОСТІ ---
+        // ==============================================
+        let tgLang = 'en';
+        try { 
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en';
+            } 
+        } catch(e) { console.error("Помилка Telegram WebApp:", e); }
+
+        let savedLang = localStorage.getItem('appLang');
+        let currentLang = savedLang || tgLang;
+        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
+
+        const i18n = {
+            'uk': {
+                title_main: "Замовлення", earned: "Зароблено за період",
+                tab_today: "Сьогодні", tab_week: "Тиждень", tab_month: "Місяць",
+                tab_active: "Активні", tab_closed: "Закриті", loading: "ЗАВАНТАЖЕННЯ ДАНИХ...",
+                status_pending: "В ДОРОЗІ", status_done: "ДОСТАВЛЕНО",
+                pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
+                apt: "Кв:", code: "Код:", unknown_c: "Невідомий кур'єр",
+                empty_active: "Немає активних замовлень", empty_closed: "За вибраний період немає закритих замовлень",
+                err_biz: "ID бізнесу відсутній!", err_supa: "Supabase не завантажився. Перевірте інтернет."
+            },
+            'ru': {
+                title_main: "Заказы", earned: "Заработано за период",
+                tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
+                tab_active: "Активные", tab_closed: "Закрытые", loading: "ЗАГРУЗКА ДАННЫХ...",
+                status_pending: "В ПУТИ", status_done: "ДОСТАВЛЕНО",
+                pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
+                apt: "Кв:", code: "Код:", unknown_c: "Неизвестный курьер",
+                empty_active: "Нет активных заказов", empty_closed: "За выбранный период нет закрытых заказов",
+                err_biz: "ID бизнеса отсутствует!", err_supa: "Supabase не загрузился. Проверьте интернет."
+            },
+            'pl': {
+                title_main: "Zamówienia", earned: "Zarobiono w okresie",
+                tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
+                tab_active: "Aktywne", tab_closed: "Zamknięte", loading: "ŁADOWANIE DANYCH...",
+                status_pending: "W TRASIE", status_done: "DOSTARCZONO",
+                pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
+                apt: "Mieszkanie:", code: "Kod:", unknown_c: "Nieznany kurier",
+                empty_active: "Brak aktywnych zamówień", empty_closed: "Brak zamkniętych zamówień w tym okresie",
+                err_biz: "Brak ID firmy!", err_supa: "Supabase nie załadowane. Sprawdź internet."
+            },
+            'en': {
+                title_main: "Orders", earned: "Earned in period",
+                tab_today: "Today", tab_week: "Week", tab_month: "Month",
+                tab_active: "Active", tab_closed: "Closed", loading: "LOADING DATA...",
+                status_pending: "ON THE WAY", status_done: "DELIVERED",
+                pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
+                apt: "Apt:", code: "Code:", unknown_c: "Unknown courier",
+                empty_active: "No active orders", empty_closed: "No closed orders for the selected period",
+                err_biz: "Business ID is missing!", err_supa: "Supabase failed to load. Check your internet."
+            }
+        };
+
+        function t(key) { return i18n[currentLang][key] || key; }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('appLang', lang); 
+            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+            });
+
+            // Якщо Дашборд уже завантажив дані, перекладаємо списки
+            if (typeof bizId !== 'undefined' && bizId) loadArchiveData();
+        }
+
+        function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
+        document.addEventListener('click', (e) => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
+
+
+        // ==============================================
+        // --- ВАШ ОРИГІНАЛЬНИЙ КОД БЕЗ ЗМІН ЛОГІКИ ---
+        // ==============================================
         window.onerror = function(msg, url, line) {
             alert("🚨 Помилка JS: " + msg + " (Рядок: " + line + ")");
         };
@@ -113,15 +226,19 @@
             }
         }
 
-        function setFilter(el) {
+        // ДОДАНО: Безпечна зміна фільтрів без прив'язки до українського тексту
+        function setFilter(el, filterType) {
             try {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 el.classList.add('active');
                 
-                const txt = el.innerText.toLowerCase();
-                if (txt.includes('сьогодні')) currentFilter = 'today';
-                else if (txt.includes('тиждень')) currentFilter = 'week';
-                else if (txt.includes('місяць')) currentFilter = 'month';
+                if (filterType) { currentFilter = filterType; } 
+                else {
+                    const txt = el.getAttribute('data-i18n');
+                    if (txt === 'tab_today') currentFilter = 'today';
+                    else if (txt === 'tab_week') currentFilter = 'week';
+                    else if (txt === 'tab_month') currentFilter = 'month';
+                }
                 
                 loadArchiveData();
             } catch(e) {
@@ -143,11 +260,11 @@
                 }
 
                 document.getElementById('total-earned').innerText = '0.00 ' + currencySymbol;
-                document.getElementById('list-active').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення списку...</div>';
-                document.getElementById('list-closed').innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення списку...</div>';
+                document.getElementById('list-active').innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}</div>`;
+                document.getElementById('list-closed').innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('loading')}</div>`;
 
-                if (!bizId) throw new Error("ID бізнесу відсутній!");
-                if (!window.supabase) throw new Error("Supabase не завантажився. Перевірте інтернет.");
+                if (!bizId) throw new Error(t('err_biz'));
+                if (!window.supabase) throw new Error(t('err_supa'));
 
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -191,23 +308,23 @@
                 if (orders && orders.length > 0) {
                     orders.forEach(order => {
                         const shortId = String(order.id).substring(0, 6).toUpperCase();
-                        const courierName = couriersMap[order.courier_id] || 'Невідомий кур\'єр';
+                        const courierName = couriersMap[order.courier_id] || t('unknown_c');
                         
-                        let payText = 'Онлайн', payIcon = 'fa-globe', payColor = '#a855f7';
-                        if (order.pay_type === 'cash') { payText = 'Готівка'; payIcon = 'fa-money-bill-wave'; payColor = '#34C759'; }
-                        if (order.pay_type === 'terminal') { payText = 'Термінал'; payIcon = 'fa-credit-card'; payColor = '#4A6CF7'; }
+                        let payText = t('pay_online'), payIcon = 'fa-globe', payColor = '#a855f7';
+                        if (order.pay_type === 'cash') { payText = t('pay_cash'); payIcon = 'fa-money-bill-wave'; payColor = '#34C759'; }
+                        if (order.pay_type === 'terminal') { payText = t('pay_term'); payIcon = 'fa-credit-card'; payColor = '#4A6CF7'; }
                         
                         let detailsHtml = '';
                         if (order.apt || order.code) {
                             let textDetails = '';
-                            if (order.apt) textDetails += 'Кв: ' + order.apt + ' ';
-                            if (order.code) textDetails += 'Код: ' + order.code;
+                            if (order.apt) textDetails += `${t('apt')} ` + order.apt + ' ';
+                            if (order.code) textDetails += `${t('code')} ` + order.code;
                             detailsHtml = '<div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">' + textDetails + '</div>';
                         }
 
                         let statusBadge = order.status === 'completed' 
-                            ? '<div class="badge badge-completed">ДОСТАВЛЕНО</div>' 
-                            : '<div class="badge badge-pending">В ДОРОЗІ</div>';
+                            ? `<div class="badge badge-completed">${t('status_done')}</div>` 
+                            : `<div class="badge badge-pending">${t('status_pending')}</div>`;
 
                         const cardHtml = `
                             <div class="order-card">
@@ -252,13 +369,13 @@
                 if (activeCount > 0) {
                     listActive.innerHTML = activeHtmlString;
                 } else {
-                    listActive.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-box-open"></i></div><div>Немає активних замовлень</div></div>';
+                    listActive.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-box-open"></i></div><div>${t('empty_active')}</div></div>`;
                 }
 
                 if (closedCount > 0) {
                     listClosed.innerHTML = closedHtmlString;
                 } else {
-                    listClosed.innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-check-double"></i></div><div>За вибраний період немає закритих замовлень</div></div>';
+                    listClosed.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-check-double"></i></div><div>${t('empty_closed')}</div></div>`;
                 }
                 // --- КІНЕЦЬ БЛОКУ ---
 
@@ -269,6 +386,8 @@
             }
         }
 
+        // ЗАПУСКАЄМО
+        setLanguage(currentLang);
         loadArchiveData();
     </script>
 </body>
