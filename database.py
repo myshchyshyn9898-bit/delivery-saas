@@ -1,5 +1,4 @@
 import datetime
-from import datetime
 from supabase import create_client, Client
 # Імпортуємо вже готові змінні, які config.py дістав із системних змінних Railway
 from config import SUPABASE_URL, SUPABASE_KEY 
