@@ -499,7 +499,7 @@
                 f1: "Базовий дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
                 f4: "Інтерактивна теплова карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал",
                 pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Теплова карта та глибока аналітика", pr_p3: "Управління менеджерами",
-                btn_pay: "Оплатити", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
+                btn_pay: "Оплатить", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
                 txt_left: "Залишилося", txt_days: "днів", txt_avail: "Доступно до", txt_next_pay: "Наступне автоматичне списання:", txt_max: "Усі преміум функції розблоковано. Дякуємо, що ви з нами!", txt_expired: "Ваш тріал або підписка завершилася. Оберіть тариф для розблокування.",
                 title_sel_plan: "Оберіть тариф для продовження:", title_upsell: "⚡️ Хочете більше можливостей?", title_sel_unlock: "Оберіть тариф для розблокування:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКУВАННЯ",
@@ -775,8 +775,18 @@
 
         function renderSubscriptionUI(biz) {
             let dbPlan = biz.plan || 'trial'; 
-            let createdAt = new Date(biz.created_at || Date.now());
-            let expireDate = new Date(createdAt);
+            
+            // 🔴 ТЕПЕР БЕРЕМО ДАТУ ПРЯМО З БАЗИ ДАНИХ
+            let expireDate = new Date();
+            if (biz.subscription_expires_at) {
+                expireDate = new Date(biz.subscription_expires_at);
+            } else {
+                // Запасний варіант, якщо дата в базі раптом порожня
+                let createdAt = new Date(biz.created_at || Date.now());
+                expireDate = new Date(createdAt);
+                if (dbPlan === 'trial') expireDate.setDate(expireDate.getDate() + 7);
+                else if (dbPlan !== 'expired') expireDate.setDate(expireDate.getDate() + 30);
+            }
 
             const statusCard = document.getElementById('modal-status-card');
             const badge = document.getElementById('modal-plan-badge');
@@ -792,9 +802,9 @@
             statusCard.className = 'status-card-dynamic';
 
             if (dbPlan === 'trial') {
-                expireDate.setDate(expireDate.getDate() + 7);
+                // Рахуємо різницю з точною датою
                 let daysLeft = Math.max(0, Math.ceil((expireDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24)));
-                let percentUsed = ((7 - daysLeft) / 7) * 100;
+                let percentUsed = Math.max(0, Math.min(100, ((7 - daysLeft) / 7) * 100));
 
                 statusCard.classList.add('is-trial');
                 planName.innerText = 'FREE TRIAL (PRO)'; planName.style.color = 'var(--text-main)';
@@ -812,7 +822,6 @@
                 selectDashPlan('pro');
             } 
             else if (dbPlan === 'basic') {
-                expireDate.setDate(expireDate.getDate() + 30);
                 statusCard.classList.add('is-pro');
                 planName.innerText = t('state_basic'); planName.style.color = 'var(--text-main)';
                 badge.innerText = t('badge_paid'); badge.style.background = 'var(--success)';
@@ -830,7 +839,6 @@
                 document.getElementById('pay-price').innerText = "";
             }
             else if (dbPlan === 'pro') {
-                expireDate.setDate(expireDate.getDate() + 30);
                 statusCard.classList.add('is-pro');
                 planName.innerText = t('state_pro'); planName.style.color = 'var(--success)';
                 badge.innerText = 'MAXIMUM'; badge.style.background = 'linear-gradient(135deg, var(--primary), #ffa07a)';
@@ -1163,10 +1171,17 @@
                             const subText = city ? `${city}` : '';
                             const div = document.createElement('div'); div.className = 'autocomplete-item';
                             div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                            
+                            // 🔴 ВИПРАВЛЕНИЙ БАГ: ЗБЕРІГАЄМО КООРДИНАТИ ПРАВИЛЬНО
+                            let currentLat = parseFloat(item.lat);
+                            let currentLon = parseFloat(item.lon);
+
                             div.onclick = function() {
                                 bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
-                                bizLat = parseFloat(item.lat); bizLon = parseFloat(item.lon);
-                                bizAddrList.style.display = 'none'; updateSettingsMap(); 
+                                bizLat = currentLat; 
+                                bizLon = currentLon;
+                                bizAddrList.style.display = 'none'; 
+                                updateSettingsMap(); 
                             };
                             bizAddrList.appendChild(div);
                         });
