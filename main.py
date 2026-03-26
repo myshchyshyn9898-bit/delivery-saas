@@ -208,29 +208,25 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
     user_id = message.from_user.id
     args = command.args
 
-    # --- НОВИЙ БЛОК ОБРОБКИ ЛІНКІВ З ТОКЕНАМИ ---
-    if args and (args.startswith("join_") or args.startswith("admin_")):
-        parts = args.split("_")
+    # --- ОНОВЛЕНИЙ БЛОК ОБРОБКИ КОРОТКИХ ЛІНКІВ З ТОКЕНАМИ ---
+    if args and (args.startswith("c_") or args.startswith("m_")):
+        prefix = args[:2] 
+        token = args[2:]  
         
-        # Перевіряємо чи лінк правильний (join/admin + ID бізнесу + Токен)
-        if len(parts) != 3:
-            await message.answer("❌ Це посилання недійсне або пошкоджене.")
-            return
+        role = "courier" if prefix == "c_" else "manager"
+        
+        # Шукаємо бізнес прямо по унікальному токену
+        try:
+            res = db.supabase.table("businesses").select("*").eq("invite_token", token).execute()
+            if not res.data:
+                await message.answer("🛑 Це посилання недійсне, застаріло або було анульоване власником!")
+                return
             
-        prefix = parts[0]
-        biz_id = parts[1]
-        token = parts[2]
-        
-        role = "courier" if prefix == "join" else "manager"
-        
-        biz = db.get_business_by_id(biz_id)
-        if not biz:
-            await message.answer("❌ Помилка: Такий заклад не існує.")
-            return
-            
-        # Захист: порівнюємо токен з тим, що в базі
-        if str(biz.get('invite_token')) != str(token):
-            await message.answer("🛑 Це посилання застаріло або було анульоване власником!")
+            biz = res.data[0]
+            biz_id = biz['id']
+        except Exception as e:
+            print("Помилка пошуку токена:", e)
+            await message.answer("❌ Сталася помилка при перевірці посилання. Спробуйте пізніше.")
             return
         
         await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'], joining_role=role)
