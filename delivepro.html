@@ -94,11 +94,22 @@
         .form-card { background: var(--surface); border-radius: 20px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #edf1f7; }
         .form-card-header { font-size: 16px; font-weight: 800; margin-bottom: 15px; color: #111418; display: flex; align-items: center; gap: 8px;}
         .form-card-header i { color: var(--primary); }
-        .input-group { margin-bottom: 15px; }
+        
+        /* ДОДАНО position relative ДЛЯ СПИСКУ АДРЕС */
+        .input-group { position: relative; margin-bottom: 15px; }
         .input-group:last-child { margin-bottom: 0; }
+        
         .input-field, .select-field, .textarea-field { width: 100%; padding: 15px; border-radius: 12px; border: 2px solid #edf1f7; background: #fbfcfd; font-size: 15px; color: var(--text-main); outline: none; transition: 0.2s; }
         .input-field:focus, .select-field:focus, .textarea-field:focus { border-color: var(--primary); background: white; }
         .textarea-field { resize: none; height: 80px; }
+        
+        /* СТИЛІ ДЛЯ ВИПАДАЮЧОГО СПИСКУ */
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid #edf1f7; z-index: 1000; max-height: 220px; overflow-y: auto; display: none; margin-top: 5px; margin-bottom: 20px; }
+        .autocomplete-item { padding: 15px; border-bottom: 1px solid #edf1f7; cursor: pointer; transition: 0.1s; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:active { background: #fbfcfd; }
+        .addr-main { font-weight: 800; font-size: 14px; margin-bottom: 3px; color: var(--text-main); }
+        .addr-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; }
         
         #real-map { width: 100%; height: 180px; border-radius: 12px; margin-top: 15px; border: 2px solid #edf1f7; z-index: 1; }
         
@@ -186,9 +197,13 @@
         <div class="form-card">
             <div class="form-card-header"><i class="fa-solid fa-location-dot"></i> Локація</div>
             <div class="input-group">
-                <input type="text" id="biz-country" class="input-field" placeholder="Країна (напр. Польща)" style="margin-bottom: 10px;">
+                <input type="text" id="biz-country" class="input-field" placeholder="Країна (напр. Польща)" style="margin-bottom: 10px;" value="Польща">
                 <input type="text" id="biz-city" class="input-field" placeholder="Місто (напр. Варшава)" style="margin-bottom: 10px;">
-                <input type="text" id="biz-street" class="input-field" placeholder="Вулиця та номер будинку">
+                
+                <div style="position: relative;">
+                    <input type="text" id="biz-street" class="input-field" placeholder="Вулиця та номер (почніть вводити...)" autocomplete="off">
+                    <div id="biz-autocomplete-list" class="autocomplete-list"></div>
+                </div>
             </div>
             <div class="input-group">
                 <input type="number" id="biz-radius" class="input-field" placeholder="Радіус доставки (км)" value="5">
@@ -196,7 +211,7 @@
             
             <div id="real-map"></div>
             <div style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px;">
-                <i class="fa-solid fa-hand-pointer"></i> Посуньте карту, щоб вказати точний центр доставки
+                <i class="fa-solid fa-hand-pointer"></i> Виберіть адресу зі списку або посуньте карту
             </div>
         </div>
 
@@ -234,6 +249,7 @@
 
         let map = null;
         let marker = null;
+        let radiusCircle = null; // Додано змінну для кола радіусу
 
         function initMap() {
             if (map !== null) return; 
@@ -247,9 +263,17 @@
             
             marker = L.marker([defaultLat, defaultLon]).addTo(map);
             
-            // Маркер завжди залишається по центру, коли юзер рухає карту
+            // Додаємо коло радіусу
+            let r = parseFloat(document.getElementById('biz-radius').value) || 5;
+            radiusCircle = L.circle([defaultLat, defaultLon], {
+                color: '#ff7652', fillColor: '#ff7652', fillOpacity: 0.15, weight: 2, dashArray: '5, 5', radius: r * 1000
+            }).addTo(map);
+            
+            // Маркер та коло завжди залишаються по центру, коли юзер рухає карту
             map.on('move', function () { 
-                marker.setLatLng(map.getCenter()); 
+                let center = map.getCenter();
+                marker.setLatLng(center); 
+                if(radiusCircle) radiusCircle.setLatLng(center);
             });
 
             // --- МАГІЯ ГЕОЛОКАЦІЇ ---
@@ -257,12 +281,90 @@
             
             map.on('locationfound', function(e) {
                 marker.setLatLng(e.latlng);
+                if(radiusCircle) radiusCircle.setLatLng(e.latlng);
             });
             
             map.on('locationerror', function(e) {
                 console.log("Доступ до локації заборонено. Залишаємо дефолтну.");
             });
         }
+
+        // Оновлюємо радіус кола, якщо юзер змінює цифру в інпуті
+        document.getElementById('biz-radius').addEventListener('input', function() {
+            let r = parseFloat(this.value) || 5;
+            if(radiusCircle && map) {
+                radiusCircle.setRadius(r * 1000);
+                map.fitBounds(radiusCircle.getBounds(), { padding: [20, 20] });
+            }
+        });
+
+        // --- ЛОГІКА ПОШУКУ АДРЕСИ (ЯК В ДАШБОРДІ) ---
+        const bizAddrInput = document.getElementById('biz-street');
+        const bizAddrList = document.getElementById('biz-autocomplete-list');
+        let bizTimeout = null;
+
+        bizAddrInput.addEventListener('input', function() {
+            clearTimeout(bizTimeout);
+            const query = this.value.trim();
+            const country = document.getElementById('biz-country').value.trim() || 'Польща';
+            
+            if (query.length < 3) { 
+                bizAddrList.style.display = 'none'; 
+                return; 
+            }
+
+            bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> Шукаємо адресу...</div>';
+            bizAddrList.style.display = 'block';
+
+            bizTimeout = setTimeout(async () => {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', ' + country)}&format=json&addressdetails=1&limit=5`;
+                
+                try {
+                    const res = await fetch(url, { headers: { 'Accept-Language': 'uk' } });
+                    const data = await res.json();
+                    
+                    if (data && data.length > 0) {
+                        bizAddrList.innerHTML = ''; 
+                        
+                        data.forEach(item => {
+                            const addr = item.address;
+                            if (!addr) return;
+
+                            const mainText = item.name || (addr && addr.road ? `${addr.road} ${addr.house_number || ''}`.trim() : item.display_name.split(',')[0]);
+                            const city = addr ? (addr.city || addr.town || addr.village || '') : '';
+                            const subText = city ? `${city}, ${country}` : country;
+                            
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-item';
+                            div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                            
+                            div.onclick = function() {
+                                bizAddrInput.value = mainText;
+                                if(city) document.getElementById('biz-city').value = city;
+                                bizAddrList.style.display = 'none';
+                                
+                                // ПЕРЕМІЩУЄМО КАРТУ НА ВИБРАНУ АДРЕСУ
+                                if(map) {
+                                    let lat = parseFloat(item.lat);
+                                    let lon = parseFloat(item.lon);
+                                    map.setView([lat, lon], 14);
+                                }
+                            };
+                            bizAddrList.appendChild(div);
+                        });
+                    } else {
+                        bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">Нічого не знайдено 😕</div>';
+                    }
+                } catch(e) { 
+                    bizAddrList.innerHTML = '<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">❌ Помилка пошуку</div>';
+                }
+            }, 600); 
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target !== bizAddrInput && e.target !== bizAddrList) bizAddrList.style.display = 'none';
+        });
+        // ------------------------------------------
 
         function nextScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
