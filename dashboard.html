@@ -977,7 +977,16 @@
                     document.getElementById('input-biz-address').value = biz.street || '';
                     bizLat = biz.lat || null; bizLon = biz.lng || null; 
 
+                    // 🔴 ЖОРСТКИЙ БЛОК: Якщо час вийшов, Дашборд сам блокує всі функції миттєво
+                    if (biz.subscription_expires_at) {
+                        let expDate = new Date(biz.subscription_expires_at);
+                        if (new Date() > expDate) {
+                            biz.plan = 'expired'; // Переводимо в expired
+                        }
+                    }
+
                     currentPlanIsPro = (biz.plan === 'pro' || biz.plan === 'trial');
+
                     
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
                     document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
