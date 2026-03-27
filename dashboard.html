@@ -216,9 +216,52 @@
         .addr-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; }
         
         #settings-map-container { width: 100%; height: 180px; border-radius: 16px; overflow: hidden; margin-bottom: 20px; margin-top: 15px; border: 2px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
+
+        /* 🔴 СТИЛІ ДЛЯ IOS TOAST NOTIFICATION 🔴 */
+        .ios-toast {
+            position: fixed;
+            top: -100px; /* Сховане зверху */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 10001;
+            transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Пружинна анімація */
+            border: 1px solid rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+        .ios-toast.show { top: 20px; }
+        .ios-toast-icon {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            width: 42px; height: 42px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .ios-toast-text { flex: 1; }
+        .ios-toast-title { font-weight: 900; font-size: 14px; margin-bottom: 2px; color: var(--text-main); }
+        .ios-toast-desc { font-weight: 600; font-size: 12px; color: var(--text-muted); line-height: 1.3; }
     </style>
 </head>
 <body>
+
+    <div id="ios-toast" class="ios-toast" onclick="hideToast()">
+        <div class="ios-toast-icon"><i class="fa-solid fa-bell"></i></div>
+        <div class="ios-toast-text">
+            <div class="ios-toast-title" data-i18n="toast_title">Увага!</div>
+            <div class="ios-toast-desc" data-i18n="toast_desc">Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ.</div>
+        </div>
+    </div>
 
     <div class="header">
         <div class="biz-title" style="position: relative;">
@@ -499,11 +542,12 @@
                 f1: "Базовий дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
                 f4: "Інтерактивна теплова карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал",
                 pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Теплова карта та глибока аналітика", pr_p3: "Управління менеджерами",
-                btn_pay: "Оплатить", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
+                btn_pay: "Оплатити", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
                 txt_left: "Залишилося", txt_days: "днів", txt_avail: "Доступно до", txt_next_pay: "Наступне автоматичне списання:", txt_max: "Усі преміум функції розблоковано. Дякуємо, що ви з нами!", txt_expired: "Ваш тріал або підписка завершилася. Оберіть тариф для розблокування.",
                 title_sel_plan: "Оберіть тариф для продовження:", title_upsell: "⚡️ Хочете більше можливостей?", title_sel_unlock: "Оберіть тариф для розблокування:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКУВАННЯ",
-                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРИТО"
+                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРИТО",
+                toast_title: "Увага!", toast_desc: "Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ."
             },
             'ru': {
                 tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
@@ -539,7 +583,8 @@
                 txt_left: "Осталось", txt_days: "дней", txt_avail: "Доступно до", txt_next_pay: "Следующее списание:", txt_max: "Все функции разблокированы. Спасибо, что вы с нами!", txt_expired: "Ваш триал или подписка завершилась. Выберите тариф.",
                 title_sel_plan: "Выберите тариф для продления:", title_upsell: "⚡️ Хотите больше возможностей?", title_sel_unlock: "Выберите тариф для разблокировки:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКИРОВКА",
-                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРЫТ"
+                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРЫТ",
+                toast_title: "Внимание!", toast_desc: "Ваш тариф скоро истекает. Обновите подписку, чтобы не потерять доступ."
             },
             'pl': {
                 tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
@@ -575,7 +620,8 @@
                 txt_left: "Pozostało", txt_days: "dni", txt_avail: "Dostępne do", txt_next_pay: "Następna płatność:", txt_max: "Wszystkie funkcje odblokowane. Dziękujemy!", txt_expired: "Twój okres próbny lub subskrypcja wygasła. Wybierz plan.",
                 title_sel_plan: "Wybierz plan do przedłużenia:", title_upsell: "⚡️ Chcesz więcej funkcji?", title_sel_unlock: "Wybierz plan, aby odblokować:",
                 badge_active: "AKTYWNIE", badge_paid: "OPŁACONE", badge_block: "ZABLOKOWANE",
-                state_basic: "PLAN BASIC", state_pro: "PLAN PRO", state_closed: "DOSTĘP ZAMKNIĘTY"
+                state_basic: "PLAN BASIC", state_pro: "PLAN PRO", state_closed: "DOSTĘP ZAMKNIĘTY",
+                toast_title: "Uwaga!", toast_desc: "Twój plan wkrótce wygaśnie. Odnów subskrypcję, aby nie stracić dostępu."
             },
             'en': {
                 tab_today: "Today", tab_week: "Week", tab_month: "Month",
@@ -611,7 +657,8 @@
                 txt_left: "Left", txt_days: "days", txt_avail: "Available until", txt_next_pay: "Next billing date:", txt_max: "All premium features unlocked. Thank you!", txt_expired: "Your trial or subscription has ended. Choose a plan.",
                 title_sel_plan: "Select plan to continue:", title_upsell: "⚡️ Want more features?", title_sel_unlock: "Select plan to unlock:",
                 badge_active: "ACTIVE", badge_paid: "PAID", badge_block: "BLOCKED",
-                state_basic: "BASIC PLAN", state_pro: "PRO PLAN", state_closed: "ACCESS DENIED"
+                state_basic: "BASIC PLAN", state_pro: "PRO PLAN", state_closed: "ACCESS DENIED",
+                toast_title: "Warning!", toast_desc: "Your plan is expiring very soon. Please renew to avoid losing access."
             }
         };
 
@@ -631,7 +678,6 @@
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
 
-            // Оновлюємо динамічні елементи підписки, якщо вони є
             if (typeof bizId !== 'undefined' && bizId) {
                 document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('badge_active')})`;
                 loadDashboardData(); 
@@ -642,7 +688,6 @@
         document.addEventListener('click', (e) => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
 
 
-        // 2. ВАШІ ОРИГІНАЛЬНІ ЗМІННІ ТА ФУНКЦІЇ SUPABASE
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
 
@@ -672,7 +717,7 @@
         }
 
         function getTelegramUserId() {
-            return "6889016268"; // Ваша оригінальна функція
+            return "6889016268"; 
         }
 
         function switchTab(tabId, el) {
@@ -684,7 +729,6 @@
             if(tabId === 'home' && window.dashboardMap) { setTimeout(() => window.dashboardMap.invalidateSize(), 100); }
         }
 
-        // БЕЗПЕЧНА зміна фільтрів, яка не залежить від мови
         function setFilter(el, filterType) {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             el.classList.add('active');
@@ -764,7 +808,16 @@
             finally { btn.innerHTML = oldHtml; btn.disabled = false; }
         }
 
-        // --- НОВІ ФУНКЦІЇ ДЛЯ ПІДПИСОК WHOP ---
+        // 🔴 ФУНКЦІЇ СПОВІЩЕННЯ TOAST 🔴
+        function showToast() {
+            const toast = document.getElementById('ios-toast');
+            toast.classList.add('show');
+            setTimeout(() => hideToast(), 6000); // Сховається через 6 сек
+        }
+        function hideToast() {
+            document.getElementById('ios-toast').classList.remove('show');
+        }
+
         function selectDashPlan(plan) {
             selectedDashPlan = plan;
             document.getElementById('dash-plan-basic').classList.remove('selected');
@@ -776,12 +829,10 @@
         function renderSubscriptionUI(biz) {
             let dbPlan = biz.plan || 'trial'; 
             
-            // 🔴 ТЕПЕР БЕРЕМО ДАТУ ПРЯМО З БАЗИ ДАНИХ
             let expireDate = new Date();
             if (biz.subscription_expires_at) {
                 expireDate = new Date(biz.subscription_expires_at);
             } else {
-                // Запасний варіант, якщо дата в базі раптом порожня
                 let createdAt = new Date(biz.created_at || Date.now());
                 expireDate = new Date(createdAt);
                 if (dbPlan === 'trial') expireDate.setDate(expireDate.getDate() + 7);
@@ -801,15 +852,21 @@
 
             statusCard.className = 'status-card-dynamic';
 
+            let daysLeft = Math.ceil((expireDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+            
+            // 🔴 ВИКЛИК СПОВІЩЕННЯ ЯКЩО ЛИШИВСЯ 1 ДЕНЬ АБО МЕНШЕ (і план ще активний)
+            if (daysLeft <= 1 && daysLeft >= 0 && dbPlan !== 'expired') {
+                setTimeout(() => showToast(), 1500);
+            }
+
             if (dbPlan === 'trial') {
-                // Рахуємо різницю з точною датою
-                let daysLeft = Math.max(0, Math.ceil((expireDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24)));
-                let percentUsed = Math.max(0, Math.min(100, ((7 - daysLeft) / 7) * 100));
+                let displayDays = Math.max(0, daysLeft);
+                let percentUsed = Math.max(0, Math.min(100, ((7 - displayDays) / 7) * 100));
 
                 statusCard.classList.add('is-trial');
                 planName.innerText = 'FREE TRIAL (PRO)'; planName.style.color = 'var(--text-main)';
                 badge.innerText = t('badge_active'); badge.style.background = 'var(--info)';
-                planDesc.innerHTML = `${t('txt_left')} <b style="color: var(--text-main);">${daysLeft} ${t('txt_days')}</b>. ${t('txt_avail')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                planDesc.innerHTML = `${t('txt_left')} <b style="color: var(--text-main);">${displayDays} ${t('txt_days')}</b>. ${t('txt_avail')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
                 
                 progressCont.style.display = 'block';
                 setTimeout(() => { document.getElementById('trial-progress-bar').style.width = `${percentUsed}%`; }, 100);
@@ -872,9 +929,8 @@
             if (!bizId) return;
             let tgUserId = getTelegramUserId();
             
-            // 🔴 СЮДИ ВСТАВ ЛІНКИ З WHOP 🔴
-            const linkPro = "https://whop.com/checkout/plan_dw6IbWZaS6ikk";
-            const linkBasic = "https://whop.com/checkout/plan_GyQV0bVWqOxeL";
+            const linkPro = "https://whop.com/checkout/ТВІЙ_КОД_PRO";
+            const linkBasic = "https://whop.com/checkout/ТВІЙ_КОД_BASIC";
             
             const baseLink = selectedDashPlan === 'pro' ? linkPro : linkBasic;
             const checkoutUrl = `${baseLink}?custom_fields[biz_id]=${bizId}&custom_fields[tg_user_id]=${tgUserId}`;
@@ -977,22 +1033,20 @@
                     document.getElementById('input-biz-address').value = biz.street || '';
                     bizLat = biz.lat || null; bizLon = biz.lng || null; 
 
-                    // 🔴 ЖОРСТКИЙ БЛОК: Якщо час вийшов, Дашборд сам блокує всі функції миттєво
+                    // 🔴 ЖОРСТКИЙ БЛОК: Дашборд закриває доступ, якщо дата в минулому
                     if (biz.subscription_expires_at) {
                         let expDate = new Date(biz.subscription_expires_at);
                         if (new Date() > expDate) {
-                            biz.plan = 'expired'; // Переводимо в expired
+                            biz.plan = 'expired';
                         }
                     }
 
                     currentPlanIsPro = (biz.plan === 'pro' || biz.plan === 'trial');
-
                     
                     document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
                     document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
                     document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
                     
-                    // Виклик нової функції малювання підписки
                     renderSubscriptionUI(biz);
 
                     if (!currentPlanIsPro && biz.plan !== 'expired') {
@@ -1181,7 +1235,6 @@
                             const div = document.createElement('div'); div.className = 'autocomplete-item';
                             div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
                             
-                            // 🔴 ВИПРАВЛЕНИЙ БАГ: ЗБЕРІГАЄМО КООРДИНАТИ ПРАВИЛЬНО
                             let currentLat = parseFloat(item.lat);
                             let currentLon = parseFloat(item.lon);
 
