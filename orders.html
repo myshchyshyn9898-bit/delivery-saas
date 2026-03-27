@@ -248,6 +248,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
+        const authToken = urlParams.get('token');
         let currencySymbol = "zł";
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
@@ -266,7 +267,14 @@
                 if (!bizId) throw new Error(t('err_biz'));
                 if (!window.supabase) throw new Error(t('err_supa'));
 
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                let supabaseClient = null;
+                if (authToken) {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                        global: { headers: { Authorization: `Bearer ${authToken}` } }
+                    });
+                } else {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                }
 
                 let startDate = new Date();
                 if (currentFilter === 'today') {
@@ -277,16 +285,16 @@
                     startDate.setMonth(startDate.getMonth() - 1);
                 }
 
-                const { data: biz } = await supabase.from('businesses').select('currency').eq('id', bizId).single();
+                const { data: biz } = await supabaseClient.from('businesses').select('currency').eq('id', bizId).single();
                 if (biz) currencySymbol = biz.currency || "zł";
 
-                const { data: staff } = await supabase.from('staff').select('user_id, name').eq('business_id', bizId);
+                const { data: staff } = await supabaseClient.from('staff').select('user_id, name').eq('business_id', bizId);
                 const couriersMap = {};
                 if (staff) {
                     staff.forEach(s => { couriersMap[s.user_id] = s.name; });
                 }
 
-                const { data: orders, error: ordersError } = await supabase.from('orders')
+                const { data: orders, error: ordersError } = await supabaseClient.from('orders')
                     .select('*')
                     .eq('business_id', bizId)
                     .gte('created_at', startDate.toISOString())
