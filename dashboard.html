@@ -717,6 +717,19 @@
         }
 
         function getTelegramUserId() {
+            // 1. Беремо ID з посилання (яке передає твій keyboards.py)
+            const urlParams = new URLSearchParams(window.location.search);
+            const idFromUrl = urlParams.get('tg_id');
+            if (idFromUrl) {
+                return idFromUrl;
+            }
+            
+            // 2. Надійний запасний варіант напряму від Telegram Web App
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+            }
+            
+            // 3. Якщо щось пішло не так (запасний варіант для тестів у браузері)
             return "6889016268"; 
         }
 
