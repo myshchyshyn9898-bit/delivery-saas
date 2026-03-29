@@ -346,7 +346,14 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                         parse_mode="Markdown"
                     )
                 
-                await message.answer(_(lang, 'order_sent', short_id=short_id))
+                # --- ТУТ ЗРОБЛЕНО ЗМІНУ ДЛЯ АДМІНА ---
+                admin_base_text = _(lang, 'order_sent', short_id=short_id)
+                tracking_link = f"https://myshchyshyn9898-bit.github.io/delivery-saas/track.html?id={order_id}"
+                admin_final_text = f"{admin_base_text}\n\n🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`"
+                
+                await message.answer(admin_final_text, parse_mode="Markdown")
+                # -------------------------------------
+
             else:
                 await message.answer(_(lang, 'order_save_err'))
                 
