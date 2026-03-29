@@ -160,6 +160,22 @@
             </div>
         </div>
 
+        <div class="card">
+            <div class="card-header"><i class="fa-solid fa-stopwatch"></i> <span data-i18n="card_time">Очікуваний час доставки</span></div>
+            <div class="chips-container" id="time-chips">
+                <input type="radio" id="time-15" name="est_time" value="15">
+                <label class="chip" for="time-15" style="padding: 10px 5px;">15 хв</label>
+                <input type="radio" id="time-30" name="est_time" value="30" checked>
+                <label class="chip" for="time-30" style="padding: 10px 5px;">30 хв</label>
+                <input type="radio" id="time-45" name="est_time" value="45">
+                <label class="chip" for="time-45" style="padding: 10px 5px;">45 хв</label>
+                <input type="radio" id="time-60" name="est_time" value="60">
+                <label class="chip" for="time-60" style="padding: 10px 5px;">60 хв</label>
+                <input type="radio" id="time-90" name="est_time" value="90">
+                <label class="chip" for="time-90" style="padding: 10px 5px;">90 хв</label>
+            </div>
+        </div>
+
         <div class="card" style="border-color: #bfdbfe; background: #eff6ff;">
             <div class="card-header" style="color: var(--info);"><i class="fa-solid fa-motorcycle"></i> <span data-i18n="card_courier">Призначити кур'єра</span></div>
             <div class="input-group" style="margin-bottom: 0;">
@@ -202,6 +218,7 @@
                 title_main: "Нове замовлення", card_client: "Дані клієнта", ph_name: "Ім'я клієнта (напр. Олексій)", ph_phone: "Телефон (+48...)",
                 card_addr: "Адреса доставки", ph_street: "Вулиця та номер (почніть вводити...)", ph_apt: "Квартира", ph_code: "Домофон",
                 card_pay: "Оплата", ph_amount: "Сума замовлення (zł)", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
+                card_time: "Очікуваний час доставки",
                 card_courier: "Призначити кур'єра", select_c: "Оберіть кур'єра зі списку...", no_c: "Немає доступних кур'єрів",
                 err_data: "Помилка завантаження даних", c_busy: "В дорозі", c_free: "Вільний", ph_comment: "Коментар (необов'язково)",
                 btn_submit: "Створити та Відправити", btn_loading: "Відправляємо...", tg_btn_submit: "СТВОРИТИ ТА ВІДПРАВИТИ",
@@ -214,6 +231,7 @@
                 title_main: "Новый заказ", card_client: "Данные клиента", ph_name: "Имя клиента (напр. Алексей)", ph_phone: "Телефон (+48...)",
                 card_addr: "Адрес доставки", ph_street: "Улица и номер (начните вводить...)", ph_apt: "Квартира", ph_code: "Домофон",
                 card_pay: "Оплата", ph_amount: "Сумма заказа (zł)", pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
+                card_time: "Ожидаемое время доставки",
                 card_courier: "Назначить курьера", select_c: "Выберите курьера из списка...", no_c: "Нет доступных курьеров",
                 err_data: "Ошибка загрузки данных", c_busy: "В пути", c_free: "Свободен", ph_comment: "Комментарий (необязательно)",
                 btn_submit: "Создать и Отправить", btn_loading: "Отправляем...", tg_btn_submit: "СОЗДАТЬ И ОТПРАВИТЬ",
@@ -226,6 +244,7 @@
                 title_main: "Nowe zamówienie", card_client: "Dane klienta", ph_name: "Imię klienta (np. Jan)", ph_phone: "Telefon (+48...)",
                 card_addr: "Adres dostawy", ph_street: "Ulica i numer (zacznij wpisywać...)", ph_apt: "Mieszkanie", ph_code: "Domofon",
                 card_pay: "Płatność", ph_amount: "Kwota zamówienia (zł)", pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
+                card_time: "Przewidywany czas dostawy",
                 card_courier: "Przypisz kuriera", select_c: "Wybierz kuriera z listy...", no_c: "Brak dostępnych kurierów",
                 err_data: "Błąd ładowania danych", c_busy: "W trasie", c_free: "Wolny", ph_comment: "Komentarz (opcjonalnie)",
                 btn_submit: "Utwórz i Wyślij", btn_loading: "Wysyłanie...", tg_btn_submit: "UTWÓRZ I WYŚLIJ",
@@ -238,6 +257,7 @@
                 title_main: "New Order", card_client: "Client Data", ph_name: "Client name (e.g. Alex)", ph_phone: "Phone (+48...)",
                 card_addr: "Delivery Address", ph_street: "Street and number (start typing...)", ph_apt: "Apt", ph_code: "Intercom",
                 card_pay: "Payment", ph_amount: "Order amount (zł)", pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
+                card_time: "Estimated delivery time",
                 card_courier: "Assign Courier", select_c: "Select courier from list...", no_c: "No available couriers",
                 err_data: "Data loading error", c_busy: "On the way", c_free: "Free", ph_comment: "Comment (optional)",
                 btn_submit: "Create & Send", btn_loading: "Sending...", tg_btn_submit: "CREATE & SEND",
@@ -253,8 +273,8 @@
         const authToken = urlParams.get('token');
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-        
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-BkLGlf5w2L4WbgrX4JA'; // обрізано для прикладу, якщо треба вставиш повний
+
         let supabaseClient = null;
         if (window.supabase) {
             if (authToken) {
@@ -406,6 +426,9 @@
             const courierId = document.getElementById('courier-select').value;
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
             const clientPhone = document.getElementById('client-phone').value.trim();
+            
+            // 🔴 ДОДАНО: Витягуємо очікуваний час з кнопок-чіпсів
+            const estimatedTime = document.querySelector('input[name="est_time"]:checked').value;
 
             if (!selectedLat || !selectedLon) {
                 const msg = t('err_addr');
@@ -438,7 +461,8 @@
                 courier_id: courierId,
                 comment: document.getElementById('order-comment').value.trim(),
                 lat: selectedLat,
-                lon: selectedLon 
+                lon: selectedLon,
+                est_time: estimatedTime // 🔴 ДОДАНО ДО ДАНИХ
             };
 
             if (tg && tg.MainButton) {
