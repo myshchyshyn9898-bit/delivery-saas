@@ -63,6 +63,7 @@
         
         .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--accent-green); transition: opacity 0.5s; }
         .error-screen { display: none; text-align: center; padding: 40px; }
+        #error-msg { color: #ef4444; font-weight: bold; margin-top: 15px; font-size: 14px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -74,8 +75,8 @@
     
     <div class="loading-screen error-screen" id="error-screen" style="background: var(--bg-dark);">
         <i class="fa-solid fa-circle-exclamation" style="font-size: 40px; margin-bottom: 20px; color: #ef4444;"></i>
-        <h3 style="color: white; font-weight: 800;">Замовлення не знайдено</h3>
-        <p style="color: var(--text-muted); margin-top: 10px;">Можливо, посилання застаріло.</p>
+        <h3 style="color: white; font-weight: 800;">Помилка завантаження</h3>
+        <div id="error-msg">Тут буде точна помилка</div>
     </div>
 
     <div class="header">
@@ -109,29 +110,32 @@
     </div>
 
     <script>
-        // 🔴 ВСТАВ СВІЙ SUPABASE КЛЮЧ ТУТ 🔴
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Дістаємо ID з URL
         const urlParams = new URLSearchParams(window.location.search);
         const orderId = urlParams.get('id');
 
         let map, courierMarker, bizPoint, clientPoint;
 
         async function initTracking() {
-            if (!orderId) { showError(); return; }
-
             try {
-                // Дістаємо дані замовлення
-                const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
-                if (orderErr || !order) throw new Error("Order not found");
+                if (!orderId) throw new Error("❌ В посиланні немає ID замовлення (відсутній параметр ?id=...)");
 
-                // Дістаємо координати закладу
+                // Шукаємо замовлення
+                const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
+                if (orderErr) throw new Error(`❌ Помилка бази (Orders): ${orderErr.message}`);
+                if (!order) throw new Error("❌ Замовлення з таким ID не знайдено в базі.");
+
+                // Шукаємо заклад
                 const { data: biz, error: bizErr } = await supabase.from('businesses').select('name, phone, lat, lng, currency').eq('id', order.business_id).single();
-                if (bizErr || !biz) throw new Error("Business not found");
+                if (bizErr) throw new Error(`❌ Помилка бази (Businesses): ${bizErr.message}`);
+                if (!biz) throw new Error("❌ Не знайдено заклад для цього замовлення.");
+
+                // Перевіряємо координати клієнта (щоб карта не крашнулася)
+                if (!order.lat || !order.lon) throw new Error("❌ У цього замовлення немає координат! Спробуйте створити нове замовлення через бота.");
 
                 hideLoading();
                 updateUI(order, biz);
@@ -140,7 +144,7 @@
 
             } catch (err) {
                 console.error(err);
-                showError();
+                showError(err.message);
             }
         }
 
@@ -163,7 +167,6 @@
                 payBadge.innerHTML = `<i class="fa-solid fa-wallet"></i> До оплати: ${typeText}`;
             }
 
-            // Статус
             const statusBox = document.getElementById('status-box');
             if (order.status === 'completed') {
                 statusBox.classList.add('done');
@@ -200,19 +203,18 @@
         }
 
         function startAnimationLoop(order) {
-            if (order.status === 'completed') return; // Якщо доставлено, не рухаємо
+            if (order.status === 'completed') return;
 
             const estMinutes = order.est_time || 30;
             const createdTime = new Date(order.created_at).getTime();
 
             function updatePosition() {
                 const now = new Date().getTime();
-                const elapsedMinutes = (now - createdTime) / 60000; // Скільки пройшло в хвилинах
+                const elapsedMinutes = (now - createdTime) / 60000;
                 
-                // Рахуємо прогрес від 0.05 (тільки виїхав) до 0.95 (майже на місці)
                 let progress = elapsedMinutes / estMinutes;
                 if (progress < 0.05) progress = 0.05; 
-                if (progress > 0.95) progress = 0.95; // Завжди залишаємо трохи до кінця, поки не закриють
+                if (progress > 0.95) progress = 0.95; 
 
                 const currentLat = bizPoint[0] + (clientPoint[0] - bizPoint[0]) * progress;
                 const currentLon = bizPoint[1] + (clientPoint[1] - bizPoint[1]) * progress;
@@ -220,8 +222,8 @@
                 courierMarker.setLatLng([currentLat, currentLon]);
             }
 
-            updatePosition(); // Ставимо початково
-            setInterval(updatePosition, 10000); // Оновлюємо кожні 10 секунд
+            updatePosition(); 
+            setInterval(updatePosition, 10000); 
         }
 
         function hideLoading() {
@@ -229,12 +231,12 @@
             setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
         }
 
-        function showError() {
+        function showError(msg) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error-screen').style.display = 'flex';
+            document.getElementById('error-msg').innerText = msg;
         }
 
-        // Запуск
         document.addEventListener('DOMContentLoaded', initTracking);
     </script>
 </body>
