@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Відстеження замовлення</title>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -24,28 +25,27 @@
         * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg-dark); color: var(--text-light); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* Верхня шапка */
         .header { position: absolute; top: 0; left: 0; right: 0; z-index: 1000; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(17,20,24,0.9) 0%, rgba(17,20,24,0) 100%); }
         .biz-badge { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 8px 14px; border-radius: 12px; font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-color); }
         
-        .lang-switcher { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 8px 12px; border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border-color); color: var(--text-light); }
-
-        /* Карта */
         #map { flex: 1; width: 100%; z-index: 1; background: #000; }
 
-        /* Нижня панель */
         .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: var(--surface-dark); border-radius: 30px 30px 0 0; padding: 25px 20px 40px; z-index: 1000; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); border-top: 1px solid var(--border-color); }
         .sheet-handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; margin: 0 auto 20px; }
 
-        /* Блок статусу */
-        .status-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; position: relative; overflow: hidden; }
+        .status-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px; padding: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; position: relative; overflow: hidden; transition: all 0.3s; }
+        .status-box.done { background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
         .status-box::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent-green); box-shadow: 0 0 15px var(--accent-green); }
+        .status-box.done::before { background: #3b82f6; box-shadow: 0 0 15px #3b82f6; }
+        
         .status-icon { width: 50px; height: 50px; background: var(--accent-green); border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #fff; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); animation: pulse 2s infinite; }
+        .status-box.done .status-icon { background: #3b82f6; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); animation: none; }
+        
         @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+        
         .status-text h2 { font-size: 20px; font-weight: 900; margin-bottom: 4px; letter-spacing: -0.5px; }
         .status-text p { font-size: 13px; color: var(--text-muted); font-weight: 600; }
 
-        /* Деталі оплати та замовлення */
         .order-details { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 16px; padding: 15px; margin-bottom: 20px; }
         .order-id { font-size: 13px; font-weight: 800; color: var(--text-muted); margin-bottom: 4px; }
         .order-amount { font-size: 22px; font-weight: 900; color: var(--text-light); }
@@ -54,28 +54,32 @@
         .pay-done { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
         .pay-wait { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
 
-        /* Кнопка зв'язку */
         .btn-call { width: 100%; background: #ffffff; color: var(--bg-dark); padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 800; border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.2s; text-decoration: none; }
         .btn-call:active { transform: scale(0.97); }
 
-        /* Іконки карти */
         .map-icon-biz { color: #fff; background: var(--bg-dark); border: 2px solid var(--border-color); width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .map-icon-home { color: var(--bg-dark); background: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        .map-icon-courier { color: #fff; background: var(--accent-green); width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); border: 3px solid var(--bg-dark); }
+        .map-icon-courier { color: #fff; background: var(--accent-green); width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); border: 3px solid var(--bg-dark); transition: all 1s ease-in-out; }
         
-        .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--accent-green); }
+        .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--accent-green); transition: opacity 0.5s; }
+        .error-screen { display: none; text-align: center; padding: 40px; }
     </style>
 </head>
 <body>
 
     <div class="loading-screen" id="loading">
-        <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 40px; margin-bottom: 20px;"></i>
+        <i class="fa-solid fa-motorcycle fa-bounce" style="font-size: 40px; margin-bottom: 20px;"></i>
         <h3 style="color: white; font-weight: 800;">Шукаємо замовлення...</h3>
+    </div>
+    
+    <div class="loading-screen error-screen" id="error-screen" style="background: var(--bg-dark);">
+        <i class="fa-solid fa-circle-exclamation" style="font-size: 40px; margin-bottom: 20px; color: #ef4444;"></i>
+        <h3 style="color: white; font-weight: 800;">Замовлення не знайдено</h3>
+        <p style="color: var(--text-muted); margin-top: 10px;">Можливо, посилання застаріло.</p>
     </div>
 
     <div class="header">
-        <div class="biz-badge"><i class="fa-solid fa-store" style="color: var(--accent-green);"></i> Доставка DeliPro</div>
-        <div class="lang-switcher">UK <i class="fa-solid fa-chevron-down"></i></div>
+        <div class="biz-badge" id="biz-name"><i class="fa-solid fa-store" style="color: var(--accent-green);"></i> Доставка DeliPro</div>
     </div>
 
     <div id="map"></div>
@@ -83,72 +87,155 @@
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
         
-        <div class="status-box">
-            <div class="status-icon"><i class="fa-solid fa-motorcycle"></i></div>
+        <div class="status-box" id="status-box">
+            <div class="status-icon" id="status-icon"><i class="fa-solid fa-motorcycle"></i></div>
             <div class="status-text">
-                <h2>Кур'єр в дорозі</h2>
-                <p>Ваше замовлення прямує до вас</p>
+                <h2 id="status-title">Кур'єр в дорозі</h2>
+                <p id="status-desc">Ваше замовлення прямує до вас</p>
             </div>
         </div>
 
         <div class="order-details">
             <div>
-                <div class="order-id">Замовлення #DEL8492</div>
-                <div class="order-amount">65.00 zł</div>
+                <div class="order-id" id="order-id-display">Замовлення #...</div>
+                <div class="order-amount" id="order-amount-display">0.00 zł</div>
             </div>
             <div>
-                <div class="pay-badge pay-wait"><i class="fa-solid fa-wallet"></i> До оплати</div>
+                <div id="pay-status-badge" class="pay-badge"><i class="fa-solid fa-wallet"></i> ...</div>
             </div>
         </div>
 
-        <a href="tel:+48000000000" class="btn-call"><i class="fa-solid fa-phone"></i> Зателефонувати в заклад</a>
+        <a href="#" class="btn-call" id="btn-call"><i class="fa-solid fa-phone"></i> Зателефонувати в заклад</a>
     </div>
 
     <script>
-        // ЦЕ ТИМЧАСОВА ЛОГІКА ДЛЯ ДЕМОНСТРАЦІЇ ДИЗАЙНУ І АНІМАЦІЇ
-        // Поки ми не прописали доступ до Supabase, я показую як це виглядає візуально.
+        // 🔴 ВСТАВ СВІЙ SUPABASE КЛЮЧ ТУТ 🔴
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
 
-        setTimeout(() => {
-            document.getElementById('loading').style.display = 'none';
-            initDemoMap();
-        }, 1500);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function initDemoMap() {
-            // Темна тема CartoDB (преміальний вигляд)
-            const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([50.04132, 21.99901], 14);
+        // Дістаємо ID з URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('id');
+
+        let map, courierMarker, bizPoint, clientPoint;
+
+        async function initTracking() {
+            if (!orderId) { showError(); return; }
+
+            try {
+                // Дістаємо дані замовлення
+                const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
+                if (orderErr || !order) throw new Error("Order not found");
+
+                // Дістаємо координати закладу
+                const { data: biz, error: bizErr } = await supabase.from('businesses').select('name, phone, lat, lng, currency').eq('id', order.business_id).single();
+                if (bizErr || !biz) throw new Error("Business not found");
+
+                hideLoading();
+                updateUI(order, biz);
+                initMap(order, biz);
+                startAnimationLoop(order);
+
+            } catch (err) {
+                console.error(err);
+                showError();
+            }
+        }
+
+        function updateUI(order, biz) {
+            document.getElementById('biz-name').innerHTML = `<i class="fa-solid fa-store" style="color: var(--accent-green);"></i> ${biz.name || 'Доставка'}`;
+            document.getElementById('order-id-display').innerText = `Замовлення #${String(order.id).substring(0, 6).toUpperCase()}`;
+            document.getElementById('order-amount-display').innerText = `${order.amount} ${biz.currency || 'zł'}`;
+            
+            if (biz.phone) {
+                document.getElementById('btn-call').href = `tel:${biz.phone}`;
+            }
+
+            const payBadge = document.getElementById('pay-status-badge');
+            if (order.pay_type === 'online') {
+                payBadge.className = 'pay-badge pay-done';
+                payBadge.innerHTML = '<i class="fa-solid fa-check"></i> Оплачено онлайн';
+            } else {
+                payBadge.className = 'pay-badge pay-wait';
+                const typeText = order.pay_type === 'terminal' ? 'Термінал' : 'Готівка';
+                payBadge.innerHTML = `<i class="fa-solid fa-wallet"></i> До оплати: ${typeText}`;
+            }
+
+            // Статус
+            const statusBox = document.getElementById('status-box');
+            if (order.status === 'completed') {
+                statusBox.classList.add('done');
+                document.getElementById('status-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
+                document.getElementById('status-title').innerText = 'Доставлено';
+                document.getElementById('status-desc').innerText = 'Смачного! Дякуємо за замовлення.';
+            }
+        }
+
+        function initMap(order, biz) {
+            map = L.map('map', { zoomControl: false, attributionControl: false });
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
 
-            // Точка ресторану і клієнта
-            const bizPoint = [50.04132, 21.99901];
-            const clientPoint = [50.05500, 22.01500];
+            bizPoint = [biz.lat || 50.04132, biz.lng || 21.99901];
+            clientPoint = [order.lat, order.lon];
 
             const bizIcon = L.divIcon({ html: '<div class="map-icon-biz"><i class="fa-solid fa-store"></i></div>', className: '', iconSize: [36, 36], iconAnchor: [18, 18] });
             const homeIcon = L.divIcon({ html: '<div class="map-icon-home"><i class="fa-solid fa-house"></i></div>', className: '', iconSize: [36, 36], iconAnchor: [18, 18] });
-            const courierIcon = L.divIcon({ html: '<div class="map-icon-courier"><i class="fa-solid fa-motorcycle"></i></div>', className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
+            const mopedIcon = L.divIcon({ html: '<div class="map-icon-courier" id="courier-icon"><i class="fa-solid fa-motorcycle"></i></div>', className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
 
             L.marker(bizPoint, {icon: bizIcon}).addTo(map);
             L.marker(clientPoint, {icon: homeIcon}).addTo(map);
 
-            // Пульсуюча неонова лінія маршруту
-            const routeLine = L.polyline([bizPoint, clientPoint], { 
-                color: '#10b981', weight: 4, dashArray: '10, 10', opacity: 0.6 
-            }).addTo(map);
-            
+            const routeLine = L.polyline([bizPoint, clientPoint], { color: '#10b981', weight: 4, dashArray: '10, 10', opacity: 0.6 }).addTo(map);
             map.fitBounds(routeLine.getBounds(), { padding: [50, 50], paddingTopLeft: [80, 50], paddingBottomRight: [50, 350] });
 
-            // Анімація машинки (Симуляція руху)
-            const courierMarker = L.marker(bizPoint, {icon: courierIcon}).addTo(map);
+            courierMarker = L.marker(bizPoint, {icon: mopedIcon}).addTo(map);
             
-            let progress = 0.1; // Починаємо з 10% маршруту
-            setInterval(() => {
-                if(progress < 0.9) progress += 0.05; // Рухається вперед кожні 3 секунди
+            if (order.status === 'completed') {
+                courierMarker.setLatLng(clientPoint);
+                document.getElementById('courier-icon').style.background = '#3b82f6';
+                document.getElementById('courier-icon').style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.6)';
+            }
+        }
+
+        function startAnimationLoop(order) {
+            if (order.status === 'completed') return; // Якщо доставлено, не рухаємо
+
+            const estMinutes = order.est_time || 30;
+            const createdTime = new Date(order.created_at).getTime();
+
+            function updatePosition() {
+                const now = new Date().getTime();
+                const elapsedMinutes = (now - createdTime) / 60000; // Скільки пройшло в хвилинах
                 
+                // Рахуємо прогрес від 0.05 (тільки виїхав) до 0.95 (майже на місці)
+                let progress = elapsedMinutes / estMinutes;
+                if (progress < 0.05) progress = 0.05; 
+                if (progress > 0.95) progress = 0.95; // Завжди залишаємо трохи до кінця, поки не закриють
+
                 const currentLat = bizPoint[0] + (clientPoint[0] - bizPoint[0]) * progress;
                 const currentLon = bizPoint[1] + (clientPoint[1] - bizPoint[1]) * progress;
                 
                 courierMarker.setLatLng([currentLat, currentLon]);
-            }, 3000);
+            }
+
+            updatePosition(); // Ставимо початково
+            setInterval(updatePosition, 10000); // Оновлюємо кожні 10 секунд
         }
+
+        function hideLoading() {
+            document.getElementById('loading').style.opacity = '0';
+            setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+        }
+
+        function showError() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-screen').style.display = 'flex';
+        }
+
+        // Запуск
+        document.addEventListener('DOMContentLoaded', initTracking);
     </script>
 </body>
 </html>
