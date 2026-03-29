@@ -92,7 +92,7 @@
 
         /* Стилі для контейнера карти */
         .map-preview {
-            height: 180px;
+            height: 160px;
             width: 100%;
             border-radius: 12px;
             margin-top: 16px;
@@ -271,9 +271,9 @@
         const bizId = urlParams.get('biz_id');
         const authToken = urlParams.get('token');
 
-        // 🔴 ВСТАВЛЕНО ТВІЙ ПОВНИЙ КЛЮЧ! 🔴
+        // ВСТАВ СВІЙ ПОВНИЙ КЛЮЧ ЯКЩО ВІН ОБРІЗАНИЙ!
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-BkLGlf5w2L4WbgrX4JA'; 
 
         let supabaseClient = null;
         if (window.supabase) {
@@ -349,7 +349,7 @@
             return R * c; 
         }
 
-        // --- МАГІЯ КАРТИ ТУТ ---
+        // --- ПОВЕРНУТО КЛАСИЧНИЙ ДИЗАЙН КАРТИ ---
         function updateMapPreview(clientLat, clientLon) {
             const mapContainer = document.getElementById('map-preview');
             mapContainer.style.display = 'block'; 
@@ -364,16 +364,14 @@
 
             const clientPoint = [clientLat, clientLon];
             
-            // Красива іконка клієнта
             const clientIcon = L.divIcon({
-                html: '<div style="color: #3b82f6; font-size: 32px; filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.4));"><i class="fa-solid fa-location-dot"></i></div>',
-                className: '', iconSize: [32, 32], iconAnchor: [16, 32]
+                html: '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>',
+                className: '', iconSize: [28, 28], iconAnchor: [14, 28]
             });
 
-            // Красива іконка закладу
             const bizIcon = L.divIcon({
-                html: '<div style="background: #111418; color: #10b981; font-size: 14px; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.3);"><i class="fa-solid fa-store"></i></div>',
-                className: '', iconSize: [32, 32], iconAnchor: [16, 16]
+                html: '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>',
+                className: '', iconSize: [24, 24], iconAnchor: [12, 24]
             });
 
             if (bizLat && bizLon) {
@@ -381,18 +379,14 @@
                 L.marker(bizPoint, {icon: bizIcon}).addTo(mapLayer);
                 L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
 
-                // Зелена пунктирна лінія маршруту
-                const polyline = L.polyline([bizPoint, clientPoint], { 
-                    color: '#10b981', weight: 4, dashArray: '8, 8', opacity: 0.8 
-                }).addTo(mapLayer);
-                
-                map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
+                const polyline = L.polyline([bizPoint, clientPoint], { color: '#ff6b4a', weight: 3, dashArray: '6, 8', opacity: 0.8 }).addTo(mapLayer);
+                map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
             } else {
                 L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
                 map.setView(clientPoint, 15);
             }
 
-            setTimeout(() => { map.invalidateSize(); }, 200);
+            setTimeout(() => { map.invalidateSize(); }, 100);
         }
 
         async function initForm() {
