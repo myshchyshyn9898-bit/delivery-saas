@@ -159,7 +159,8 @@ def create_new_order(order_data: dict):
         "pay_type": order_data.get('payment'),
         "comment": order_data.get('comment'),
         "lat": order_data.get('lat'), 
-        "lon": order_data.get('lon'), 
+        "lon": order_data.get('lon'),
+        "est_time": int(order_data.get('est_time', 30)), # <--- 🔴 ДОДАНО: ЧАС ДОСТАВКИ
         "status": "pending" # Статус: очікує прийняття кур'єром
     }
     
