@@ -92,13 +92,13 @@
 
         /* Стилі для контейнера карти */
         .map-preview {
-            height: 160px;
+            height: 180px;
             width: 100%;
             border-radius: 12px;
             margin-top: 16px;
             border: 1px solid var(--border);
-            display: none; /* Приховано до моменту вибору адреси */
-            z-index: 1; /* Щоб не перекривало autocomplete */
+            display: none; 
+            z-index: 1; 
             overflow: hidden;
         }
     </style>
@@ -193,7 +193,6 @@
     </div>
 
     <script>
-        // 1. ОГОЛОШЕННЯ ВСІХ ЗМІННИХ
         let tg = null;
         let tgLang = 'en';
         
@@ -272,8 +271,9 @@
         const bizId = urlParams.get('biz_id');
         const authToken = urlParams.get('token');
 
+        // 🔴 ВСТАВЛЕНО ТВІЙ ПОВНИЙ КЛЮЧ! 🔴
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-BkLGlf5w2L4WbgrX4JA'; // обрізано для прикладу, якщо треба вставиш повний
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
 
         let supabaseClient = null;
         if (window.supabase) {
@@ -299,7 +299,6 @@
         let selectedLat = null; 
         let selectedLon = null; 
 
-        // 2. ОГОЛОШЕННЯ ВСІХ ФУНКЦІЙ
         function t(key) { return i18n[currentLang][key] || key; }
 
         function renderCouriers() {
@@ -350,6 +349,7 @@
             return R * c; 
         }
 
+        // --- МАГІЯ КАРТИ ТУТ ---
         function updateMapPreview(clientLat, clientLon) {
             const mapContainer = document.getElementById('map-preview');
             mapContainer.style.display = 'block'; 
@@ -364,14 +364,16 @@
 
             const clientPoint = [clientLat, clientLon];
             
+            // Красива іконка клієнта
             const clientIcon = L.divIcon({
-                html: '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>',
-                className: '', iconSize: [28, 28], iconAnchor: [14, 28]
+                html: '<div style="color: #3b82f6; font-size: 32px; filter: drop-shadow(0px 4px 4px rgba(0,0,0,0.4));"><i class="fa-solid fa-location-dot"></i></div>',
+                className: '', iconSize: [32, 32], iconAnchor: [16, 32]
             });
 
+            // Красива іконка закладу
             const bizIcon = L.divIcon({
-                html: '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>',
-                className: '', iconSize: [24, 24], iconAnchor: [12, 24]
+                html: '<div style="background: #111418; color: #10b981; font-size: 14px; width: 28px; height: 28px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.3);"><i class="fa-solid fa-store"></i></div>',
+                className: '', iconSize: [32, 32], iconAnchor: [16, 16]
             });
 
             if (bizLat && bizLon) {
@@ -379,14 +381,18 @@
                 L.marker(bizPoint, {icon: bizIcon}).addTo(mapLayer);
                 L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
 
-                const polyline = L.polyline([bizPoint, clientPoint], { color: '#ff6b4a', weight: 3, dashArray: '6, 8', opacity: 0.8 }).addTo(mapLayer);
-                map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+                // Зелена пунктирна лінія маршруту
+                const polyline = L.polyline([bizPoint, clientPoint], { 
+                    color: '#10b981', weight: 4, dashArray: '8, 8', opacity: 0.8 
+                }).addTo(mapLayer);
+                
+                map.fitBounds(polyline.getBounds(), { padding: [30, 30] });
             } else {
                 L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
                 map.setView(clientPoint, 15);
             }
 
-            setTimeout(() => { map.invalidateSize(); }, 100);
+            setTimeout(() => { map.invalidateSize(); }, 200);
         }
 
         async function initForm() {
@@ -427,7 +433,6 @@
             const selectedPayment = document.querySelector('input[name="payment"]:checked').value;
             const clientPhone = document.getElementById('client-phone').value.trim();
             
-            // 🔴 ДОДАНО: Витягуємо очікуваний час з кнопок-чіпсів
             const estimatedTime = document.querySelector('input[name="est_time"]:checked').value;
 
             if (!selectedLat || !selectedLon) {
@@ -462,7 +467,7 @@
                 comment: document.getElementById('order-comment').value.trim(),
                 lat: selectedLat,
                 lon: selectedLon,
-                est_time: estimatedTime // 🔴 ДОДАНО ДО ДАНИХ
+                est_time: estimatedTime
             };
 
             if (tg && tg.MainButton) {
@@ -475,7 +480,6 @@
             else console.log("Тестовий режим:", orderData);
         };
 
-        // 3. ДОДАВАННЯ ОБРОБНИКІВ ПОДІЙ ТА ЗАПУСК
         document.addEventListener('DOMContentLoaded', () => {
             const addrInput = document.getElementById('address-street');
             const addrList = document.getElementById('autocomplete-list');
