@@ -391,8 +391,8 @@
         
         <div class="support-card" onclick="openSupportModal()">
             <div>
-                <div style="font-size: 18px; font-weight: 900; margin-bottom: 4px;">Служба підтримки</div>
-                <div style="font-size: 12px; opacity: 0.8; font-weight: 600;">Маєте питання чи знайшли баг?</div>
+                <div style="font-size: 18px; font-weight: 900; margin-bottom: 4px;" data-i18n="support_title">Служба підтримки</div>
+                <div style="font-size: 12px; opacity: 0.8; font-weight: 600;" data-i18n="support_desc">Маєте питання чи знайшли баг?</div>
             </div>
             <div class="support-icon"><i class="fa-solid fa-headset"></i></div>
         </div>
@@ -516,33 +516,33 @@
     <div class="modal-overlay" id="support-modal" onclick="closeSupportModal()">
         <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;"><i class="fa-solid fa-life-ring" style="color: var(--info);"></i> Створити тікет</h2>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Ми отримаємо ваше повідомлення в Telegram і швидко відповімо.</p>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;"><i class="fa-solid fa-life-ring" style="color: var(--info);"></i> <span data-i18n="ticket_create_title">Створити тікет</span></h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;" data-i18n="ticket_create_desc">Ми отримаємо ваше повідомлення в Telegram і швидко відповімо.</p>
             
-            <label class="form-label">Причина звернення</label>
+            <label class="form-label" data-i18n="ticket_label_reason">Причина звернення</label>
             <div class="ticket-type-grid">
-                <div class="ticket-type-btn active" onclick="selectTicketType(this, 'Технічна помилка/Баг')">
-                    <i class="fa-solid fa-bug"></i>Технічний баг
+                <div class="ticket-type-btn active" onclick="selectTicketType(this, 'bug')">
+                    <i class="fa-solid fa-bug"></i><span data-i18n="ticket_btn_bug">Технічний баг</span>
                 </div>
-                <div class="ticket-type-btn" onclick="selectTicketType(this, 'Допомога з налаштуванням')">
-                    <i class="fa-solid fa-sliders"></i>Налаштування
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'setup')">
+                    <i class="fa-solid fa-sliders"></i><span data-i18n="ticket_btn_setup">Налаштування</span>
                 </div>
-                <div class="ticket-type-btn" onclick="selectTicketType(this, 'Фінанси та Оплата')">
-                    <i class="fa-solid fa-credit-card"></i>Оплата/Тариф
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'finance')">
+                    <i class="fa-solid fa-credit-card"></i><span data-i18n="ticket_btn_pay">Оплата/Тариф</span>
                 </div>
-                <div class="ticket-type-btn" onclick="selectTicketType(this, 'Інше питання')">
-                    <i class="fa-solid fa-circle-question"></i>Інше
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'other')">
+                    <i class="fa-solid fa-circle-question"></i><span data-i18n="ticket_btn_other">Інше</span>
                 </div>
             </div>
 
-            <label class="form-label">Тема тікета</label>
-            <input type="text" id="ticket-topic" class="form-input" placeholder="Коротко про проблему..." style="margin-bottom: 15px;">
+            <label class="form-label" data-i18n="ticket_label_topic">Тема тікета</label>
+            <input type="text" id="ticket-topic" class="form-input" data-i18n-placeholder="ticket_ph_topic" placeholder="Коротко про проблему..." style="margin-bottom: 15px;">
             
-            <label class="form-label">Опис проблеми</label>
-            <textarea id="ticket-msg" class="form-input" placeholder="Опишіть ситуацію максимально детально..." style="height: 100px; resize: none; margin-bottom: 20px;"></textarea>
+            <label class="form-label" data-i18n="ticket_label_msg">Опис проблеми</label>
+            <textarea id="ticket-msg" class="form-input" data-i18n-placeholder="ticket_ph_msg" placeholder="Опишіть ситуацію максимально детально..." style="height: 100px; resize: none; margin-bottom: 20px;"></textarea>
 
             <button class="btn-main manager" id="btn-send-ticket" onclick="sendSupportTicket()">
-                <i class="fa-solid fa-paper-plane"></i> Відправити тікет
+                <i class="fa-solid fa-paper-plane"></i> <span id="text-btn-send-ticket" data-i18n="ticket_btn_send">Відправити тікет</span>
             </button>
         </div>
     </div>
@@ -569,7 +569,7 @@
                 title_recent: "Останні замовлення", title_rating: "Рейтинг кур'єрів (PRO)", 
                 title_invite: "Запрошення персоналу", btn_add_c: "Додати Кур'єра", btn_add_m: "Додати Менеджера", 
                 btn_reset: "Оновити посилання (Анулювати старі)", title_active: "Активний персонал",
-                title_profile: "Профіль бізнесу", lbl_biz_id: "ID Закладу", lbl_edit: "Редагувати профіль",
+                title_profile: "Профіль бізнесу", lbl_biz_id: "ID Закладу", lbl_edit: "Редактировать профіль",
                 lbl_sub: "Підписка", lbl_cur: "Валюта системи", btn_logout: "Вийти",
                 nav_home: "Головна", nav_team: "Команда", nav_settings: "Налаштування",
                 modal_plan: "Управління підпискою", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
@@ -596,7 +596,15 @@
                 title_sel_plan: "Оберіть тариф для продовження:", title_upsell: "⚡️ Хочете більше можливостей?", title_sel_unlock: "Оберіть тариф для розблокування:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКУВАННЯ",
                 state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРИТО",
-                toast_title: "Увага!", toast_desc: "Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ."
+                toast_title: "Увага!", toast_desc: "Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ.",
+                support_title: "Служба підтримки", support_desc: "Маєте питання чи знайшли баг?",
+                ticket_create_title: "Створити тікет", ticket_create_desc: "Ми отримаємо ваше повідомлення в Telegram і швидко відповімо.",
+                ticket_label_reason: "Причина звернення", ticket_btn_bug: "Технічний баг", ticket_btn_setup: "Налаштування", ticket_btn_pay: "Оплата/Тариф", ticket_btn_other: "Інше",
+                ticket_label_topic: "Тема тікета", ticket_ph_topic: "Коротко про проблему...",
+                ticket_label_msg: "Опис проблеми", ticket_ph_msg: "Опишіть ситуацію максимально детально...",
+                ticket_btn_send: "Відправити тікет", ticket_btn_sending: "Відправляємо...",
+                ticket_alert_empty: "📍 Будь ласка, заповніть тему та опис проблеми.",
+                ticket_alert_test: "Тікет відправлено (Тестовий режим)!"
             },
             'ru': {
                 tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
@@ -633,7 +641,15 @@
                 title_sel_plan: "Выберите тариф для продления:", title_upsell: "⚡️ Хотите больше возможностей?", title_sel_unlock: "Выберите тариф для разблокировки:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКИРОВКА",
                 state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРЫТ",
-                toast_title: "Внимание!", toast_desc: "Ваш тариф скоро истекает. Обновите подписку, чтобы не потерять доступ."
+                toast_title: "Внимание!", toast_desc: "Ваш тариф скоро истекает. Обновите подписку, чтобы не потерять доступ.",
+                support_title: "Служба поддержки", support_desc: "Есть вопросы или нашли баг?",
+                ticket_create_title: "Создать тикет", ticket_create_desc: "Мы получим ваше сообщение в Telegram и быстро ответим.",
+                ticket_label_reason: "Причина обращения", ticket_btn_bug: "Технический баг", ticket_btn_setup: "Настройка", ticket_btn_pay: "Оплата/Тариф", ticket_btn_other: "Другое",
+                ticket_label_topic: "Тема тикета", ticket_ph_topic: "Коротко о проблеме...",
+                ticket_label_msg: "Описание проблемы", ticket_ph_msg: "Опишите ситуацию максимально подробно...",
+                ticket_btn_send: "Отправить тикет", ticket_btn_sending: "Отправляем...",
+                ticket_alert_empty: "📍 Пожалуйста, заполните тему и описание проблемы.",
+                ticket_alert_test: "Тикет отправлен (Тестовый режим)!"
             },
             'pl': {
                 tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
@@ -670,7 +686,15 @@
                 title_sel_plan: "Wybierz plan do przedłużenia:", title_upsell: "⚡️ Chcesz więcej funkcji?", title_sel_unlock: "Wybierz plan, aby odblokować:",
                 badge_active: "AKTYWNIE", badge_paid: "OPŁACONE", badge_block: "ZABLOKOWANE",
                 state_basic: "PLAN BASIC", state_pro: "PLAN PRO", state_closed: "DOSTĘP ZAMKNIĘTY",
-                toast_title: "Uwaga!", toast_desc: "Twój plan wkrótce wygaśnie. Odnów subskrypcję, aby nie stracić dostępu."
+                toast_title: "Uwaga!", toast_desc: "Twój plan wkrótce wygaśnie. Odnów subskrypcję, aby nie stracić dostępu.",
+                support_title: "Wsparcie techniczne", support_desc: "Masz pytania lub znalazłeś błąd?",
+                ticket_create_title: "Utwórz zgłoszenie", ticket_create_desc: "Otrzymamy Twoją wiadomość na Telegramie i szybko odpowiemy.",
+                ticket_label_reason: "Powód zgłoszenia", ticket_btn_bug: "Błąd techniczny", ticket_btn_setup: "Konfiguracja", ticket_btn_pay: "Płatność/Plan", ticket_btn_other: "Inne",
+                ticket_label_topic: "Temat zgłoszenia", ticket_ph_topic: "Krótko o problemie...",
+                ticket_label_msg: "Opis problemu", ticket_ph_msg: "Opisz sytuację jak najdokładniej...",
+                ticket_btn_send: "Wyślij zgłoszenie", ticket_btn_sending: "Wysyłanie...",
+                ticket_alert_empty: "📍 Proszę wypełnić temat i opis problemu.",
+                ticket_alert_test: "Zgłoszenie wysłane (Tryb testowy)!"
             },
             'en': {
                 tab_today: "Today", tab_week: "Week", tab_month: "Month",
@@ -707,7 +731,15 @@
                 title_sel_plan: "Select plan to continue:", title_upsell: "⚡️ Want more features?", title_sel_unlock: "Select plan to unlock:",
                 badge_active: "ACTIVE", badge_paid: "PAID", badge_block: "BLOCKED",
                 state_basic: "BASIC PLAN", state_pro: "PRO PLAN", state_closed: "ACCESS DENIED",
-                toast_title: "Warning!", toast_desc: "Your plan is expiring very soon. Please renew to avoid losing access."
+                toast_title: "Warning!", toast_desc: "Your plan is expiring very soon. Please renew to avoid losing access.",
+                support_title: "Support Service", support_desc: "Have questions or found a bug?",
+                ticket_create_title: "Create Ticket", ticket_create_desc: "We will receive your message on Telegram and reply quickly.",
+                ticket_label_reason: "Reason", ticket_btn_bug: "Technical Bug", ticket_btn_setup: "Setup Help", ticket_btn_pay: "Payment/Plan", ticket_btn_other: "Other",
+                ticket_label_topic: "Ticket Topic", ticket_ph_topic: "Briefly about the problem...",
+                ticket_label_msg: "Problem Description", ticket_ph_msg: "Describe the situation in detail...",
+                ticket_btn_send: "Send Ticket", ticket_btn_sending: "Sending...",
+                ticket_alert_empty: "📍 Please fill in the topic and description.",
+                ticket_alert_test: "Ticket sent (Test mode)!"
             }
         };
 
@@ -1059,7 +1091,7 @@
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        let selectedTicketReason = 'Технічна помилка/Баг';
+        let selectedTicketReason = 'bug';
 
         function openSupportModal() {
             document.getElementById('support-modal').classList.add('active');
@@ -1082,7 +1114,7 @@
             const msg = document.getElementById('ticket-msg').value.trim();
 
             if (!topic || !msg) {
-                alert("📍 Будь ласка, заповніть тему та опис проблеми.");
+                alert(t('ticket_alert_empty'));
                 return;
             }
 
@@ -1095,7 +1127,7 @@
             };
 
             const btn = document.getElementById('btn-send-ticket');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Відправляємо...';
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('ticket_btn_sending')}`;
             btn.disabled = true;
 
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
@@ -1103,9 +1135,9 @@
             } else {
                 console.log("ТЕСТ ТІКЕТА:", ticketData);
                 setTimeout(() => {
-                    alert("Тікет відправлено (Тестовий режим)!");
+                    alert(t('ticket_alert_test'));
                     closeSupportModal();
-                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Відправити тікет';
+                    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span id="text-btn-send-ticket">${t('ticket_btn_send')}</span>`;
                     btn.disabled = false;
                 }, 1000);
             }
