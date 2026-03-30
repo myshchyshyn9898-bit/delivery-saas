@@ -71,7 +71,7 @@
     <div class="loading-screen" id="loading">
         <i class="fa-solid fa-motorcycle fa-bounce" style="font-size: 40px; margin-bottom: 20px;"></i>
         <h3 id="loading-text" style="color: white; font-weight: 800;">Запуск системи...</h3>
-        <p id="loading-sub" style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">Версія діагностики</p>
+        <p style="color: var(--text-muted); font-size: 12px; margin-top: 10px;">Бронебійна версія</p>
     </div>
     
     <div class="loading-screen error-screen" id="error-screen" style="background: var(--bg-dark);">
@@ -111,18 +111,16 @@
     </div>
 
     <script>
-        function updateStep(text) {
-            document.getElementById('loading-text').innerText = text;
-        }
-
-        function showError(msg) {
+        // Бронебійний ловушка помилок, яка видає системне віконце (alert)
+        function forceError(text) {
+            alert("🛑 УВАГА ПОМИЛКА:\n\n" + text);
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error-screen').style.display = 'flex';
-            document.getElementById('error-msg').innerText = msg;
+            document.getElementById('error-msg').innerText = text;
         }
 
         window.onerror = function(msg, url, line) {
-            showError(`JS Краш: ${msg} (Рядок: ${line})`);
+            forceError(`Скрипт впав: ${msg}\nРядок: ${line}`);
             return false;
         };
 
@@ -134,28 +132,27 @@
 
         async function initTracking() {
             try {
-                updateStep("Крок 1: Перевірка лінка...");
-                if (!window.supabase) throw new Error("Supabase не завантажився!");
+                document.getElementById('loading-text').innerText = "Крок 1: База...";
+                if (!window.supabase) throw new Error("Бібліотека Supabase не завантажилася. Можливо, блокує інтернет або AdBlock.");
                 
-                const urlParams = new URLSearchParams(window.location.search);
-                const orderId = urlParams.get('id');
-                if (!orderId) throw new Error("В лінку немає ?id=...");
-
-                updateStep("Крок 2: Зв'язок з базою...");
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                updateStep("Крок 3: Пошук замовлення...");
+                const urlParams = new URLSearchParams(window.location.search);
+                const orderId = urlParams.get('id');
+                if (!orderId) throw new Error("В лінку немає номера замовлення (відсутній ?id=...)");
+
+                document.getElementById('loading-text').innerText = "Крок 2: Замовлення...";
                 const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
-                if (orderErr) throw new Error(`Помилка бази: ${orderErr.message}`);
-                if (!order) throw new Error("Замовлення не знайдено");
+                if (orderErr) throw new Error(`БД (Orders) каже: ${orderErr.message}`);
+                if (!order) throw new Error("Такого замовлення не існує.");
 
-                updateStep("Крок 4: Пошук закладу...");
+                document.getElementById('loading-text').innerText = "Крок 3: Ресторан...";
                 const { data: biz, error: bizErr } = await supabase.from('businesses').select('name, phone, lat, lng, currency').eq('id', order.business_id).single();
-                if (bizErr) throw new Error(`Помилка бізнесу: ${bizErr.message}`);
-                if (!biz) throw new Error("Заклад не знайдено");
+                if (bizErr) throw new Error(`БД (Biz) каже: ${bizErr.message}`);
+                if (!biz) throw new Error("Заклад не знайдено.");
 
-                updateStep("Крок 5: Запуск карти...");
-                if (!order.lat || !order.lon) throw new Error("У замовлення немає координат!");
+                document.getElementById('loading-text').innerText = "Крок 4: Карта...";
+                if (!order.lat || !order.lon) throw new Error("Кур'єр не знає куди їхати! (Немає координат клієнта)");
 
                 updateUI(order, biz);
                 initMap(order, biz);
@@ -165,8 +162,7 @@
                 setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
 
             } catch (err) {
-                console.error(err);
-                showError(err.message);
+                forceError(err.message);
             }
         }
 
@@ -175,9 +171,7 @@
             document.getElementById('order-id-display').innerText = `Замовлення #${String(order.id).substring(0, 6).toUpperCase()}`;
             document.getElementById('order-amount-display').innerText = `${order.amount} ${biz.currency || 'zł'}`;
             
-            if (biz.phone) {
-                document.getElementById('btn-call').href = `tel:${biz.phone}`;
-            }
+            if (biz.phone) document.getElementById('btn-call').href = `tel:${biz.phone}`;
 
             const payBadge = document.getElementById('pay-status-badge');
             if (order.pay_type === 'online') {
@@ -248,7 +242,8 @@
             setInterval(updatePosition, 10000); 
         }
 
-        document.addEventListener('DOMContentLoaded', initTracking);
+        // Запускаємо примусово через 200мс (щоб уникнути багів з DOMContentLoaded на Safari)
+        setTimeout(initTracking, 200);
     </script>
 </body>
 </html>
