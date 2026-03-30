@@ -400,6 +400,46 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 
         await message.answer(_(lang, 'broadcast_done', sent=sent_count, total=len(owner_ids)))
 
+    # ==========================================
+    # --- 4. СЛУЖБА ПІДТРИМКИ (ТІКЕТИ) ---
+    # ==========================================
+    elif data.get("action") == "support_ticket":
+        try:
+            biz_id = data.get("biz_id", "Невідомо")
+            reason = data.get("reason", "Інше")
+            topic = data.get("topic", "Без теми")
+            message_text = data.get("message", "Пусто")
+            
+            # Створюємо красиве повідомлення для тебе (Адміна)
+            admin_msg = (
+                f"🆘 <b>НОВИЙ ТІКЕТ ПІДТРИМКИ</b>\n\n"
+                f"🏢 <b>Бізнес ID:</b> <code>{biz_id}</code>\n"
+                f"👤 <b>Від:</b> <a href='tg://user?id={user_id}'>Клієнт (ID: {user_id})</a>\n"
+                f"🏷 <b>Категорія:</b> {reason}\n"
+                f"📌 <b>Тема:</b> {topic}\n"
+                f"〰️〰️〰️〰️〰️〰️〰️〰️\n"
+                f"💬 <b>Повідомлення:</b>\n"
+                f"<i>{message_text}</i>"
+            )
+            
+            # Розсилаємо всім супер-адмінам
+            for admin_id in SUPER_ADMIN_IDS:
+                try:
+                    await bot.send_message(
+                        chat_id=admin_id, 
+                        text=admin_msg, 
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    print(f"Не вдалося відправити тікет адміну {admin_id}: {e}")
+            
+            # Відправляємо підтвердження клієнту
+            await message.answer("✅ <b>Тікет успішно відправлено!</b> Наша служба підтримки зв'яжеться з вами найближчим часом.", parse_mode="HTML")
+                    
+        except Exception as e:
+            print(f"Помилка обробки тікета підтримки: {e}")
+            await message.answer("❌ Сталася помилка при відправці тікета. Спробуйте пізніше.")
+
 # --- РЕЄСТРАЦІЯ КУР'ЄРА ТА МЕНЕДЖЕРА ---
 @dp.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
