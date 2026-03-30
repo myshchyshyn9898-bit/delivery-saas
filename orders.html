@@ -282,7 +282,7 @@
                 } else if (currentFilter === 'week') {
                     startDate.setDate(startDate.getDate() - 7);
                 } else if (currentFilter === 'month') {
-                    startDate.setMonth(startDate.getMonth() - 1);
+                    startDate.setDate(startDate.getDate() - 30);
                 }
 
                 const { data: biz } = await supabaseClient.from('businesses').select('currency').eq('id', bizId).single();
@@ -298,7 +298,8 @@
                     .select('*')
                     .eq('business_id', bizId)
                     .gte('created_at', startDate.toISOString())
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(5000);
 
                 if (ordersError) throw ordersError;
 
@@ -316,7 +317,10 @@
                 if (orders && orders.length > 0) {
                     orders.forEach(order => {
                         const shortId = String(order.id).substring(0, 6).toUpperCase();
-                        const courierName = couriersMap[order.courier_id] || t('unknown_c');
+
+                        // 🔒 ЗАХИСТ ВІД XSS: Екрануємо адресу та імена
+                        const safeAddress = String(order.address || '').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        const safeCourierName = String(couriersMap[order.courier_id] || t('unknown_c')).replace(/</g, "&lt;").replace(/>/g, "&gt;");
                         
                         let payText = t('pay_online'), payIcon = 'fa-globe', payColor = '#a855f7';
                         if (order.pay_type === 'cash') { payText = t('pay_cash'); payIcon = 'fa-money-bill-wave'; payColor = '#34C759'; }
@@ -343,13 +347,13 @@
                                 <div class="order-row">
                                     <div class="order-icon"><i class="fa-solid fa-location-dot"></i></div>
                                     <div>
-                                        <div>${order.address}</div>
+                                        <div>${safeAddress}</div>
                                         ${detailsHtml}
                                     </div>
                                 </div>
                                 <div class="order-row">
                                     <div class="order-icon"><i class="fa-solid fa-motorcycle"></i></div>
-                                    <div>${courierName}</div>
+                                    <div>${safeCourierName}</div>
                                 </div>
                                 <div class="order-footer">
                                     <div class="order-payment">
