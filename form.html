@@ -288,8 +288,6 @@
         let bizLat = null;
         let bizLon = null;
         let bizRadius = 10;
-        let bizCountry = ''; 
-        let bizCity = ''; 
         
         let globalCouriers = [];
         let globalBusyIds = [];
@@ -392,13 +390,11 @@
         async function initForm() {
             if (!bizId || !supabaseClient) return;
             try {
-                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km, country, city').eq('id', bizId).single();
+                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
                 if (biz) {
-                    bizLat = biz.lat || null;
-                    bizLon = biz.lng || null;
-                    bizRadius = biz.radius_km || 10; 
-                    bizCountry = biz.country || ''; 
-                    bizCity = biz.city || '';
+                    bizLat = parseFloat(biz.lat) || null;
+                    bizLon = parseFloat(biz.lng) || null;
+                    bizRadius = parseFloat(biz.radius_km) || 10; 
                 }
 
                 const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
@@ -494,20 +490,8 @@
                 addrList.style.display = 'block';
 
                 timeout = setTimeout(async () => {
-                    // Формуємо точний запит: Вулиця, Місто, Країна
-                    let searchStr = query;
-                    if (bizCity && !query.toLowerCase().includes(bizCity.toLowerCase())) {
-                        searchStr += `, ${bizCity}`;
-                    }
-                    if (bizCountry && !query.toLowerCase().includes(bizCountry.toLowerCase())) {
-                        searchStr += `, ${bizCountry}`;
-                    }
-
-                    // Додаємо lat і lon, щоб Nominatim шукав найближчі адреси до ресторану!
-                    let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchStr)}&format=json&addressdetails=1&limit=10`;
-                    if (bizLat && bizLon) {
-                        url += `&lat=${bizLat}&lon=${bizLon}`;
-                    }
+                    // ПОВЕРТАЄМО ЯК БУЛО ДО МОЇХ "ПОКРАЩЕНЬ"
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
                     
                     try {
                         const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
