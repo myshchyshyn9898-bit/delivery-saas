@@ -1,628 +1,560 @@
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boss Panel 7.0 | God Mode</title>
+import asyncio
+import json
+import urllib.parse
+import os
+import requests
+import aiohttp
+import datetime 
+import math     
+from aiohttp import web # <--- ДОДАНО ДЛЯ WEBHOOK WHOP
+from staticmap import StaticMap, Line, CircleMarker
+from aiogram.types import FSInputFile
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.filters import Command, CommandObject
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from config import API_TOKEN, SUPER_ADMIN_IDS
+import database as db
+import keyboards as kb
+from texts import get_text as _  
+
+bot = Bot(token=API_TOKEN)
+dp = Dispatcher()
+
+# --- СТАНИ (FSM) ---
+class RegStaff(StatesGroup):
+    waiting_for_name = State()
+
+# --- ДОПОМІЖНА ФУНКЦІЯ МЕНЮ ---
+async def show_main_menu(message: types.Message, context: dict):
+    lang = message.from_user.language_code
+    role = context['role']
+    biz = context['biz']
+    biz_id = biz['id']
+
+    # 🔴 ОХОРОНЕЦЬ: Перевірка статусу підписки
+    actual_plan = db.get_actual_plan(biz_id)
+
+    if not biz['is_active'] or actual_plan == "expired":
+        text = "⚠️ **Ваш тестовий період або підписка завершилася!**\n\nЩоб продовжити роботу, будь ласка, відкрийте *Дашборд* та оберіть тариф (PRO)."
+        builder = InlineKeyboardBuilder()
+        builder.button(text="Відкрити Дашборд", web_app=types.WebAppInfo(url=f"https://твоє-посилання-на-дашборд?biz_id={biz_id}")) # ЗАМІНИ НА СВІЙ ЛІНК ДАШБОРДУ
+        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+        return
+
+    if role == "owner":
+        text = _(lang, 'owner_panel', name=biz['name'])
+        markup = kb.get_owner_kb(biz_id, message.from_user.id, lang)
+    elif role == "manager":
+        text = _(lang, 'manager_panel', name=biz['name'])
+        markup = kb.get_manager_kb(biz_id, message.from_user.id, lang)
+    else: # courier
+        text = _(lang, 'courier_panel', name=biz['name'])
+        markup = kb.get_courier_kb(biz_id, message.from_user.id, lang)
+
+    await message.answer(text, reply_markup=markup, parse_mode="Markdown")
+
+# --- ГЕНЕРАТОР КАРТИ (МАРШРУТ) ---
+def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
+    try:
+        url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
+        headers = {'User-Agent': 'DeliveProBot/1.0'}
+        r = requests.get(url, headers=headers, timeout=15)
+        
+        if r.status_code != 200: 
+            print(f"OSRM помилка: {r.status_code} - {r.text}")
+            return None
+        
+        route_data = r.json()
+        if not route_data.get('routes'): 
+            print("OSRM не знайшов маршрут")
+            return None
+        
+        coordinates = route_data['routes'][0]['geometry']['coordinates']
+        tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+        m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
+        
+        dot_spacing = 0.0003 
+        for i in range(len(coordinates)-1):
+            p1 = coordinates[i]
+            p2 = coordinates[i+1]
+            dist = math.hypot(p1[0] - p2[0], p1[1] - p2[1])
+            steps = max(1, int(dist / dot_spacing))
+            
+            for j in range(steps):
+                lon = p1[0] + (p2[0] - p1[0]) * (j / steps)
+                lat = p1[1] + (p2[1] - p1[1]) * (j / steps)
+                m.add_marker(CircleMarker((lon, lat), '#ff6b4a', 3))
+                
+        m.add_marker(CircleMarker(coordinates[-1], '#ff6b4a', 3))
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) 
+        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) 
+        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) 
+        
+        image = m.render()
+        image.save(filename)
+        return filename
+    except Exception as e:
+        print(f"Помилка рендеру карти: {e}")
+        return None
+
+async def get_route_map_file(biz: dict, client_address: str, order_id: str):
+    c_lat, c_lon = None, None
+    print(f"Шукаємо координати клієнта для: {client_address}")
+    encoded_client = urllib.parse.quote(client_address)
+    client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                if resp.status == 200:
+                    c_data = await resp.json()
+                    if c_data and len(c_data) > 0:
+                        c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
+                    else:
+                        print(f"❌ GPS не знайшов адресу клієнта: {client_address}")
+    except Exception as e:
+        print(f"❌ Критична помилка Nominatim: {e}")
+
+    if not c_lat: return None 
+
+    biz_address = biz.get('address') if biz else None
+    b_lat, b_lon = 50.04132, 21.99901 
     
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+    if biz_address:
+        encoded_biz = urllib.parse.quote(biz_address)
+        biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
+                    if resp.status == 200:
+                        b_data = await resp.json()
+                        if b_data and len(b_data) > 0:
+                            b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
+        except Exception as e:
+            print(f"❌ Критична помилка Nominatim (бізнес): {e}")
+
+    filename = f"map_{order_id}.png"
+    result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)
+    return result_file
+
+
+# ==========================================
+# --- НОВИЙ БЛОК: ГЕНЕРАЦІЯ ЗВІТУ ---
+# ==========================================
+report_buttons = ["📊 Зробити звіт", "📊 Сделать отчет", "📊 Zrób raport", "📊 Make Report", "/zvit"]
+
+@dp.message(F.text.in_(report_buttons))
+async def cmd_generate_report(message: types.Message):
+    lang = message.from_user.language_code
+    context = db.get_user_context(message.from_user.id)
+    if not context or context['role'] not in ['manager', 'owner']:
+        await message.answer(_(lang, 'no_zvit_access'))
+        return
         
-        :root { 
-            --bg-color: #020617; 
-            --text-main: #f8fafc; 
-            --text-muted: #94a3b8; 
-            --primary: #10b981; 
-            --primary-glow: rgba(16, 185, 129, 0.4);
-            --surface: rgba(30, 41, 59, 0.6); 
-            --surface-border: rgba(255, 255, 255, 0.08);
-            --success: #10b981; 
-            --warning: #f59e0b; 
-            --danger: #ef4444; 
-            --frozen: #38bdf8;
-            --trial: #a855f7; /* Фіолетовий для Тріалу */
-            --brand: #6366f1;
-        }
+    biz = context['biz']
+    biz_id = biz['id']
+
+    # 🔴 ОХОРОНЕЦЬ: Перевірка перед звітом
+    if db.get_actual_plan(biz_id) == "expired":
+        await message.answer("⚠️ Підписка закінчилася. Відкрийте Дашборд для оплати.")
+        return
+
+    currency = biz.get('currency', 'zł')
+    report_data, total_cash, total_term = db.get_daily_report(biz_id)
+    
+    if not report_data:
+        await message.answer(_(lang, 'zvit_empty'))
+        return
         
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+    now_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=1)).strftime("%H:%M")
+    text = _(lang, 'zvit_title', time=now_time)
+    
+    for c_id, stats in report_data.items():
+        text += f"👤 {stats['name']}: {stats['count']} | 💵 {stats['cash']:.2f} | 🏧 {stats['term']:.2f}\n"
         
-        /* Модернізований фон з кібер-сіткою */
-        body { 
-            background-color: var(--bg-color); 
-            background-image: 
-                radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 40%), 
-                radial-gradient(circle at bottom left, rgba(99, 102, 241, 0.08), transparent 40%),
-                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
-            color: var(--text-main); padding-bottom: 80px; min-height: 100vh; 
-        } 
+    text += f"➖ ➖ ➖ ➖ ➖\n"
+    text += _(lang, 'zvit_cash', cash=f"{total_cash:.2f}", cur=currency)
+    text += _(lang, 'zvit_term', term=f"{total_term:.2f}", cur=currency)
+    
+    await message.answer(text)
 
-        .header { background: rgba(2, 6, 23, 0.7); backdrop-filter: blur(15px); padding: 20px; border-bottom: 1px solid var(--surface-border); position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
-        .header-title { font-size: 22px; font-weight: 900; background: linear-gradient(to right, #fff, #a7f3d0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; display: flex; align-items: center; gap: 10px; }
+# ==========================================
+# --- СЕКРЕТНА ПАНЕЛЬ ВЛАСНИКА БОТА ---
+# ==========================================
+@dp.message(Command("boss"))
+async def cmd_boss_panel(message: types.Message):
+    lang = message.from_user.language_code
+    if message.from_user.id in SUPER_ADMIN_IDS:
+        await message.answer(
+            _(lang, 'boss_panel'), 
+            reply_markup=kb.get_superadmin_kb(message.from_user.id, lang)
+        )
+    else:
+        await message.answer(_(lang, 'dont_understand'))
+
+# --- ОБРОБНИКИ КОМАНД ---
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
+    user_id = message.from_user.id
+    lang = message.from_user.language_code
+    args = command.args
+
+    if args and (args.startswith("c_") or args.startswith("m_")):
+        prefix = args[:2] 
+        token = args[2:]  
         
-        .header-actions { display: flex; gap: 10px; align-items: center; }
-        .header-badge { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 5px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border: 1px solid rgba(16, 185, 129, 0.3); }
-        .btn-settings { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; }
-        .btn-settings:active { transform: scale(0.9); background: rgba(255,255,255,0.15); }
-
-        .tabs-nav { display: flex; padding: 15px 20px 0; gap: 8px; overflow-x: auto; scrollbar-width: none; }
-        .tabs-nav::-webkit-scrollbar { display: none; }
-        .tab-btn { flex: 1; min-width: 80px; padding: 12px 5px; border-radius: 12px; font-size: 10px; font-weight: 800; color: var(--text-muted); background: var(--surface); border: 1px solid var(--surface-border); cursor: pointer; transition: 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; flex-direction: column; align-items: center; gap: 4px; backdrop-filter: blur(10px); }
-        .tab-btn i { font-size: 16px; }
-        .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 20px var(--primary-glow); }
-        .tab-content { display: none; animation: fadeIn 0.4s ease; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .container { padding: 20px; }
-
-        .global-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
-        .stat-card { background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px; padding: 18px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); transition: 0.3s; }
-        .stat-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
-        .stat-card.highlight { background: linear-gradient(135deg, #10b981, #059669); border: none; grid-column: 1 / -1; box-shadow: 0 10px 25px var(--primary-glow); position: relative; overflow: hidden; }
-        .stat-card.highlight::after { content: 'MRR'; position: absolute; right: -5px; bottom: -20px; font-size: 90px; font-weight: 900; opacity: 0.1; line-height: 1; }
-        
-        .stat-icon { font-size: 20px; color: var(--text-muted); margin-bottom: 10px; }
-        .highlight .stat-icon { color: rgba(255,255,255,0.9); }
-        .stat-val { font-size: 28px; font-weight: 900; margin-bottom: 2px; color: white; letter-spacing: -1px; }
-        .stat-label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .highlight .stat-label { color: rgba(255,255,255,0.9); }
-
-        .section-title { font-size: 13px; font-weight: 800; margin-bottom: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
-        .section-title i { color: var(--brand); }
-
-        .chart-container { background: var(--surface); padding: 15px; border-radius: 20px; border: 1px solid var(--surface-border); margin-bottom: 25px; backdrop-filter: blur(10px); }
-        
-        .live-feed { display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px; }
-        .live-item { background: rgba(0,0,0,0.4); border: 1px solid var(--surface-border); border-radius: 14px; padding: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--brand); transition: 0.3s; }
-        .live-item:hover { background: rgba(255,255,255,0.05); }
-        .live-time { font-size: 10px; color: var(--text-muted); font-weight: 800; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
-        .live-biz { font-size: 13px; font-weight: 800; color: white; }
-        .live-amount { font-size: 14px; font-weight: 900; color: var(--success); text-align: right; }
-        .live-status { font-size: 9px; text-transform: uppercase; font-weight: 800; color: var(--text-muted); text-align: right; letter-spacing: 0.5px; }
-
-        .leaderboard { background: var(--surface); border-radius: 20px; border: 1px solid var(--surface-border); overflow: hidden; margin-bottom: 20px; backdrop-filter: blur(10px); }
-        .lb-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-        .lb-item:last-child { border-bottom: none; }
-        .lb-rank { font-weight: 900; color: var(--brand); width: 25px; font-size: 16px; }
-        .lb-name { flex: 1; font-weight: 800; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: white; }
-        .lb-revenue { font-weight: 900; color: var(--success); font-size: 14px; }
-
-        .tools-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-        .search-box { flex: 1; min-width: 180px; position: relative; }
-        .search-box i { position: absolute; left: 15px; top: 15px; color: var(--text-muted); }
-        .search-input { width: 100%; padding: 14px 14px 14px 40px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 13px; font-weight: 600; outline: none; backdrop-filter: blur(10px); }
-        .search-input:focus { border-color: var(--brand); }
-        .filter-select { flex: 1; min-width: 110px; padding: 14px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 12px; font-weight: 700; outline: none; backdrop-filter: blur(10px); }
-
-        .biz-card { background: var(--surface); border-radius: 20px; padding: 18px; border: 1px solid var(--surface-border); margin-bottom: 12px; backdrop-filter: blur(10px); transition: 0.3s; }
-        .biz-card:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
-        .biz-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
-        .biz-name { font-size: 16px; font-weight: 900; color: white; margin-bottom: 4px; }
-        .biz-id { font-size: 10px; color: var(--text-muted); font-family: monospace; }
-        
-        .badge { padding: 5px 8px; border-radius: 6px; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border: 1px solid transparent; }
-        .badge-pro { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
-        .badge-trial { background: rgba(168, 85, 247, 0.15); color: var(--trial); border-color: rgba(168, 85, 247, 0.3); }
-        .badge-basic { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.2); }
-        .badge-frozen { background: rgba(56, 189, 248, 0.15); color: var(--frozen); border-color: rgba(56, 189, 248, 0.3); }
-        .badge-expired { background: rgba(239, 68, 68, 0.15); color: var(--danger); border-color: rgba(239, 68, 68, 0.3); }
-
-        .btn-manage { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); width: 100%; padding: 14px; border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; transition: 0.2s; }
-        .btn-manage:active { transform: scale(0.98); background: rgba(255,255,255,0.1); }
-
-        .broadcast-box { background: var(--surface); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); backdrop-filter: blur(10px); }
-        .broadcast-textarea { width: 100%; height: 120px; background: rgba(0,0,0,0.4); border: 1px solid var(--surface-border); border-radius: 14px; padding: 15px; color: white; font-size: 13px; font-weight: 600; resize: none; margin-bottom: 15px; outline: none; }
-        .broadcast-textarea:focus { border-color: var(--brand); box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
-
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2, 6, 23, 0.85); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(8px); }
-        .modal-overlay.active { opacity: 1; visibility: visible; }
-        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: #0f172a; border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.5); border-top: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto; }
-        .modal-overlay.active .bottom-sheet { bottom: 0; }
-        .sheet-handle { width: 50px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; margin: 0 auto 25px; }
-
-        .form-label { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .form-select, .form-input { width: 100%; padding: 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 13px; margin-bottom: 15px; background: rgba(0,0,0,0.3); color: white; font-weight: 700; outline: none; transition: 0.2s; }
-        .form-input:focus, .form-select:focus { border-color: var(--brand); }
-        .form-row { display: flex; gap: 10px; }
-        
-        .btn-save { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; width: 100%; padding: 16px; border-radius: 14px; font-size: 13px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); margin-top: 5px; transition: 0.2s; }
-        .btn-save:active { transform: scale(0.98); }
-
-        .staff-list { background: rgba(0,0,0,0.3); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 150px; overflow-y: auto; border: 1px solid var(--surface-border); }
-        .staff-item { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.03); display: flex; justify-content: space-between; align-items: center;}
-        .staff-item:last-child { border-bottom: none; }
-        .staff-role { color: var(--brand); font-weight: 800; font-size: 9px; text-transform: uppercase; }
-        
-        #global-map { height: 400px; border-radius: 20px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); background: #000; }
-        .map-icon-radar { background: rgba(16, 185, 129, 0.2); border: 2px solid var(--primary); border-radius: 50%; width: 20px; height: 20px; box-shadow: 0 0 15px var(--primary-glow); }
-        
-    </style>
-</head>
-<body>
-
-    <div class="header">
-        <div class="header-title"><i class="fa-solid fa-chess-knight" style="color: var(--primary);"></i> Boss Panel</div>
-        <div class="header-actions">
-            <div class="header-badge">God Mode 7.0</div>
-            <button class="btn-settings" onclick="loadData()"><i class="fa-solid fa-rotate-right"></i></button>
-        </div>
-    </div>
-
-    <div class="tabs-nav">
-        <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Аналітика</button>
-        <button class="tab-btn" onclick="switchTab('businesses')"><i class="fa-solid fa-building"></i> Клієнти</button>
-        <button class="tab-btn" onclick="switchTab('radar')"><i class="fa-solid fa-earth-europe"></i> Радар</button>
-        <button class="tab-btn" onclick="switchTab('broadcast')"><i class="fa-solid fa-bullhorn"></i> Розсилка</button>
-    </div>
-
-    <div class="container">
-        
-        <div id="tab-dashboard" class="tab-content active">
-            <div class="global-stats">
-                <div class="stat-card highlight">
-                    <div class="stat-icon"><i class="fa-solid fa-wallet"></i></div>
-                    <div class="stat-val" id="owner-mrr">0 zł</div>
-                    <div class="stat-label">Мій дохід / міс (MRR)</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="color: var(--success);"><i class="fa-solid fa-gem"></i></div>
-                    <div class="stat-val" id="sys-pro">0</div>
-                    <div class="stat-label">Підписки PRO</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="color: var(--trial);"><i class="fa-solid fa-fire"></i></div>
-                    <div class="stat-val" id="sys-trial">0</div>
-                    <div class="stat-label">Активні TRIAL</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon" style="color: var(--brand);"><i class="fa-solid fa-users"></i></div>
-                    <div class="stat-val" id="sys-businesses">0</div>
-                    <div class="stat-label">Всього клієнтів</div>
-                </div>
-            </div>
-
-            <div class="section-title"><i class="fa-solid fa-bolt" style="color: var(--warning);"></i> Live Пульс (Останні 3)</div>
-            <div class="live-feed" id="live-orders-container">
-                <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 10px;">Завантаження...</div>
-            </div>
-
-            <div class="section-title"><i class="fa-solid fa-arrow-trend-up"></i> Динаміка реєстрацій</div>
-            <div class="chart-container">
-                <canvas id="growthChart" height="150"></canvas>
-            </div>
-
-            <div class="section-title"><i class="fa-solid fa-trophy"></i> Топ-5 Клієнтів (По касі)</div>
-            <div class="leaderboard" id="leaderboard-container">
-                <div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 12px;">Завантаження...</div>
-            </div>
-        </div>
-
-        <div id="tab-businesses" class="tab-content">
-            <div class="tools-bar">
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="search-input" class="search-input" placeholder="Пошук бізнесу..." onkeyup="filterBusinesses()">
-                </div>
-                <select id="status-filter" class="filter-select" onchange="filterBusinesses()">
-                    <option value="all">Всі статуси</option>
-                    <option value="pro">PRO (Оплачено)</option>
-                    <option value="trial">TRIAL (Тест)</option>
-                    <option value="basic">BASIC</option>
-                    <option value="frozen">FROZEN (Борг/Пауза)</option>
-                    <option value="expired">EXPIRED</option>
-                </select>
-            </div>
-            <div id="businesses-list"></div>
-        </div>
-
-        <div id="tab-radar" class="tab-content">
-            <div class="section-title"><i class="fa-solid fa-location-crosshairs"></i> Географія клієнтів</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">Усі зареєстровані заклади на мапі в реальному часі.</div>
-            <div id="global-map"></div>
-        </div>
-
-        <div id="tab-broadcast" class="tab-content">
-            <div class="section-title"><i class="fa-solid fa-paper-plane"></i> Масове повідомлення</div>
-            <div class="broadcast-box">
-                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Це повідомлення отримають в Telegram усі власники закладів.</div>
-                <textarea id="broadcast-msg" class="broadcast-textarea" placeholder="Напишіть текст повідомлення (новини, акції, оновлення)..."></textarea>
-                <button class="btn-save" onclick="sendBroadcast()"><i class="fa-solid fa-rocket"></i> Надіслати всім</button>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="modal-overlay" id="admin-modal" onclick="closeModal('admin-modal')">
-        <div class="bottom-sheet" onclick="event.stopPropagation()">
-            <div class="sheet-handle"></div>
-            <h2 style="font-size: 18px; font-weight: 900; margin-bottom: 20px; color: white;"><i class="fa-solid fa-pen-to-square" style="color: var(--primary);"></i> Керування клієнтом</h2>
+        role = "courier" if prefix == "c_" else "manager"
+        try:
+            res = db.supabase.table("businesses").select("*").eq("invite_token", token).execute()
+            if not res.data:
+                await message.answer(_(lang, 'link_invalid'))
+                return
             
-            <input type="hidden" id="edit-biz-id">
-            
-            <label class="form-label">Назва закладу</label>
-            <input type="text" id="edit-name" class="form-input" placeholder="Назва...">
-            
-            <label class="form-label">Адреса (База)</label>
-            <input type="text" id="edit-address" class="form-input" placeholder="Адреса...">
-
-            <label class="form-label"><i class="fa-solid fa-layer-group"></i> Статус / Тариф (Керується через Whop)</label>
-            <select id="edit-plan" class="form-select">
-                <option value="basic">BASIC (Обмежений)</option>
-                <option value="trial" style="color: var(--trial);">TRIAL (Тестовий період)</option>
-                <option value="pro" style="color: var(--success);">PRO (Платна підписка)</option>
-                <option value="frozen" style="color: var(--frozen);">FROZEN (Заморозити доступ)</option>
-                <option value="expired" style="color: var(--danger);">EXPIRED (Протерміновано)</option>
-            </select>
-            
-            <div class="form-row">
-                <div style="flex: 1;">
-                    <label class="form-label"><i class="fa-solid fa-phone"></i> Телефон</label>
-                    <input type="text" id="edit-phone" class="form-input" placeholder="+48...">
-                </div>
-                <div style="flex: 1;">
-                    <label class="form-label"><i class="fa-solid fa-coins"></i> Валюта</label>
-                    <input type="text" id="edit-currency" class="form-input" placeholder="zł">
-                </div>
-            </div>
-
-            <label class="form-label"><i class="fa-solid fa-route"></i> Макс. радіус доставки (км)</label>
-            <input type="number" id="edit-radius" class="form-input" placeholder="10">
-
-            <label class="form-label"><i class="fa-solid fa-users"></i> Персонал закладу (Натисніть X для звільнення)</label>
-            <div class="staff-list" id="modal-staff-list"></div>
-
-            <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-check"></i> Зберегти зміни</button>
-        </div>
-    </div>
-
-    <script>
-        try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#020617'; } } catch(e) {}
-
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+            biz = res.data[0]
+            biz_id = biz['id']
+        except Exception as e:
+            print("Помилка пошуку токена:", e)
+            await message.answer(_(lang, 'link_error'))
+            return
         
-        const urlParams = new URLSearchParams(window.location.search);
-        const authToken = urlParams.get('token');
+        await state.update_data(joining_biz_id=biz_id, biz_name=biz['name'], joining_role=role)
+        await state.set_state(RegStaff.waiting_for_name)
+        
+        role_ua = _(lang, 'role_c_full') if role == "courier" else _(lang, 'role_m_full')
+        await message.answer(_(lang, 'invite_welcome', role=role_ua, biz_name=biz['name']))
+        return
 
-        const currentProPrice = 150; 
-        const currentBasicPrice = 0;
-        const CURRENCY = "zł";
+    context = db.get_user_context(user_id)
+    if not context:
+        await message.answer(
+            _(lang, 'start_welcome'),
+            reply_markup=kb.get_reg_kb(lang), 
+            parse_mode="Markdown"
+        )
+    else:
+        await show_main_menu(message, context)
 
-        let globalBusinesses = [];
-        let globalOrders = [];
-        let chartInstance = null;
-        let globalMap = null;
-
-        const dbHeaders = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
-        if (authToken) dbHeaders['Authorization'] = 'Bearer ' + authToken;
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
+# --- ОБРОБКА ДАНИХ З WEB APP ---
+@dp.message(F.web_app_data)
+async def handle_web_app_data(message: types.Message, bot: Bot):
+    data = json.loads(message.web_app_data.data)
+    user_id = message.from_user.id
+    lang = message.from_user.language_code
+    
+    if data.get("action") == "register_business":
+        try:
+            db.register_new_business(user_id, data)
+            context = db.get_user_context(user_id)
+            biz = context['biz']
+            await message.answer(
+                _(lang, 'biz_created', biz_name=biz['name'], plan=biz['plan'].upper()),
+                reply_markup=kb.get_owner_kb(biz['id'], user_id, lang),
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            await message.answer(_(lang, 'reg_error'))
             
-            if (tabId === 'radar') {
-                setTimeout(() => {
-                    if (globalMap) globalMap.invalidateSize();
-                    else initGlobalMap();
-                }, 100);
-            }
-        }
+    # 2. СТВОРЕННЯ НОВОГО ЗАМОВЛЕННЯ
+    elif data.get("action") == "new_order":
+        try:
+            biz_id = data['biz_id']
+            
+            # 🔴 ОХОРОНЕЦЬ: Блокуємо замовлення, якщо тариф expired
+            actual_plan = db.get_actual_plan(biz_id)
+            if actual_plan == "expired":
+                await message.answer("⚠️ Підписка закінчилася. Ви не можете створювати нові замовлення. Відкрийте Дашборд.")
+                return
 
-        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
-
-        async function loadData() {
-            try {
-                let bRes = await fetch(SUPABASE_URL + '/rest/v1/businesses?select=*', { method: 'GET', headers: dbHeaders });
-                globalBusinesses = await bRes.json();
-
-                let oRes = await fetch(SUPABASE_URL + '/rest/v1/orders?select=id,business_id,amount,status,created_at&order=created_at.desc', { method: 'GET', headers: dbHeaders });
-                globalOrders = await oRes.json();
-
-                renderDashboard();
-                renderLiveFeed();
-                renderLeaderboard();
-                renderChart();
-                filterBusinesses(); 
+            new_order = db.create_new_order(data)
+            
+            if new_order:
+                order_id = new_order['id']
+                short_id = str(order_id)[:6].upper()
+                biz = db.get_business_by_id(biz_id)
+                currency = biz.get('currency', 'zł')
                 
-                if (globalMap) {
-                    globalMap.remove();
-                    globalMap = null;
-                    initGlobalMap();
-                }
-            } catch (e) { console.error(e); }
-        }
+                # 🔴 ЗМІНЕНО: І trial, і pro отримують карти
+                is_pro = actual_plan in ['pro', 'trial']
 
-        function renderDashboard() {
-            let sysProCount = 0, sysFrozenCount = 0, sysTrialCount = 0;
-            globalBusinesses.forEach(b => { 
-                let p = (b.plan || 'basic').toLowerCase();
-                if (p === 'pro') sysProCount++; 
-                else if (p === 'trial') sysTrialCount++;
-                else if (p === 'frozen') sysFrozenCount++;
-            });
-            let ownerRevenue = (sysProCount * currentProPrice);
-
-            document.getElementById('sys-businesses').innerText = globalBusinesses.length;
-            document.getElementById('sys-pro').innerText = sysProCount;
-            document.getElementById('sys-trial').innerText = sysTrialCount;
-            document.getElementById('owner-mrr').innerText = ownerRevenue.toLocaleString('uk-UA') + " " + CURRENCY; 
-        }
-
-        function renderLiveFeed() {
-            const container = document.getElementById('live-orders-container');
-            if(globalOrders.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color: var(--text-muted); font-size:11px;">Ще немає замовлень</div>';
-                return;
-            }
-
-            let html = '';
-            let recentOrders = globalOrders.slice(0, 3);
-            
-            recentOrders.forEach(o => {
-                let biz = globalBusinesses.find(b => b.id === o.business_id);
-                let bizName = biz ? biz.name : 'Невідомий заклад';
-                let time = new Date(o.created_at).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+                courier_lang = lang 
+                try:
+                    c_info = await bot.get_chat(data['courier_id'])
+                except:
+                    pass
                 
-                let statusText = 'В ДОРОЗІ'; let statusColor = 'var(--info)';
-                if(o.status === 'completed') { statusText = 'ДОСТАВЛЕНО'; statusColor = 'var(--success)'; }
-                if(o.status === 'pending') { statusText = 'ОЧІКУЄ'; statusColor = 'var(--warning)'; }
-
-                html += `
-                    <div class="live-item">
-                        <div>
-                            <div class="live-time"><i class="fa-regular fa-clock"></i> ${time}</div>
-                            <div class="live-biz">${bizName}</div>
-                        </div>
-                        <div>
-                            <div class="live-amount">${o.amount} ${biz ? biz.currency : 'zł'}</div>
-                            <div class="live-status" style="color: ${statusColor};">${statusText}</div>
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
-
-        function renderLeaderboard() {
-            const lbContainer = document.getElementById('leaderboard-container');
-            let stats = globalBusinesses.map(biz => {
-                let rev = 0;
-                globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') rev += parseFloat(o.amount || 0); });
-                return { name: String(biz.name || "Без назви"), revenue: rev };
-            });
-            
-            stats.sort((a, b) => b.revenue - a.revenue);
-            let top5 = stats.slice(0, 5);
-            
-            if(top5.length === 0 || top5[0].revenue === 0) {
-                lbContainer.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 11px;">Немає замовлень для рейтингу.</div>';
-                return;
-            }
-
-            let lbHtml = '';
-            top5.forEach((biz, index) => {
-                if(biz.revenue > 0) {
-                    let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index+1}.`));
-                    lbHtml += `
-                        <div class="lb-item">
-                            <div class="lb-rank">${medal}</div>
-                            <div class="lb-name">${biz.name}</div>
-                            <div class="lb-revenue">${biz.revenue.toLocaleString('uk-UA')} ${CURRENCY}</div>
-                        </div>
-                    `;
-                }
-            });
-            lbContainer.innerHTML = lbHtml;
-        }
-
-        function renderChart() {
-            let dates = {};
-            globalBusinesses.forEach(b => {
-                let d = new Date(b.created_at).toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
-                dates[d] = (dates[d] || 0) + 1;
-            });
-            
-            if(Object.keys(dates).length === 0) {
-                let today = new Date().toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
-                dates[today] = 0;
-            }
-
-            let labels = Object.keys(dates).sort(); 
-            let data = labels.map(l => dates[l]);
-
-            const ctx = document.getElementById('growthChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy(); 
-            
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Нові Клієнти', data: data, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.2)', borderWidth: 3, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointRadius: 4, fill: true, tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: {size: 10} } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: {size: 10}, stepSize: 1, beginAtZero: true } }
-                    }
-                }
-            });
-        }
-
-        function filterBusinesses() {
-            const listEl = document.getElementById('businesses-list');
-            const searchQ = document.getElementById('search-input').value.toLowerCase();
-            const filterQ = document.getElementById('status-filter').value;
-
-            let count = 0;
-            let listHtml = '';
-
-            globalBusinesses.forEach(biz => {
-                let safeName = String(biz.name || "Без назви");
-                let plan = (biz.plan || 'basic').toLowerCase();
+                pay_type_str = _(courier_lang, 'pay_' + data['payment']) 
+                pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
                 
-                let badgeClass = 'badge-basic';
-                if (plan === 'pro') badgeClass = 'badge-pro';
-                else if (plan === 'trial') badgeClass = 'badge-trial';
-                else if (plan === 'frozen') badgeClass = 'badge-frozen';
-                else if (plan === 'expired') badgeClass = 'badge-expired';
+                details_parts = []
+                if data.get('apt'): details_parts.append(_(courier_lang, 'apt_prefix', apt=data['apt']))
+                if data.get('code'): details_parts.append(_(courier_lang, 'code_prefix', code=data['code']))
+                details_text = _(courier_lang, 'details_prefix', details=', '.join(details_parts)) if details_parts else ""
 
-                let matchSearch = safeName.toLowerCase().includes(searchQ) || biz.id.toLowerCase().includes(searchQ);
-                let matchFilter = true;
+                address_query = urllib.parse.quote(data['address'])
+                route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
                 
-                if (filterQ !== 'all' && plan !== filterQ) matchFilter = false;
-
-                if (matchSearch && matchFilter) {
-                    count++;
-                    listHtml += `
-                        <div class="biz-card">
-                            <div class="biz-header">
-                                <div style="flex: 1; overflow: hidden;">
-                                    <div class="biz-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeName}</div>
-                                    <div class="biz-id" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ID: ${biz.id}</div>
-                                </div>
-                                <div class="badge ${badgeClass}">${plan.toUpperCase()}</div>
-                            </div>
-                            <button class="btn-manage" onclick="openAdminModal('${biz.id}')">
-                                <i class="fa-solid fa-sliders"></i> Керування клієнтом
-                            </button>
-                        </div>
-                    `;
-                }
-            });
-
-            if (count > 0) listEl.innerHTML = listHtml;
-            else listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;">Нічого не знайдено</div>';
-        }
-
-        // --- ТОТАЛЬНЕ РЕДАГУВАННЯ ---
-        function openAdminModal(bizId) {
-            let biz = globalBusinesses.find(b => b.id === bizId);
-            if(!biz) return;
-
-            document.getElementById('admin-modal').classList.add('active');
-            document.getElementById('edit-biz-id').value = biz.id;
-            
-            // Заповнюємо ВСІ поля
-            document.getElementById('edit-name').value = biz.name || "";
-            document.getElementById('edit-address').value = biz.address || "";
-            document.getElementById('edit-plan').value = (biz.plan || 'basic').toLowerCase();
-            document.getElementById('edit-phone').value = biz.phone || "";
-            document.getElementById('edit-currency').value = biz.currency || "zł";
-            document.getElementById('edit-radius').value = biz.radius_km || 10;
-            
-            fetchStaff(biz.id); 
-        }
-
-        async function saveAdminChanges(btn) {
-            const bizId = document.getElementById('edit-biz-id').value;
-            
-            const newName = document.getElementById('edit-name').value;
-            const newAddress = document.getElementById('edit-address').value;
-            const newPlan = document.getElementById('edit-plan').value;
-            const newPhone = document.getElementById('edit-phone').value;
-            const newCurrency = document.getElementById('edit-currency').value;
-            const newRadius = parseFloat(document.getElementById('edit-radius').value) || 10;
-            
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
-
-            try {
-                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
-                    method: 'PATCH', headers: dbHeaders,
-                    body: JSON.stringify({ 
-                        name: newName, 
-                        address: newAddress,
-                        plan: newPlan, 
-                        phone: newPhone, 
-                        currency: newCurrency, 
-                        radius_km: newRadius 
-                    })
-                });
-                if (!res.ok) throw new Error("Помилка бази");
-                closeModal('admin-modal');
-                loadData(); 
-            } catch(e) {
-                alert("❌ Помилка: " + e.message);
-            }
-            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Зберегти зміни';
-        }
-
-        // --- ПЕРСОНАЛ ---
-        async function fetchStaff(bizId) {
-            const staffListEl = document.getElementById('modal-staff-list');
-            staffListEl.innerHTML = '<div style="text-align: center; font-size: 11px; color: var(--text-muted);">Завантаження...</div>';
-            try {
-                let sRes = await fetch(SUPABASE_URL + '/rest/v1/staff?business_id=eq.' + bizId, { method: 'GET', headers: dbHeaders });
-                let staff = await sRes.json();
+                phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data['client_phone']))
+                if not phone_clean.startswith('+'): phone_clean = '+' + phone_clean
                 
-                if(staff.length === 0) { staffListEl.innerHTML = '<div style="font-size: 11px; color: var(--text-muted);">Персонал відсутній.</div>'; return; }
+                status_active = _(courier_lang, 'status_active_full')
+
+                courier_text = _(courier_lang, 'order_new', 
+                                 short_id=short_id, status=status_active, address=data['address'], 
+                                 details_text=details_text, phone=phone_clean, client_name=data['client_name'], 
+                                 pay_icon=pay_icon, amount=data['amount'], cur=currency, pay_type=pay_type_str)
                 
-                let html = '';
-                staff.forEach(s => {
-                    html += `
-                        <div class="staff-item">
-                            <div>
-                                <span style="color: white; font-weight: bold; font-size: 12px;">${s.name || 'Без імені'}</span> <br>
-                                <span style="color: var(--text-muted); font-size: 9px;">ID: ${s.user_id || s.tg_id} • ${s.role}</span>
-                            </div>
-                            <button onclick="deleteStaff('${s.id}', '${bizId}')" style="background:none; border:none; color: var(--danger); font-size: 16px; cursor: pointer; padding: 5px;">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    `;
-                });
-                staffListEl.innerHTML = html;
-            } catch (e) {
-                staffListEl.innerHTML = '<div style="color: var(--danger); font-size: 11px;">Помилка доступу до staff.</div>';
-            }
-        }
+                if data.get('comment'):
+                    courier_text += _(courier_lang, 'comment_prefix', comment=data['comment'])
 
-        async function deleteStaff(staffId, bizId) {
-            if(!confirm("⚠️ Звільнити цього працівника?")) return;
-            try {
-                await fetch(SUPABASE_URL + '/rest/v1/staff?id=eq.' + staffId, { method: 'DELETE', headers: dbHeaders });
-                fetchStaff(bizId); 
-            } catch(e) { alert("Помилка видалення."); }
-        }
+                builder = InlineKeyboardBuilder()
+                
+                if is_pro:
+                    builder.button(text=_(courier_lang, 'btn_route'), url=route_url)
+                
+                builder.button(text=_(courier_lang, 'btn_finish'), callback_data=f"finish_order_{order_id}")
+                builder.adjust(1) 
 
-        // --- РАДАР ---
-        function initGlobalMap() {
-            if (globalMap) return;
-            globalMap = L.map('global-map').setView([52.0, 19.0], 6); 
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(globalMap);
-            const radarIcon = L.divIcon({ html: '<div class="map-icon-radar"></div>', className: '', iconSize: [20, 20], iconAnchor: [10, 10] });
+                if is_pro:
+                    map_filename = await get_route_map_file(biz, data['address'], short_id)
+                    
+                    if map_filename and os.path.exists(map_filename):
+                        photo = FSInputFile(map_filename)
+                        await bot.send_photo(
+                            chat_id=data['courier_id'], 
+                            photo=photo,
+                            caption=courier_text, 
+                            reply_markup=builder.as_markup(),
+                            parse_mode="Markdown"
+                        )
+                        os.remove(map_filename)
+                    else:
+                        await bot.send_message(
+                            chat_id=data['courier_id'], 
+                            text=courier_text, 
+                            reply_markup=builder.as_markup(),
+                            parse_mode="Markdown"
+                        )
+                else:
+                    await bot.send_message(
+                        chat_id=data['courier_id'], 
+                        text=courier_text, 
+                        reply_markup=builder.as_markup(),
+                        parse_mode="Markdown"
+                    )
+                
+                # --- ТУТ ЗРОБЛЕНО ЗМІНУ ДЛЯ АДМІНА ---
+                admin_base_text = _(lang, 'order_sent', short_id=short_id)
+                tracking_link = f"https://myshchyshyn9898-bit.github.io/delivery-saas/track.html?id={order_id}"
+                admin_final_text = f"{admin_base_text}\n\n🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`"
+                
+                await message.answer(admin_final_text, parse_mode="Markdown")
+                # -------------------------------------
 
-            globalBusinesses.forEach(biz => {
-                if(biz.lat && biz.lng) {
-                    L.marker([biz.lat, biz.lng], {icon: radarIcon})
-                     .bindPopup(`<b style="color:black;">${biz.name}</b>`)
-                     .addTo(globalMap);
-                }
-            });
-        }
+            else:
+                await message.answer(_(lang, 'order_save_err'))
+                
+        except Exception as e:
+            print(f"Помилка створення замовлення: {e}")
+            await message.answer(_(lang, 'order_send_err'))
 
-        function sendBroadcast() {
-            const msg = document.getElementById('broadcast-msg').value;
-            if(!msg.trim()) return alert("Напишіть текст!");
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                window.Telegram.WebApp.sendData(JSON.stringify({ action: "broadcast", text: msg.trim() }));
-                document.getElementById('broadcast-msg').value = '';
-            } else alert("Відкрийте через Telegram.");
-        }
+    # ==========================================
+    # --- 3. МАСОВА РОЗСИЛКА ВІД СУПЕРАДМІНА ---
+    # ==========================================
+    elif data.get("action") == "broadcast":
+        if user_id not in SUPER_ADMIN_IDS:
+            await message.answer(_(lang, 'broadcast_no_access'))
+            return
+            
+        msg_text = data.get("text")
+        businesses = db.get_all_businesses()
+        
+        owner_ids = set()
+        if businesses:
+            for b in businesses:
+                if b.get('owner_id'):
+                    owner_ids.add(int(b['owner_id']))
+                
+        if not owner_ids:
+            await message.answer(_(lang, 'broadcast_empty'))
+            return
+            
+        await message.answer(_(lang, 'broadcast_start', count=len(owner_ids)))
+        
+        sent_count = 0
+        for oid in owner_ids:
+            try:
+                msg_final = _('uk', 'broadcast_msg', text=msg_text) 
+                await bot.send_message(
+                    chat_id=oid, 
+                    text=msg_final, 
+                    parse_mode="Markdown"
+                )
+                sent_count += 1
+                await asyncio.sleep(0.05)
+            except Exception as e:
+                print(f"Не вдалося відправити повідомлення власнику {oid}: {e}")
+                
+        await message.answer(_(lang, 'broadcast_done', sent=sent_count, total=len(owner_ids)))
 
-        setTimeout(loadData, 200);
-    </script>
-</body>
-</html>
+# --- РЕЄСТРАЦІЯ КУР'ЄРА ТА МЕНЕДЖЕРА ---
+@dp.message(RegStaff.waiting_for_name)
+async def process_staff_name(message: types.Message, state: FSMContext):
+    name = message.text
+    lang = message.from_user.language_code
+    data = await state.get_data()
+    biz_id = data['joining_biz_id']
+    role = data.get('joining_role', 'courier')
+
+    try:
+        db.create_staff(message.from_user.id, name, biz_id, role=role)
+        await state.clear()
+        
+        context = db.get_user_context(message.from_user.id)
+        role_ua = _(lang, 'role_c') if role == "courier" else _(lang, 'role_m')
+        
+        await message.answer(_(lang, 'staff_added', name=name, role=role_ua))
+        await show_main_menu(message, context)
+    except Exception as e:
+        await message.answer(_(lang, 'staff_add_err'))
+
+# --- ОБРОБКА КНОПКИ "ЗАКРИТИ ЗАМОВЛЕННЯ" ---
+@dp.callback_query(F.data.startswith("finish_order_"))
+async def finish_order_handler(callback: types.CallbackQuery):
+    order_id = callback.data.replace("finish_order_", "")
+    lang = callback.from_user.language_code
+    
+    try:
+        res = db.supabase.table("orders").select("*").eq("id", order_id).execute()
+        db.update_order_status(order_id, "completed")
+        
+        status_active = _(lang, 'status_active_full')
+        status_done = _(lang, 'status_done_full')
+
+        if callback.message.caption: 
+            new_text = callback.message.caption.replace(status_active, status_done)
+            await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode="Markdown")
+        elif callback.message.text: 
+            new_text = callback.message.text.replace(status_active, status_done)
+            await callback.message.edit_text(text=new_text, reply_markup=None, parse_mode="Markdown")
+            
+        await callback.answer(_(lang, 'finish_success'))
+        
+        if res.data:
+            order_info = res.data[0]
+            biz_id = order_info['business_id']
+            short_id = str(order_info['id'])[:6].upper()
+            biz = db.get_business_by_id(biz_id)
+            currency = biz.get('currency', 'zł')
+            
+            managers_res = db.supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute()
+            
+            if managers_res.data:
+                for manager in managers_res.data:
+                    try:
+                        admin_text = _(lang, 'finish_notify', short_id=short_id, amount=order_info['amount'], cur=currency, courier_name=callback.from_user.full_name)
+                        await bot.send_message(chat_id=manager['user_id'], text=admin_text, parse_mode="Markdown")
+                    except Exception as e:
+                        print(f"Не вдалося відправити сповіщення менеджеру {manager['user_id']}: {e}")
+                
+    except Exception as e:
+        print(f"Помилка завершення: {e}")
+        await callback.answer(_(lang, 'finish_err'), show_alert=True)
+
+# --- ПАНЕЛЬ СУПЕР-АДМІНА (/sa) ---
+@dp.message(Command("sa"))
+async def super_admin_panel(message: types.Message):
+    lang = message.from_user.language_code
+    if message.from_user.id not in SUPER_ADMIN_IDS: return
+    
+    businesses = db.get_all_businesses()
+    if not businesses:
+        await message.answer(_(lang, 'sa_empty'))
+        return
+
+    builder = InlineKeyboardBuilder()
+    for b in businesses:
+        status = "🟢" if b['is_active'] else "🔴"
+        builder.button(text=f"{status} {b['name']}", callback_data=f"manage_biz_{b['id']}")
+    builder.adjust(1)
+    await message.answer(_(lang, 'sa_manage'), reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data.startswith("manage_biz_"))
+async def manage_biz(callback: types.CallbackQuery):
+    lang = callback.from_user.language_code
+    biz_id = callback.data.replace("manage_biz_", "")
+    biz = db.get_business_by_id(biz_id)
+    new_status = not biz['is_active']
+    
+    db.update_subscription(biz_id, new_status)
+    await callback.answer(_(lang, 'sa_changed'))
+    await super_admin_panel(callback.message)
+
+# ==========================================
+# ⚡️ НОВИЙ БЛОК: WEBHOOK ДЛЯ WHOP (АВТОМАТИЧНА ОПЛАТА)
+# ==========================================
+async def whop_webhook_handler(request):
+    try:
+        data = await request.json()
+        
+        # Перевіряємо тип події (нас цікавить успішна оплата/активація)
+        event_type = data.get("event_type")
+        
+        if event_type == "membership.went_active":
+            membership_data = data.get("data", {})
+            membership_id = membership_data.get("id")
+            
+            # Дістаємо biz_id та tg_user_id з custom_fields
+            custom_fields = membership_data.get("custom_fields", {})
+            biz_id = custom_fields.get("biz_id")
+            tg_user_id = custom_fields.get("tg_user_id")
+            
+            # Якщо ми знаємо, який це бізнес — оновлюємо йому статус в базі!
+            if biz_id:
+                db.activate_whop_subscription(biz_id, "pro", membership_id)
+                print(f"✅ Успішна оплата! Бізнес {biz_id} отримав статус PRO.")
+                
+                # Відправляємо привітання власнику в Телеграм
+                if tg_user_id:
+                    try:
+                        await bot.send_message(
+                            chat_id=int(tg_user_id),
+                            text="🎉 **Вітаємо! Ваша оплата успішно пройшла!**\n\nТариф **PRO** активовано. Всі ліміти знято, теплова карта та розширена аналітика доступні у Дашборді.\n\n_Дякуємо, що розвиваєте бізнес разом з DeliPro!_",
+                            parse_mode="Markdown"
+                        )
+                    except Exception as e:
+                        print(f"Не вдалося відправити повідомлення власнику: {e}")
+                        
+        return web.Response(text="OK")
+    except Exception as e:
+        print(f"Помилка Webhook: {e}")
+        return web.Response(status=500, text="Error")
+
+async def start_webhook_server():
+    """Запускає сервер для прослуховування вебхуків від Whop паралельно з ботом"""
+    app = web.Application()
+    app.router.add_post('/webhook/whop', whop_webhook_handler)
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    # Використовуємо порт з Railway, або 8000 за замовчуванням
+    port = int(os.environ.get("PORT", 8000))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    print(f"🌐 Webhook сервер запущено на порту {port}")
+
+# ==========================================
+# ГОЛОВНИЙ ЗАПУСК
+# ==========================================
+async def main():
+    # Запускаємо сервер для вебхуків ПЕРЕД стартом бота
+    await start_webhook_server()
+    # Запускаємо самого бота
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
