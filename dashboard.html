@@ -1083,7 +1083,8 @@
                 if (staff && staff.length > 0) {
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
-                        let safeName = person.name || person.full_name || 'Staff';
+                        // Замінюємо небезпечні HTML-теги на безпечні символи
+                        let safeName = String(person.name || person.full_name || 'Staff').replace(/</g, "&lt;").replace(/>/g, "&gt;");
                         
                         // Правильний мапінг для рейтингу кур'єрів
                         let staffTgId = person.tg_id || person.user_id; 
