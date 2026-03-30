@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boss Panel 5.1 | Ultimate</title>
+    <title>Boss Panel 6.0 | God Mode</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
@@ -40,7 +43,7 @@
 
         .tabs-nav { display: flex; padding: 15px 20px 0; gap: 8px; overflow-x: auto; scrollbar-width: none; }
         .tabs-nav::-webkit-scrollbar { display: none; }
-        .tab-btn { flex: 1; min-width: 100px; padding: 12px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; color: var(--text-muted); background: var(--surface); border: 1px solid var(--surface-border); cursor: pointer; transition: 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tab-btn { flex: 1; min-width: 80px; padding: 12px 5px; border-radius: 12px; font-size: 10px; font-weight: 800; color: var(--text-muted); background: var(--surface); border: 1px solid var(--surface-border); cursor: pointer; transition: 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .tab-btn i { font-size: 16px; }
         .tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 15px var(--primary-glow); }
         .tab-content { display: none; animation: fadeIn 0.4s ease; }
@@ -51,7 +54,6 @@
 
         .global-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; }
         .stat-card { background: var(--surface); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
-        
         .stat-card.highlight { background: linear-gradient(135deg, #10b981, #059669); border: none; grid-column: 1 / -1; box-shadow: 0 10px 25px var(--primary-glow); position: relative; overflow: hidden; }
         .stat-card.highlight::after { content: 'MRR'; position: absolute; right: -10px; bottom: -15px; font-size: 80px; font-weight: 900; opacity: 0.1; line-height: 1; }
         
@@ -65,6 +67,15 @@
         .section-title i { color: var(--brand); }
 
         .chart-container { background: var(--surface); padding: 15px; border-radius: 20px; border: 1px solid var(--surface-border); margin-bottom: 25px; }
+        
+        /* LIVE ORDERS */
+        .live-feed { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
+        .live-item { background: rgba(0,0,0,0.3); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--brand); }
+        .live-time { font-size: 10px; color: var(--text-muted); font-weight: 800; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
+        .live-biz { font-size: 13px; font-weight: 800; color: white; }
+        .live-amount { font-size: 14px; font-weight: 900; color: var(--success); text-align: right; }
+        .live-status { font-size: 10px; text-transform: uppercase; font-weight: 800; color: var(--text-muted); text-align: right; }
+
         .leaderboard { background: var(--surface); border-radius: 20px; border: 1px solid var(--surface-border); overflow: hidden; margin-bottom: 20px; }
         .lb-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .lb-item:last-child { border-bottom: none; }
@@ -78,7 +89,6 @@
         .search-input { width: 100%; padding: 14px 14px 14px 40px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 14px; font-weight: 600; outline: none; }
         .filter-select { flex: 1; min-width: 120px; padding: 14px; border-radius: 14px; border: 1px solid var(--surface-border); background: var(--surface); color: white; font-size: 13px; font-weight: 700; outline: none; }
         .btn-export { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); padding: 14px; border-radius: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-        .btn-export:active { transform: scale(0.95); }
 
         .biz-card { background: var(--surface); border-radius: 20px; padding: 20px; border: 1px solid var(--surface-border); margin-bottom: 15px; }
         .biz-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
@@ -89,12 +99,6 @@
         .badge-pro { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.4); }
         .badge-basic { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.3); }
         .badge-frozen { background: rgba(56, 189, 248, 0.15); color: var(--frozen); border: 1px solid rgba(56, 189, 248, 0.3); }
-        .badge-expired { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
-
-        .biz-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.03); }
-        .biz-m-item { text-align: center; }
-        .biz-m-val { font-size: 15px; font-weight: 900; color: white; margin-bottom: 2px; }
-        .biz-m-lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; }
 
         .btn-manage { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); width: 100%; padding: 14px; border-radius: 12px; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; text-transform: uppercase; }
 
@@ -109,17 +113,19 @@
         .sheet-handle { width: 50px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 5px; margin: 0 auto 25px; }
 
         .form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-        .form-select, .form-input { width: 100%; padding: 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; font-size: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.3); color: white; font-weight: 700; outline: none; }
-        .btn-save { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; width: 100%; padding: 18px; border-radius: 14px; font-size: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); margin-bottom: 10px;}
-        .btn-danger { background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); width: 100%; padding: 16px; border-radius: 12px; font-size: 14px; font-weight: 800; cursor: pointer; }
+        .form-select, .form-input { width: 100%; padding: 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; font-size: 14px; margin-bottom: 15px; background: rgba(0,0,0,0.3); color: white; font-weight: 700; outline: none; }
+        .form-row { display: flex; gap: 10px; }
+        
+        .btn-save { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; width: 100%; padding: 18px; border-radius: 14px; font-size: 14px; font-weight: 900; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4); margin-top: 10px;}
 
         .staff-list { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; margin-bottom: 20px; max-height: 150px; overflow-y: auto; }
-        .staff-item { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; display: flex; justify-content: space-between; }
+        .staff-item { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;}
         .staff-item:last-child { border-bottom: none; }
         .staff-role { color: var(--brand); font-weight: 800; font-size: 10px; text-transform: uppercase; }
         
-        .loader-container { text-align: center; color: var(--primary); padding: 50px 20px; font-weight: 800; }
-        .loader-container i { font-size: 32px; margin-bottom: 15px; filter: drop-shadow(0 0 10px var(--primary-glow)); }
+        #global-map { height: 400px; border-radius: 20px; border: 1px solid var(--surface-border); box-shadow: 0 8px 32px rgba(0,0,0,0.2); background: #000; }
+        .map-icon-radar { background: rgba(16, 185, 129, 0.2); border: 2px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; box-shadow: 0 0 15px var(--primary-glow); }
+        
     </style>
 </head>
 <body>
@@ -128,13 +134,14 @@
         <div class="header-title"><i class="fa-solid fa-chess-knight" style="color: var(--primary);"></i> Boss Panel</div>
         <div class="header-actions">
             <div class="header-badge">God Mode</div>
-            <button class="btn-settings" onclick="openPlatformSettings()"><i class="fa-solid fa-gear"></i></button>
+            <button class="btn-settings" onclick="loadData()"><i class="fa-solid fa-rotate-right"></i></button>
         </div>
     </div>
 
     <div class="tabs-nav">
         <button class="tab-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Аналітика</button>
         <button class="tab-btn" onclick="switchTab('businesses')"><i class="fa-solid fa-building"></i> Клієнти</button>
+        <button class="tab-btn" onclick="switchTab('radar')"><i class="fa-solid fa-earth-europe"></i> Радар</button>
         <button class="tab-btn" onclick="switchTab('broadcast')"><i class="fa-solid fa-bullhorn"></i> Розсилка</button>
     </div>
 
@@ -157,6 +164,11 @@
                     <div class="stat-val" id="sys-businesses">0</div>
                     <div class="stat-label">Всього клієнтів</div>
                 </div>
+            </div>
+
+            <div class="section-title"><i class="fa-solid fa-bolt" style="color: var(--warning);"></i> Live Пульс (Останні 3)</div>
+            <div class="live-feed" id="live-orders-container">
+                <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 10px;">Завантаження...</div>
             </div>
 
             <div class="section-title"><i class="fa-solid fa-arrow-trend-up"></i> Динаміка реєстрацій</div>
@@ -184,12 +196,13 @@
                 </select>
                 <button class="btn-export" onclick="exportToCSV()"><i class="fa-solid fa-file-csv"></i> CSV</button>
             </div>
+            <div id="businesses-list"></div>
+        </div>
 
-            <div id="businesses-list">
-                <div class="loader-container">
-                    <i class="fa-solid fa-circle-notch fa-spin"></i><br>СИНХРОНІЗАЦІЯ...
-                </div>
-            </div>
+        <div id="tab-radar" class="tab-content">
+            <div class="section-title"><i class="fa-solid fa-location-crosshairs"></i> Географія клієнтів</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">Усі зареєстровані заклади на мапі в реальному часі.</div>
+            <div id="global-map"></div>
         </div>
 
         <div id="tab-broadcast" class="tab-content">
@@ -209,40 +222,32 @@
             <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white;" id="modal-biz-name">Клієнт</h2>
             
             <input type="hidden" id="edit-biz-id">
-            <input type="hidden" id="edit-current-extra">
             
-            <label class="form-label"><i class="fa-solid fa-users"></i> Персонал закладу</label>
-            <div class="staff-list" id="modal-staff-list">
-                <div style="text-align: center; padding: 10px; color: var(--text-muted);">Завантаження персоналу...</div>
-            </div>
+            <label class="form-label"><i class="fa-solid fa-users"></i> Персонал закладу (Натисніть X для видалення)</label>
+            <div class="staff-list" id="modal-staff-list"></div>
 
-            <label class="form-label"><i class="fa-solid fa-layer-group"></i> Статус / Тариф</label>
+            <label class="form-label"><i class="fa-solid fa-layer-group"></i> Статус / Тариф (Керується через Whop)</label>
             <select id="edit-plan" class="form-select">
                 <option value="basic">BASIC (Обмежений)</option>
                 <option value="pro">PRO (Платна підписка)</option>
                 <option value="frozen" style="color: var(--frozen);">FROZEN (Заморозити доступ)</option>
             </select>
-
-            <label class="form-label"><i class="fa-solid fa-calendar-plus"></i> Додати днів (Підписка)</label>
-            <input type="number" id="edit-days" class="form-input" placeholder="Наприклад: 30" value="0">
             
-            <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-check"></i> Зберегти налаштування</button>
-            <button class="btn-danger" style="margin-top: 10px;" onclick="deleteBusiness()"><i class="fa-solid fa-trash-can"></i> Видалити бізнес</button>
-        </div>
-    </div>
+            <div class="form-row">
+                <div style="flex: 1;">
+                    <label class="form-label"><i class="fa-solid fa-phone"></i> Телефон</label>
+                    <input type="text" id="edit-phone" class="form-input" placeholder="+48...">
+                </div>
+                <div style="flex: 1;">
+                    <label class="form-label"><i class="fa-solid fa-coins"></i> Валюта</label>
+                    <input type="text" id="edit-currency" class="form-input" placeholder="zł">
+                </div>
+            </div>
 
-    <div class="modal-overlay" id="platform-settings-modal" onclick="closeModal('platform-settings-modal')">
-        <div class="bottom-sheet" onclick="event.stopPropagation()">
-            <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 25px; color: white;"><i class="fa-solid fa-money-bill-wave" style="color: var(--success);"></i> Фінанси Платформи</h2>
-            
-            <label class="form-label">Вартість підписки PRO (zł)</label>
-            <input type="number" id="setting-price-pro" class="form-input">
+            <label class="form-label"><i class="fa-solid fa-route"></i> Макс. радіус доставки (км)</label>
+            <input type="number" id="edit-radius" class="form-input" placeholder="10">
 
-            <label class="form-label">Вартість підписки BASIC (zł)</label>
-            <input type="number" id="setting-price-basic" class="form-input">
-
-            <button class="btn-save" style="background: var(--success);" onclick="savePlatformSettings(this)"><i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи</button>
+            <button class="btn-save" onclick="saveAdminChanges(this)"><i class="fa-solid fa-check"></i> Зберегти всі зміни</button>
         </div>
     </div>
 
@@ -255,187 +260,58 @@
         const urlParams = new URLSearchParams(window.location.search);
         const authToken = urlParams.get('token');
 
-        let currentProPrice = parseFloat(localStorage.getItem('saas_price_pro')) || 150;
-        let currentBasicPrice = parseFloat(localStorage.getItem('saas_price_basic')) || 0;
+        // Ціни для підрахунку MRR (встановлюєш ти, можна змінити)
+        const currentProPrice = 150; 
+        const currentBasicPrice = 0;
         const CURRENCY = "zł";
 
         let globalBusinesses = [];
         let globalOrders = [];
         let chartInstance = null;
+        let globalMap = null;
 
-        const dbHeaders = {
-            'apikey': SUPABASE_KEY,
-            'Content-Type': 'application/json'
-        };
-        
-        if (authToken) {
-            dbHeaders['Authorization'] = 'Bearer ' + authToken;
-        }
+        const dbHeaders = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
+        if (authToken) dbHeaders['Authorization'] = 'Bearer ' + authToken;
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             event.currentTarget.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
+            
+            // Якщо відкрили карту - ініціалізуємо або оновлюємо розмір
+            if (tabId === 'radar') {
+                setTimeout(() => {
+                    if (globalMap) globalMap.invalidateSize();
+                    else initGlobalMap();
+                }, 100);
+            }
         }
+
         function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
-
-        function openPlatformSettings() {
-            document.getElementById('platform-settings-modal').classList.add('active');
-            document.getElementById('setting-price-pro').value = currentProPrice;
-            document.getElementById('setting-price-basic').value = currentBasicPrice;
-        }
-        
-        function savePlatformSettings(btn) {
-            currentProPrice = parseFloat(document.getElementById('setting-price-pro').value) || 0;
-            currentBasicPrice = parseFloat(document.getElementById('setting-price-basic').value) || 0;
-            localStorage.setItem('saas_price_pro', currentProPrice);
-            localStorage.setItem('saas_price_basic', currentBasicPrice);
-            closeModal('platform-settings-modal');
-            renderDashboard(); 
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Збережено!';
-            setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти тарифи'; }, 1000);
-        }
-
-        function sendBroadcast() {
-            const msg = document.getElementById('broadcast-msg').value;
-            if(!msg.trim()) return alert("Напишіть текст повідомлення!");
-            
-            // Перевіряємо, чи ми в Telegram
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                // Відправляємо дані в бота
-                window.Telegram.WebApp.sendData(JSON.stringify({
-                    action: "broadcast",
-                    text: msg.trim()
-                }));
-                
-                document.getElementById('broadcast-msg').value = '';
-                document.getElementById('broadcast-msg').placeholder = 'Відправляємо...';
-            } else {
-                alert("Помилка: Відкрийте цю панель через Telegram бота, щоб відправити розсилку.");
-            }
-        }
-
-        function exportToCSV() {
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
-            csvContent += "ID,Назва Бізнесу,Тариф,Замовлення,Каса,Дата Реєстрації\n";
-            
-            globalBusinesses.forEach(biz => {
-                let bOrders = 0, bRevenue = 0;
-                globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') { bOrders++; bRevenue += parseFloat(o.amount || 0); }});
-                let safeName = String(biz.name || "Без назви").replace(/"/g, '""'); 
-                let plan = (biz.plan || 'basic').toUpperCase();
-                let date = new Date(biz.created_at).toLocaleDateString('uk-UA');
-                
-                csvContent += `${biz.id},"${safeName}",${plan},${bOrders},${bRevenue.toFixed(2)},${date}\n`;
-            });
-            
-            var encodedUri = encodeURI(csvContent);
-            var link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "RzCity_Clients.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // --- Завантаження персоналу з таблиці "staff" ---
-        async function fetchStaff(bizId) {
-            const staffListEl = document.getElementById('modal-staff-list');
-            staffListEl.innerHTML = '<div style="text-align: center; padding: 10px; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Завантаження...</div>';
-            
-            try {
-                let sRes = await fetch(SUPABASE_URL + '/rest/v1/staff?business_id=eq.' + bizId, { method: 'GET', headers: dbHeaders });
-                if (!sRes.ok) throw new Error("Table missing or RLS blocked");
-                let staff = await sRes.json();
-                
-                if(staff.length === 0) {
-                    staffListEl.innerHTML = '<div style="padding: 5px; color: var(--text-muted); font-size: 11px;">Персонал ще не додано.</div>';
-                    return;
-                }
-                
-                // --- ОПТИМІЗАЦІЯ DOM ---
-                let staffHtml = '';
-                staff.forEach(s => {
-                    let roleIcon = s.role === 'manager' ? '<i class="fa-solid fa-user-tie"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
-                    let name = s.name || s.full_name || 'Без імені';
-                    let tgId = s.telegram_id || s.user_id || 'ID невідомий';
-                    
-                    staffHtml += `
-                        <div class="staff-item">
-                            <div><span style="color: white; font-weight: bold;">${name}</span> <br><span style="color: var(--text-muted); font-size: 10px;">ID: ${tgId}</span></div>
-                            <div class="staff-role">${roleIcon} ${s.role || 'Співробітник'}</div>
-                        </div>
-                    `;
-                });
-                staffListEl.innerHTML = staffHtml;
-                // -----------------------
-            } catch (e) {
-                staffListEl.innerHTML = '<div style="padding: 5px; color: var(--danger); font-size: 11px;">🚨 Немає доступу до таблиці staff (Перевірте RLS).</div>';
-            }
-        }
-
-        function openAdminModal(id, name, plan, created_at, extra_days) {
-            document.getElementById('admin-modal').classList.add('active');
-            document.getElementById('modal-biz-name').innerText = name;
-            document.getElementById('edit-biz-id').value = id;
-            document.getElementById('edit-plan').value = (plan || 'basic').toLowerCase();
-            document.getElementById('edit-days').value = "0";
-            document.getElementById('edit-current-extra').value = extra_days || "0";
-            
-            fetchStaff(id); 
-        }
-
-        async function saveAdminChanges(btn) {
-            const bizId = document.getElementById('edit-biz-id').value;
-            const newPlan = document.getElementById('edit-plan').value;
-            const addDays = parseInt(document.getElementById('edit-days').value) || 0;
-            const currentExtra = parseInt(document.getElementById('edit-current-extra').value) || 0;
-            
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
-
-            try {
-                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
-                    method: 'PATCH', headers: dbHeaders,
-                    body: JSON.stringify({ plan: newPlan, extra_days: (currentExtra + addDays) })
-                });
-                if (!res.ok) throw new Error(await res.text());
-                closeModal('admin-modal');
-                loadData(); 
-            } catch(e) {
-                alert("❌ Помилка: " + e.message);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Зберегти налаштування';
-            }
-        }
-
-        async function deleteBusiness() {
-            const bizId = document.getElementById('edit-biz-id').value;
-            if (!confirm("⚠️ ВИ ВПЕВНЕНІ? Це видалить бізнес назавжди!")) return;
-            try {
-                await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, { method: 'DELETE', headers: dbHeaders });
-                closeModal('admin-modal');
-                loadData();
-            } catch(e) {}
-        }
 
         async function loadData() {
             try {
                 let bRes = await fetch(SUPABASE_URL + '/rest/v1/businesses?select=*', { method: 'GET', headers: dbHeaders });
-                if (!bRes.ok) throw new Error(await bRes.text());
                 globalBusinesses = await bRes.json();
 
-                let oRes = await fetch(SUPABASE_URL + '/rest/v1/orders?select=business_id,amount,status', { method: 'GET', headers: dbHeaders });
-                if (!oRes.ok) throw new Error(await oRes.text());
+                // Витягуємо замовлення з created_at для сортування (Live feed)
+                let oRes = await fetch(SUPABASE_URL + '/rest/v1/orders?select=id,business_id,amount,status,created_at&order=created_at.desc', { method: 'GET', headers: dbHeaders });
                 globalOrders = await oRes.json();
 
                 renderDashboard();
+                renderLiveFeed();
                 renderLeaderboard();
                 renderChart();
                 filterBusinesses(); 
+                
+                if (globalMap) {
+                    globalMap.remove();
+                    globalMap = null;
+                    initGlobalMap();
+                }
             } catch (e) {
-                document.getElementById('businesses-list').innerHTML = `<div style="padding: 20px; color: var(--danger); text-align: center; font-weight: bold;">🚨 Помилка доступу.</div>`;
+                console.error(e);
             }
         }
 
@@ -452,9 +328,46 @@
             document.getElementById('owner-mrr').innerText = ownerRevenue.toLocaleString('uk-UA') + " " + CURRENCY; 
         }
 
+        // --- ФІЧА 1: LIVE СТРІЧКА (3 ОСТАННІ ЗАМОВЛЕННЯ) ---
+        function renderLiveFeed() {
+            const container = document.getElementById('live-orders-container');
+            if(globalOrders.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color: var(--text-muted); font-size:12px;">Ще немає замовлень</div>';
+                return;
+            }
+
+            let html = '';
+            // Беремо перші 3 замовлення
+            let recentOrders = globalOrders.slice(0, 3);
+            
+            recentOrders.forEach(o => {
+                let biz = globalBusinesses.find(b => b.id === o.business_id);
+                let bizName = biz ? biz.name : 'Невідомий заклад';
+                let time = new Date(o.created_at).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+                
+                let statusText = 'В ДОРОЗІ';
+                let statusColor = 'var(--info)';
+                if(o.status === 'completed') { statusText = 'ДОСТАВЛЕНО'; statusColor = 'var(--success)'; }
+                if(o.status === 'pending') { statusText = 'ОЧІКУЄ'; statusColor = 'var(--warning)'; }
+
+                html += `
+                    <div class="live-item">
+                        <div>
+                            <div class="live-time"><i class="fa-regular fa-clock"></i> ${time}</div>
+                            <div class="live-biz">${bizName}</div>
+                        </div>
+                        <div>
+                            <div class="live-amount">${o.amount} ${biz ? biz.currency : 'zł'}</div>
+                            <div class="live-status" style="color: ${statusColor};">${statusText}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
         function renderLeaderboard() {
             const lbContainer = document.getElementById('leaderboard-container');
-            
             let stats = globalBusinesses.map(biz => {
                 let rev = 0;
                 globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') rev += parseFloat(o.amount || 0); });
@@ -465,11 +378,10 @@
             let top5 = stats.slice(0, 5);
             
             if(top5.length === 0 || top5[0].revenue === 0) {
-                lbContainer.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 12px;">Немає завершених замовлень для рейтингу.</div>';
+                lbContainer.innerHTML = '<div style="padding: 15px; text-align: center; color: var(--text-muted); font-size: 12px;">Немає замовлень для рейтингу.</div>';
                 return;
             }
 
-            // --- ОПТИМІЗАЦІЯ DOM ---
             let lbHtml = '';
             top5.forEach((biz, index) => {
                 if(biz.revenue > 0) {
@@ -477,14 +389,13 @@
                     lbHtml += `
                         <div class="lb-item">
                             <div class="lb-rank">${medal}</div>
-                            <div class="lb-name">${biz.name.replace(/'/g, "").replace(/"/g, "")}</div>
+                            <div class="lb-name">${biz.name}</div>
                             <div class="lb-revenue">${biz.revenue.toLocaleString('uk-UA')} ${CURRENCY}</div>
                         </div>
                     `;
                 }
             });
             lbContainer.innerHTML = lbHtml;
-            // -----------------------
         }
 
         function renderChart() {
@@ -510,22 +421,11 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Нові Клієнти',
-                        data: data,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                        borderWidth: 3,
-                        pointBackgroundColor: '#10b981',
-                        pointBorderColor: '#fff',
-                        pointRadius: 4,
-                        fill: true,
-                        tension: 0.4
+                        label: 'Нові Клієнти', data: data, borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.2)', borderWidth: 3, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointRadius: 4, fill: true, tension: 0.4
                     }]
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: {size: 10} } },
                         y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: {size: 10}, stepSize: 1, beginAtZero: true } }
@@ -540,18 +440,13 @@
             const filterQ = document.getElementById('status-filter').value;
 
             let count = 0;
-            
-            // --- ОПТИМІЗАЦІЯ DOM ---
             let listHtml = '';
 
             globalBusinesses.forEach(biz => {
-                let safeName = String(biz.name || "Без назви").replace(/'/g, "").replace(/"/g, "");
+                let safeName = String(biz.name || "Без назви");
                 let plan = (biz.plan || 'basic').toLowerCase();
-                let isPro = plan === 'pro';
-                let isFrozen = plan === 'frozen';
-                
+                let isPro = plan === 'pro'; let isFrozen = plan === 'frozen';
                 let badgeClass = isPro ? 'badge-pro' : (isFrozen ? 'badge-frozen' : 'badge-basic');
-                let badgeText = plan.toUpperCase();
 
                 let matchSearch = safeName.toLowerCase().includes(searchQ) || biz.id.toLowerCase().includes(searchQ);
                 let matchFilter = true;
@@ -569,23 +464,141 @@
                                     <div class="biz-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeName}</div>
                                     <div class="biz-id" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ID: ${biz.id}</div>
                                 </div>
-                                <div class="badge ${badgeClass}">${badgeText}</div>
+                                <div class="badge ${badgeClass}">${plan.toUpperCase()}</div>
                             </div>
-                            
-                            <button class="btn-manage" onclick="openAdminModal('${biz.id}', '${safeName}', '${biz.plan}', '${biz.created_at}', '${parseInt(biz.extra_days)||0}')">
-                                <i class="fa-solid fa-sliders"></i> Управління клієнтом
+                            <button class="btn-manage" onclick="openAdminModal('${biz.id}')">
+                                <i class="fa-solid fa-sliders"></i> Керування клієнтом
                             </button>
                         </div>
                     `;
                 }
             });
 
-            if (count > 0) {
-                listEl.innerHTML = listHtml;
-            } else {
-                listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;"><i class="fa-regular fa-folder-open" style="font-size: 32px; margin-bottom: 10px; opacity: 0.5;"></i><br>Нічого не знайдено</div>';
+            if (count > 0) listEl.innerHTML = listHtml;
+            else listEl.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 40px 20px;">Нічого не знайдено</div>';
+        }
+
+        // --- ФІЧА 2: ГЛИБОКЕ РЕДАГУВАННЯ (DEEP EDIT) ---
+        function openAdminModal(bizId) {
+            let biz = globalBusinesses.find(b => b.id === bizId);
+            if(!biz) return;
+
+            document.getElementById('admin-modal').classList.add('active');
+            document.getElementById('modal-biz-name').innerText = biz.name || "Клієнт";
+            document.getElementById('edit-biz-id').value = biz.id;
+            
+            document.getElementById('edit-plan').value = (biz.plan || 'basic').toLowerCase();
+            document.getElementById('edit-phone').value = biz.phone || "";
+            document.getElementById('edit-currency').value = biz.currency || "zł";
+            document.getElementById('edit-radius').value = biz.radius_km || 10;
+            
+            fetchStaff(biz.id); 
+        }
+
+        async function saveAdminChanges(btn) {
+            const bizId = document.getElementById('edit-biz-id').value;
+            const newPlan = document.getElementById('edit-plan').value;
+            const newPhone = document.getElementById('edit-phone').value;
+            const newCurrency = document.getElementById('edit-currency').value;
+            const newRadius = parseFloat(document.getElementById('edit-radius').value) || 10;
+            
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+
+            try {
+                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
+                    method: 'PATCH', headers: dbHeaders,
+                    body: JSON.stringify({ plan: newPlan, phone: newPhone, currency: newCurrency, radius_km: newRadius })
+                });
+                if (!res.ok) throw new Error("Помилка бази");
+                closeModal('admin-modal');
+                loadData(); 
+            } catch(e) {
+                alert("❌ Помилка: " + e.message);
             }
-            // -----------------------
+            btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> Зберегти всі зміни';
+        }
+
+        // --- РОБОТА З ПЕРСОНАЛОМ (Видалення) ---
+        async function fetchStaff(bizId) {
+            const staffListEl = document.getElementById('modal-staff-list');
+            staffListEl.innerHTML = '<div style="text-align: center; font-size: 12px; color: var(--text-muted);">Завантаження...</div>';
+            try {
+                let sRes = await fetch(SUPABASE_URL + '/rest/v1/staff?business_id=eq.' + bizId, { method: 'GET', headers: dbHeaders });
+                let staff = await sRes.json();
+                
+                if(staff.length === 0) { staffListEl.innerHTML = '<div style="font-size: 12px; color: var(--text-muted);">Персонал ще не додано.</div>'; return; }
+                
+                let html = '';
+                staff.forEach(s => {
+                    let roleIcon = s.role === 'manager' ? '<i class="fa-solid fa-user-tie"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
+                    html += `
+                        <div class="staff-item">
+                            <div>
+                                <span style="color: white; font-weight: bold; font-size: 13px;">${s.name || 'Без імені'}</span> <br>
+                                <span style="color: var(--text-muted); font-size: 10px;">ID: ${s.user_id || s.tg_id} • ${s.role}</span>
+                            </div>
+                            <button onclick="deleteStaff('${s.id}', '${bizId}')" style="background:none; border:none; color: var(--danger); font-size: 16px; cursor: pointer; padding: 5px;">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                staffListEl.innerHTML = html;
+            } catch (e) {
+                staffListEl.innerHTML = '<div style="color: var(--danger); font-size: 12px;">Помилка доступу до staff.</div>';
+            }
+        }
+
+        async function deleteStaff(staffId, bizId) {
+            if(!confirm("⚠️ Звільнити цього працівника?")) return;
+            try {
+                await fetch(SUPABASE_URL + '/rest/v1/staff?id=eq.' + staffId, { method: 'DELETE', headers: dbHeaders });
+                fetchStaff(bizId); // Оновлюємо список
+            } catch(e) { alert("Помилка видалення."); }
+        }
+
+        // --- ФІЧА 3: ГЛОБАЛЬНА КАРТА РАДАР ---
+        function initGlobalMap() {
+            if (globalMap) return;
+            // Центруємо на Польщі/Європі
+            globalMap = L.map('global-map').setView([52.0, 19.0], 6); 
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(globalMap);
+
+            const radarIcon = L.divIcon({ html: '<div class="map-icon-radar"></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+
+            globalBusinesses.forEach(biz => {
+                if(biz.lat && biz.lng) {
+                    L.marker([biz.lat, biz.lng], {icon: radarIcon})
+                     .bindPopup(`<b style="color:black;">${biz.name}</b><br><span style="color:gray;">ID: ${biz.id}</span>`)
+                     .addTo(globalMap);
+                }
+            });
+        }
+
+        // Розсилка
+        function sendBroadcast() {
+            const msg = document.getElementById('broadcast-msg').value;
+            if(!msg.trim()) return alert("Напишіть текст!");
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                window.Telegram.WebApp.sendData(JSON.stringify({ action: "broadcast", text: msg.trim() }));
+                document.getElementById('broadcast-msg').value = '';
+            } else {
+                alert("Відкрийте через Telegram.");
+            }
+        }
+
+        // Експорт
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFFID,Назва Бізнесу,Тариф,Замовлення,Каса\n";
+            globalBusinesses.forEach(biz => {
+                let bOrders = 0, bRevenue = 0;
+                globalOrders.forEach(o => { if (o.business_id == biz.id && o.status === 'completed') { bOrders++; bRevenue += parseFloat(o.amount || 0); }});
+                csvContent += `${biz.id},"${String(biz.name).replace(/"/g, '""')}",${biz.plan},${bOrders},${bRevenue.toFixed(2)}\n`;
+            });
+            var link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("download", "DeliPro_Clients.csv");
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
         setTimeout(loadData, 200);
