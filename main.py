@@ -121,7 +121,7 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
 
     if not c_lat: return None 
 
-    biz_address = biz.get('address') if biz else None
+    biz_address = biz.get('street') if biz else None
     b_lat, b_lon = 50.04132, 21.99901 
     
     if biz_address:
