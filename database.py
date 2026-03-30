@@ -160,7 +160,7 @@ def create_new_order(order_data: dict):
         "comment": order_data.get('comment'),
         "lat": order_data.get('lat'), 
         "lon": order_data.get('lon'),
-        "est_time": int(order_data.get('est_time', 30)), # <--- 🔴 ДОДАНО: ЧАС ДОСТАВКИ
+        "est_time": int(order_data.get('est_time') or 30), # <--- 🔴 ДОДАНО: ЧАС ДОСТАВКИ
         "status": "pending" # Статус: очікує прийняття кур'єром
     }
     
@@ -174,7 +174,7 @@ def update_order_status(order_id: str, new_status: str):
     
     # Якщо статус "completed", записуємо поточний час
     if new_status == "completed":
-        data["completed_at"] = datetime.datetime.utcnow().isoformat()
+        data["completed_at"] = datetime.datetime.now(timezone.utc).isoformat()
         
     supabase.table("orders").update(data).eq("id", order_id).execute()
 
@@ -184,7 +184,7 @@ def get_daily_report(biz_id: str):
     start_of_day = datetime.datetime(today.year, today.month, today.day).isoformat()
     
     # Отримуємо всі закриті замовлення за сьогодні
-    res_orders = supabase.table("orders").select("*").eq("business_id", biz_id).eq("status", "completed").gte("created_at", start_of_day).execute()
+    res_orders = supabase.table("orders").select("*").eq("business_id", biz_id).eq("status", "completed").gte("created_at", start_of_day).limit(5000).execute()
     orders = res_orders.data if res_orders.data else []
     
     # Отримуємо імена персоналу
