@@ -1017,7 +1017,7 @@
                 let startDate = new Date();
                 if (currentFilter === 'today') startDate.setHours(0, 0, 0, 0);
                 else if (currentFilter === 'week') startDate.setDate(startDate.getDate() - 7);
-                else if (currentFilter === 'month') startDate.setMonth(startDate.getMonth() - 1);
+                else if (currentFilter === 'month') startDate.setDate(startDate.getDate() - 30);
 
                 const { data: biz } = await supabaseClient.from('businesses').select('*').eq('id', bizId).single();
                 
@@ -1118,8 +1118,20 @@
                             }
                             
                             let d = new Date(o.created_at);
-                            let key = currentFilter === 'today' ? String(d.getHours()).padStart(2, '0') + ':00' : d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
-                            chartDataRaw[key] = (chartDataRaw[key] || 0) + amt;
+                            let sortKey, displayLabel;
+
+                            if (currentFilter === 'today') {
+                                sortKey = String(d.getHours()).padStart(2, '0') + ':00';
+                                displayLabel = sortKey;
+                            } else {
+                                // Ключ для сортування: YYYY-MM-DD (завжди сортується правильно)
+                                sortKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                                // Те, що бачить юзер: DD.MM
+                                displayLabel = d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
+                            }
+
+                            if (!chartDataRaw[sortKey]) chartDataRaw[sortKey] = { amount: 0, label: displayLabel };
+                            chartDataRaw[sortKey].amount += amt;
 
                             let cid = o.courier_id;
                             if (cid) {
@@ -1140,7 +1152,9 @@
                     document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ` ${t('min')}` : `-- ${t('min')}`;
 
                     if (currentPlanIsPro) {
-                        let labels = Object.keys(chartDataRaw).sort(); let dataPoints = labels.map(k => chartDataRaw[k]);
+                        let sortedKeys = Object.keys(chartDataRaw).sort();
+                        let labels = sortedKeys.map(k => chartDataRaw[k].label);
+                        let dataPoints = sortedKeys.map(k => chartDataRaw[k].amount);
                         const ctx = document.getElementById('revenueChart').getContext('2d');
                         if (revenueChart) revenueChart.destroy();
                         
