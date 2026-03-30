@@ -1,7 +1,7 @@
 import os
 import time
 import jwt
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 from texts import get_text as _
 
@@ -19,7 +19,7 @@ def generate_token(biz_id=None, user_id=None, is_boss=False):
     
     # 🔒 ДОДАНО: Прив'язуємо токен до конкретного користувача (захист від крадіжки URL)
     if user_id:
-        payload["sub"] = str(user_id)  # 'sub' (subject) - це стандартне поле, яке читає Supabase
+        payload["sub"] = str(user_id)  # 'sub' (subject) - це стандартне поле для Supabase
         payload["tg_id"] = str(user_id)
 
     if is_boss:
