@@ -289,6 +289,7 @@
         let bizLat = null;
         let bizLon = null;
         let bizRadius = 10;
+        let bizCountry = ''; // <--- ДОДАНО
         
         let globalCouriers = [];
         let globalBusyIds = [];
@@ -392,11 +393,12 @@
         async function initForm() {
             if (!bizId || !supabaseClient) return;
             try {
-                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
+                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km, country').eq('id', bizId).single();
                 if (biz) {
                     bizLat = biz.lat || null;
                     bizLon = biz.lng || null;
                     bizRadius = biz.radius_km || 10; 
+                    bizCountry = biz.country || ''; // <--- ДОДАНО
                 }
 
                 const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
@@ -441,7 +443,8 @@
                 return;
             }
 
-            if (!street || !amount || !courierId) {
+            const amountVal = parseFloat(amount);
+            if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || !courierId) {
                 const msg = t('err_req');
                 if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
                 return;
@@ -491,7 +494,9 @@
                 addrList.style.display = 'block';
 
                 timeout = setTimeout(async () => {
-                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
+                    // Додаємо країну до пошуку, якщо вона є в базі, і прибираємо жорсткий countrycodes
+                    const searchStr = bizCountry ? `${query}, ${bizCountry}` : query;
+                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(searchStr)}&format=json&addressdetails=1&limit=10`;
                     
                     try {
                         const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
