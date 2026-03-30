@@ -463,7 +463,7 @@
                 btn_trial: "Почати 7 днів безкоштовно", txt_cancel: "Скасувати можна в будь-який момент",
                 reg_title: "Профіль бізнесу", reg_h1: "Основне",
                 reg_ph_name: "Назва закладу (напр. Hero Sushi)", reg_ph_desc: "Короткий опис закладу...", reg_ph_phone: "Контактний телефон",
-                reg_h2: "Локація", reg_ph_country: "Країна (напр. Польща)", country_def: "Польща", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту",
+                reg_h2: "Локация", reg_ph_country: "Країна (напр. Польща)", country_def: "Польща", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту",
                 reg_h3: "Фінанси та Оплата", cur_pl: "Польський Злотий (zł)", cur_ua: "Українська Гривня (₴)", cur_eu: "Євро (€)",
                 reg_pay_lbl: "Приймаємо до оплати:", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
                 btn_create: "Створити кабінет", alert_err: "📍 Будь ласка, введіть хоча б Назву закладу та Місто.", alert_load: "⏳ Створюємо кабінет...",
@@ -569,9 +569,13 @@
             document.documentElement.style.setProperty('--txt-process', `"${i18n[lang].anim_process}"`);
             document.documentElement.style.setProperty('--txt-delivered', `"${i18n[lang].anim_deliv}"`);
 
+            // 🔥 БАГФІКС 2: Миттєво перекладаємо кнопку, якщо ми на останньому слайді
             if (currentSlide === totalSlides - 1) {
                 let btn = document.getElementById('btn-onboard-next');
-                if(btn) btn.innerText = i18n[lang].btn_plan;
+                if(btn) {
+                    btn.innerText = i18n[lang].btn_plan;
+                    btn.setAttribute('data-i18n', 'btn_plan');
+                }
             }
         }
 
@@ -700,11 +704,14 @@
             document.getElementById(screenId).classList.add('active');
             window.scrollTo(0, 0);
 
+            // 🔥 БАГФІКС 1: Карта малюється після появи екрану
             if (screenId === 'screen-register') {
                 document.getElementById('btn-finish').innerText = i18n[currentLang].btn_create;
                 
-                if (!map) initMap();
-                setTimeout(() => { map.invalidateSize(); }, 400);
+                setTimeout(() => { 
+                    if (!map) initMap();
+                    map.invalidateSize(); 
+                }, 400);
             }
         }
 
