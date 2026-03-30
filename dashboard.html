@@ -1073,8 +1073,11 @@
                     }
                 }
 
-                const { data: staff } = await supabaseClient.from('staff').select('*').eq('business_id', bizId);
+                // Очищаємо список перед завантаженням, щоб уникнути "двоїння" при видаленні
                 const staffBox = document.getElementById('staff-list');
+                staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення...</div>`;
+                
+                const { data: staff } = await supabaseClient.from('staff').select('*').eq('business_id', bizId);
                 let staffMap = {}; currentCouriersCount = 0; currentManagersCount = 0;
 
                 if (staff && staff.length > 0) {
