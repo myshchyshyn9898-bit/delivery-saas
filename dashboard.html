@@ -978,13 +978,16 @@
             } catch(e) { alert(t('alert_err') + e.message); }
         }
 
-        async function removeStaff(staffUserId, staffName) {
+        async function removeStaff(staffRowId, staffName) {
             if (!confirm(`${t('confirm_del')} "${staffName}"?`)) return;
             if (!supabaseClient) return;
             try {
-                await supabaseClient.from('staff').delete().eq('user_id', staffUserId).eq('business_id', bizId);
+                // Видаляємо строго по унікальному ID рядка в базі
+                const { error } = await supabaseClient.from('staff').delete().eq('id', staffRowId).eq('business_id', bizId);
+                if (error) throw error;
+                
                 loadDashboardData(); 
-            } catch (err) { alert(t('alert_err')); }
+            } catch (err) { alert(t('alert_err') + (err.message || '')); }
         }
 
         function exportOrdersCSV() {
@@ -1078,18 +1081,27 @@
                     staffBox.innerHTML = '';
                     staff.forEach(person => {
                         let safeName = person.name || person.full_name || 'Staff';
-                        staffMap[person.user_id] = safeName;
+                        
+                        // Правильний мапінг для рейтингу кур'єрів
+                        let staffTgId = person.tg_id || person.user_id; 
+                        staffMap[staffTgId] = safeName;
+                        
                         if (person.role === 'courier') currentCouriersCount++; if (person.role === 'manager') currentManagersCount++;
                         
                         let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; 
                         let roleName = person.role === 'courier' ? t('role_c') : t('role_m'); 
-                        let avatar = person.role === 'courier' ? '🛵' : '👨‍💼';
                         
+                        // 🔥 СТИЛЬНІ ІКОНКИ ЗАМІСТЬ ЕМОДЖІ 🔥
+                        let avatar = person.role === 'courier' 
+                            ? '<i class="fa-solid fa-motorcycle" style="font-size: 20px; color: var(--primary);"></i>' 
+                            : '<i class="fa-solid fa-user-tie" style="font-size: 20px; color: var(--info);"></i>';
+                        
+                        // 🔥 person.id замість person.user_id для кнопки видалення 🔥
                         staffBox.innerHTML += `
                             <div class="team-card">
-                                <div class="team-avatar">${avatar}</div>
+                                <div class="team-avatar" style="background: transparent; border: 1px solid rgba(0,0,0,0.05);">${avatar}</div>
                                 <div class="team-info"><div class="team-name">${safeName}</div><div class="team-role ${roleClass}">${roleName}</div></div>
-                                <button class="btn-delete-staff" onclick="removeStaff('${person.user_id}', '${safeName}')"><i class="fa-solid fa-trash-can"></i></button>
+                                <button class="btn-delete-staff" onclick="removeStaff('${person.id}', '${safeName.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
                         `;
                     });
