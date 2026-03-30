@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Відстеження замовлення</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        window.onerror = function(msg, url, line) {
+            alert("🛑 БРАУЗЕР ЗАБЛОКУВАВ СКРИПТ:\n\n" + msg + "\nРядок: " + line);
+            return false;
+        };
+    </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap');
@@ -46,8 +48,8 @@
 <body>
 
     <div class="loading-screen" id="loading">
-        <i class="fa-solid fa-motorcycle fa-bounce" style="font-size: 40px; margin-bottom: 20px;"></i>
-        <h3 id="loading-text" style="color: white; font-weight: 800;">Оновлення файлу...</h3>
+        <i class="fa-solid fa-motorcycle fa-bounce" style="font-size: 40px; margin-bottom: 20px;" id="loading-icon"></i>
+        <h3 id="loading-text" style="color: white; font-weight: 800;">Запускаємо код...</h3>
     </div>
     
     <div class="loading-screen error-screen" id="error-screen" style="background: var(--bg-dark);">
@@ -56,18 +58,13 @@
         <div id="error-msg">Деталі помилки</div>
     </div>
 
-    <div class="header">
-        <div class="biz-badge" id="biz-name"><i class="fa-solid fa-store" style="color: var(--accent-green);"></i> Доставка DeliPro</div>
-    </div>
+    <div class="header"><div class="biz-badge" id="biz-name"><i class="fa-solid fa-store" style="color: var(--accent-green);"></i> Доставка DeliPro</div></div>
     <div id="map"></div>
     <div class="bottom-sheet">
         <div class="sheet-handle"></div>
         <div class="status-box" id="status-box">
             <div class="status-icon" id="status-icon"><i class="fa-solid fa-motorcycle"></i></div>
-            <div class="status-text">
-                <h2 id="status-title">Кур'єр в дорозі</h2>
-                <p id="status-desc">Ваше замовлення прямує до вас</p>
-            </div>
+            <div class="status-text"><h2 id="status-title">Кур'єр в дорозі</h2><p id="status-desc">Ваше замовлення прямує до вас</p></div>
         </div>
         <div class="order-details">
             <div><div class="order-id" id="order-id-display">Замовлення #...</div><div class="order-amount" id="order-amount-display">0.00 zł</div></div>
@@ -76,9 +73,13 @@
         <a href="#" class="btn-call" id="btn-call"><i class="fa-solid fa-phone"></i> Зателефонувати в заклад</a>
     </div>
 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
-        // Одразу міняємо текст, щоб знати, що JS живий
-        document.getElementById('loading-text').innerText = "Читаємо лінк...";
+        document.getElementById('loading-text').innerText = "Бібліотеки завантажено!";
 
         function showError(msg) {
             document.getElementById('loading').style.display = 'none';
@@ -93,23 +94,24 @@
 
         async function initTracking() {
             try {
-                if (!window.supabase) throw new Error("Supabase не завантажився. Вимкніть блокувальник реклами або VPN.");
+                if (typeof window.supabase === 'undefined') {
+                    throw new Error("Браузер Safari заблокував завантаження бази даних (Supabase). Перевірте інтернет або вимкніть AdBlock.");
+                }
                 
                 const urlParams = new URLSearchParams(window.location.search);
                 const orderId = urlParams.get('id');
-                if (!orderId) throw new Error("У вашому посиланні немає ID замовлення (?id=...)");
+                if (!orderId) throw new Error("У вашому посиланні немає номера замовлення (відсутній ?id=...)");
 
-                document.getElementById('loading-text').innerText = "З'єднання з базою...";
+                document.getElementById('loading-text').innerText = "Шукаємо замовлення в базі...";
                 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-                document.getElementById('loading-text').innerText = "Шукаємо замовлення...";
                 const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
-                if (orderErr) throw new Error("Помилка бази: " + orderErr.message);
+                if (orderErr) throw new Error("Помилка бази (Orders): " + orderErr.message);
                 if (!order) throw new Error("Замовлення не знайдено");
 
-                document.getElementById('loading-text').innerText = "Шукаємо заклад...";
+                document.getElementById('loading-text').innerText = "Завантажуємо карту...";
                 const { data: biz, error: bizErr } = await supabase.from('businesses').select('*').eq('id', order.business_id).single();
-                if (bizErr) throw new Error("Помилка бізнесу: " + bizErr.message);
+                if (bizErr) throw new Error("Помилка бази (Biz): " + bizErr.message);
                 if (!biz) throw new Error("Заклад не знайдено");
 
                 if (!order.lat || !order.lon) throw new Error("У цього замовлення немає координат! Створіть нове через бота.");
@@ -178,4 +180,21 @@
 
             function updatePosition() {
                 const now = new Date().getTime();
-                const elapsedMinutes = (now - createdTime) / 60
+                const elapsedMinutes = (now - createdTime) / 60000;
+                let progress = elapsedMinutes / estMinutes;
+                if (progress < 0.05) progress = 0.05; 
+                if (progress > 0.95) progress = 0.95; 
+
+                courierMarker.setLatLng([
+                    bizPoint[0] + (clientPoint[0] - bizPoint[0]) * progress,
+                    bizPoint[1] + (clientPoint[1] - bizPoint[1]) * progress
+                ]);
+            }
+            updatePosition(); setInterval(updatePosition, 10000); 
+        }
+
+        // Запуск
+        setTimeout(initTracking, 100);
+    </script>
+</body>
+</html>
