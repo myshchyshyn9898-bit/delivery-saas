@@ -217,18 +217,10 @@
         
         #settings-map-container { width: 100%; height: 180px; border-radius: 16px; overflow: hidden; margin-bottom: 20px; margin-top: 15px; border: 2px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
 
-        /* Support Form */
-        .textarea-form { min-height: 100px; resize: none; font-family: inherit; }
-        .file-upload-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-bottom: 15px; }
-        .file-upload-btn { border: 2px dashed rgba(59,130,246,0.3); background: rgba(59,130,246,0.05); color: var(--info); padding: 15px; border-radius: 16px; text-align: center; font-weight: 800; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .file-upload-btn:active { background: rgba(59,130,246,0.1); }
-        .file-upload-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
-        .preview-img { max-width: 100%; border-radius: 12px; margin-top: 10px; display: none; border: 1px solid var(--border); }
-
         /* 🔴 СТИЛІ ДЛЯ IOS TOAST NOTIFICATION 🔴 */
         .ios-toast {
             position: fixed;
-            top: -100px; /* Сховане зверху */
+            top: -100px;
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -243,7 +235,7 @@
             align-items: center;
             gap: 15px;
             z-index: 10001;
-            transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Пружинна анімація */
+            transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
             border: 1px solid rgba(255,255,255,0.5);
             cursor: pointer;
         }
@@ -259,6 +251,16 @@
         .ios-toast-text { flex: 1; }
         .ios-toast-title { font-weight: 900; font-size: 14px; margin-bottom: 2px; color: var(--text-main); }
         .ios-toast-desc { font-weight: 600; font-size: 12px; color: var(--text-muted); line-height: 1.3; }
+
+        /* --- СТИЛІ ДЛЯ ПІДТРИМКИ --- */
+        .support-card { background: linear-gradient(135deg, #4A6CF7, #3b82f6); color: white; padding: 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; cursor: pointer; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3); transition: 0.2s; }
+        .support-card:active { transform: scale(0.97); }
+        .support-icon { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        
+        .ticket-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .ticket-type-btn { background: #f1f5f9; border: 2px solid transparent; padding: 12px; border-radius: 14px; text-align: center; font-size: 12px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        .ticket-type-btn.active { background: rgba(59, 130, 246, 0.1); border-color: var(--info); color: var(--info); }
+        .ticket-type-btn i { font-size: 16px; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -360,15 +362,13 @@
         </div>
 
         <div class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color: var(--text-muted);"></i> <span data-i18n="title_recent">Останні замовлення</span></div>
-        <div class="activity-feed" id="recent-orders-list">
-            </div>
+        <div class="activity-feed" id="recent-orders-list"></div>
     </div>
 
     <div id="tab-team" class="tab-content">
         
         <div class="section-title" id="title-couriers-rating"><i class="fa-solid fa-trophy" style="color: var(--warning);"></i> <span data-i18n="title_rating">Рейтинг кур'єрів (PRO)</span></div>
-        <div id="couriers-leaderboard" style="margin-bottom: 30px;">
-            </div>
+        <div id="couriers-leaderboard" style="margin-bottom: 30px;"></div>
 
         <div class="section-title"><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> <span data-i18n="title_invite">Запрошення персоналу</span></div>
         <button class="btn-main" onclick="generateInvite('courier')">
@@ -383,12 +383,20 @@
         </button>
         
         <div class="section-title" style="margin-top: 35px;"><i class="fa-solid fa-users" style="color: var(--text-muted);"></i> <span data-i18n="title_active">Активний персонал</span></div>
-        <div id="staff-list">
-            </div>
+        <div id="staff-list"></div>
     </div>
 
     <div id="tab-settings" class="tab-content">
         <div class="section-title"><i class="fa-solid fa-building" style="color: var(--primary);"></i> <span data-i18n="title_profile">Профіль бізнесу</span></div>
+        
+        <div class="support-card" onclick="openSupportModal()">
+            <div>
+                <div style="font-size: 18px; font-weight: 900; margin-bottom: 4px;">Служба підтримки</div>
+                <div style="font-size: 12px; opacity: 0.8; font-weight: 600;">Маєте питання чи знайшли баг?</div>
+            </div>
+            <div class="support-icon"><i class="fa-solid fa-headset"></i></div>
+        </div>
+
         <div class="activity-feed" style="padding: 10px 20px;">
             <div class="setting-row">
                 <span class="set-label" data-i18n="lbl_biz_id">ID Закладу</span>
@@ -407,15 +415,6 @@
                     <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
                 </div>
             </div>
-            
-            <div class="setting-row" onclick="openSupportModal()" style="cursor: pointer;">
-                <span class="set-label" data-i18n="sup_title">Служба підтримки</span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="set-val" style="color: var(--info); background: rgba(59,130,246,0.1); padding: 4px 10px; border-radius: 8px;"><i class="fa-solid fa-headset"></i> 24/7</span>
-                    <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
-                </div>
-            </div>
-
             <div class="setting-row">
                 <span class="set-label" data-i18n="lbl_cur">Валюта системи</span>
                 <span class="set-val" id="set-currency" style="background: #f1f5f9; padding: 4px 10px; border-radius: 8px;">zł</span>
@@ -517,31 +516,33 @@
     <div class="modal-overlay" id="support-modal" onclick="closeSupportModal()">
         <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
             <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;" data-i18n="sup_title">Служба підтримки</h2>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;"><i class="fa-solid fa-life-ring" style="color: var(--info);"></i> Створити тікет</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Ми отримаємо ваше повідомлення в Telegram і швидко відповімо.</p>
             
-            <label class="form-label" data-i18n="sup_topic">Тема звернення</label>
-            <input type="text" id="sup-topic" class="form-input" data-i18n-placeholder="sup_ph_topic" placeholder="Наприклад: Не працює оплата" style="margin-bottom: 15px;">
-            
-            <label class="form-label" data-i18n="sup_cat">Категорія</label>
-            <select id="sup-cat" class="form-input" style="margin-bottom: 15px;">
-                <option value="Технічна підтримка" data-i18n="sup_tech">Технічна підтримка</option>
-                <option value="Налаштування бота" data-i18n="sup_bot">Налаштування бота</option>
-                <option value="Інше" data-i18n="sup_other">Інше</option>
-            </select>
-            
-            <label class="form-label" data-i18n="sup_msg">Ваше повідомлення</label>
-            <textarea id="sup-msg" class="form-input textarea-form" data-i18n-placeholder="sup_ph_msg" placeholder="Опишіть проблему детально..." style="margin-bottom: 15px;"></textarea>
-
-            <div class="file-upload-wrapper">
-                <div class="file-upload-btn" id="sup-file-btn">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="sup_photo">Прикріпити фото</span>
+            <label class="form-label">Причина звернення</label>
+            <div class="ticket-type-grid">
+                <div class="ticket-type-btn active" onclick="selectTicketType(this, 'Технічна помилка/Баг')">
+                    <i class="fa-solid fa-bug"></i>Технічний баг
                 </div>
-                <input type="file" id="sup-photo" accept="image/*" onchange="previewSupportPhoto(this)">
-                <img id="sup-photo-preview" class="preview-img" src="" alt="Preview">
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'Допомога з налаштуванням')">
+                    <i class="fa-solid fa-sliders"></i>Налаштування
+                </div>
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'Фінанси та Оплата')">
+                    <i class="fa-solid fa-credit-card"></i>Оплата/Тариф
+                </div>
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'Інше питання')">
+                    <i class="fa-solid fa-circle-question"></i>Інше
+                </div>
             </div>
 
-            <button class="btn-main manager" id="btn-send-support" onclick="sendSupportRequest()">
-                <i class="fa-solid fa-paper-plane"></i> <span data-i18n="sup_send">Відправити</span>
+            <label class="form-label">Тема тікета</label>
+            <input type="text" id="ticket-topic" class="form-input" placeholder="Коротко про проблему..." style="margin-bottom: 15px;">
+            
+            <label class="form-label">Опис проблеми</label>
+            <textarea id="ticket-msg" class="form-input" placeholder="Опишіть ситуацію максимально детально..." style="height: 100px; resize: none; margin-bottom: 20px;"></textarea>
+
+            <button class="btn-main manager" id="btn-send-ticket" onclick="sendSupportTicket()">
+                <i class="fa-solid fa-paper-plane"></i> Відправити тікет
             </button>
         </div>
     </div>
@@ -595,10 +596,7 @@
                 title_sel_plan: "Оберіть тариф для продовження:", title_upsell: "⚡️ Хочете більше можливостей?", title_sel_unlock: "Оберіть тариф для розблокування:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКУВАННЯ",
                 state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРИТО",
-                toast_title: "Увага!", toast_desc: "Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ.",
-                sup_title: "Служба підтримки", sup_topic: "Тема звернення", sup_cat: "Категорія", sup_msg: "Ваше повідомлення",
-                sup_send: "Відправити", sup_tech: "Технічна підтримка", sup_bot: "Налаштування бота", sup_other: "Інше",
-                sup_photo: "Прикріпити фото", sup_success: "✅ Звернення успішно відправлено!", sup_ph_topic: "Наприклад: Не працює оплата", sup_ph_msg: "Опишіть проблему детально..."
+                toast_title: "Увага!", toast_desc: "Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ."
             },
             'ru': {
                 tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
@@ -635,10 +633,7 @@
                 title_sel_plan: "Выберите тариф для продления:", title_upsell: "⚡️ Хотите больше возможностей?", title_sel_unlock: "Выберите тариф для разблокировки:",
                 badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКИРОВКА",
                 state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРЫТ",
-                toast_title: "Внимание!", toast_desc: "Ваш тариф скоро истекает. Обновите подписку, чтобы не потерять доступ.",
-                sup_title: "Служба поддержки", sup_topic: "Тема обращения", sup_cat: "Категория", sup_msg: "Ваше сообщение",
-                sup_send: "Отправить", sup_tech: "Техническая поддержка", sup_bot: "Настройка бота", sup_other: "Другое",
-                sup_photo: "Прикрепить фото", sup_success: "✅ Обращение успешно отправлено!", sup_ph_topic: "Например: Не работает оплата", sup_ph_msg: "Опишите проблему детально..."
+                toast_title: "Внимание!", toast_desc: "Ваш тариф скоро истекает. Обновите подписку, чтобы не потерять доступ."
             },
             'pl': {
                 tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
@@ -675,10 +670,7 @@
                 title_sel_plan: "Wybierz plan do przedłużenia:", title_upsell: "⚡️ Chcesz więcej funkcji?", title_sel_unlock: "Wybierz plan, aby odblokować:",
                 badge_active: "AKTYWNIE", badge_paid: "OPŁACONE", badge_block: "ZABLOKOWANE",
                 state_basic: "PLAN BASIC", state_pro: "PLAN PRO", state_closed: "DOSTĘP ZAMKNIĘTY",
-                toast_title: "Uwaga!", toast_desc: "Twój plan wkrótce wygaśnie. Odnów subskrypcję, aby nie stracić dostępu.",
-                sup_title: "Wsparcie techniczne", sup_topic: "Temat zgłoszenia", sup_cat: "Kategoria", sup_msg: "Twoja wiadomość",
-                sup_send: "Wyślij", sup_tech: "Wsparcie techniczne", sup_bot: "Konfiguracja bota", sup_other: "Inne",
-                sup_photo: "Załącz zdjęcie", sup_success: "✅ Zgłoszenie zostało wysłane!", sup_ph_topic: "Na przykład: Płatność nie działa", sup_ph_msg: "Opisz szczegółowo problem..."
+                toast_title: "Uwaga!", toast_desc: "Twój plan wkrótce wygaśnie. Odnów subskrypcję, aby nie stracić dostępu."
             },
             'en': {
                 tab_today: "Today", tab_week: "Week", tab_month: "Month",
@@ -715,10 +707,7 @@
                 title_sel_plan: "Select plan to continue:", title_upsell: "⚡️ Want more features?", title_sel_unlock: "Select plan to unlock:",
                 badge_active: "ACTIVE", badge_paid: "PAID", badge_block: "BLOCKED",
                 state_basic: "BASIC PLAN", state_pro: "PRO PLAN", state_closed: "ACCESS DENIED",
-                toast_title: "Warning!", toast_desc: "Your plan is expiring very soon. Please renew to avoid losing access.",
-                sup_title: "Support", sup_topic: "Subject", sup_cat: "Category", sup_msg: "Your message",
-                sup_send: "Send", sup_tech: "Technical Support", sup_bot: "Bot Setup", sup_other: "Other",
-                sup_photo: "Attach Photo", sup_success: "✅ Request sent successfully!", sup_ph_topic: "Example: Payment issue", sup_ph_msg: "Describe the issue in detail..."
+                toast_title: "Warning!", toast_desc: "Your plan is expiring very soon. Please renew to avoid losing access."
             }
         };
 
@@ -763,10 +752,6 @@
 
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-
-        // 🟢 ДЛЯ САПОРТУ (Щоб приходило тобі в бот напряму)
-        const SUPPORT_BOT_TOKEN = 'ТВІЙ_ТОКЕН_БОТА'; // Встав сюди токен бота, який буде слати тобі смс
-        const SUPPORT_ADMIN_CHAT_ID = 'ТВІЙ_ТЕЛЕГРАМ_ID'; // Встав свій Telegram ID
 
         let supabaseClient = null;
         if (window.supabase) {
@@ -877,108 +862,6 @@
                 closeBizSettingsMenu(); loadDashboardData(); 
             } catch(e) { alert(t('alert_err') + e.message); } 
             finally { btn.innerHTML = oldHtml; btn.disabled = false; }
-        }
-
-        // 🟢 ФУНКЦІЇ ДЛЯ САПОРТУ 🟢
-        let supportPhotoBase64 = null;
-
-        function openSupportModal() {
-            document.getElementById('support-modal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeSupportModal() {
-            document.getElementById('support-modal').classList.remove('active');
-            document.body.style.overflow = '';
-        }
-
-        function previewSupportPhoto(input) {
-            if (input.files && input.files[0]) {
-                let reader = new FileReader();
-                reader.onload = function(e) {
-                    supportPhotoBase64 = e.target.result;
-                    const preview = document.getElementById('sup-photo-preview');
-                    preview.src = supportPhotoBase64;
-                    preview.style.display = 'block';
-                    document.getElementById('sup-file-btn').style.background = 'rgba(16, 185, 129, 0.1)';
-                    document.getElementById('sup-file-btn').style.color = 'var(--success)';
-                    document.getElementById('sup-file-btn').style.borderColor = 'rgba(16, 185, 129, 0.3)';
-                    document.getElementById('sup-file-btn').innerHTML = '<i class="fa-solid fa-check"></i> Фото додано';
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        async function sendSupportRequest() {
-            const topic = document.getElementById('sup-topic').value.trim();
-            const cat = document.getElementById('sup-cat').options[document.getElementById('sup-cat').selectedIndex].text;
-            const msg = document.getElementById('sup-msg').value.trim();
-            const btn = document.getElementById('btn-send-support');
-
-            if (!topic || !msg) {
-                alert(t('alert_err') + " Заповніть всі поля!");
-                return;
-            }
-
-            const oldHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            btn.disabled = true;
-
-            try {
-                if (SUPPORT_BOT_TOKEN !== 'ТВІЙ_ТОКЕН_БОТА' && SUPPORT_ADMIN_CHAT_ID !== 'ТВІЙ_ТЕЛЕГРАМ_ID') {
-                    let text = `🚨 <b>Нове звернення в Сапорт!</b>\n\n`;
-                    text += `🏢 <b>Бізнес ID:</b> <code>${bizId}</code>\n`;
-                    text += `📌 <b>Тема:</b> ${topic}\n`;
-                    text += `🗂 <b>Категорія:</b> ${cat}\n`;
-                    text += `💬 <b>Повідомлення:</b>\n${msg}`;
-
-                    if (supportPhotoBase64) {
-                        let blob = await (await fetch(supportPhotoBase64)).blob();
-                        let formData = new FormData();
-                        formData.append('chat_id', SUPPORT_ADMIN_CHAT_ID);
-                        formData.append('photo', blob, 'screenshot.jpg');
-                        formData.append('caption', text);
-                        formData.append('parse_mode', 'HTML');
-
-                        await fetch(`https://api.telegram.org/bot${SUPPORT_BOT_TOKEN}/sendPhoto`, {
-                            method: 'POST',
-                            body: formData
-                        });
-                    } else {
-                        await fetch(`https://api.telegram.org/bot${SUPPORT_BOT_TOKEN}/sendMessage`, {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({
-                                chat_id: SUPPORT_ADMIN_CHAT_ID,
-                                text: text,
-                                parse_mode: 'HTML'
-                            })
-                        });
-                    }
-                } else if (supabaseClient) {
-                    // Якщо ти не заповнив токен, спробує зберегти в таблицю support_tickets (якщо вона є в базі)
-                    await supabaseClient.from('support_tickets').insert([
-                        { business_id: bizId, topic: topic, category: cat, message: msg, photo_data: supportPhotoBase64 }
-                    ]);
-                }
-
-                alert(t('sup_success'));
-                closeSupportModal();
-                
-                // Очищення форми
-                document.getElementById('sup-topic').value = '';
-                document.getElementById('sup-msg').value = '';
-                supportPhotoBase64 = null;
-                document.getElementById('sup-photo-preview').style.display = 'none';
-                document.getElementById('sup-photo-preview').src = '';
-                document.getElementById('sup-file-btn').style = '';
-                document.getElementById('sup-file-btn').innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> <span data-i18n="sup_photo">' + t('sup_photo') + '</span>';
-
-            } catch(e) {
-                alert(t('alert_err') + e.message);
-            } finally {
-                btn.innerHTML = oldHtml;
-                btn.disabled = false;
-            }
         }
 
         // 🔴 ФУНКЦІЇ СПОВІЩЕННЯ TOAST 🔴
@@ -1176,6 +1059,58 @@
             document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
+        let selectedTicketReason = 'Технічна помилка/Баг';
+
+        function openSupportModal() {
+            document.getElementById('support-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSupportModal() {
+            document.getElementById('support-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function selectTicketType(element, reason) {
+            document.querySelectorAll('.ticket-type-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            selectedTicketReason = reason;
+        }
+
+        function sendSupportTicket() {
+            const topic = document.getElementById('ticket-topic').value.trim();
+            const msg = document.getElementById('ticket-msg').value.trim();
+
+            if (!topic || !msg) {
+                alert("📍 Будь ласка, заповніть тему та опис проблеми.");
+                return;
+            }
+
+            const ticketData = {
+                action: "support_ticket",
+                biz_id: bizId,
+                reason: selectedTicketReason,
+                topic: topic,
+                message: msg
+            };
+
+            const btn = document.getElementById('btn-send-ticket');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Відправляємо...';
+            btn.disabled = true;
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                window.Telegram.WebApp.sendData(JSON.stringify(ticketData));
+            } else {
+                console.log("ТЕСТ ТІКЕТА:", ticketData);
+                setTimeout(() => {
+                    alert("Тікет відправлено (Тестовий режим)!");
+                    closeSupportModal();
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Відправити тікет';
+                    btn.disabled = false;
+                }, 1000);
+            }
+        }
+        
         async function loadDashboardData() {
             try {
                 if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
@@ -1420,7 +1355,7 @@
             bizAddrList.style.display = 'block';
 
             bizTimeout = setTimeout(async () => {
-                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5&countrycodes=pl`;
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
                 try {
                     const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
                     const data = await res.json();
