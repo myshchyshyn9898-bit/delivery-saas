@@ -802,7 +802,7 @@
             
             try {
                 let updatePayload = { name: newName, currency: newCurr };
-                if (newRadius !== "") updatePayload.radius_km = parseInt(newRadius);
+                if (newRadius !== "") updatePayload.radius_km = parseFloat(newRadius);
                 if (newAddress !== "") updatePayload.street = newAddress; 
                 if (bizLat !== null && bizLon !== null) { updatePayload.lat = bizLat; updatePayload.lng = bizLon; }
 
@@ -1097,7 +1097,7 @@
                     staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">${t('empty_team')}</div>`;
                 }
 
-                const { data: orders } = await supabaseClient.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false });
+                const { data: orders } = await supabaseClient.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false }).limit(5000);
                 
                 globalOrdersForExport = orders || [];
                 let heatData = []; let chartDataRaw = {}; let courierStats = {};
@@ -1118,7 +1118,7 @@
                             }
                             
                             let d = new Date(o.created_at);
-                            let key = currentFilter === 'today' ? d.getHours() + ':00' : d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
+                            let key = currentFilter === 'today' ? String(d.getHours()).padStart(2, '0') + ':00' : d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
                             chartDataRaw[key] = (chartDataRaw[key] || 0) + amt;
 
                             let cid = o.courier_id;
@@ -1255,7 +1255,7 @@
             }, 600); 
         });
 
-        document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && e.target !== bizAddrList) bizAddrList.style.display = 'none'; });
+        document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && !bizAddrList.contains(e.target)) bizAddrList.style.display = 'none'; });
 
         // ФІНАЛЬНИЙ ЗАПУСК
         setLanguage(currentLang);
