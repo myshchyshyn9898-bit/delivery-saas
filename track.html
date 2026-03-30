@@ -62,20 +62,20 @@
         .map-icon-courier { color: #fff; background: var(--accent-green); width: 44px; height: 44px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.6); border: 3px solid var(--bg-dark); transition: all 1s ease-in-out; }
         
         .loading-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: var(--accent-green); transition: opacity 0.5s; }
-        .error-screen { display: none; text-align: center; padding: 40px; }
-        #error-msg { color: #ef4444; font-weight: bold; margin-top: 15px; font-size: 14px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; }
+        .error-screen { display: none; text-align: center; padding: 40px; flex-direction: column; align-items: center; justify-content: center;}
+        #error-msg { color: #ef4444; font-weight: bold; margin-top: 15px; font-size: 13px; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; border: 1px solid rgba(239, 68, 68, 0.3); word-break: break-all; }
     </style>
 </head>
 <body>
 
     <div class="loading-screen" id="loading">
         <i class="fa-solid fa-motorcycle fa-bounce" style="font-size: 40px; margin-bottom: 20px;"></i>
-        <h3 style="color: white; font-weight: 800;">Шукаємо замовлення...обновляється блять </h3>
+        <h3 style="color: white; font-weight: 800;">Шукаємо замовлення...</h3>
     </div>
     
     <div class="loading-screen error-screen" id="error-screen" style="background: var(--bg-dark);">
         <i class="fa-solid fa-circle-exclamation" style="font-size: 40px; margin-bottom: 20px; color: #ef4444;"></i>
-        <h3 style="color: white; font-weight: 800;">Помилка завантаження</h3>
+        <h3 style="color: white; font-weight: 800;">Сталася помилка</h3>
         <div id="error-msg">Тут буде точна помилка</div>
     </div>
 
@@ -110,134 +110,20 @@
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
-
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const orderId = urlParams.get('id');
-
-        let map, courierMarker, bizPoint, clientPoint;
-
-        async function initTracking() {
-            try {
-                if (!orderId) throw new Error("❌ В посиланні немає ID замовлення (відсутній параметр ?id=...)");
-
-                // Шукаємо замовлення
-                const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
-                if (orderErr) throw new Error(`❌ Помилка бази (Orders): ${orderErr.message}`);
-                if (!order) throw new Error("❌ Замовлення з таким ID не знайдено в базі.");
-
-                // Шукаємо заклад
-                const { data: biz, error: bizErr } = await supabase.from('businesses').select('name, phone, lat, lng, currency').eq('id', order.business_id).single();
-                if (bizErr) throw new Error(`❌ Помилка бази (Businesses): ${bizErr.message}`);
-                if (!biz) throw new Error("❌ Не знайдено заклад для цього замовлення.");
-
-                // Перевіряємо координати клієнта (щоб карта не крашнулася)
-                if (!order.lat || !order.lon) throw new Error("❌ У цього замовлення немає координат! Спробуйте створити нове замовлення через бота.");
-
-                hideLoading();
-                updateUI(order, biz);
-                initMap(order, biz);
-                startAnimationLoop(order);
-
-            } catch (err) {
-                console.error(err);
-                showError(err.message);
-            }
-        }
-
-        function updateUI(order, biz) {
-            document.getElementById('biz-name').innerHTML = `<i class="fa-solid fa-store" style="color: var(--accent-green);"></i> ${biz.name || 'Доставка'}`;
-            document.getElementById('order-id-display').innerText = `Замовлення #${String(order.id).substring(0, 6).toUpperCase()}`;
-            document.getElementById('order-amount-display').innerText = `${order.amount} ${biz.currency || 'zł'}`;
-            
-            if (biz.phone) {
-                document.getElementById('btn-call').href = `tel:${biz.phone}`;
-            }
-
-            const payBadge = document.getElementById('pay-status-badge');
-            if (order.pay_type === 'online') {
-                payBadge.className = 'pay-badge pay-done';
-                payBadge.innerHTML = '<i class="fa-solid fa-check"></i> Оплачено онлайн';
-            } else {
-                payBadge.className = 'pay-badge pay-wait';
-                const typeText = order.pay_type === 'terminal' ? 'Термінал' : 'Готівка';
-                payBadge.innerHTML = `<i class="fa-solid fa-wallet"></i> До оплати: ${typeText}`;
-            }
-
-            const statusBox = document.getElementById('status-box');
-            if (order.status === 'completed') {
-                statusBox.classList.add('done');
-                document.getElementById('status-icon').innerHTML = '<i class="fa-solid fa-check"></i>';
-                document.getElementById('status-title').innerText = 'Доставлено';
-                document.getElementById('status-desc').innerText = 'Смачного! Дякуємо за замовлення.';
-            }
-        }
-
-        function initMap(order, biz) {
-            map = L.map('map', { zoomControl: false, attributionControl: false });
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-
-            bizPoint = [biz.lat || 50.04132, biz.lng || 21.99901];
-            clientPoint = [order.lat, order.lon];
-
-            const bizIcon = L.divIcon({ html: '<div class="map-icon-biz"><i class="fa-solid fa-store"></i></div>', className: '', iconSize: [36, 36], iconAnchor: [18, 18] });
-            const homeIcon = L.divIcon({ html: '<div class="map-icon-home"><i class="fa-solid fa-house"></i></div>', className: '', iconSize: [36, 36], iconAnchor: [18, 18] });
-            const mopedIcon = L.divIcon({ html: '<div class="map-icon-courier" id="courier-icon"><i class="fa-solid fa-motorcycle"></i></div>', className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
-
-            L.marker(bizPoint, {icon: bizIcon}).addTo(map);
-            L.marker(clientPoint, {icon: homeIcon}).addTo(map);
-
-            const routeLine = L.polyline([bizPoint, clientPoint], { color: '#10b981', weight: 4, dashArray: '10, 10', opacity: 0.6 }).addTo(map);
-            map.fitBounds(routeLine.getBounds(), { padding: [50, 50], paddingTopLeft: [80, 50], paddingBottomRight: [50, 350] });
-
-            courierMarker = L.marker(bizPoint, {icon: mopedIcon}).addTo(map);
-            
-            if (order.status === 'completed') {
-                courierMarker.setLatLng(clientPoint);
-                document.getElementById('courier-icon').style.background = '#3b82f6';
-                document.getElementById('courier-icon').style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.6)';
-            }
-        }
-
-        function startAnimationLoop(order) {
-            if (order.status === 'completed') return;
-
-            const estMinutes = order.est_time || 30;
-            const createdTime = new Date(order.created_at).getTime();
-
-            function updatePosition() {
-                const now = new Date().getTime();
-                const elapsedMinutes = (now - createdTime) / 60000;
-                
-                let progress = elapsedMinutes / estMinutes;
-                if (progress < 0.05) progress = 0.05; 
-                if (progress > 0.95) progress = 0.95; 
-
-                const currentLat = bizPoint[0] + (clientPoint[0] - bizPoint[0]) * progress;
-                const currentLon = bizPoint[1] + (clientPoint[1] - bizPoint[1]) * progress;
-                
-                courierMarker.setLatLng([currentLat, currentLon]);
-            }
-
-            updatePosition(); 
-            setInterval(updatePosition, 10000); 
-        }
-
-        function hideLoading() {
-            document.getElementById('loading').style.opacity = '0';
-            setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
-        }
-
-        function showError(msg) {
+        // ГЛОБАЛЬНИЙ ЛОВЕЦЬ КРАШІВ (щоб не було вічної загрузки)
+        window.onerror = function(msg, url, line) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('error-screen').style.display = 'flex';
-            document.getElementById('error-msg').innerText = msg;
-        }
+            document.getElementById('error-msg').innerText = `Критичний краш: ${msg} (Рядок: ${line})`;
+            return false;
+        };
 
-        document.addEventListener('DOMContentLoaded', initTracking);
-    </script>
-</body>
-</html>
+        // Ловець помилок у промісах (якщо база тупить)
+        window.onunhandledrejection = function(event) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error-screen').style.display = 'flex';
+            document.getElementById('error-msg').innerText = `Помилка мережі/бази: ${event.reason}`;
+        };
+
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkL
