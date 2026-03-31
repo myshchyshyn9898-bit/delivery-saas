@@ -573,10 +573,68 @@ async def whop_webhook_handler(request):
         print(f"Помилка Webhook: {e}")
         return web.Response(status=500, text="Error")
 
+# ==========================================
+# 🍕 WEBHOOK ДЛЯ POSTER POS (НОВІ ЗАМОВЛЕННЯ)
+# ==========================================
+async def poster_webhook_handler(request):
+    try:
+        # 1. Отримуємо ID бізнесу з посилання (клієнт вставить його в налаштуваннях Poster)
+        biz_id = request.query.get("biz_id")
+        if not biz_id:
+            return web.Response(status=400, text="Missing biz_id")
+
+        # 2. Ловимо дані від каси
+        data = await request.json()
+        print(f"📥 Отримано вебхук від Poster: {data.get('object')} - {data.get('action')}")
+        
+        # Перевіряємо, чи це саме створення нового замовлення на доставку
+        if data.get("object") == "incoming_order" and data.get("action") == "added":
+            order_data = data.get("data", {})
+            
+            # Витягуємо інфу
+            client_name = order_data.get("client_name", "Клієнт (Poster)")
+            phone = order_data.get("phone", "Не вказано")
+            address = order_data.get("address", "Немає адреси")
+            amount = order_data.get("total_sum", "0")
+            comment = order_data.get("comment", "")
+            
+            # 3. Шукаємо всіх менеджерів цього закладу, щоб повідомити їм радісну новину
+            managers_res = db.supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute()
+            
+            # 4. Формуємо красиве повідомлення для менеджера
+            admin_text = (
+                f"🔥 <b>НОВЕ ЗАМОВЛЕННЯ З POSTER!</b>\n\n"
+                f"👤 <b>Клієнт:</b> {client_name}\n"
+                f"📞 <b>Телефон:</b> {phone}\n"
+                f"📍 <b>Адреса:</b> {address}\n"
+                f"💰 <b>Сума:</b> {float(amount)/100:.2f}\n" # Poster часто передає суму в копійках
+            )
+            if comment:
+                admin_text += f"\n💬 <b>Коментар касира:</b> <i>{comment}</i>"
+                
+            admin_text += f"\n\n👉 <b>Відкрийте Дашборд DeliPro, щоб призначити кур'єра!</b>"
+            
+            # 5. Відправляємо в Телеграм
+            if managers_res.data:
+                for manager in managers_res.data:
+                    try:
+                        await bot.send_message(chat_id=manager['user_id'], text=admin_text, parse_mode="HTML")
+                    except Exception as e:
+                        print(f"Не вдалося відправити менеджеру {manager['user_id']}: {e}")
+
+        return web.Response(text="OK")
+    except Exception as e:
+        print(f"❌ Помилка Poster Webhook: {e}")
+        return web.Response(status=500, text="Error")
+
+# ==========================================
+# ЗАПУСК WEBHOOK СЕРВЕРА
+# ==========================================
 async def start_webhook_server():
     """Запускає сервер для прослуховування вебхуків від Whop паралельно з ботом"""
     app = web.Application()
     app.router.add_post('/webhook/whop', whop_webhook_handler)
+    app.router.add_post('/webhook/poster', poster_webhook_handler) # Тепер помилки не буде!
     
     runner = web.AppRunner(app)
     await runner.setup()
