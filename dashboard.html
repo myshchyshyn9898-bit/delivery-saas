@@ -1223,7 +1223,24 @@
                 message: msg
             };
 
-            // --- ЛОГІКА ІНТЕГРАЦІЙ POS ---
+            const btn = document.getElementById('btn-send-ticket');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('ticket_btn_sending')}`;
+            btn.disabled = true;
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                window.Telegram.WebApp.sendData(JSON.stringify(ticketData));
+            } else {
+                console.log("ТЕСТ ТІКЕТА:", ticketData);
+                setTimeout(() => {
+                    alert(t('ticket_alert_test'));
+                    closeSupportModal();
+                    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span id="text-btn-send-ticket">${t('ticket_btn_send')}</span>`;
+                    btn.disabled = false;
+                }, 1000);
+            }
+        }
+
+        // --- ЛОГІКА ІНТЕГРАЦІЙ POS ---
         let currentPosSystem = '';
 
         function openIntegrationsList() {
@@ -1277,7 +1294,7 @@
             const btn = document.getElementById('btn-save-pos');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Підключення...';
             
-            // В майбутньому тут буде реальний запит у Supabase (напр. supabaseClient.from('businesses').update({[`${currentPosSystem}_token`]: token}))
+            // В майбутньому тут буде реальний запит у Supabase
             // Поки що робимо красиву симуляцію для клієнта:
             setTimeout(() => {
                 closeConnectModal();
@@ -1291,23 +1308,6 @@
                     statusEl.parentElement.parentElement.classList.add('connected');
                 }
             }, 1200);
-        }
-            
-            const btn = document.getElementById('btn-send-ticket');
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('ticket_btn_sending')}`;
-            btn.disabled = true;
-
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                window.Telegram.WebApp.sendData(JSON.stringify(ticketData));
-            } else {
-                console.log("ТЕСТ ТІКЕТА:", ticketData);
-                setTimeout(() => {
-                    alert(t('ticket_alert_test'));
-                    closeSupportModal();
-                    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span id="text-btn-send-ticket">${t('ticket_btn_send')}</span>`;
-                    btn.disabled = false;
-                }, 1000);
-            }
         }
         
         async function loadDashboardData() {
