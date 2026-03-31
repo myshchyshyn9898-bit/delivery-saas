@@ -1292,6 +1292,43 @@
             }
 
             const btn = document.getElementById('btn-save-pos');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Підключення...';
+            btn.disabled = true;
+            
+            try {
+                if (!supabaseClient || !bizId) throw new Error("Помилка з'єднання з базою.");
+                
+                // Формуємо назву колонки для БД (напр., 'poster_token', 'choice_token')
+                const columnName = `${currentPosSystem}_token`;
+                
+                // Відправляємо токен у Supabase
+                const { error } = await supabaseClient
+                    .from('businesses')
+                    .update({ [columnName]: token })
+                    .eq('id', bizId);
+                    
+                if (error) throw error;
+
+                closeConnectModal();
+                showToast("Успіх!", `Каса успішно підключена.`);
+                
+                // Міняємо статус у списку на "Підключено"
+                const statusEl = document.getElementById(`status-${currentPosSystem}`);
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+                    statusEl.classList.add('active');
+                    statusEl.parentElement.parentElement.classList.add('connected');
+                }
+            } catch (err) {
+                alert("❌ Помилка підключення: " + err.message);
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        }
+
+            const btn = document.getElementById('btn-save-pos');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Підключення...';
             
             // В майбутньому тут буде реальний запит у Supabase
@@ -1354,6 +1391,18 @@
                     document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
                     
                     renderSubscriptionUI(biz);
+
+                    // 🔌 ПЕРЕВІРКА ПІДКЛЮЧЕНИХ ІНТЕГРАЦІЙ (POS)
+                    const integrations = ['poster', 'choice', 'syrve', 'gopos'];
+                    integrations.forEach(sys => {
+                        const tokenVal = biz[`${sys}_token`];
+                        const statusEl = document.getElementById(`status-${sys}`);
+                        if (tokenVal && statusEl) {
+                            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+                            statusEl.classList.add('active');
+                            statusEl.parentElement.parentElement.classList.add('connected');
+                        }
+                    });
 
                     if (!currentPlanIsPro && biz.plan !== 'expired') {
                         ['btn-csv-export', 'card-chart', 'card-late', 'couriers-leaderboard', 'card-heatmap'].forEach(id => {
