@@ -643,7 +643,7 @@
             <button class="btn-main" style="background: transparent; color: var(--text-muted); box-shadow: none; margin-top: 0; padding: 12px;" onclick="closeConnectModal()">Скасувати</button>
         </div>
     </div>
-    
+
     <script>
         // 1. БЕЗПЕЧНЕ ВИЗНАЧЕННЯ МОВИ ТА СЛОВНИК
         let tgLang = 'en';
@@ -685,7 +685,7 @@
                 limit_m: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.",
                 err_biz: "Помилка: Business ID не знайдено.", err_tok: "Помилка безпеки: Токен запрошення відсутній.",
                 success_copy: "✅ Безпечне посилання скопійовано!",
-                f1: "Базовий дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
+                f1: "Базовый дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
                 f4: "Інтерактивна тепловая карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал",
                 pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Теплова карта та глибока аналітика", pr_p3: "Управління менеджерами",
                 btn_pay: "Оплатить", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
@@ -1109,7 +1109,7 @@
                 document.getElementById('subscription-modal').classList.add('active');
             }
         }
-        
+
         function actionPayWhop() {
             if (!bizId) return;
             let tgUserId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || "6889016268";
@@ -1326,25 +1326,6 @@
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
             }
-        }
-
-            const btn = document.getElementById('btn-save-pos');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Підключення...';
-            
-            // В майбутньому тут буде реальний запит у Supabase
-            // Поки що робимо красиву симуляцію для клієнта:
-            setTimeout(() => {
-                closeConnectModal();
-                showToast("Успіх!", `Каса успішно підключена. Замовлення синхронізуються.`);
-                
-                // Міняємо статус у списку на "Підключено"
-                const statusEl = document.getElementById(`status-${currentPosSystem}`);
-                if (statusEl) {
-                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
-                    statusEl.classList.add('active');
-                    statusEl.parentElement.parentElement.classList.add('connected');
-                }
-            }, 1200);
         }
         
         async function loadDashboardData() {
