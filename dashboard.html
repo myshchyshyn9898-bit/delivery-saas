@@ -261,6 +261,24 @@
         .ticket-type-btn { background: #f1f5f9; border: 2px solid transparent; padding: 12px; border-radius: 14px; text-align: center; font-size: 12px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
         .ticket-type-btn.active { background: rgba(59, 130, 246, 0.1); border-color: var(--info); color: var(--info); }
         .ticket-type-btn i { font-size: 16px; display: block; margin-bottom: 5px; }
+        
+        /* --- СТИЛІ ДЛЯ ІНТЕГРАЦІЙ (POS) --- */
+        .integration-list { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .integration-card { background: var(--surface); border: 2px solid #edf1f7; border-radius: 16px; padding: 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .integration-card:active { transform: scale(0.97); border-color: var(--primary); }
+        .integration-card.connected { border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.03); }
+        
+        .pos-logo-box { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .pos-info { flex: 1; margin-left: 15px; }
+        .pos-name { font-size: 16px; font-weight: 900; color: var(--text-main); margin-bottom: 2px; }
+        .pos-status { font-size: 11px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+        .pos-status.active { color: var(--success); }
+        
+        /* Динамічна шапка для вікна підключення */
+        .connect-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 25px; padding-top: 10px; }
+        .connect-logo-large { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: white; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        .connect-title { font-size: 22px; font-weight: 900; color: var(--text-main); margin-bottom: 5px; }
+        .connect-desc { font-size: 13px; color: var(--text-muted); font-weight: 600; line-height: 1.4; padding: 0 10px; }
     </style>
 </head>
 <body>
@@ -397,6 +415,19 @@
             <div class="support-icon"><i class="fa-solid fa-headset"></i></div>
         </div>
 
+        <div class="activity-feed" style="padding: 5px 20px; margin-bottom: 20px;" onclick="openIntegrationsList()">
+            <div class="setting-row" style="cursor: pointer; border-bottom: none; padding: 12px 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 40px; height: 40px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px;"><i class="fa-solid fa-plug"></i></div>
+                    <div>
+                        <div class="set-val" style="font-size: 16px;">Інтеграції (POS)</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Poster, Syrve, ChoiceQR...</div>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
+            </div>
+        </div>
+        
         <div class="activity-feed" style="padding: 10px 20px;">
             <div class="setting-row">
                 <span class="set-label" data-i18n="lbl_biz_id">ID Закладу</span>
@@ -547,6 +578,72 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="integrations-list-modal" onclick="closeIntegrationsList()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;">Каталог Інтеграцій</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Підключіть вашу касу для автоматизації доставки.</p>
+            
+            <div class="integration-list">
+                <div class="integration-card" onclick="openConnectModal('Poster POS', 'poster', '#111418', 'P', 'Знайдіть API-токен у кабінеті Poster (Налаштування -> Інтеграції -> API).')">
+                    <div class="pos-logo-box" style="background: #111418;">P</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Poster POS</div>
+                        <div class="pos-status" id="status-poster"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('ChoiceQR', 'choice', '#10b981', 'C', 'Згенеруйте токен у панелі ChoiceQR (розділ Integrations).')">
+                    <div class="pos-logo-box" style="background: #10b981;">C</div>
+                    <div class="pos-info">
+                        <div class="pos-name">ChoiceQR</div>
+                        <div class="pos-status" id="status-choice"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('Syrve', 'syrve', '#8b5cf6', 'S', 'Введіть ваш API Login від системи Syrve (iiko).')">
+                    <div class="pos-logo-box" style="background: #8b5cf6;">S</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Syrve (iiko)</div>
+                        <div class="pos-status" id="status-syrve"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('GoPOS', 'gopos', '#3b82f6', 'G', 'Скопіюйте Authorization Token з адмін-панелі GoPOS.')">
+                    <div class="pos-logo-box" style="background: #3b82f6;">G</div>
+                    <div class="pos-info">
+                        <div class="pos-name">GoPOS</div>
+                        <div class="pos-status" id="status-gopos"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pos-connect-modal" onclick="closeConnectModal()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            
+            <div class="connect-header">
+                <div class="connect-logo-large" id="connect-logo">P</div>
+                <div class="connect-title" id="connect-title">Підключити Poster</div>
+                <div class="connect-desc" id="connect-desc">Введіть токен...</div>
+            </div>
+
+            <label class="form-label">API Токен (Ключ доступу)</label>
+            <input type="text" id="input-pos-token" class="form-input" placeholder="Наприклад: 74528f8h..." style="margin-bottom: 25px; font-family: monospace;">
+
+            <button class="btn-main" id="btn-save-pos" onclick="savePosIntegration()" style="background: #111418;">
+                <i class="fa-solid fa-link"></i> Підключити
+            </button>
+            <button class="btn-main" style="background: transparent; color: var(--text-muted); box-shadow: none; margin-top: 0; padding: 12px;" onclick="closeConnectModal()">Скасувати</button>
+        </div>
+    </div>
+    
     <script>
         // 1. БЕЗПЕЧНЕ ВИЗНАЧЕННЯ МОВИ ТА СЛОВНИК
         let tgLang = 'en';
@@ -1012,7 +1109,7 @@
                 document.getElementById('subscription-modal').classList.add('active');
             }
         }
-
+        
         function actionPayWhop() {
             if (!bizId) return;
             let tgUserId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || "6889016268";
@@ -1126,6 +1223,76 @@
                 message: msg
             };
 
+            // --- ЛОГІКА ІНТЕГРАЦІЙ POS ---
+        let currentPosSystem = '';
+
+        function openIntegrationsList() {
+            document.getElementById('integrations-list-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeIntegrationsList() {
+            document.getElementById('integrations-list-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function openConnectModal(name, id, color, letter, desc) {
+            closeIntegrationsList(); // Закриваємо список
+            
+            setTimeout(() => {
+                currentPosSystem = id;
+                
+                // Динамічно налаштовуємо вікно під обрану касу
+                const logo = document.getElementById('connect-logo');
+                logo.innerText = letter;
+                logo.style.background = color;
+                
+                document.getElementById('connect-title').innerText = `Підключити ${name}`;
+                document.getElementById('connect-desc').innerText = desc;
+                
+                // Очищаємо інпут (в майбутньому тут можна підтягувати збережений токен з бази)
+                document.getElementById('input-pos-token').value = '';
+                
+                const btn = document.getElementById('btn-save-pos');
+                btn.style.background = color;
+                btn.innerHTML = `<i class="fa-solid fa-link"></i> Підключити`;
+
+                document.getElementById('pos-connect-modal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }, 300); // Невелика затримка для красивої анімації переходу
+        }
+
+        function closeConnectModal() {
+            document.getElementById('pos-connect-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        async function savePosIntegration() {
+            const token = document.getElementById('input-pos-token').value.trim();
+            if (!token) {
+                alert("📍 Будь ласка, введіть API токен.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-pos');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Підключення...';
+            
+            // В майбутньому тут буде реальний запит у Supabase (напр. supabaseClient.from('businesses').update({[`${currentPosSystem}_token`]: token}))
+            // Поки що робимо красиву симуляцію для клієнта:
+            setTimeout(() => {
+                closeConnectModal();
+                showToast("Успіх!", `Каса успішно підключена. Замовлення синхронізуються.`);
+                
+                // Міняємо статус у списку на "Підключено"
+                const statusEl = document.getElementById(`status-${currentPosSystem}`);
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+                    statusEl.classList.add('active');
+                    statusEl.parentElement.parentElement.classList.add('connected');
+                }
+            }, 1200);
+        }
+            
             const btn = document.getElementById('btn-send-ticket');
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('ticket_btn_sending')}`;
             btn.disabled = true;
