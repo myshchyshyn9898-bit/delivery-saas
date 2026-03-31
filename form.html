@@ -271,6 +271,34 @@
         const bizId = urlParams.get('biz_id');
         const authToken = urlParams.get('token');
 
+        // --- НОВА ФУНКЦІЯ: АВТОЗАПОВНЕННЯ З ПОСИЛАННЯ (POSTER POS) ---
+        function prefillFromPOS() {
+            if (urlParams.has('address')) {
+                const addrInput = document.getElementById('address-street');
+                if (addrInput) {
+                    addrInput.value = urlParams.get('address');
+                    // Автоматично запускаємо подію "input", щоб карта почала шукати цю адресу!
+                    setTimeout(() => { addrInput.dispatchEvent(new Event('input')); }, 500);
+                }
+            }
+            if (urlParams.has('phone')) {
+                const phoneInput = document.getElementById('client-phone');
+                if (phoneInput) phoneInput.value = urlParams.get('phone');
+            }
+            if (urlParams.has('amount')) {
+                const amountInput = document.getElementById('order-amount');
+                if (amountInput) amountInput.value = urlParams.get('amount');
+            }
+            if (urlParams.has('name')) {
+                const nameInput = document.getElementById('client-name');
+                if (nameInput) nameInput.value = urlParams.get('name');
+            }
+            if (urlParams.has('comment')) {
+                const commentInput = document.getElementById('order-comment');
+                if (commentInput) commentInput.value = urlParams.get('comment');
+            }
+        }
+
         const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
 
@@ -490,7 +518,6 @@
                 addrList.style.display = 'block';
 
                 timeout = setTimeout(async () => {
-                    // ПОВЕРТАЄМО ЯК БУЛО ДО МОЇХ "ПОКРАЩЕНЬ"
                     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
                     
                     try {
@@ -573,6 +600,9 @@
             }
 
             initForm();
+            
+            // Запускаємо функцію автозаповнення після завантаження форми
+            prefillFromPOS();
         });
     </script>
 </body>
