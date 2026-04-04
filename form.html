@@ -9,11 +9,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
     
     <style>
-        /* Фіксована преміальна світла тема */
         :root { 
             --bg-color: #f8fafc; 
             --text-main: #0f172a; 
@@ -30,7 +29,6 @@
         .header { background: var(--surface); padding: 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; font-size: 18px; font-weight: 700; color: var(--text-main); box-shadow: 0 2px 10px rgba(0,0,0,0.02); display: flex; justify-content: space-between; align-items: center; }
         .header i { color: var(--primary); margin-right: 6px; }
         
-        /* --- ПЕРЕМИКАЧ МОВИ --- */
         .lang-switcher {
             background: rgba(255,255,255,0.9);
             padding: 6px 10px; border-radius: 10px; font-size: 11px; font-weight: 800;
@@ -90,7 +88,6 @@
         .text-primary { color: var(--primary); }
         .text-danger { color: #ef4444; }
 
-        /* Стилі для контейнера карти */
         .map-preview {
             height: 160px;
             width: 100%;
@@ -193,6 +190,12 @@
     </div>
 
     <script>
+        // ІНІЦІАЛІЗАЦІЯ MAPBOX З ВЕРСІЇ 1.0
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
+        mapboxgl.accessToken = MAPBOX_TOKEN;
+        let map = null;
+        let mapboxMarkers = [];
+
         let tg = null;
         let tgLang = 'en';
         
@@ -271,13 +274,11 @@
         const bizId = urlParams.get('biz_id');
         const authToken = urlParams.get('token');
 
-        // --- НОВА ФУНКЦІЯ: АВТОЗАПОВНЕННЯ З ПОСИЛАННЯ (POSTER POS) ---
         function prefillFromPOS() {
             if (urlParams.has('address')) {
                 const addrInput = document.getElementById('address-street');
                 if (addrInput) {
                     addrInput.value = urlParams.get('address');
-                    // Автоматично запускаємо подію "input", щоб карта почала шукати цю адресу!
                     setTimeout(() => { addrInput.dispatchEvent(new Event('input')); }, 500);
                 }
             }
@@ -319,9 +320,6 @@
         
         let globalCouriers = [];
         let globalBusyIds = [];
-
-        let map = null;
-        let mapLayer = null;
 
         let selectedLat = null; 
         let selectedLon = null; 
@@ -376,43 +374,81 @@
             return R * c; 
         }
 
+        // ВІДНОВЛЕНО ВІЗУАЛ MAPBOX З ВЕРСІЇ 1.0
         function updateMapPreview(clientLat, clientLon) {
             const mapContainer = document.getElementById('map-preview');
-            mapContainer.style.display = 'block'; 
+            mapContainer.style.display = 'block';
+            if (map) map.resize();
+
+            const drawElements = () => {
+                if (mapboxMarkers.length > 0) {
+                    mapboxMarkers.forEach(m => m.remove());
+                    mapboxMarkers = [];
+                }
+
+                const bizEl = document.createElement('div');
+                bizEl.innerHTML = '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>';
+
+                const clientEl = document.createElement('div');
+                clientEl.innerHTML = '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>';
+
+                if (bizLat && bizLon) {
+                    mapboxMarkers.push(new mapboxgl.Marker(bizEl).setLngLat([bizLon, bizLat]).addTo(map));
+                }
+                mapboxMarkers.push(new mapboxgl.Marker(clientEl).setLngLat([clientLon, clientLat]).addTo(map));
+
+                if (bizLat && bizLon) {
+                    const routeData = {
+                        'type': 'FeatureCollection',
+                        'features': [{
+                            'type': 'Feature',
+                            'geometry': {
+                                'type': 'LineString',
+                                'coordinates': [[bizLon, bizLat], [clientLon, clientLat]]
+                            }
+                        }]
+                    };
+
+                    if (map.getSource('route')) {
+                        map.getSource('route').setData(routeData);
+                    } else {
+                        map.addSource('route', { 'type': 'geojson', 'data': routeData });
+                        map.addLayer({
+                            'id': 'route',
+                            'type': 'line',
+                            'source': 'route',
+                            'layout': { 'line-join': 'round', 'line-cap': 'round' },
+                            'paint': {
+                                'line-color': '#ff6b4a',
+                                'line-width': 3,
+                                'line-dasharray': [2, 2]
+                            }
+                        });
+                    }
+
+                    const bounds = new mapboxgl.LngLatBounds([bizLon, bizLat], [clientLon, clientLat]);
+                    map.fitBounds(bounds, { padding: 30, maxZoom: 15 });
+                } else {
+                    map.setCenter([clientLon, clientLat]);
+                    map.setZoom(15);
+                }
+            };
 
             if (!map) {
-                map = L.map('map-preview', { zoomControl: false, attributionControl: false });
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
-                mapLayer = L.layerGroup().addTo(map);
-            }
-
-            mapLayer.clearLayers(); 
-
-            const clientPoint = [clientLat, clientLon];
-            
-            const clientIcon = L.divIcon({
-                html: '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>',
-                className: '', iconSize: [28, 28], iconAnchor: [14, 28]
-            });
-
-            const bizIcon = L.divIcon({
-                html: '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>',
-                className: '', iconSize: [24, 24], iconAnchor: [12, 24]
-            });
-
-            if (bizLat && bizLon) {
-                const bizPoint = [bizLat, bizLon];
-                L.marker(bizPoint, {icon: bizIcon}).addTo(mapLayer);
-                L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
-
-                const polyline = L.polyline([bizPoint, clientPoint], { color: '#ff6b4a', weight: 3, dashArray: '6, 8', opacity: 0.8 }).addTo(mapLayer);
-                map.fitBounds(polyline.getBounds(), { padding: [20, 20] });
+                let initLat = bizLat || clientLat;
+                let initLon = bizLon || clientLon;
+                map = new mapboxgl.Map({
+                    container: 'map-preview',
+                    style: 'mapbox://styles/mapbox/streets-v12',
+                    center: [initLon, initLat],
+                    zoom: 12,
+                    interactive: false
+                });
+                map.on('load', drawElements);
             } else {
-                L.marker(clientPoint, {icon: clientIcon}).addTo(mapLayer);
-                map.setView(clientPoint, 15);
+                if (map.isStyleLoaded()) drawElements();
+                else map.once('load', drawElements);
             }
-
-            setTimeout(() => { map.invalidateSize(); }, 100);
         }
 
         async function initForm() {
@@ -506,6 +542,7 @@
             const addrList = document.getElementById('autocomplete-list');
             let timeout = null;
 
+            // ВІДНОВЛЕНО ГІБРИДНИЙ ПОШУК З ВЕРСІЇ 1.0 (MAPBOX + OSM)
             addrInput.addEventListener('input', function() {
                 clearTimeout(timeout);
                 selectedLat = null; selectedLon = null;
@@ -518,58 +555,78 @@
                 addrList.style.display = 'block';
 
                 timeout = setTimeout(async () => {
-                    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=10&countrycodes=pl`;
+                    const mapboxUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&proximity=${bizLon || 21.999},${bizLat || 50.041}&limit=4&language=${currentLang}&autocomplete=true`;
+                    const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=4&accept-language=${currentLang}`;
                     
                     try {
-                        const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
-                        const data = await res.json();
+                        const [mapboxRes, osmRes] = await Promise.all([
+                            fetch(mapboxUrl).then(r => r.json()).catch(() => ({features: []})),
+                            fetch(osmUrl).then(r => r.json()).catch(() => [])
+                        ]);
+                        
+                        let combinedResults = [];
+
+                        if (mapboxRes.features) {
+                            mapboxRes.features.forEach(item => {
+                                let cleanName = item.place_name.replace(/, Poland|, Polska|, Subcarpathian Voivodeship|, województwo podkarpackie/gi, "").trim();
+                                combinedResults.push({
+                                    name: cleanName,
+                                    lat: parseFloat(item.center[1]),
+                                    lon: parseFloat(item.center[0])
+                                });
+                            });
+                        }
+
+                        if (Array.isArray(osmRes)) {
+                            osmRes.forEach(item => {
+                                let cleanName = item.display_name.replace(/, Polska|, Poland|, województwo podkarpackie/gi, "").trim();
+                                combinedResults.push({
+                                    name: cleanName,
+                                    lat: parseFloat(item.lat),
+                                    lon: parseFloat(item.lon)
+                                });
+                            });
+                        }
+
+                        let uniqueResults = [];
+                        let seenNames = new Set();
+
+                        combinedResults.forEach(item => {
+                            item.distance = (bizLat && bizLon) ? calculateDistance(bizLat, bizLon, item.lat, item.lon) : 0;
+                            let key = item.name.toLowerCase().substring(0, 15);
+                            if (!seenNames.has(key)) {
+                                seenNames.add(key);
+                                if (!bizLat || item.distance <= bizRadius) {
+                                    uniqueResults.push(item);
+                                }
+                            }
+                        });
+
+                        uniqueResults.sort((a, b) => a.distance - b.distance);
                         
                         addrList.innerHTML = ''; 
-                        let foundValidAddress = false;
                         
-                        if (data && data.length > 0) {
-                            data.forEach(item => {
-                                const addr = item.address;
-                                if (!addr) return;
-
-                                const itemLat = parseFloat(item.lat);
-                                const itemLon = parseFloat(item.lon);
-                                
-                                let distance = 0;
-                                if (bizLat && bizLon) {
-                                    distance = calculateDistance(bizLat, bizLon, itemLat, itemLon);
-                                    if (distance > bizRadius) return; 
-                                }
-
-                                const road = addr.road || addr.pedestrian || addr.path || addr.suburb || item.name;
-                                const house = addr.house_number || '';
-                                const mainText = `${road} ${house}`.trim();
-                                const city = addr.city || addr.town || addr.village || '';
-                                const countryDef = t('country_def');
-                                const subText = city ? `${city}, ${countryDef}` : countryDef;
-                                
-                                if (!road) return; 
-                                
-                                foundValidAddress = true;
-
-                                const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route" style="color: var(--primary);"></i> ${distance.toFixed(1)} ${t('km')}</span>` : '';
+                        if (uniqueResults.length > 0) {
+                            uniqueResults.slice(0, 6).forEach(item => {
+                                const distHtml = (bizLat && bizLon) ? `<span class="dist-badge"><i class="fa-solid fa-route" style="color: var(--primary);"></i> ${item.distance.toFixed(1)} ${t('km')}</span>` : '';
+                                const parts = item.name.split(',');
+                                const mainText = parts[0];
+                                const subText = parts.slice(1).join(',').trim();
 
                                 const div = document.createElement('div');
                                 div.className = 'autocomplete-item';
                                 div.innerHTML = `<div class="addr-main"><span>${mainText}</span> ${distHtml}</div><div class="addr-sub">${subText}</div>`;
                                 
                                 div.onclick = function() {
-                                    addrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
-                                    selectedLat = itemLat; 
-                                    selectedLon = itemLon; 
+                                    addrInput.value = item.name;
+                                    selectedLat = item.lat; 
+                                    selectedLon = item.lon; 
                                     addrList.style.display = 'none';
                                     updateMapPreview(selectedLat, selectedLon);
                                 };
                                 addrList.appendChild(div);
                             });
-                        }
-
-                        if (!foundValidAddress) {
+                        } else {
                             const emptyMsg = t('search_empty').replace('{r}', bizRadius);
                             addrList.innerHTML = `
                                 <div class="autocomplete-item text-center text-danger">
@@ -581,7 +638,7 @@
                     } catch(e) { 
                         addrList.innerHTML = `<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-circle-xmark" style="margin-right: 6px;"></i>${t('search_err')}</div>`;
                     }
-                }, 1200); 
+                }, 800); 
             });
 
             document.addEventListener('click', function(e) {
@@ -600,8 +657,6 @@
             }
 
             initForm();
-            
-            // Запускаємо функцію автозаповнення після завантаження форми
             prefillFromPOS();
         });
     </script>
