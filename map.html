@@ -110,7 +110,7 @@
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
         }
 
-        /* Кольори пінів */
+        /* Кольори пінів залежно від статусу */
         .pin-free { 
             color: var(--info); 
             font-size: 32px; 
@@ -316,7 +316,7 @@
 </div>
 
 <script>
-    // --- ЛОВЕЦЬ ПОМИЛОК ---
+    // --- СИСТЕМА ЛОГІВ ТА ПЕРЕХОПЛЕННЯ ПОМИЛОК ---
     function logStep(text) {
         const loadText = document.getElementById('load-text');
         if (loadText) {
@@ -336,19 +336,26 @@
     window.onerror = function(msg, url, line) { 
         logError(msg + " (Line: " + line + ")"); 
     };
+
     window.addEventListener('unhandledrejection', function(event) { 
-        logError("Async Error: " + event.reason); 
+        let reasonText = "Unknown";
+        if (event.reason) {
+            reasonText = event.reason.message || event.reason;
+        }
+        logError("Async Error: " + reasonText); 
     });
 
+    // --- КОНСТАНТИ ---
     const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
     const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
 
-    let map;
+    // --- ЗМІННІ СТАНУ ---
+    let map = null;
     let markers = [];
     let selectedOrder = null;
-    let tg;
-    let supabase;
+    let tg = null;
+    let supabase = null;
     let userRole = 'courier';
     let userId = null;
     let bizData = null;
@@ -356,53 +363,65 @@
     let timerInterval = null;
     let activeOrdersData = [];
 
-    document.addEventListener("DOMContentLoaded", async () => {
+    // --- ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ ---
+    async function runApp() {
         try {
             logStep("Крок 1: Ініціалізація Telegram...");
             if (window.Telegram && window.Telegram.WebApp) {
                 tg = window.Telegram.WebApp;
                 tg.expand();
-                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setHeaderColor) {
+                    tg.setHeaderColor('#ffffff');
+                }
             } else {
                 throw new Error("Telegram WebApp не знайдено");
             }
 
-            logStep("Крок 2: Читання токенів...");
+            logStep("Крок 2: Читання токенів з URL...");
             const urlParams = new URLSearchParams(window.location.search);
             const bizId = urlParams.get('biz_id');
-            const tgId = urlParams.get('tg_id');
             const authToken = urlParams.get('token');
-            userId = tgId || (tg.initDataUnsafe?.user?.id);
+            const tgId = urlParams.get('tg_id');
+            
+            if (tgId) {
+                userId = tgId;
+            } else if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                userId = tg.initDataUnsafe.user.id;
+            }
 
             if (!bizId || !authToken) {
                 throw new Error("Немає biz_id або token у посиланні");
             }
 
-            logStep("Крок 3: Підключення Supabase...");
+            logStep("Крок 3: Підключення до бази даних Supabase...");
             if (!window.supabase) {
-                throw new Error("Бібліотека Supabase не завантажилась");
+                throw new Error("Бібліотека Supabase не завантажилась (перевірте інтернет)");
             }
             
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 global: { 
-                    headers: { Authorization: 'Bearer ' + authToken } 
+                    headers: { 
+                        Authorization: `Bearer ${authToken}` 
+                    } 
                 }
             });
 
-            logStep("Крок 4: Завантаження даних закладу...");
+            logStep("Крок 4: Завантаження даних вашого закладу...");
             const { data: biz, error: bizErr } = await supabase
                 .from('businesses')
                 .select('*')
                 .eq('id', bizId)
                 .single();
                 
-            if (bizErr) throw new Error("БД Заклад: " + bizErr.message);
+            if (bizErr) {
+                throw new Error("БД Заклад: " + bizErr.message);
+            }
             bizData = biz;
 
-            logStep("Крок 5: Перевірка прав доступу...");
+            logStep("Крок 5: Перевірка ваших прав доступу...");
             if (String(biz.owner_id) === String(userId)) {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = "👑 <b>Режим Адміна</b>";
+                document.getElementById('role-badge').innerHTML = `👑 <b>Режим Адміна</b>`;
             } else {
                 const { data: staff, error: staffErr } = await supabase
                     .from('staff')
@@ -417,35 +436,41 @@
                 
                 if (staff && staff.role === 'manager') {
                     userRole = 'admin';
-                    document.getElementById('role-badge').innerHTML = "👨‍💼 <b>Режим Менеджера</b>";
+                    document.getElementById('role-badge').innerHTML = `👨‍💼 <b>Режим Менеджера</b>`;
                 } else if (staff && staff.role === 'courier') {
                     userRole = 'courier';
-                    document.getElementById('role-badge').innerHTML = "🛵 <b>Кур'єр:</b> " + staff.name;
+                    document.getElementById('role-badge').innerHTML = `🛵 <b>Кур'єр:</b> ${staff.name}`;
                 } else {
-                    document.getElementById('role-badge').innerHTML = "❓ Невідома роль";
+                    document.getElementById('role-badge').innerHTML = `❓ Невідома роль`;
                 }
             }
 
             if (userRole === 'admin') {
-                logStep("Крок 6: Завантаження списку кур'єрів...");
+                logStep("Крок 6: Завантаження списку доступних кур'єрів...");
                 const { data: couriers, error: cErr } = await supabase
                     .from('staff')
                     .select('*')
                     .eq('business_id', bizId)
                     .eq('role', 'courier');
                     
-                if (cErr) throw new Error("БД Кур'єри: " + cErr.message);
+                if (cErr) {
+                    throw new Error("БД Кур'єри: " + cErr.message);
+                }
+                
                 availableCouriers = couriers || [];
                 const select = document.getElementById('courier-select');
-                select.innerHTML = '<option value="" disabled selected>Оберіть кур\'єра...</option>';
-                availableCouriers.forEach(c => { 
-                    select.innerHTML += '<option value="' + (c.user_id || c.tg_id) + '">' + c.name + '</option>'; 
+                select.innerHTML = `<option value="" disabled selected>Оберіть кур'єра...</option>`;
+                
+                availableCouriers.forEach(function(c) { 
+                    const courierId = c.user_id || c.tg_id;
+                    select.innerHTML += `<option value="${courierId}">${c.name}</option>`; 
                 });
             }
 
-            logStep("Крок 7: Ініціалізація Mapbox...");
+            logStep("Крок 7: Підготовка до малювання карти...");
             initMap();
 
+            // Прив'язка подій до кнопок
             document.getElementById('btn-cancel').onclick = closePanel;
             document.getElementById('btn-assign').onclick = assignOrder;
             document.getElementById('btn-route').onclick = buildRoute;
@@ -453,16 +478,18 @@
         } catch (error) {
             logError(error.message);
         }
-    });
+    }
 
+    // --- ІНІЦІАЛІЗАЦІЯ КАРТИ MAPBOX ---
     function initMap() {
         try {
             mapboxgl.accessToken = MAPBOX_TOKEN;
-            const bLng = parseFloat(bizData.lng) || 21.99901;
-            const bLat = parseFloat(bizData.lat) || 50.04132;
+            
+            const bLng = parseFloat(bizData.lng);
+            const bLat = parseFloat(bizData.lat);
 
             if (isNaN(bLng) || isNaN(bLat)) {
-                throw new Error("Некоректні координати закладу");
+                throw new Error("Некоректні координати закладу в базі даних");
             }
 
             map = new mapboxgl.Map({
@@ -473,80 +500,115 @@
             });
 
             const bizEl = document.createElement('div');
-            bizEl.innerHTML = '<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>';
-            new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
+            bizEl.innerHTML = `<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>`;
+            
+            new mapboxgl.Marker(bizEl)
+                .setLngLat([bLng, bLat])
+                .addTo(map);
 
-            map.on('error', (e) => { 
-                logError("Mapbox Event Error: " + (e.error ? e.error.message : "Unknown")); 
+            map.on('error', function(e) { 
+                let msg = "Unknown Mapbox Error";
+                if (e && e.error && e.error.message) {
+                    msg = e.error.message;
+                }
+                logError("Mapbox Event Error: " + msg); 
             });
 
-            map.on('load', () => {
-                logStep("Карта успішно завантажена!");
+            map.on('load', function() {
+                logStep("Крок 8: Карта успішно завантажена! Відображаємо замовлення.");
                 document.getElementById('loading-screen').style.display = 'none';
+                
                 loadOrders();
                 setInterval(loadOrders, 15000); 
-                if(timerInterval) clearInterval(timerInterval);
+                
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
                 timerInterval = setInterval(updateAllTimers, 60000);
             });
             
-            map.on('click', () => closePanel());
+            map.on('click', function() {
+                closePanel();
+            });
             
         } catch (e) {
             logError("Mapbox Init Crash: " + e.message);
         }
     }
 
-    // --- ФУНКЦІЇ ЛОГІКИ ---
+    // --- ФУНКЦІЇ ДЛЯ РОБОТИ З ЗАМОВЛЕННЯМИ ---
     async function assignOrder() {
         const cId = document.getElementById('courier-select').value;
+        
         if (!cId) {
-            return tg.showAlert("Оберіть кур'єра!");
+            tg.showAlert("Будь ласка, оберіть кур'єра зі списку!");
+            return;
         }
-        if (!selectedOrder) return;
+        
+        if (!selectedOrder) {
+            return;
+        }
 
         const btn = document.getElementById('btn-assign');
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Призначаємо...`;
         btn.disabled = true;
         
         try {
-            await supabase
+            const { error } = await supabase
                 .from('orders')
                 .update({ courier_id: cId })
                 .eq('id', selectedOrder.id);
                 
-            tg.sendData(JSON.stringify({ 
+            if (error) {
+                throw error;
+            }
+                
+            const payload = { 
                 action: "assign_order", 
                 order_id: selectedOrder.id, 
                 courier_id: cId 
-            }));
+            };
             
-            tg.showAlert("Призначено!");
+            tg.sendData(JSON.stringify(payload));
+            tg.showAlert("Кур'єра успішно призначено!");
+            
             closePanel();
             loadOrders(); 
+            
         } catch (err) {
-            tg.showAlert("Помилка: " + err.message);
+            tg.showAlert("Помилка при призначенні: " + err.message);
         } finally {
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Призначити';
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Призначити`;
             btn.disabled = false;
         }
     }
 
     function buildRoute() {
-        if (!selectedOrder) return;
-        const encodedAddress = encodeURIComponent(selectedOrder.address);
-        // Формат Google Maps, який працює на всіх пристроях
-        const url = 'https://www.google.com/maps/search/?api=1&query=' + encodedAddress;
+        if (!selectedOrder) {
+            return;
+        }
+        
+        const encodedLat = encodeURIComponent(selectedOrder.lat);
+        const encodedLon = encodeURIComponent(selectedOrder.lon);
+        
+        // Формат лінку для Google Maps
+        const url = `https://www.google.com/maps/dir/?api=1&destination=$${encodedLat},${encodedLon}&travelmode=driving`;
         tg.openLink(url);
     }
 
     function calculateTimeDiff(createdAtStr, estTimeMins) {
         const createdDate = new Date(createdAtStr + 'Z'); 
-        const deadline = new Date(createdDate.getTime() + (estTimeMins * 60000));
-        return Math.ceil((deadline - new Date()) / 60000);
+        const estTimeInMs = estTimeMins * 60000;
+        const deadline = new Date(createdDate.getTime() + estTimeInMs);
+        const now = new Date();
+        const diffInMs = deadline.getTime() - now.getTime();
+        
+        return Math.ceil(diffInMs / 60000);
     }
 
     function closePanel() {
-        document.getElementById('bottom-sheet').classList.remove('active');
+        const sheet = document.getElementById('bottom-sheet');
+        sheet.classList.remove('active');
         selectedOrder = null;
     }
 
@@ -558,31 +620,55 @@
                 .eq('business_id', bizData.id)
                 .eq('status', 'pending');
                 
-            if (error) throw error;
+            if (error) {
+                throw error;
+            }
+            
             activeOrdersData = orders || [];
             drawMarkers();
+            
         } catch (e) { 
-            logError("Load orders: " + e.message); 
+            logError("Помилка завантаження замовлень: " + e.message); 
         }
     }
 
     function drawMarkers() {
-        markers.forEach(m => m.remove());
+        // Видаляємо старі маркери з карти
+        markers.forEach(function(m) {
+            m.remove();
+        });
         markers = [];
 
-        activeOrdersData.forEach(order => {
-            if (!order.lat || !order.lon) return;
+        activeOrdersData.forEach(function(order) {
+            if (!order.lat || !order.lon) {
+                return;
+            }
+            
             const oLat = parseFloat(order.lat);
             const oLon = parseFloat(order.lon);
-            if (isNaN(oLat) || isNaN(oLon)) return;
+            
+            if (isNaN(oLat) || isNaN(oLon)) {
+                return;
+            }
 
             const isUnassigned = !order.courier_id || order.courier_id === 'unassigned';
             const isMine = String(order.courier_id) === String(userId);
-            if (userRole === 'courier' && !isMine) return;
+            
+            // Якщо користувач кур'єр, і замовлення чуже - пропускаємо
+            if (userRole === 'courier' && !isMine) {
+                return;
+            }
 
-            const diffMins = calculateTimeDiff(order.created_at, order.est_time || 30);
-            let timeText = diffMins < 0 ? diffMins + ' 🔥' : diffMins;
-            let badgeClass = diffMins < 0 ? 'time-badge time-late' : 'time-badge time-ok';
+            const estTime = order.est_time || 30;
+            const diffMins = calculateTimeDiff(order.created_at, estTime);
+            
+            let timeText = diffMins;
+            let badgeClass = 'time-badge time-ok';
+            
+            if (diffMins < 0) {
+                timeText = `${diffMins} 🔥`;
+                badgeClass = 'time-badge time-late';
+            }
 
             const el = document.createElement('div');
             el.className = 'custom-marker';
@@ -601,37 +687,46 @@
 
             const shortAddr = order.address.split(',')[0];
 
-            el.innerHTML = '<div class="marker-label" style="opacity: ' + labelOpacity + '">' +
-                '<span>' + shortAddr + '</span>' +
-                '<span class="' + badgeClass + '" data-created="' + order.created_at + '" data-est="' + (order.est_time || 30) + '">' + timeText + '</span>' +
-                '</div>' +
-                '<div class="' + pinClass + '"><i class="fa-solid fa-location-dot"></i></div>';
+            el.innerHTML = `
+                <div class="marker-label" style="opacity: ${labelOpacity}">
+                    <span>${shortAddr}</span>
+                    <span class="${badgeClass}" data-created="${order.created_at}" data-est="${estTime}">${timeText}</span>
+                </div>
+                <div class="${pinClass}">
+                    <i class="fa-solid fa-location-dot"></i>
+                </div>
+            `;
 
-            el.onclick = (e) => {
+            el.onclick = function(e) {
                 e.stopPropagation();
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                
+                if (tg && tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+                
                 selectedOrder = order;
+                
                 document.getElementById('panel-address').innerText = shortAddr;
                 document.getElementById('panel-time').className = badgeClass;
-                document.getElementById('panel-time').innerText = timeText + ' хв';
+                document.getElementById('panel-time').innerText = `${timeText} хв`;
 
                 let payStr = "Онлайн";
                 let payIcon = "fa-globe";
                 
                 if (order.pay_type === 'cash') { 
-                    payStr = 'Готівка: ' + order.amount; 
+                    payStr = `Готівка: ${order.amount}`; 
                     payIcon = "fa-money-bill-wave"; 
-                }
-                if (order.pay_type === 'terminal') { 
-                    payStr = 'Термінал: ' + order.amount; 
+                } else if (order.pay_type === 'terminal') { 
+                    payStr = `Термінал: ${order.amount}`; 
                     payIcon = "fa-credit-card"; 
                 }
                 
                 document.getElementById('panel-pay').innerText = payStr;
-                document.getElementById('panel-pay-icon').className = 'fa-solid ' + payIcon;
+                document.getElementById('panel-pay-icon').className = `fa-solid ${payIcon}`;
 
                 if (userRole === 'admin') {
                     document.getElementById('courier-actions').style.display = 'none';
+                    
                     if (isUnassigned) {
                         document.getElementById('admin-actions').style.display = 'block';
                         document.getElementById('panel-courier-row').style.display = 'none';
@@ -639,8 +734,10 @@
                     } else {
                         document.getElementById('admin-actions').style.display = 'none';
                         document.getElementById('panel-courier-row').style.display = 'flex';
-                        let cObj = availableCouriers.find(c => String(c.user_id) === String(order.courier_id));
-                        document.getElementById('panel-courier').innerHTML = 'Кур\'єр: <b>' + (cObj ? cObj.name : "Невідомий") + '</b>';
+                        
+                        const cObj = availableCouriers.find(c => String(c.user_id) === String(order.courier_id));
+                        const courierName = cObj ? cObj.name : "Невідомий";
+                        document.getElementById('panel-courier').innerHTML = `Кур'єр: <b>${courierName}</b>`;
                     }
                 } else {
                     document.getElementById('admin-actions').style.display = 'none';
@@ -648,24 +745,51 @@
                     document.getElementById('courier-actions').style.display = 'block';
                 }
 
-                document.getElementById('bottom-sheet').classList.add('active');
-                map.flyTo({ center: [oLon, oLat], zoom: 14, speed: 1.2 });
+                const sheet = document.getElementById('bottom-sheet');
+                sheet.classList.add('active');
+                
+                map.flyTo({ 
+                    center: [oLon, oLat], 
+                    zoom: 14, 
+                    speed: 1.2 
+                });
             };
             
-            markers.push(new mapboxgl.Marker(el).setLngLat([oLon, oLat]).addTo(map));
+            const newMarker = new mapboxgl.Marker(el)
+                .setLngLat([oLon, oLat])
+                .addTo(map);
+                
+            markers.push(newMarker);
         });
     }
 
     function updateAllTimers() {
-        document.querySelectorAll('.time-badge').forEach(badge => {
+        const badges = document.querySelectorAll('.time-badge');
+        
+        badges.forEach(function(badge) {
             const createdAt = badge.getAttribute('data-created');
-            const estTime = parseInt(badge.getAttribute('data-est'));
-            if(createdAt && estTime) {
+            const estTimeAttr = badge.getAttribute('data-est');
+            
+            if (createdAt && estTimeAttr) {
+                const estTime = parseInt(estTimeAttr);
                 const diffMins = calculateTimeDiff(createdAt, estTime);
-                badge.className = diffMins < 0 ? 'time-badge time-late' : 'time-badge time-ok';
-                badge.innerText = diffMins < 0 ? diffMins + ' 🔥' : diffMins;
+                
+                if (diffMins < 0) {
+                    badge.className = 'time-badge time-late';
+                    badge.innerText = `${diffMins} 🔥`;
+                } else {
+                    badge.className = 'time-badge time-ok';
+                    badge.innerText = diffMins;
+                }
             }
         });
+    }
+
+    // --- СТАРТ ДОДАТКУ (Захист від багу iOS Telegram WebApp) ---
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runApp);
+    } else {
+        runApp();
     }
 </script>
 </body>
