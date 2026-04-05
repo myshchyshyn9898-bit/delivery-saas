@@ -190,7 +190,6 @@
     </div>
 
     <script>
-        // ІНІЦІАЛІЗАЦІЯ MAPBOX З ВЕРСІЇ 1.0
         const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
         mapboxgl.accessToken = MAPBOX_TOKEN;
         let map = null;
@@ -215,6 +214,7 @@
         let currentLang = savedLang || tgLang;
         if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
 
+        // 🔴 ДОДАНО ПЕРЕКЛАДИ ДЛЯ "ВІЛЬНОГО ЗАМОВЛЕННЯ"
         const i18n = {
             'uk': {
                 title_main: "Нове замовлення", card_client: "Дані клієнта", ph_name: "Ім'я клієнта (напр. Олексій)", ph_phone: "Телефон (+48...)",
@@ -227,7 +227,7 @@
                 search_load: "Шукаємо адресу...", search_empty: "Адресу не знайдено, або вона поза зоною доставки ({r} км).", search_err: "Помилка пошуку",
                 country_def: "Польща", km: "км", err_addr: "📍 Будь ласка, почніть вводити адресу і обов'язково ОБЕРІТЬ її з випадаючого списку!",
                 err_phone: "Будь ласка, введіть коректний номер телефону!", err_req: "Заповніть обов'язкові поля: вулицю, суму та оберіть кур'єра!",
-                load_list: "Завантаження списку..."
+                load_list: "Завантаження списку...", unassigned_opt: "🟢 Вільне (На карту)"
             },
             'ru': {
                 title_main: "Новый заказ", card_client: "Данные клиента", ph_name: "Имя клиента (напр. Алексей)", ph_phone: "Телефон (+48...)",
@@ -240,7 +240,7 @@
                 search_load: "Ищем адрес...", search_empty: "Адрес не найден, или он вне зоны доставки ({r} км).", search_err: "Ошибка поиска",
                 country_def: "Польша", km: "км", err_addr: "📍 Пожалуйста, начните вводить адрес и обязательно ВЫБЕРИТЕ его из списка!",
                 err_phone: "Пожалуйста, введите корректный номер телефона!", err_req: "Заполните обязательные поля: улицу, сумму и выберите курьера!",
-                load_list: "Загрузка списка..."
+                load_list: "Загрузка списка...", unassigned_opt: "🟢 Свободный (На карту)"
             },
             'pl': {
                 title_main: "Nowe zamówienie", card_client: "Dane klienta", ph_name: "Imię klienta (np. Jan)", ph_phone: "Telefon (+48...)",
@@ -253,7 +253,7 @@
                 search_load: "Szukamy adresu...", search_empty: "Nie znaleziono adresu lub jest poza strefą dostawy ({r} km).", search_err: "Błąd wyszukiwania",
                 country_def: "Polska", km: "km", err_addr: "📍 Proszę zacząć wpisywać adres i koniecznie WYBRAĆ go z listy rozwijanej!",
                 err_phone: "Proszę wprowadzić poprawny numer telefonu!", err_req: "Wypełnij wymagane pola: ulicę, kwotę i wybierz kuriera!",
-                load_list: "Ładowanie listy..."
+                load_list: "Ładowanie listy...", unassigned_opt: "🟢 Wolne (Na mapę)"
             },
             'en': {
                 title_main: "New Order", card_client: "Client Data", ph_name: "Client name (e.g. Alex)", ph_phone: "Phone (+48...)",
@@ -266,7 +266,7 @@
                 search_load: "Searching address...", search_empty: "Address not found or out of delivery zone ({r} km).", search_err: "Search error",
                 country_def: "Poland", km: "km", err_addr: "📍 Please start typing the address and make sure to SELECT it from the list!",
                 err_phone: "Please enter a valid phone number!", err_req: "Fill in the required fields: street, amount, and select a courier!",
-                load_list: "Loading list..."
+                load_list: "Loading list...", unassigned_opt: "🟢 Unassigned (To map)"
             }
         };
 
@@ -330,7 +330,12 @@
             const select = document.getElementById('courier-select');
             if (!select || globalCouriers.length === 0) return;
             
-            select.innerHTML = `<option value="" disabled selected>${t('select_c')}</option>`;
+            // 🔴 ДОДАНО ОПЦІЮ "ВІЛЬНОГО ЗАМОВЛЕННЯ"
+            select.innerHTML = `
+                <option value="" disabled>${t('select_c')}</option>
+                <option value="unassigned" selected style="color: var(--info); font-weight: 700;">${t('unassigned_opt')}</option>
+            `;
+            
             globalCouriers.forEach(c => { 
                 const isBusy = globalBusyIds.includes(String(c.user_id));
                 const statusText = isBusy ? t('c_busy') : t('c_free');
@@ -374,7 +379,6 @@
             return R * c; 
         }
 
-        // ВІДНОВЛЕНО ВІЗУАЛ MAPBOX З ВЕРСІЇ 1.0
         function updateMapPreview(clientLat, clientLon) {
             const mapContainer = document.getElementById('map-preview');
             mapContainer.style.display = 'block';
@@ -470,7 +474,11 @@
                     globalBusyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
                     renderCouriers();
                 } else {
-                    select.innerHTML = `<option value="">${t('no_c')}</option>`;
+                    // 🔴 НАВІТЬ ЯКЩО НЕМАЄ КУР'ЄРІВ, ДАЄМО МОЖЛИВІСТЬ КИНУТИ НА КАРТУ
+                    select.innerHTML = `
+                        <option value="" disabled>${t('no_c')}</option>
+                        <option value="unassigned" selected style="color: var(--info); font-weight: 700;">${t('unassigned_opt')}</option>
+                    `;
                 }
             } catch(e) { 
                 console.error("Помилка ініціалізації:", e); 
@@ -504,6 +512,7 @@
             }
 
             const amountVal = parseFloat(amount);
+            // 🔴 ВІДРЕДАГОВАНО: Тепер courierId === "unassigned" пропускається системою
             if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || !courierId) {
                 const msg = t('err_req');
                 if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
@@ -542,7 +551,6 @@
             const addrList = document.getElementById('autocomplete-list');
             let timeout = null;
 
-            // ВІДНОВЛЕНО ГІБРИДНИЙ ПОШУК З ВЕРСІЇ 1.0 (MAPBOX + OSM)
             addrInput.addEventListener('input', function() {
                 clearTimeout(timeout);
                 selectedLat = null; selectedLon = null;
