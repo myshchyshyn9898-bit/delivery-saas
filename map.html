@@ -12,60 +12,218 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        :root { --primary: #ff6b4a; --info: #3b82f6; --success: #10b981; --danger: #ef4444; --surface: #ffffff; --bg: #f8fafc; }
-        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); overflow: hidden; }
+        :root { 
+            --primary: #ff6b4a; 
+            --info: #3b82f6; 
+            --success: #10b981; 
+            --danger: #ef4444; 
+            --surface: #ffffff; 
+            --bg: #f8fafc; 
+        }
+
+        body { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: var(--bg); 
+            overflow: hidden; 
+        }
         
-        #loading-screen { position: absolute; inset: 0; background: var(--surface); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #0f172a; }
-        .spinner { font-size: 40px; color: var(--primary); margin-bottom: 15px; }
+        #loading-screen { 
+            position: absolute; 
+            inset: 0; 
+            background: var(--surface); 
+            z-index: 9999; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: #0f172a; 
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner { 
+            font-size: 40px; 
+            color: var(--primary); 
+            margin-bottom: 15px; 
+        }
         
-        #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+        #map { 
+            position: absolute; 
+            inset: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 0; 
+        }
         
-        /* Маркери на карті */
-        .custom-marker { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
-        .custom-marker:active { transform: scale(0.9); }
-        .marker-label { background: var(--surface); padding: 4px 8px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; font-weight: 800; color: #0f172a; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 6px; margin-bottom: 4px; white-space: nowrap; }
+        /* Стилі маркерів */
+        .custom-marker { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            cursor: pointer; 
+            transition: transform 0.2s; 
+        }
+
+        .custom-marker:active { 
+            transform: scale(0.9); 
+        }
+
+        .marker-label { 
+            background: var(--surface); 
+            padding: 4px 8px; 
+            border-radius: 8px; 
+            border: 1px solid #e2e8f0; 
+            font-size: 13px; 
+            font-weight: 800; 
+            color: #0f172a; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            margin-bottom: 4px; 
+            white-space: nowrap; 
+        }
         
-        .time-badge { padding: 2px 6px; border-radius: 6px; font-size: 12px; font-weight: 900; }
+        .time-badge { 
+            padding: 2px 6px; 
+            border-radius: 6px; 
+            font-size: 12px; 
+            font-weight: 900; 
+        }
+
         .time-ok { background: #f1f5f9; color: #64748b; }
         .time-late { background: rgba(239, 68, 68, 0.15); color: var(--danger); animation: pulseRed 2s infinite; }
         
-        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        @keyframes pulseRed { 
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 
+            70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); } 
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+        }
 
-        /* Кольори пінів залежно від статусу */
-        .pin-free { color: var(--info); font-size: 32px; filter: drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.4)); animation: bounce 2s infinite; }
+        .pin-free { color: var(--info); font-size: 32px; filter: drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.4)); }
         .pin-mine { color: #f59e0b; font-size: 32px; filter: drop-shadow(0px 4px 6px rgba(245, 158, 11, 0.4)); }
-        .pin-others { color: #94a3b8; font-size: 24px; filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.2)); opacity: 0.8; }
-        
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .pin-others { color: #94a3b8; font-size: 24px; opacity: 0.8; }
         
         /* Нижня панель */
-        .bottom-sheet { position: absolute; bottom: -120%; left: 0; right: 0; background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px; box-shadow: 0 -10px 30px rgba(0,0,0,0.1); transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); z-index: 10; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #e2e8f0; }
-        .bottom-sheet.active { bottom: 0; }
-        .sheet-handle { width: 40px; height: 5px; background: #cbd5e1; border-radius: 5px; margin: 0 auto 10px; }
-        
-        .sheet-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-        .sheet-title { margin: 0; font-size: 18px; font-weight: 900; color: #0f172a; }
-        .sheet-info-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: #475569; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .sheet-info-row i { color: var(--primary); width: 20px; text-align: center; font-size: 16px; }
-        
-        .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(255, 107, 74, 0.3); transition: 0.2s; }
-        .btn-main:active { transform: scale(0.97); }
-        .btn-secondary { background: #f1f5f9; color: #475569; border: none; padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; transition: 0.2s; }
-        .btn-secondary:active { transform: scale(0.97); background: #e2e8f0; }
+        .bottom-sheet { 
+            position: absolute; 
+            bottom: -120%; 
+            left: 0; 
+            right: 0; 
+            background: var(--surface); 
+            border-radius: 24px 24px 0 0; 
+            padding: 20px; 
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.1); 
+            transition: bottom 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            z-index: 10; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            border-top: 1px solid #e2e8f0; 
+        }
 
-        .select-courier { width: 100%; padding: 14px; border-radius: 12px; border: 2px solid var(--info); font-size: 15px; font-weight: 700; background: rgba(59, 130, 246, 0.05); color: #0f172a; outline: none; margin-top: 10px; }
+        .bottom-sheet.active { 
+            bottom: 0; 
+        }
+
+        .sheet-handle { 
+            width: 40px; 
+            height: 5px; 
+            background: #cbd5e1; 
+            border-radius: 5px; 
+            margin: 0 auto 10px; 
+        }
         
-        #role-badge { position: absolute; top: 15px; left: 15px; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 12px; font-size: 12px; font-weight: 900; z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; backdrop-filter: blur(5px); }
+        .sheet-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+        }
+
+        .sheet-title { 
+            margin: 0; 
+            font-size: 18px; 
+            font-weight: 900; 
+            color: #0f172a; 
+        }
+
+        .sheet-info-row { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+            font-size: 14px; 
+            font-weight: 600; 
+            color: #475569; 
+            background: #f8fafc; 
+            padding: 12px; 
+            border-radius: 12px; 
+            border: 1px solid #e2e8f0; 
+        }
+
+        .btn-main { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 16px; 
+            border-radius: 14px; 
+            font-size: 15px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 4px 15px rgba(255, 107, 74, 0.3); 
+        }
+
+        .btn-secondary { 
+            background: #f1f5f9; 
+            color: #475569; 
+            border: none; 
+            padding: 16px; 
+            border-radius: 14px; 
+            font-size: 15px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            width: 100%;
+        }
+
+        .select-courier { 
+            width: 100%; 
+            padding: 14px; 
+            border-radius: 12px; 
+            border: 2px solid var(--info); 
+            font-size: 15px; 
+            font-weight: 700; 
+            background: white; 
+            margin-top: 10px; 
+        }
+        
+        #role-badge { 
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            background: rgba(255,255,255,0.9); 
+            padding: 8px 12px; 
+            border-radius: 12px; 
+            font-size: 12px; 
+            font-weight: 900; 
+            z-index: 5; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+            backdrop-filter: blur(5px); 
+        }
     </style>
 </head>
 <body>
 
 <div id="loading-screen">
     <i class="fa-solid fa-circle-notch fa-spin spinner"></i>
-    <div id="load-text" style="font-weight: 800; font-size: 15px;">Завантаження карти...</div>
+    <div id="load-text" style="font-weight: 800; font-size: 15px;">Встановлення зв'язку...</div>
 </div>
 
-<div id="role-badge">Шукаю доступ...</div>
+<div id="role-badge">Перевірка ролі...</div>
 <div id="map"></div>
 
 <div id="bottom-sheet" class="bottom-sheet">
@@ -83,37 +241,43 @@
     </div>
 
     <div id="admin-actions" style="display: none;">
-        <select id="courier-select" class="select-courier">
-            <option value="" disabled selected>Оберіть кур'єра для призначення...</option>
-        </select>
-        <button id="btn-assign" class="btn-main" style="background: var(--info); box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);"><i class="fa-solid fa-paper-plane"></i> Призначити</button>
+        <select id="courier-select" class="select-courier"></select>
+        <button id="btn-assign" class="btn-main" style="width: 100%; margin-top: 10px; background: var(--info);">
+            <i class="fa-solid fa-paper-plane"></i> Призначити
+        </button>
     </div>
 
     <div id="courier-actions" style="display: none;">
-        <button id="btn-route" class="btn-secondary"><i class="fa-solid fa-map-location-dot"></i> Побудувати маршрут</button>
+        <button id="btn-route" class="btn-main" style="width: 100%;">
+            <i class="fa-solid fa-map-location-dot"></i> Побудувати маршрут
+        </button>
     </div>
 
-    <button id="btn-cancel" class="btn-secondary" style="background: transparent; box-shadow: none; margin-top: 0; color: #94a3b8;">Сховати</button>
+    <button id="btn-cancel" class="btn-secondary" style="background: transparent; color: #94a3b8; border: none;">Закрити</button>
 </div>
 
 <script>
-    // ЛОВЕЦЬ ПОМИЛОК
-    window.onerror = function(msg, url, line) {
-        const loadText = document.getElementById('load-text');
-        if (loadText) {
-            loadText.innerText = "🚨 Помилка: " + msg;
-            loadText.style.color = "red";
+    // Глобальний обробник помилок для дебагу в Telegram
+    const logError = (message) => {
+        const el = document.getElementById('load-text');
+        if (el) {
+            el.innerText = "🚨 Помилка: " + message;
+            el.style.color = "red";
         }
+        console.error(message);
     };
+
+    window.onerror = (msg) => logError(msg);
+    window.onunhandledrejection = (event) => logError("Promise: " + event.reason);
 
     const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
     const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
 
     let map, markers = [], selectedOrder = null;
-    let tg, supabase, userRole = 'courier', userId = null, bizData = null;
+    let tg = window.Telegram.WebApp;
+    let supabase, userRole = 'courier', userId, bizData;
     let availableCouriers = [];
-    let timerInterval = null;
     let activeOrdersData = [];
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -122,157 +286,139 @@
     const authToken = urlParams.get('token');
 
     document.addEventListener("DOMContentLoaded", async () => {
-        tg = window.Telegram.WebApp;
         tg.expand();
         if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
 
-        userId = tgId || (tg.initDataUnsafe?.user?.id);
+        userId = tgId || tg.initDataUnsafe?.user?.id;
 
         if (!bizId || !authToken) {
-            document.getElementById('load-text').innerText = "Помилка доступу (Немає токена)";
-            document.getElementById('load-text').style.color = "red";
+            logError("Відсутні параметри доступу (biz_id/token)");
             return;
         }
 
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-            global: { headers: { Authorization: `Bearer ${authToken}` } }
-        });
+        try {
+            // Ініціалізація клієнта Supabase
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                global: { headers: { Authorization: `Bearer ${authToken}` } }
+            });
 
-        await determineRoleAndInit();
-        
-        document.getElementById('btn-cancel').onclick = closePanel;
-        
-        // Кнопка АДМІНА (Призначити)
-        document.getElementById('btn-assign').onclick = async () => {
-            const cId = document.getElementById('courier-select').value;
-            if (!cId) return tg.showAlert("Оберіть кур'єра!");
-            if (!selectedOrder) return;
-
-            const btn = document.getElementById('btn-assign');
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Призначаємо...`;
-            btn.disabled = true;
+            await determineRoleAndInit();
             
-            try {
-                // Оновлюємо базу
-                await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
-                
-                // Відправляємо сигнал в Telegram
-                tg.sendData(JSON.stringify({
-                    action: "assign_order",
-                    order_id: selectedOrder.id,
-                    courier_id: cId
-                }));
-                
-                tg.showAlert("Успішно призначено!");
-                closePanel();
-                loadOrders(); 
-            } catch (err) {
-                tg.showAlert("Помилка: " + err.message);
-            } finally {
-                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Призначити`;
-                btn.disabled = false;
-            }
-        };
+            document.getElementById('btn-cancel').onclick = () => {
+                document.getElementById('bottom-sheet').classList.remove('active');
+            };
+            
+            // Побудова маршруту (ВИПРАВЛЕНО: зворотні лапки та URL)
+            document.getElementById('btn-route').onclick = () => {
+                if (!selectedOrder) return;
+                const encodedAddr = encodeURIComponent(selectedOrder.address);
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddr}`;
+                tg.openLink(url);
+            };
 
-        // Кнопка КУР'ЄРА (Маршрут)
-        document.getElementById('btn-route').onclick = () => {
-            if (!selectedOrder) return;
-            const url = `https://www.google.com/maps/dir/?api=1&destination=$${encodeURIComponent(selectedOrder.address)}`;
-            tg.openLink(url);
-        };
+            // Призначення замовлення (Адмін)
+            document.getElementById('btn-assign').onclick = async () => {
+                const cId = document.getElementById('courier-select').value;
+                if (!cId || !selectedOrder) return tg.showAlert("Оберіть кур'єра!");
+
+                const btn = document.getElementById('btn-assign');
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Обробка...`;
+
+                const { error } = await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
+                
+                if (error) {
+                    tg.showAlert("Помилка: " + error.message);
+                } else {
+                    tg.showAlert("Замовлення призначено!");
+                    document.getElementById('bottom-sheet').classList.remove('active');
+                    loadOrders();
+                }
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Призначити`;
+            };
+
+        } catch (e) {
+            logError(e.message);
+        }
     });
 
     async function determineRoleAndInit() {
-        try {
-            // Перевіряємо чи це власник
-            const { data: biz, error: bizErr } = await supabase.from('businesses').select('*').eq('id', bizId).single();
-            if (bizErr) throw bizErr;
-            bizData = biz;
+        const { data: biz, error: bizErr } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+        if (bizErr) throw new Error("Бізнес не знайдено: " + bizErr.message);
+        bizData = biz;
 
-            if (biz && String(biz.owner_id) === String(userId)) {
+        // Визначення ролі
+        if (biz && String(biz.owner_id) === String(userId)) {
+            userRole = 'admin';
+            document.getElementById('role-badge').innerHTML = `👑 <b>Адмін</b>`;
+        } else {
+            const { data: staff } = await supabase.from('staff')
+                .select('*')
+                .eq('user_id', userId)
+                .eq('business_id', bizId)
+                .single();
+            
+            if (staff?.role === 'manager') {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = `👑 <b>Режим Адміна</b>`;
+                document.getElementById('role-badge').innerHTML = `👨‍💼 <b>Менеджер</b>`;
+            } else if (staff?.role === 'courier') {
+                userRole = 'courier';
+                document.getElementById('role-badge').innerHTML = `🛵 <b>Кур'єр:</b> ${staff.name}`;
             } else {
-                // Перевіряємо чи менеджер/кур'єр
-                const { data: staff, error: staffErr } = await supabase.from('staff').select('role, name').eq('user_id', userId).eq('business_id', bizId).single();
-                
-                if (staffErr && staffErr.code !== 'PGRST116') throw staffErr;
-
-                if (staff && staff.role === 'manager') {
-                    userRole = 'admin';
-                    document.getElementById('role-badge').innerHTML = `👨‍💼 <b>Режим Менеджера</b>`;
-                } else if (staff && staff.role === 'courier') {
-                    userRole = 'courier';
-                    document.getElementById('role-badge').innerHTML = `🛵 <b>Кур'єр:</b> ${staff.name}`;
-                } else {
-                    document.getElementById('role-badge').innerHTML = `❓ Невідома роль`;
-                }
+                document.getElementById('role-badge').innerHTML = `❓ Гість`;
             }
-
-            if (userRole === 'admin') {
-                const { data: couriers } = await supabase.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
-                availableCouriers = couriers || [];
-                const select = document.getElementById('courier-select');
-                // БЕЗПЕЧНІ ЛАПКИ ТУТ 👇
-                select.innerHTML = `<option value="" disabled selected>Оберіть кур'єра для призначення...</option>`;
-                availableCouriers.forEach(c => {
-                    select.innerHTML += `<option value="${c.user_id || c.tg_id}">${c.name}</option>`;
-                });
-            }
-
-            initMap();
-        } catch (e) {
-            document.getElementById('load-text').innerText = "Помилка ролей: " + e.message;
-            document.getElementById('load-text').style.color = "red";
         }
+
+        // Завантаження кур'єрів для адміна
+        if (userRole === 'admin') {
+            const { data: couriers } = await supabase.from('staff')
+                .select('*')
+                .eq('business_id', bizId)
+                .eq('role', 'courier');
+            
+            availableCouriers = couriers || [];
+            const select = document.getElementById('courier-select');
+            select.innerHTML = '<option value="" disabled selected>Оберіть кур\'єра для призначення...</option>';
+            availableCouriers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.user_id || c.tg_id;
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+        }
+
+        initMap();
     }
 
     function initMap() {
-        try {
-            mapboxgl.accessToken = MAPBOX_TOKEN;
-            
-            const bLng = parseFloat(bizData.lng) || 21.99901;
-            const bLat = parseFloat(bizData.lat) || 50.04132;
+        mapboxgl.accessToken = MAPBOX_TOKEN;
+        
+        // Координати за замовчуванням, якщо в базі порожньо
+        const bLng = parseFloat(bizData?.lng) || 24.0297;
+        const bLat = parseFloat(bizData?.lat) || 49.8397;
 
-            map = new mapboxgl.Map({
-                container: 'map',
-                style: 'mapbox://styles/mapbox/streets-v12',
-                center: [bLng, bLat],
-                zoom: 12
-            });
+        map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v12',
+            center: [bLng, bLat],
+            zoom: 13
+        });
 
-            const bizEl = document.createElement('div');
-            bizEl.innerHTML = `<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>`;
-            new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
+        // Маркер закладу
+        const bizEl = document.createElement('div');
+        bizEl.innerHTML = `<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>`;
+        new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
 
-            map.on('click', () => closePanel());
-            map.on('load', () => {
-                document.getElementById('loading-screen').style.display = 'none';
-                loadOrders();
-                setInterval(loadOrders, 15000); 
-                
-                if(timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(updateAllTimers, 60000);
-            });
-            
-            map.on('error', (e) => { console.error("Mapbox error:", e); });
+        map.on('load', () => {
+            document.getElementById('loading-screen').style.display = 'none';
+            loadOrders();
+            setInterval(loadOrders, 15000); // Оновлення кожні 15 сек
+        });
 
-        } catch(e) {
-            document.getElementById('load-text').innerText = "Помилка карти: " + e.message;
-            document.getElementById('load-text').style.color = "red";
-        }
-    }
-
-    function calculateTimeDiff(createdAtStr, estTimeMins) {
-        const createdDate = new Date(createdAtStr + 'Z'); 
-        const deadline = new Date(createdDate.getTime() + (estTimeMins * 60000));
-        const now = new Date();
-        return Math.ceil((deadline - now) / 60000);
-    }
-
-    function closePanel() {
-        document.getElementById('bottom-sheet').classList.remove('active');
-        selectedOrder = null;
+        map.on('click', () => {
+            document.getElementById('bottom-sheet').classList.remove('active');
+        });
     }
 
     async function loadOrders() {
@@ -281,63 +427,57 @@
                 .select('*')
                 .eq('business_id', bizId)
                 .eq('status', 'pending');
-                
+            
             if (error) throw error;
             activeOrdersData = orders || [];
             drawMarkers();
-        } catch (e) { 
-            console.error("Load orders error:", e); 
+        } catch (e) {
+            console.error("Помилка завантаження замовлень:", e);
         }
     }
 
+    function calculateTimeDiff(createdAtStr, estTimeMins) {
+        const createdDate = new Date(createdAtStr); 
+        const deadline = new Date(createdDate.getTime() + (estTimeMins * 60000));
+        const now = new Date();
+        return Math.ceil((deadline - now) / 60000);
+    }
+
     function drawMarkers() {
+        // Очищення старих
         markers.forEach(m => m.remove());
         markers = [];
 
         activeOrdersData.forEach(order => {
             if (!order.lat || !order.lon) return;
 
-            const oLat = parseFloat(order.lat);
-            const oLon = parseFloat(order.lon);
-            if (isNaN(oLat) || isNaN(oLon)) return;
-
             const isUnassigned = !order.courier_id || order.courier_id === 'unassigned';
             const isMine = String(order.courier_id) === String(userId);
             
-            if (userRole === 'courier' && !isMine) return;
+            // Кур'єр бачить тільки свої або вільні
+            if (userRole === 'courier' && !isMine && !isUnassigned) return;
 
             const diffMins = calculateTimeDiff(order.created_at, order.est_time || 30);
-            
-            let timeText = diffMins;
-            let badgeClass = diffMins < 0 ? 'time-badge time-late' : 'time-badge time-ok';
-            if (diffMins < 0) timeText = `${diffMins} 🔥`; 
+            const isLate = diffMins < 0;
 
             const el = document.createElement('div');
             el.className = 'custom-marker';
 
             let pinClass = 'pin-free';
-            let iconHtml = `<i class="fa-solid fa-location-dot"></i>`;
-            let labelOpacity = '1';
-
             if (userRole === 'admin') {
-                if (isUnassigned) {
-                    pinClass = 'pin-free'; 
-                } else {
-                    pinClass = 'pin-others'; 
-                    labelOpacity = '0.7';
-                }
-            } else if (userRole === 'courier') {
-                pinClass = 'pin-mine'; 
+                pinClass = isUnassigned ? 'pin-free' : 'pin-others';
+            } else {
+                pinClass = isMine ? 'pin-mine' : 'pin-free';
             }
 
             const shortAddr = order.address.split(',')[0];
 
             el.innerHTML = `
-                <div class="marker-label" style="opacity: ${labelOpacity}">
+                <div class="marker-label">
                     <span>${shortAddr}</span>
-                    <span class="${badgeClass}" data-created="${order.created_at}" data-est="${order.est_time || 30}">${timeText}</span>
+                    <span class="time-badge ${isLate ? 'time-late' : 'time-ok'}">${isLate ? diffMins + '🔥' : diffMins}</span>
                 </div>
-                <div class="${pinClass}">${iconHtml}</div>
+                <div class="${pinClass}"><i class="fa-solid fa-location-dot"></i></div>
             `;
 
             el.onclick = (e) => {
@@ -348,59 +488,40 @@
                 document.getElementById('panel-address').innerText = shortAddr;
                 
                 const pTime = document.getElementById('panel-time');
-                pTime.className = badgeClass;
-                pTime.innerText = `${timeText} хв`;
+                pTime.className = `time-badge ${isLate ? 'time-late' : 'time-ok'}`;
+                pTime.innerText = `${diffMins} хв`;
 
+                // Тип оплати
                 let payStr = "Онлайн"; let payIcon = "fa-globe";
-                if (order.pay_type === 'cash') { payStr = `Готівка: ${order.amount}`; payIcon = "fa-money-bill-wave"; }
-                if (order.pay_type === 'terminal') { payStr = `Термінал: ${order.amount}`; payIcon = "fa-credit-card"; }
+                if (order.pay_type === 'cash') { payStr = `Готівка: ${order.amount}₴`; payIcon = "fa-money-bill-wave"; }
+                else if (order.pay_type === 'terminal') { payStr = `Термінал: ${order.amount}₴`; payIcon = "fa-credit-card"; }
                 document.getElementById('panel-pay').innerText = payStr;
                 document.getElementById('panel-pay-icon').className = `fa-solid ${payIcon}`;
 
+                // Керування кнопками
                 if (userRole === 'admin') {
                     document.getElementById('courier-actions').style.display = 'none';
                     if (isUnassigned) {
                         document.getElementById('admin-actions').style.display = 'block';
                         document.getElementById('panel-courier-row').style.display = 'none';
-                        document.getElementById('courier-select').value = "";
                     } else {
                         document.getElementById('admin-actions').style.display = 'none';
                         document.getElementById('panel-courier-row').style.display = 'flex';
-                        
-                        let cName = "Невідомий";
-                        let cObj = availableCouriers.find(c => String(c.user_id) === String(order.courier_id));
-                        if(cObj) cName = cObj.name;
-                        document.getElementById('panel-courier').innerHTML = `Кур'єр: <b>${cName}</b>`;
+                        const c = availableCouriers.find(courier => String(courier.user_id) === String(order.courier_id));
+                        document.getElementById('panel-courier').innerHTML = `Кур'єр: <b>${c ? c.name : 'Призначено'}</b>`;
                     }
-                } else if (userRole === 'courier') {
+                } else {
                     document.getElementById('admin-actions').style.display = 'none';
-                    document.getElementById('panel-courier-row').style.display = 'none';
                     document.getElementById('courier-actions').style.display = 'block';
+                    document.getElementById('panel-courier-row').style.display = 'none';
                 }
 
                 document.getElementById('bottom-sheet').classList.add('active');
-                map.flyTo({ center: [oLon, oLat], zoom: 14, speed: 1.2 });
+                map.flyTo({ center: [order.lon, order.lat], zoom: 15, speed: 1.2 });
             };
 
-            const marker = new mapboxgl.Marker(el).setLngLat([oLon, oLat]).addTo(map);
+            const marker = new mapboxgl.Marker(el).setLngLat([order.lon, order.lat]).addTo(map);
             markers.push(marker);
-        });
-    }
-
-    function updateAllTimers() {
-        document.querySelectorAll('.time-badge').forEach(badge => {
-            const createdAt = badge.getAttribute('data-created');
-            const estTime = parseInt(badge.getAttribute('data-est'));
-            if(createdAt && estTime) {
-                const diffMins = calculateTimeDiff(createdAt, estTime);
-                if(diffMins < 0) {
-                    badge.className = 'time-badge time-late';
-                    badge.innerText = `${diffMins} 🔥`;
-                } else {
-                    badge.className = 'time-badge time-ok';
-                    badge.innerText = diffMins;
-                }
-            }
         });
     }
 </script>
