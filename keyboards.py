@@ -47,6 +47,7 @@ def get_owner_kb(biz_id, user_id, lang='uk'):
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=_(lang, 'btn_dashboard'), web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_report'))],
             [KeyboardButton(text=_(lang, 'btn_settings')), KeyboardButton(text=_(lang, 'btn_staff'))]
         ],
@@ -60,6 +61,7 @@ def get_manager_kb(biz_id, user_id, lang='uk'):
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=_(lang, 'btn_new_order'), web_app=WebAppInfo(url=f"{URL}form.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_report'))],
             [KeyboardButton(text=_(lang, 'btn_active_orders'), web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
         ],
@@ -72,6 +74,7 @@ def get_courier_kb(biz_id, user_id, lang='uk'):
     token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
     return ReplyKeyboardMarkup(
         keyboard=[
+            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_my_deliveries'), web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
         ],
         resize_keyboard=True
