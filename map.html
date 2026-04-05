@@ -97,7 +97,7 @@
 </div>
 
 <script>
-    // ЛОВЕЦЬ ПОМИЛОК (щоб ми бачили, якщо щось зламається)
+    // ЛОВЕЦЬ ПОМИЛОК
     window.onerror = function(msg, url, line) {
         const loadText = document.getElementById('load-text');
         if (loadText) {
@@ -149,14 +149,14 @@
             if (!selectedOrder) return;
 
             const btn = document.getElementById('btn-assign');
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Призначаємо...';
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Призначаємо...`;
             btn.disabled = true;
             
             try {
                 // Оновлюємо базу
                 await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
                 
-                // Відправляємо сигнал в Telegram (через sendData)
+                // Відправляємо сигнал в Telegram
                 tg.sendData(JSON.stringify({
                     action: "assign_order",
                     order_id: selectedOrder.id,
@@ -165,11 +165,11 @@
                 
                 tg.showAlert("Успішно призначено!");
                 closePanel();
-                loadOrders(); // Перемальовуємо карту
+                loadOrders(); 
             } catch (err) {
                 tg.showAlert("Помилка: " + err.message);
             } finally {
-                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Призначити';
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Призначити`;
                 btn.disabled = false;
             }
         };
@@ -177,7 +177,7 @@
         // Кнопка КУР'ЄРА (Маршрут)
         document.getElementById('btn-route').onclick = () => {
             if (!selectedOrder) return;
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedOrder.address)}`;
+            const url = `https://www.google.com/maps/dir/?api=1&destination=$${encodeURIComponent(selectedOrder.address)}`;
             tg.openLink(url);
         };
     });
@@ -191,22 +191,21 @@
 
             if (biz && String(biz.owner_id) === String(userId)) {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = '👑 <b>Режим Адміна</b>';
+                document.getElementById('role-badge').innerHTML = `👑 <b>Режим Адміна</b>`;
             } else {
                 // Перевіряємо чи менеджер/кур'єр
                 const { data: staff, error: staffErr } = await supabase.from('staff').select('role, name').eq('user_id', userId).eq('business_id', bizId).single();
                 
-                // Якщо помилка не "Row not found", кидаємо її далі
                 if (staffErr && staffErr.code !== 'PGRST116') throw staffErr;
 
                 if (staff && staff.role === 'manager') {
                     userRole = 'admin';
-                    document.getElementById('role-badge').innerHTML = '👨‍💼 <b>Режим Менеджера</b>';
+                    document.getElementById('role-badge').innerHTML = `👨‍💼 <b>Режим Менеджера</b>`;
                 } else if (staff && staff.role === 'courier') {
                     userRole = 'courier';
                     document.getElementById('role-badge').innerHTML = `🛵 <b>Кур'єр:</b> ${staff.name}`;
                 } else {
-                    document.getElementById('role-badge').innerHTML = '❓ Невідома роль';
+                    document.getElementById('role-badge').innerHTML = `❓ Невідома роль`;
                 }
             }
 
@@ -214,7 +213,8 @@
                 const { data: couriers } = await supabase.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
                 availableCouriers = couriers || [];
                 const select = document.getElementById('courier-select');
-                select.innerHTML = '<option value="" disabled selected>Оберіть кур\'єра dla призначення...</option>';
+                // БЕЗПЕЧНІ ЛАПКИ ТУТ 👇
+                select.innerHTML = `<option value="" disabled selected>Оберіть кур'єра для призначення...</option>`;
                 availableCouriers.forEach(c => {
                     select.innerHTML += `<option value="${c.user_id || c.tg_id}">${c.name}</option>`;
                 });
@@ -231,7 +231,6 @@
         try {
             mapboxgl.accessToken = MAPBOX_TOKEN;
             
-            // 🟢 ВИПРАВЛЕНО: Жорстко переводимо координати в числа (float)
             const bLng = parseFloat(bizData.lng) || 21.99901;
             const bLat = parseFloat(bizData.lat) || 50.04132;
 
@@ -243,7 +242,7 @@
             });
 
             const bizEl = document.createElement('div');
-            bizEl.innerHTML = '<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>';
+            bizEl.innerHTML = `<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>`;
             new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
 
             map.on('click', () => closePanel());
@@ -256,10 +255,7 @@
                 timerInterval = setInterval(updateAllTimers, 60000);
             });
             
-            // Якщо Mapbox викине помилку
-            map.on('error', (e) => {
-                console.error("Mapbox error:", e);
-            });
+            map.on('error', (e) => { console.error("Mapbox error:", e); });
 
         } catch(e) {
             document.getElementById('load-text').innerText = "Помилка карти: " + e.message;
@@ -301,7 +297,6 @@
         activeOrdersData.forEach(order => {
             if (!order.lat || !order.lon) return;
 
-            // 🟢 ВИПРАВЛЕНО: Жорстко переводимо координати замовлення в числа
             const oLat = parseFloat(order.lat);
             const oLon = parseFloat(order.lon);
             if (isNaN(oLat) || isNaN(oLon)) return;
@@ -321,7 +316,7 @@
             el.className = 'custom-marker';
 
             let pinClass = 'pin-free';
-            let iconHtml = '<i class="fa-solid fa-location-dot"></i>';
+            let iconHtml = `<i class="fa-solid fa-location-dot"></i>`;
             let labelOpacity = '1';
 
             if (userRole === 'admin') {
