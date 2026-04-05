@@ -102,9 +102,11 @@
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
         }
 
-        .pin-free { color: var(--info); font-size: 32px; filter: drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.4)); }
+        .pin-free { color: var(--info); font-size: 32px; filter: drop-shadow(0px 4px 6px rgba(59, 130, 246, 0.4)); animation: bounce 2s infinite; }
         .pin-mine { color: #f59e0b; font-size: 32px; filter: drop-shadow(0px 4px 6px rgba(245, 158, 11, 0.4)); }
         .pin-others { color: #94a3b8; font-size: 24px; opacity: 0.8; }
+        
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
         
         /* Нижня панель */
         .bottom-sheet { 
@@ -160,6 +162,13 @@
             padding: 12px; 
             border-radius: 12px; 
             border: 1px solid #e2e8f0; 
+        }
+
+        .sheet-info-row i { 
+            color: var(--primary); 
+            width: 20px; 
+            text-align: center; 
+            font-size: 16px; 
         }
 
         .btn-main { 
@@ -257,7 +266,7 @@
 </div>
 
 <script>
-    // Глобальний обробник помилок для дебагу в Telegram
+    // Глобальний обробник помилок
     const logError = (message) => {
         const el = document.getElementById('load-text');
         if (el) {
@@ -278,6 +287,7 @@
     let tg = window.Telegram.WebApp;
     let supabase, userRole = 'courier', userId, bizData;
     let availableCouriers = [];
+    let timerInterval = null;
     let activeOrdersData = [];
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -297,7 +307,6 @@
         }
 
         try {
-            // Ініціалізація клієнта Supabase
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 global: { headers: { Authorization: `Bearer ${authToken}` } }
             });
@@ -308,15 +317,14 @@
                 document.getElementById('bottom-sheet').classList.remove('active');
             };
             
-            // Побудова маршруту (ВИПРАВЛЕНО: зворотні лапки та URL)
+            // Побудова маршруту (ВИПРАВЛЕНО: додав $)
             document.getElementById('btn-route').onclick = () => {
                 if (!selectedOrder) return;
                 const encodedAddr = encodeURIComponent(selectedOrder.address);
-                const url = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddr}`;
+                const url = `https://www.google.com/maps/dir/?api=1&destination=$${encodedAddr}`;
                 tg.openLink(url);
             };
 
-            // Призначення замовлення (Адмін)
             document.getElementById('btn-assign').onclick = async () => {
                 const cId = document.getElementById('courier-select').value;
                 if (!cId || !selectedOrder) return tg.showAlert("Оберіть кур'єра!");
@@ -348,7 +356,6 @@
         if (bizErr) throw new Error("Бізнес не знайдено: " + bizErr.message);
         bizData = biz;
 
-        // Визначення ролі
         if (biz && String(biz.owner_id) === String(userId)) {
             userRole = 'admin';
             document.getElementById('role-badge').innerHTML = `👑 <b>Адмін</b>`;
@@ -370,7 +377,6 @@
             }
         }
 
-        // Завантаження кур'єрів для адміна
         if (userRole === 'admin') {
             const { data: couriers } = await supabase.from('staff')
                 .select('*')
@@ -393,8 +399,6 @@
 
     function initMap() {
         mapboxgl.accessToken = MAPBOX_TOKEN;
-        
-        // Координати за замовчуванням, якщо в базі порожньо
         const bLng = parseFloat(bizData?.lng) || 24.0297;
         const bLat = parseFloat(bizData?.lat) || 49.8397;
 
@@ -405,7 +409,6 @@
             zoom: 13
         });
 
-        // Маркер закладу
         const bizEl = document.createElement('div');
         bizEl.innerHTML = `<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>`;
         new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
@@ -413,7 +416,9 @@
         map.on('load', () => {
             document.getElementById('loading-screen').style.display = 'none';
             loadOrders();
-            setInterval(loadOrders, 15000); // Оновлення кожні 15 сек
+            setInterval(loadOrders, 15000); 
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateAllTimers, 60000);
         });
 
         map.on('click', () => {
@@ -437,14 +442,15 @@
     }
 
     function calculateTimeDiff(createdAtStr, estTimeMins) {
-        const createdDate = new Date(createdAtStr); 
+        // ВИПРАВЛЕНО ДЛЯ SAFARI
+        let cleanStr = createdAtStr.split('.')[0].replace(' ', 'T').split('+')[0];
+        const createdDate = new Date(cleanStr + 'Z'); 
         const deadline = new Date(createdDate.getTime() + (estTimeMins * 60000));
         const now = new Date();
         return Math.ceil((deadline - now) / 60000);
     }
 
     function drawMarkers() {
-        // Очищення старих
         markers.forEach(m => m.remove());
         markers = [];
 
@@ -454,7 +460,6 @@
             const isUnassigned = !order.courier_id || order.courier_id === 'unassigned';
             const isMine = String(order.courier_id) === String(userId);
             
-            // Кур'єр бачить тільки свої або вільні
             if (userRole === 'courier' && !isMine && !isUnassigned) return;
 
             const diffMins = calculateTimeDiff(order.created_at, order.est_time || 30);
@@ -475,7 +480,7 @@
             el.innerHTML = `
                 <div class="marker-label">
                     <span>${shortAddr}</span>
-                    <span class="time-badge ${isLate ? 'time-late' : 'time-ok'}">${isLate ? diffMins + '🔥' : diffMins}</span>
+                    <span class="time-badge ${isLate ? 'time-late' : 'time-ok'}" data-created="${order.created_at}" data-est="${order.est_time || 30}">${isLate ? diffMins + '🔥' : diffMins}</span>
                 </div>
                 <div class="${pinClass}"><i class="fa-solid fa-location-dot"></i></div>
             `;
@@ -491,14 +496,12 @@
                 pTime.className = `time-badge ${isLate ? 'time-late' : 'time-ok'}`;
                 pTime.innerText = `${diffMins} хв`;
 
-                // Тип оплати
                 let payStr = "Онлайн"; let payIcon = "fa-globe";
                 if (order.pay_type === 'cash') { payStr = `Готівка: ${order.amount}₴`; payIcon = "fa-money-bill-wave"; }
                 else if (order.pay_type === 'terminal') { payStr = `Термінал: ${order.amount}₴`; payIcon = "fa-credit-card"; }
                 document.getElementById('panel-pay').innerText = payStr;
                 document.getElementById('panel-pay-icon').className = `fa-solid ${payIcon}`;
 
-                // Керування кнопками
                 if (userRole === 'admin') {
                     document.getElementById('courier-actions').style.display = 'none';
                     if (isUnassigned) {
@@ -522,6 +525,23 @@
 
             const marker = new mapboxgl.Marker(el).setLngLat([order.lon, order.lat]).addTo(map);
             markers.push(marker);
+        });
+    }
+
+    function updateAllTimers() {
+        document.querySelectorAll('.time-badge').forEach(badge => {
+            const createdAt = badge.getAttribute('data-created');
+            const estTime = parseInt(badge.getAttribute('data-est'));
+            if(createdAt && estTime) {
+                const diffMins = calculateTimeDiff(createdAt, estTime);
+                if(diffMins < 0) {
+                    badge.className = 'time-badge time-late';
+                    badge.innerText = `${diffMins} 🔥`;
+                } else {
+                    badge.className = 'time-badge time-ok';
+                    badge.innerText = diffMins;
+                }
+            }
         });
     }
 </script>
