@@ -273,7 +273,7 @@
 
 <div id="loading-screen">
     <i class="fa-solid fa-circle-notch fa-spin spinner"></i>
-    <div id="load-text" style="font-weight: 800; font-size: 15px;">Запуск системи...</div>
+    <div id="load-text" style="font-weight: 800; font-size: 15px;">Очікування бібліотек...</div>
     <div id="error-text" style="color: red; font-size: 13px; margin-top: 10px; font-weight: 600;"></div>
 </div>
 
@@ -313,6 +313,7 @@
 </div>
 
 <script>
+    // --- СИСТЕМА ЛОГІВ ---
     function logStep(text) {
         var loadText = document.getElementById("load-text");
         if (loadText) {
@@ -357,23 +358,21 @@
     var timerInterval = null;
     var activeOrdersData = [];
 
-    // Головний флоу розбито на асинхронні мікро-кроки, щоб браузер не "задихнувся"
+    // --- ГОЛОВНА ФУНКЦІЯ ЗАПУСКУ ---
     async function startApplication() {
         try {
-            logStep("Перевірка Telegram...");
-            await new Promise(resolve => setTimeout(resolve, 200)); // Даємо браузеру 200мс на видих
-
+            logStep("Крок 1: Ініціалізація Telegram...");
             if (window.Telegram && window.Telegram.WebApp) {
                 tg = window.Telegram.WebApp;
                 tg.expand();
-                if (tg.setHeaderColor) tg.setHeaderColor("#ffffff");
+                if (tg.setHeaderColor) {
+                    tg.setHeaderColor("#ffffff");
+                }
             } else {
                 throw new Error("Telegram WebApp не знайдено");
             }
 
-            logStep("Читання даних...");
-            await new Promise(resolve => setTimeout(resolve, 200));
-
+            logStep("Крок 2: Читання токенів з URL...");
             var urlParams = new URLSearchParams(window.location.search);
             var bizId = urlParams.get("biz_id");
             var authToken = urlParams.get("token");
@@ -387,25 +386,23 @@
 
             if (!bizId || !authToken) throw new Error("Немає доступу (biz_id/token)");
 
-            logStep("Підключення до бази...");
-            if (!window.supabase) throw new Error("Supabase не завантажено");
-            
+            logStep("Крок 3: Підключення до бази...");
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 global: { headers: { Authorization: "Bearer " + authToken } }
             });
 
-            logStep("Отримання закладу...");
+            logStep("Крок 4: Отримання закладу...");
             var bizResult = await supabase.from("businesses").select("*").eq("id", bizId).single();
-            if (bizResult.error) throw new Error(bizResult.error.message);
+            if (bizResult.error) throw new Error("БД Заклад: " + bizResult.error.message);
             bizData = bizResult.data;
 
-            logStep("Перевірка прав...");
+            logStep("Крок 5: Перевірка прав...");
             if (String(bizData.owner_id) === String(userId)) {
                 userRole = "admin";
                 document.getElementById("role-badge").innerHTML = "👑 <b>Режим Адміна</b>";
             } else {
                 var staffResult = await supabase.from("staff").select("role, name").eq("user_id", userId).eq("business_id", bizId).single();
-                if (staffResult.error && staffResult.error.code !== "PGRST116") throw new Error(staffResult.error.message);
+                if (staffResult.error && staffResult.error.code !== "PGRST116") throw new Error("БД Персонал: " + staffResult.error.message);
                 
                 if (staffResult.data && staffResult.data.role === "manager") {
                     userRole = "admin";
@@ -419,7 +416,7 @@
             }
 
             if (userRole === "admin") {
-                logStep("Завантаження кур'єрів...");
+                logStep("Крок 6: Завантаження кур'єрів...");
                 var couriersResult = await supabase.from("staff").select("*").eq("business_id", bizId).eq("role", "courier");
                 if (couriersResult.error) throw new Error(couriersResult.error.message);
                 
@@ -431,13 +428,11 @@
                 });
             }
 
-            logStep("Підготовка карти...");
-            // Захист: перевіряємо чи підтримує телефон WebGL
-            if (!mapboxgl.supported()) {
-                throw new Error("Ваш телефон/браузер не підтримує WebGL карти :(");
+            logStep("Крок 7: Підготовка карти...");
+            if (!window.mapboxgl.supported()) {
+                throw new Error("Ваш браузер не підтримує WebGL карти");
             }
 
-            await new Promise(resolve => setTimeout(resolve, 300));
             initMapSafe();
 
             document.getElementById("btn-cancel").onclick = closePanel;
@@ -451,13 +446,13 @@
 
     function initMapSafe() {
         try {
-            mapboxgl.accessToken = MAPBOX_TOKEN;
+            window.mapboxgl.accessToken = MAPBOX_TOKEN;
             var bLng = parseFloat(bizData.lng);
             var bLat = parseFloat(bizData.lat);
 
             if (isNaN(bLng) || isNaN(bLat)) throw new Error("Некоректні координати закладу в базі");
 
-            map = new mapboxgl.Map({
+            map = new window.mapboxgl.Map({
                 container: "map",
                 style: "mapbox://styles/mapbox/streets-v12",
                 center: [bLng, bLat],
@@ -466,7 +461,7 @@
 
             var bizEl = document.createElement("div");
             bizEl.innerHTML = "<div style='color: #0f172a; font-size: 28px;'><i class='fa-solid fa-store'></i></div>";
-            new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
+            new window.mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
 
             map.on("error", function(e) { 
                 logError("Mapbox Error: " + (e.error ? e.error.message : "Unknown")); 
@@ -628,7 +623,7 @@
                 map.flyTo({ center: [oLon, oLat], zoom: 14, speed: 1.2 });
             };
             
-            markers.push(new mapboxgl.Marker(el).setLngLat([oLon, oLat]).addTo(map));
+            markers.push(new window.mapboxgl.Marker(el).setLngLat([oLon, oLat]).addTo(map));
         });
     }
 
@@ -650,10 +645,29 @@
         });
     }
 
-    // Даємо сторінці повністю "видихнути" перед стартом
-    setTimeout(function() {
-        startApplication();
-    }, 500);
+    // --- SMART WAITER (Чекаємо на завантаження зовнішніх бібліотек) ---
+    var checkAttempts = 0;
+    
+    function checkLibrariesAndStart() {
+        if (window.supabase && window.mapboxgl) {
+            startApplication();
+        } else {
+            checkAttempts++;
+            if (checkAttempts > 50) { 
+                logError("Бібліотеки (Supabase/Mapbox) так і не завантажились. Перевірте підключення до Інтернету.");
+                return;
+            }
+            logStep("Завантаження бібліотек (" + checkAttempts + ")...");
+            setTimeout(checkLibrariesAndStart, 200);
+        }
+    }
+
+    // Запускаємо перевірку тільки після того, як браузер побудує DOM
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", checkLibrariesAndStart);
+    } else {
+        checkLibrariesAndStart();
+    }
 
 </script>
 </body>
