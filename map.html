@@ -29,7 +29,7 @@
             overflow: hidden; 
         }
         
-        /* ЕКРАН ЗАВАНТАЖЕННЯ (БРОНЕБІЙНИЙ) */
+        /* ЕКРАН ЗАВАНТАЖЕННЯ */
         #loading-screen { 
             position: absolute; 
             inset: 0; 
@@ -281,7 +281,7 @@
         </button>
     </div>
 
-    <button id="btn-cancel" class="btn-secondary" style="background: transparent; color: #94a3b8; border: none;">Закрити</button>
+    <button id="btn-cancel" class="btn-secondary" style="background: transparent; color: #94a3b8; border: none; margin-top: 10px;">Закрити</button>
 </div>
 
 <script>
@@ -293,7 +293,7 @@
             el.style.color = "red";
         }
         console.error(message);
-    };
+    }
 
     window.onerror = function(msg) { logError(msg); };
     window.onunhandledrejection = function(event) { logError("Promise: " + event.reason); };
@@ -326,7 +326,7 @@
                 return;
             }
 
-            // Ініціалізація Supabase (класичний метод)
+            // Ініціалізація Supabase
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
                 global: { headers: { Authorization: 'Bearer ' + authToken } }
             });
@@ -337,15 +337,13 @@
                 document.getElementById('bottom-sheet').classList.remove('active');
             };
             
-            // КНОПКА МАРШРУТУ (ВИПРАВЛЕНО СИНТАКСИС)
             document.getElementById('btn-route').onclick = function() {
                 if (!selectedOrder) return;
                 var encodedAddr = encodeURIComponent(selectedOrder.address);
-                var url = "https://www.google.com/maps/search/?api=1&query=$" + encodedAddr;
+                var url = "https://www.google.com/maps/dir/?api=1&destination=" + encodedAddr;
                 tg.openLink(url);
             };
 
-            // КНОПКА ПРИЗНАЧЕННЯ
             document.getElementById('btn-assign').onclick = async function() {
                 var cId = document.getElementById('courier-select').value;
                 if (!cId || !selectedOrder) return tg.showAlert("Оберіть кур'єра!");
@@ -357,6 +355,12 @@
                 try {
                     var result = await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
                     if (result.error) throw result.error;
+                    
+                    tg.sendData(JSON.stringify({ 
+                        action: "assign_order", 
+                        order_id: selectedOrder.id, 
+                        courier_id: cId 
+                    }));
                     
                     tg.showAlert("Замовлення призначено!");
                     document.getElementById('bottom-sheet').classList.remove('active');
@@ -381,19 +385,19 @@
 
         if (bizData && String(bizData.owner_id) === String(userId)) {
             userRole = 'admin';
-            document.getElementById('role-badge').innerHTML = '👑 <b>Адмін</b>';
+            document.getElementById('role-badge').innerHTML = '👑 <b>Режим Адміна</b>';
         } else {
             var staffRes = await supabase.from('staff').select('*').eq('user_id', userId).eq('business_id', bizId).single();
             var staff = staffRes.data;
             
             if (staff && staff.role === 'manager') {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = '👨‍💼 <b>Менеджер</b>';
+                document.getElementById('role-badge').innerHTML = '👨‍💼 <b>Режим Менеджера</b>';
             } else if (staff && staff.role === 'courier') {
                 userRole = 'courier';
                 document.getElementById('role-badge').innerHTML = '🛵 <b>Кур\'єр:</b> ' + staff.name;
             } else {
-                document.getElementById('role-badge').innerHTML = '❓ Гість';
+                document.getElementById('role-badge').innerHTML = '❓ Невідома роль';
             }
         }
 
@@ -416,8 +420,8 @@
     function initMap() {
         try {
             mapboxgl.accessToken = MAPBOX_TOKEN;
-            var bLng = parseFloat(bizData.lng) || 24.0297;
-            var bLat = parseFloat(bizData.lat) || 49.8397;
+            var bLng = parseFloat(bizData.lng) || 21.99901;
+            var bLat = parseFloat(bizData.lat) || 50.04132;
 
             map = new mapboxgl.Map({
                 container: 'map',
@@ -458,7 +462,6 @@
     }
 
     function calculateTimeDiff(createdAtStr, estTimeMins) {
-        // БЕЗПЕЧНИЙ ПАРСИНГ ДЛЯ SAFARI
         var cleanStr = createdAtStr.split('.')[0].replace(' ', 'T').split('+')[0];
         var createdDate = new Date(cleanStr + 'Z'); 
         var deadline = new Date(createdDate.getTime() + (estTimeMins * 60000));
@@ -476,6 +479,7 @@
             var isUnassigned = !order.courier_id || order.courier_id === 'unassigned';
             var isMine = String(order.courier_id) === String(userId);
             
+            // Фільтрація для кур'єрів (бачать тільки свої та вільні)
             if (userRole === 'courier' && !isMine && !isUnassigned) return;
 
             var diffMins = calculateTimeDiff(order.created_at, order.est_time || 30);
@@ -485,17 +489,22 @@
             el.className = 'custom-marker';
 
             var pinClass = 'pin-free';
+            var labelOpacity = '1';
+
             if (userRole === 'admin') {
-                pinClass = isUnassigned ? 'pin-free' : 'pin-others';
+                if (!isUnassigned) {
+                    pinClass = 'pin-others';
+                    labelOpacity = '0.7';
+                }
             } else {
-                pinClass = isMine ? 'pin-mine' : 'pin-free';
+                if (isMine) pinClass = 'pin-mine';
             }
 
             var shortAddr = order.address.split(',')[0];
             var badgeClass = isLate ? 'time-badge time-late' : 'time-badge time-ok';
             var timeText = isLate ? diffMins + '🔥' : diffMins;
 
-            el.innerHTML = '<div class="marker-label"><span>' + shortAddr + '</span>' +
+            el.innerHTML = '<div class="marker-label" style="opacity: ' + labelOpacity + '"><span>' + shortAddr + '</span>' +
                 '<span class="' + badgeClass + '" data-created="' + order.created_at + '" data-est="' + (order.est_time || 30) + '">' + timeText + '</span></div>' +
                 '<div class="' + pinClass + '"><i class="fa-solid fa-location-dot"></i></div>';
 
@@ -511,8 +520,8 @@
                 pTime.innerText = diffMins + ' хв';
 
                 var payStr = "Онлайн"; var payIcon = "fa-globe";
-                if (order.pay_type === 'cash') { payStr = 'Готівка: ' + order.amount + '₴'; payIcon = "fa-money-bill-wave"; }
-                else if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount + '₴'; payIcon = "fa-credit-card"; }
+                if (order.pay_type === 'cash') { payStr = 'Готівка: ' + order.amount; payIcon = "fa-money-bill-wave"; }
+                else if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount; payIcon = "fa-credit-card"; }
                 document.getElementById('panel-pay').innerText = payStr;
                 document.getElementById('panel-pay-icon').className = 'fa-solid ' + payIcon;
 
@@ -521,6 +530,7 @@
                     if (isUnassigned) {
                         document.getElementById('admin-actions').style.display = 'block';
                         document.getElementById('panel-courier-row').style.display = 'none';
+                        document.getElementById('courier-select').value = "";
                     } else {
                         document.getElementById('admin-actions').style.display = 'none';
                         document.getElementById('panel-courier-row').style.display = 'flex';
@@ -529,8 +539,8 @@
                     }
                 } else {
                     document.getElementById('admin-actions').style.display = 'none';
-                    document.getElementById('courier-actions').style.display = 'block';
                     document.getElementById('panel-courier-row').style.display = 'none';
+                    document.getElementById('courier-actions').style.display = 'block';
                 }
 
                 document.getElementById('bottom-sheet').classList.add('active');
