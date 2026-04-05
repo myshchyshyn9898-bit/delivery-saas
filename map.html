@@ -97,6 +97,15 @@
 </div>
 
 <script>
+    // ЛОВЕЦЬ ПОМИЛОК (щоб ми бачили, якщо щось зламається)
+    window.onerror = function(msg, url, line) {
+        const loadText = document.getElementById('load-text');
+        if (loadText) {
+            loadText.innerText = "🚨 Помилка: " + msg;
+            loadText.style.color = "red";
+        }
+    };
+
     const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
     const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
@@ -104,8 +113,6 @@
     let map, markers = [], selectedOrder = null;
     let tg, supabase, userRole = 'courier', userId = null, bizData = null;
     let availableCouriers = [];
-    
-    // Інтервал для оновлення таймерів
     let timerInterval = null;
     let activeOrdersData = [];
 
@@ -123,6 +130,7 @@
 
         if (!bizId || !authToken) {
             document.getElementById('load-text').innerText = "Помилка доступу (Немає токена)";
+            document.getElementById('load-text').style.color = "red";
             return;
         }
 
@@ -142,26 +150,34 @@
 
             const btn = document.getElementById('btn-assign');
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Призначаємо...';
+            btn.disabled = true;
             
-            // Оновлюємо базу
-            await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
-            
-            // Відправляємо сигнал в Telegram (через sendData)
-            tg.sendData(JSON.stringify({
-                action: "assign_order",
-                order_id: selectedOrder.id,
-                courier_id: cId
-            }));
-            
-            tg.showAlert("Успішно призначено!");
-            closePanel();
-            loadOrders(); // Перемальовуємо карту
+            try {
+                // Оновлюємо базу
+                await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
+                
+                // Відправляємо сигнал в Telegram (через sendData)
+                tg.sendData(JSON.stringify({
+                    action: "assign_order",
+                    order_id: selectedOrder.id,
+                    courier_id: cId
+                }));
+                
+                tg.showAlert("Успішно призначено!");
+                closePanel();
+                loadOrders(); // Перемальовуємо карту
+            } catch (err) {
+                tg.showAlert("Помилка: " + err.message);
+            } finally {
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Призначити';
+                btn.disabled = false;
+            }
         };
 
         // Кнопка КУР'ЄРА (Маршрут)
         document.getElementById('btn-route').onclick = () => {
             if (!selectedOrder) return;
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${selectedOrder.lat},${selectedOrder.lon}&travelmode=driving`;
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(selectedOrder.address)}`;
             tg.openLink(url);
         };
     });
@@ -169,15 +185,20 @@
     async function determineRoleAndInit() {
         try {
             // Перевіряємо чи це власник
-            const { data: biz } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+            const { data: biz, error: bizErr } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+            if (bizErr) throw bizErr;
             bizData = biz;
 
             if (biz && String(biz.owner_id) === String(userId)) {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = '👑 <b>Режим Адміна</b> (Радар)';
+                document.getElementById('role-badge').innerHTML = '👑 <b>Режим Адміна</b>';
             } else {
-                // Перевіряємо чи менеджер
-                const { data: staff } = await supabase.from('staff').select('role, name').eq('user_id', userId).eq('business_id', bizId).single();
+                // Перевіряємо чи менеджер/кур'єр
+                const { data: staff, error: staffErr } = await supabase.from('staff').select('role, name').eq('user_id', userId).eq('business_id', bizId).single();
+                
+                // Якщо помилка не "Row not found", кидаємо її далі
+                if (staffErr && staffErr.code !== 'PGRST116') throw staffErr;
+
                 if (staff && staff.role === 'manager') {
                     userRole = 'admin';
                     document.getElementById('role-badge').innerHTML = '👨‍💼 <b>Режим Менеджера</b>';
@@ -190,10 +211,10 @@
             }
 
             if (userRole === 'admin') {
-                // Завантажуємо список кур'єрів для випадаючого меню
                 const { data: couriers } = await supabase.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
                 availableCouriers = couriers || [];
                 const select = document.getElementById('courier-select');
+                select.innerHTML = '<option value="" disabled selected>Оберіть кур\'єра dla призначення...</option>';
                 availableCouriers.forEach(c => {
                     select.innerHTML += `<option value="${c.user_id || c.tg_id}">${c.name}</option>`;
                 });
@@ -201,43 +222,56 @@
 
             initMap();
         } catch (e) {
-            document.getElementById('load-text').innerText = "Помилка: " + e.message;
+            document.getElementById('load-text').innerText = "Помилка ролей: " + e.message;
+            document.getElementById('load-text').style.color = "red";
         }
     }
 
     function initMap() {
-        mapboxgl.accessToken = MAPBOX_TOKEN;
-        map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/mapbox/streets-v12',
-            center: [bizData.lng || 21.999, bizData.lat || 50.041],
-            zoom: 12
-        });
-
-        const bizEl = document.createElement('div');
-        bizEl.innerHTML = '<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>';
-        new mapboxgl.Marker(bizEl).setLngLat([bizData.lng || 21.999, bizData.lat || 50.041]).addTo(map);
-
-        map.on('click', () => closePanel());
-        map.on('load', () => {
-            document.getElementById('loading-screen').style.display = 'none';
-            loadOrders();
-            setInterval(loadOrders, 15000); // Оновлюємо кожні 15 сек
+        try {
+            mapboxgl.accessToken = MAPBOX_TOKEN;
             
-            // Запускаємо локальний таймер кожну хвилину для оновлення цифр
-            if(timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(updateAllTimers, 60000);
-        });
+            // 🟢 ВИПРАВЛЕНО: Жорстко переводимо координати в числа (float)
+            const bLng = parseFloat(bizData.lng) || 21.99901;
+            const bLat = parseFloat(bizData.lat) || 50.04132;
+
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/mapbox/streets-v12',
+                center: [bLng, bLat],
+                zoom: 12
+            });
+
+            const bizEl = document.createElement('div');
+            bizEl.innerHTML = '<div style="color: #0f172a; font-size: 28px;"><i class="fa-solid fa-store"></i></div>';
+            new mapboxgl.Marker(bizEl).setLngLat([bLng, bLat]).addTo(map);
+
+            map.on('click', () => closePanel());
+            map.on('load', () => {
+                document.getElementById('loading-screen').style.display = 'none';
+                loadOrders();
+                setInterval(loadOrders, 15000); 
+                
+                if(timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(updateAllTimers, 60000);
+            });
+            
+            // Якщо Mapbox викине помилку
+            map.on('error', (e) => {
+                console.error("Mapbox error:", e);
+            });
+
+        } catch(e) {
+            document.getElementById('load-text').innerText = "Помилка карти: " + e.message;
+            document.getElementById('load-text').style.color = "red";
+        }
     }
 
-    // 🔴 РОЗРАХУНОК ТАЙМЕРА
     function calculateTimeDiff(createdAtStr, estTimeMins) {
-        const createdDate = new Date(createdAtStr + 'Z'); // UTC
+        const createdDate = new Date(createdAtStr + 'Z'); 
         const deadline = new Date(createdDate.getTime() + (estTimeMins * 60000));
         const now = new Date();
-        // Рахуємо різницю в хвилинах
-        const diffMins = Math.ceil((deadline - now) / 60000);
-        return diffMins;
+        return Math.ceil((deadline - now) / 60000);
     }
 
     function closePanel() {
@@ -247,14 +281,17 @@
 
     async function loadOrders() {
         try {
-            const { data: orders } = await supabase.from('orders')
+            const { data: orders, error } = await supabase.from('orders')
                 .select('*')
                 .eq('business_id', bizId)
                 .eq('status', 'pending');
-
+                
+            if (error) throw error;
             activeOrdersData = orders || [];
             drawMarkers();
-        } catch (e) { console.error(e); }
+        } catch (e) { 
+            console.error("Load orders error:", e); 
+        }
     }
 
     function drawMarkers() {
@@ -264,17 +301,21 @@
         activeOrdersData.forEach(order => {
             if (!order.lat || !order.lon) return;
 
+            // 🟢 ВИПРАВЛЕНО: Жорстко переводимо координати замовлення в числа
+            const oLat = parseFloat(order.lat);
+            const oLon = parseFloat(order.lon);
+            if (isNaN(oLat) || isNaN(oLon)) return;
+
             const isUnassigned = !order.courier_id || order.courier_id === 'unassigned';
             const isMine = String(order.courier_id) === String(userId);
             
-            // Якщо Кур'єр, і замовлення чуже або вільне — НЕ МАЛЮЄМО (щоб не засмічувати)
             if (userRole === 'courier' && !isMine) return;
 
             const diffMins = calculateTimeDiff(order.created_at, order.est_time || 30);
             
             let timeText = diffMins;
             let badgeClass = diffMins < 0 ? 'time-badge time-late' : 'time-badge time-ok';
-            if (diffMins < 0) timeText = `${diffMins} 🔥`; // Мінус підставиться автоматично
+            if (diffMins < 0) timeText = `${diffMins} 🔥`; 
 
             const el = document.createElement('div');
             el.className = 'custom-marker';
@@ -285,13 +326,13 @@
 
             if (userRole === 'admin') {
                 if (isUnassigned) {
-                    pinClass = 'pin-free'; // Синій пульсуючий
+                    pinClass = 'pin-free'; 
                 } else {
-                    pinClass = 'pin-others'; // Сірий статичний
+                    pinClass = 'pin-others'; 
                     labelOpacity = '0.7';
                 }
             } else if (userRole === 'courier') {
-                pinClass = 'pin-mine'; // Жовтий
+                pinClass = 'pin-mine'; 
             }
 
             const shortAddr = order.address.split(',')[0];
@@ -315,26 +356,22 @@
                 pTime.className = badgeClass;
                 pTime.innerText = `${timeText} хв`;
 
-                // Оплата
                 let payStr = "Онлайн"; let payIcon = "fa-globe";
                 if (order.pay_type === 'cash') { payStr = `Готівка: ${order.amount}`; payIcon = "fa-money-bill-wave"; }
                 if (order.pay_type === 'terminal') { payStr = `Термінал: ${order.amount}`; payIcon = "fa-credit-card"; }
                 document.getElementById('panel-pay').innerText = payStr;
                 document.getElementById('panel-pay-icon').className = `fa-solid ${payIcon}`;
 
-                // Логіка панелі
                 if (userRole === 'admin') {
                     document.getElementById('courier-actions').style.display = 'none';
                     if (isUnassigned) {
                         document.getElementById('admin-actions').style.display = 'block';
                         document.getElementById('panel-courier-row').style.display = 'none';
-                        // Скидаємо селект
                         document.getElementById('courier-select').value = "";
                     } else {
                         document.getElementById('admin-actions').style.display = 'none';
                         document.getElementById('panel-courier-row').style.display = 'flex';
                         
-                        // Шукаємо ім'я кур'єра
                         let cName = "Невідомий";
                         let cObj = availableCouriers.find(c => String(c.user_id) === String(order.courier_id));
                         if(cObj) cName = cObj.name;
@@ -347,15 +384,14 @@
                 }
 
                 document.getElementById('bottom-sheet').classList.add('active');
-                map.flyTo({ center: [order.lon, order.lat], zoom: 14, speed: 1.2 });
+                map.flyTo({ center: [oLon, oLat], zoom: 14, speed: 1.2 });
             };
 
-            const marker = new mapboxgl.Marker(el).setLngLat([order.lon, order.lat]).addTo(map);
+            const marker = new mapboxgl.Marker(el).setLngLat([oLon, oLat]).addTo(map);
             markers.push(marker);
         });
     }
 
-    // Оновлення таймерів без перезапиту до бази
     function updateAllTimers() {
         document.querySelectorAll('.time-badge').forEach(badge => {
             const createdAt = badge.getAttribute('data-created');
