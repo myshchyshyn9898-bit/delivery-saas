@@ -55,6 +55,7 @@ TEXTS = {
         # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Відкрити DelivePro",
         'btn_dashboard': "📊 Дашборд",
+        'btn_map': "🗺 Карта замовлень",
         'btn_report': "📊 Зробити звіт",
         'btn_settings': "⚙️ Налаштування бізнесу",
         'btn_staff': "👥 Персонал",
@@ -117,6 +118,7 @@ TEXTS = {
         # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Открыть DelivePro",
         'btn_dashboard': "📊 Дашборд",
+        'btn_map': "🗺 Карта заказов",
         'btn_report': "📊 Сделать отчет",
         'btn_settings': "⚙️ Настройки бизнеса",
         'btn_staff': "👥 Персонал",
@@ -179,6 +181,7 @@ TEXTS = {
         # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Otwórz DelivePro",
         'btn_dashboard': "📊 Panel",
+        'btn_map': "🗺 Mapa zamówień",
         'btn_report': "📊 Zrób raport",
         'btn_settings': "⚙️ Ustawienia firmy",
         'btn_staff': "👥 Personel",
@@ -241,6 +244,7 @@ TEXTS = {
         # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Open DelivePro",
         'btn_dashboard': "📊 Dashboard",
+        'btn_map': "🗺 Orders Map",
         'btn_report': "📊 Make Report",
         'btn_settings': "⚙️ Business Settings",
         'btn_staff': "👥 Staff",
