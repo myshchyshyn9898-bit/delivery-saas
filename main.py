@@ -7,7 +7,6 @@ import aiohttp
 import datetime 
 import math     
 from aiohttp import web # <--- ДОДАНО ДЛЯ WEBHOOK WHOP
-from staticmap import StaticMap, Line, CircleMarker
 from aiogram.types import FSInputFile
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, CommandObject
@@ -58,49 +57,78 @@ async def show_main_menu(message: types.Message, context: dict):
 
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
 
-# --- ГЕНЕРАТОР КАРТИ (МАРШРУТ) ---
+# --- ГЕНЕРАТОР КАРТИ (МАРШРУТ ЧЕРЕЗ MAPBOX) ---
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
+    """
+    Генерує преміальну міні-карту через Mapbox Static API.
+    Малює маршрут між закладом та клієнтом.
+    """
     try:
-        url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
+        # ВСТАВ ТУТ СВІЙ ТОКЕН MAPBOX
+        MAPBOX_TOKEN = "pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg"
+        
+        # 1. Отримуємо координати маршруту (OSRM)
+        route_url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
         headers = {'User-Agent': 'DeliveProBot/1.0'}
-        r = requests.get(url, headers=headers, timeout=15)
+        r = requests.get(route_url, headers=headers, timeout=15)
         
         if r.status_code != 200: 
-            print(f"OSRM помилка: {r.status_code} - {r.text}")
+            print(f"OSRM помилка: {r.status_code}")
             return None
-        
-        route_data = r.json()
-        if not route_data.get('routes'): 
-            print("OSRM не знайшов маршрут")
-            return None
-        
-        coordinates = route_data['routes'][0]['geometry']['coordinates']
-        tile_url = "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-        m = StaticMap(800, 450, padding_x=50, padding_y=50, url_template=tile_url)
-        
-        dot_spacing = 0.0003 
-        for i in range(len(coordinates)-1):
-            p1 = coordinates[i]
-            p2 = coordinates[i+1]
-            dist = math.hypot(p1[0] - p2[0], p1[1] - p2[1])
-            steps = max(1, int(dist / dot_spacing))
             
-            for j in range(steps):
-                lon = p1[0] + (p2[0] - p1[0]) * (j / steps)
-                lat = p1[1] + (p2[1] - p1[1]) * (j / steps)
-                m.add_marker(CircleMarker((lon, lat), '#ff6b4a', 3))
-                
-        m.add_marker(CircleMarker(coordinates[-1], '#ff6b4a', 3))
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ffffff', 14)) 
-        m.add_marker(CircleMarker((start_lon, start_lat), '#ff6b4a', 10)) 
-        m.add_marker(CircleMarker((end_lon, end_lat), '#ffffff', 14)) 
-        m.add_marker(CircleMarker((end_lon, end_lat), '#3b82f6', 10)) 
+        route_data = r.json()
+        if not route_data.get('routes'):
+            return None
+            
+        # 2. Формуємо GeoJSON лінію для Mapbox
+        coordinates = route_data['routes'][0]['geometry']['coordinates']
         
-        image = m.render()
-        image.save(filename)
-        return filename
+        # Оптимізація: якщо точок забагато, Mapbox API відхилить запит через довжину URL
+        if len(coordinates) > 100:
+            coordinates = coordinates[::3]
+            
+        geojson_line = {
+            "type": "Feature",
+            "properties": {
+                "stroke": "#ff6b4a", 
+                "stroke-width": 4,   
+                "stroke-opacity": 0.8
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": coordinates
+            }
+        }
+        
+        geojson_str = json.dumps(geojson_line)
+        encoded_geojson = urllib.parse.quote(geojson_str)
+        
+        # 3. Додаємо маркери 
+        marker_biz = f"pin-s+111418({start_lon},{start_lat})"
+        marker_client = f"pin-s+3b82f6({end_lon},{end_lat})"
+        
+        # 4. Збираємо фінальний URL для Mapbox Static Images
+        style_id = "streets-v12" 
+        width, height = 800, 400
+        
+        static_url = (
+            f"https://api.mapbox.com/styles/v1/mapbox/{style_id}/static/"
+            f"geojson({encoded_geojson}),{marker_biz},{marker_client}/"
+            f"auto/{width}x{height}@2x?padding=50&access_token={MAPBOX_TOKEN}"
+        )
+        
+        # 5. Завантажуємо картинку
+        img_resp = requests.get(static_url, timeout=15)
+        if img_resp.status_code == 200:
+            with open(filename, 'wb') as f:
+                f.write(img_resp.content)
+            return filename
+        else:
+            print(f"Mapbox помилка: {img_resp.text}")
+            return None
+            
     except Exception as e:
-        print(f"Помилка рендеру карти: {e}")
+        print(f"Помилка рендеру карти Mapbox: {e}")
         return None
 
 async def get_route_map_file(biz: dict, client_address: str, order_id: str):
