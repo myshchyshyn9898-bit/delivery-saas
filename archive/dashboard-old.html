@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeliPro Dashboard</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap');
+
+        :root { 
+            --bg-color: #f3f6f8; 
+            --text-main: #0f172a; 
+            --text-muted: #64748b; 
+            --primary: #FF5A5F; 
+            --primary-glow: rgba(255, 90, 95, 0.3);
+            --surface: #ffffff; 
+            --success: #10b981; 
+            --info: #3b82f6; 
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120px; } 
+
+        /* --- ПЕРЕМИКАЧ МОВИ --- */
+        .lang-switcher {
+            background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+            padding: 6px 10px; border-radius: 10px; font-size: 11px; font-weight: 800;
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: flex; align-items: center; gap: 6px; border: 1px solid #edf1f7;
+            transition: 0.2s; color: var(--text-main);
+        }
+        .lang-switcher:active { transform: scale(0.95); }
+        .lang-menu {
+            position: absolute; top: 55px; right: 20px; z-index: 1000;
+            background: white; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid #edf1f7; overflow: hidden;
+            display: none; flex-direction: column; min-width: 130px;
+        }
+        .lang-menu.show { display: flex; animation: dropIn 0.3s ease; }
+        .lang-item { padding: 12px 15px; font-size: 13px; font-weight: 700; cursor: pointer; border-bottom: 1px solid #edf1f7; transition: 0.2s; display: flex; align-items: center; gap: 10px; color: var(--text-main);}
+        .lang-item:last-child { border-bottom: none; }
+        .lang-item:hover, .lang-item:active { background: #fbfcfd; color: var(--primary); }
+        @keyframes dropIn { 0% { opacity: 0; transform: translateY(-10px); } 100% { opacity: 1; transform: translateY(0); } }
+
+        /* Header */
+        .header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); padding: 20px 20px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .biz-title { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; justify-content: space-between; position: relative; }
+        .biz-status { font-size: 10px; background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; vertical-align: middle; margin-left: 8px;}
+        
+        .time-filter-wrap { display: flex; gap: 8px; margin-top: 15px; align-items: center; }
+        .time-filter { display: flex; background: #e2e8f0; border-radius: 14px; padding: 5px; flex: 1; }
+        .filter-btn { flex: 1; text-align: center; padding: 8px 0; font-size: 13px; font-weight: 700; color: var(--text-muted); border-radius: 10px; transition: 0.3s; cursor: pointer;}
+        .filter-btn.active { background: var(--surface); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .btn-export-mini { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; transition: 0.2s; }
+        .btn-export-mini:active { transform: scale(0.9); background: rgba(16, 185, 129, 0.2); }
+
+        .tab-content { display: none; padding: 20px; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Metrics */
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px; }
+        .metric-card { background: var(--surface); border-radius: 24px; padding: 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); position: relative; overflow: hidden; transition: transform 0.2s; }
+        .metric-card:active { transform: scale(0.98); }
+        .metric-card.full-width { grid-column: 1 / -1; }
+        
+        .bg-gradient { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; box-shadow: 0 10px 25px var(--primary-glow); }
+        .metric-icon { width: 36px; height: 36px; border-radius: 12px; background: rgba(255, 90, 95, 0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 10px; }
+        .bg-gradient .metric-icon { background: rgba(255,255,255,0.2); color: white; }
+        
+        .metric-val { font-size: 24px; font-weight: 900; margin-bottom: 2px; letter-spacing: -0.5px; }
+        .metric-label { font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .bg-gradient .metric-label { color: rgba(255,255,255,0.9); }
+
+        .section-title { font-size: 16px; font-weight: 900; margin-bottom: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+
+        /* Chart Container */
+        .chart-card { background: var(--surface); border-radius: 24px; padding: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.02); }
+
+        /* Activity Feed */
+        .activity-feed { background: var(--surface); border-radius: 24px; padding: 5px 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); }
+        .activity-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
+        .activity-item:last-child { border-bottom: none; }
+        .act-icon { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; font-size: 16px; }
+        .act-details { flex: 1; }
+        .act-title { font-size: 14px; font-weight: 800; margin-bottom: 3px; color: var(--text-main); }
+        .act-time { font-size: 12px; font-weight: 600; }
+        .act-price { font-size: 16px; font-weight: 900; color: var(--text-main); }
+
+        /* Courier Leaderboard */
+        .courier-rank { display: flex; align-items: center; background: var(--surface); border-radius: 16px; padding: 12px 15px; margin-bottom: 10px; border: 1px solid rgba(0,0,0,0.02); box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .cr-medal { font-size: 20px; font-weight: 900; color: var(--warning); width: 30px; text-align: center; }
+        .cr-info { flex: 1; margin-left: 10px; }
+        .cr-name { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 2px; }
+        .cr-stats { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+        .cr-score { text-align: right; }
+        .cr-score-val { font-size: 16px; font-weight: 900; color: var(--primary); }
+        .cr-score-lbl { font-size: 9px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+
+        /* Team */
+        .team-card { background: var(--surface); border-radius: 20px; padding: 15px 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); margin-bottom: 12px; display: flex; align-items: center; }
+        .team-avatar { width: 45px; height: 45px; border-radius: 14px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-right: 15px; }
+        .team-info { flex: 1; }
+        .team-name { font-size: 15px; font-weight: 800; }
+        .team-role { font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 4px; letter-spacing: 0.5px; }
+        .role-courier { color: var(--primary); background: rgba(255, 90, 95, 0.1); }
+        .role-manager { color: var(--info); background: rgba(59, 130, 246, 0.1); }
+        
+        .btn-delete-staff { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .btn-delete-staff:active { transform: scale(0.9); }
+
+        /* Buttons */
+        .btn-main { background: var(--text-main); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); transition: 0.2s; margin-top: 10px; }
+        .btn-main:active { transform: scale(0.96); }
+        .btn-main.manager { background: var(--info); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); }
+
+        /* Settings */
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+        .setting-row:last-child { border-bottom: none; }
+        .set-label { font-size: 14px; font-weight: 700; color: var(--text-muted); }
+        .set-val { font-size: 14px; font-weight: 800; }
+
+        /* Floating Bottom Nav */
+        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px); display: flex; justify-content: space-around; padding: 15px 10px; border-radius: 30px; z-index: 9999; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.5); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 10px; font-weight: 800; gap: 6px; transition: 0.3s; cursor: pointer; flex: 1; text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-item i { font-size: 20px; transition: 0.3s; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active i { transform: translateY(-3px); }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.8); z-index: 10000; opacity: 0; visibility: hidden; transition: 0.3s ease; backdrop-filter: blur(5px); }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .bottom-sheet { position: absolute; bottom: -100%; left: 0; right: 0; background: var(--bg-color); border-radius: 30px 30px 0 0; padding: 25px 20px 40px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -15px 40px rgba(0,0,0,0.2); max-height: 92vh; overflow-y: auto; }
+        .modal-overlay.active .bottom-sheet { bottom: 0; }
+        .sheet-handle { width: 50px; height: 5px; background: #cbd5e1; border-radius: 5px; margin: 0 auto 25px; }
+        
+        .btn-sub-upgrade { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 25px rgba(255, 90, 95, 0.4); transition: 0.2s; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .btn-sub-upgrade:active { transform: scale(0.98); }
+        .btn-sub-renew { background: #111418; color: white; border: none; width: 100%; padding: 18px; border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; margin-top: 10px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); transition: 0.2s; }
+        .btn-sub-renew:active { transform: scale(0.98); }
+
+        .pro-locked { position: relative; overflow: hidden; border-color: rgba(255, 90, 95, 0.3) !important; }
+        .pro-locked > *:not(.pro-overlay) { filter: blur(5px); opacity: 0.6; pointer-events: none; user-select: none; }
+        .pro-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.3); z-index: 5; cursor: pointer; backdrop-filter: blur(1px); transition: 0.3s; }
+        .pro-overlay:active { background: rgba(255, 255, 255, 0.1); }
+        .pro-badge { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: #fff; padding: 10px 20px; border-radius: 14px; font-size: 14px; font-weight: 900; box-shadow: 0 8px 25px rgba(255, 90, 95, 0.4); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- НОВІ СТИЛІ ДЛЯ ПІДПИСОК --- */
+        .status-card-dynamic {
+            background: var(--surface);
+            border: 2px solid #edf1f7;
+            padding: 22px;
+            border-radius: 24px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        .status-card-dynamic.is-trial { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); }
+        .status-card-dynamic.is-pro { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.1); }
+        .status-card-dynamic.is-expired { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.1); background: #fffcfc; }
+
+        .trial-progress-bg { background: #f1f5f9; height: 10px; border-radius: 6px; margin-top: 18px; overflow: hidden; position: relative; }
+        .trial-progress-bar { background: linear-gradient(90deg, #3b82f6, #8b5cf6); height: 100%; border-radius: 6px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .plan-mini {
+            border: 2px solid #edf1f7;
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: 0.2s ease;
+            background: var(--surface);
+            position: relative;
+        }
+        .plan-mini:active { transform: scale(0.98); }
+        .plan-mini.selected {
+            border-color: var(--primary);
+            background: #ffffff;
+            box-shadow: 0 8px 25px var(--primary-glow);
+        }
+        .plan-mini::after {
+            content: ''; position: absolute; top: 20px; right: 20px; width: 22px; height: 22px;
+            border-radius: 50%; border: 2px solid #cbd5e1; transition: 0.2s;
+        }
+        .plan-mini.selected::after { border-color: var(--primary); background: var(--primary); box-shadow: inset 0 0 0 4px white; }
+
+        .p-mini-title { font-size: 18px; font-weight: 900; color: var(--text-main); margin-bottom: 4px; }
+        .p-mini-price { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 12px; }
+        .p-mini-feat { font-size: 12px; color: var(--text-muted); font-weight: 600; line-height: 1.6; }
+        .p-mini-feat i { color: var(--success); margin-right: 8px; font-size: 13px; }
+
+        /* Form Inputs */
+        .form-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-group { position: relative; margin-bottom: 15px; }
+        .form-input { width: 100%; padding: 16px; border: 2px solid transparent; border-radius: 16px; font-size: 15px; margin-bottom: 0px; background: white; color: var(--text-main); font-weight: 700; outline: none; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .form-input:focus { border-color: var(--primary); box-shadow: 0 4px 20px var(--primary-glow); }
+        
+        .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); z-index: 1000; max-height: 220px; overflow-y: auto; display: none; margin-top: 5px; margin-bottom: 20px; }
+        .autocomplete-item { padding: 15px; border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: 0.1s; }
+        .autocomplete-item:last-child { border-bottom: none; }
+        .autocomplete-item:active { background: #f8fafc; }
+        .addr-main { font-weight: 800; font-size: 14px; margin-bottom: 3px; }
+        .addr-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+        
+        #settings-map-container { width: 100%; height: 180px; border-radius: 16px; overflow: hidden; margin-bottom: 20px; margin-top: 15px; border: 2px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
+
+        /* 🔴 СТИЛІ ДЛЯ IOS TOAST NOTIFICATION 🔴 */
+        .ios-toast {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 10001;
+            transition: top 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            border: 1px solid rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+        .ios-toast.show { top: 20px; }
+        .ios-toast-icon {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+            width: 42px; height: 42px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .ios-toast-text { flex: 1; }
+        .ios-toast-title { font-weight: 900; font-size: 14px; margin-bottom: 2px; color: var(--text-main); }
+        .ios-toast-desc { font-weight: 600; font-size: 12px; color: var(--text-muted); line-height: 1.3; }
+
+        /* --- СТИЛІ ДЛЯ ПІДТРИМКИ --- */
+        .support-card { background: linear-gradient(135deg, #4A6CF7, #3b82f6); color: white; padding: 20px; border-radius: 20px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; cursor: pointer; box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3); transition: 0.2s; }
+        .support-card:active { transform: scale(0.97); }
+        .support-icon { width: 45px; height: 45px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        
+        .ticket-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .ticket-type-btn { background: #f1f5f9; border: 2px solid transparent; padding: 12px; border-radius: 14px; text-align: center; font-size: 12px; font-weight: 800; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        .ticket-type-btn.active { background: rgba(59, 130, 246, 0.1); border-color: var(--info); color: var(--info); }
+        .ticket-type-btn i { font-size: 16px; display: block; margin-bottom: 5px; }
+        
+        /* --- СТИЛІ ДЛЯ ІНТЕГРАЦІЙ (POS) --- */
+        .integration-list { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .integration-card { background: var(--surface); border: 2px solid #edf1f7; border-radius: 16px; padding: 16px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .integration-card:active { transform: scale(0.97); border-color: var(--primary); }
+        .integration-card.connected { border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.03); }
+        
+        .pos-logo-box { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .pos-info { flex: 1; margin-left: 15px; }
+        .pos-name { font-size: 16px; font-weight: 900; color: var(--text-main); margin-bottom: 2px; }
+        .pos-status { font-size: 11px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+        .pos-status.active { color: var(--success); }
+        
+        /* Динамічна шапка для вікна підключення */
+        .connect-header { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 25px; padding-top: 10px; }
+        .connect-logo-large { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 900; color: white; margin-bottom: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+        .connect-title { font-size: 22px; font-weight: 900; color: var(--text-main); margin-bottom: 5px; }
+        .connect-desc { font-size: 13px; color: var(--text-muted); font-weight: 600; line-height: 1.4; padding: 0 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="ios-toast" class="ios-toast" onclick="hideToast()">
+        <div class="ios-toast-icon"><i class="fa-solid fa-bell"></i></div>
+        <div class="ios-toast-text">
+            <div class="ios-toast-title" data-i18n="toast_title">Увага!</div>
+            <div class="ios-toast-desc" data-i18n="toast_desc">Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ.</div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="biz-title" style="position: relative;">
+            <div style="display: flex; align-items: center;">
+                <span id="display-biz-name" data-i18n="loading">Завантаження...</span>
+                <span class="biz-status" id="display-plan"><i class="fa-solid fa-crown"></i> PRO</span>
+            </div>
+            
+            <div class="lang-switcher" onclick="toggleLangMenu()">
+                <i class="fa-solid fa-globe"></i> <span id="current-lang-display">UK</span>
+            </div>
+            <div class="lang-menu" id="lang-menu">
+                <div class="lang-item" onclick="setLanguage('uk')">🇺🇦 Українська</div>
+                <div class="lang-item" onclick="setLanguage('en')">🇬🇧 English</div>
+                <div class="lang-item" onclick="setLanguage('pl')">🇵🇱 Polski</div>
+                <div class="lang-item" onclick="setLanguage('ru')">🇷🇺 Русский</div>
+            </div>
+        </div>
+        
+        <div class="time-filter-wrap">
+            <div class="time-filter">
+                <div class="filter-btn active" onclick="setFilter(this, 'today')" data-i18n="tab_today">Сьогодні</div>
+                <div class="filter-btn" onclick="setFilter(this, 'week')" data-i18n="tab_week">Тиждень</div>
+                <div class="filter-btn" onclick="setFilter(this, 'month')" data-i18n="tab_month">Місяць</div>
+            </div>
+            <button class="btn-export-mini" id="btn-csv-export" onclick="exportOrdersCSV()" title="Експорт в Excel"><i class="fa-solid fa-file-csv"></i></button>
+        </div>
+    </div>
+
+    <div id="tab-home" class="tab-content active">
+        <div class="metrics-grid">
+            <div class="metric-card full-width bg-gradient">
+                <div class="metric-icon"><i class="fa-solid fa-wallet"></i></div>
+                <div class="metric-val" id="val-total">0.00</div>
+                <div class="metric-label" data-i18n="metric_total">Загальна каса</div>
+                <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 100px; opacity: 0.15; transform: rotate(-10deg);"></i>
+            </div>
+
+            <div class="metric-card full-width" id="card-heatmap" style="padding: 15px;">
+                <div class="metric-label" style="margin-bottom: 10px;"><i class="fa-solid fa-map-location-dot"></i> <span data-i18n="metric_heat">Теплова карта</span></div>
+                <div id="heatmap" style="height: 160px; width: 100%; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.05); z-index: 1;"></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 0 5px;">
+                    <div>
+                        <div class="metric-label" style="margin-bottom: 4px;" data-i18n="metric_avg">Середній чек</div>
+                        <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
+                    </div>
+                    <div class="metric-icon" style="margin: 0; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-fire" style="color: var(--danger);"></i></div>
+                </div>
+            </div>
+
+            <div class="metric-card full-width" id="card-chart" style="padding: 15px;">
+                <div class="metric-label" style="margin-bottom: 10px;"><i class="fa-solid fa-chart-area"></i> <span data-i18n="metric_chart">Динаміка доходу</span></div>
+                <div style="position: relative; height: 160px; width: 100%;">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <div class="metric-card" id="card-cash">
+                <div class="metric-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="metric-val" id="val-cash">0.00</div>
+                <div class="metric-label" data-i18n="metric_cash">Готівка</div>
+            </div>
+            <div class="metric-card" id="card-term">
+                <div class="metric-icon" style="color: var(--info); background: rgba(59,130,246,0.1);"><i class="fa-solid fa-credit-card"></i></div>
+                <div class="metric-val" id="val-term">0.00</div>
+                <div class="metric-label" data-i18n="metric_term">Термінал</div>
+            </div>
+            <div class="metric-card" id="card-orders">
+                <div class="metric-icon" style="color: var(--warning); background: rgba(245,158,11,0.1);"><i class="fa-solid fa-bag-shopping"></i></div>
+                <div class="metric-val" id="val-orders">0</div>
+                <div class="metric-label" data-i18n="metric_orders">Замовлень</div>
+            </div>
+            <div class="metric-card" id="card-time">
+                <div class="metric-icon" style="color: var(--success); background: rgba(52,199,89,0.1);"><i class="fa-solid fa-stopwatch"></i></div>
+                <div class="metric-val" id="val-time">--</div>
+                <div class="metric-label" data-i18n="metric_time">Сер. час</div>
+            </div>
+            
+            <div class="metric-card full-width" id="card-late">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div class="metric-label" style="margin-bottom: 4px;" data-i18n="metric_late">Запізнення (> 45 хв)</div>
+                        <div class="metric-val" id="val-late" style="color: var(--danger);">0</div>
+                    </div>
+                    <div class="metric-icon" style="margin: 0; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color: var(--text-muted);"></i> <span data-i18n="title_recent">Останні замовлення</span></div>
+        <div class="activity-feed" id="recent-orders-list"></div>
+    </div>
+
+    <div id="tab-team" class="tab-content">
+        
+        <div class="section-title" id="title-couriers-rating"><i class="fa-solid fa-trophy" style="color: var(--warning);"></i> <span data-i18n="title_rating">Рейтинг кур'єрів (PRO)</span></div>
+        <div id="couriers-leaderboard" style="margin-bottom: 30px;"></div>
+
+        <div class="section-title"><i class="fa-solid fa-user-plus" style="color: var(--primary);"></i> <span data-i18n="title_invite">Запрошення персоналу</span></div>
+        <button class="btn-main" onclick="generateInvite('courier')">
+            <i class="fa-solid fa-motorcycle"></i> <span data-i18n="btn_add_c">Додати Кур'єра</span>
+        </button>
+        <button class="btn-main manager" onclick="generateInvite('manager')">
+            <i class="fa-solid fa-user-tie"></i> <span data-i18n="btn_add_m">Додати Менеджера</span>
+        </button>
+        
+        <button class="btn-main" style="background: transparent; color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); margin-top: 15px; padding: 12px; font-size: 13px; box-shadow: none;" onclick="resetInviteToken()">
+            <i class="fa-solid fa-rotate-right"></i> <span data-i18n="btn_reset">Оновити посилання (Анулювати старі)</span>
+        </button>
+        
+        <div class="section-title" style="margin-top: 35px;"><i class="fa-solid fa-users" style="color: var(--text-muted);"></i> <span data-i18n="title_active">Активний персонал</span></div>
+        <div id="staff-list"></div>
+    </div>
+
+    <div id="tab-settings" class="tab-content">
+        <div class="section-title"><i class="fa-solid fa-building" style="color: var(--primary);"></i> <span data-i18n="title_profile">Профіль бізнесу</span></div>
+        
+        <div class="support-card" onclick="openSupportModal()">
+            <div>
+                <div style="font-size: 18px; font-weight: 900; margin-bottom: 4px;" data-i18n="support_title">Служба підтримки</div>
+                <div style="font-size: 12px; opacity: 0.8; font-weight: 600;" data-i18n="support_desc">Маєте питання чи знайшли баг?</div>
+            </div>
+            <div class="support-icon"><i class="fa-solid fa-headset"></i></div>
+        </div>
+
+        <div class="activity-feed" style="padding: 5px 20px; margin-bottom: 20px;" onclick="openIntegrationsList()">
+            <div class="setting-row" style="cursor: pointer; border-bottom: none; padding: 12px 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 40px; height: 40px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px;"><i class="fa-solid fa-plug"></i></div>
+                    <div>
+                        <div class="set-val" style="font-size: 16px;">Інтеграції (POS)</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Poster, Syrve, ChoiceQR...</div>
+                    </div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
+            </div>
+        </div>
+        
+        <div class="activity-feed" style="padding: 10px 20px;">
+            <div class="setting-row">
+                <span class="set-label" data-i18n="lbl_biz_id">ID Закладу</span>
+                <span class="set-val" id="set-id" style="font-size: 11px; font-family: monospace; background: #f1f5f9; padding: 4px 8px; border-radius: 6px;">...</span>
+            </div>
+            
+            <div class="setting-row" onclick="openBizSettingsMenu()" style="cursor: pointer;">
+                <span class="set-label" data-i18n="lbl_edit">Редагувати профіль</span>
+                <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
+            </div>
+
+            <div class="setting-row" onclick="openSubscriptionMenu()" style="cursor: pointer;">
+                <span class="set-label" data-i18n="lbl_sub">Підписка</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="set-val" style="color: var(--success); background: rgba(16,185,129,0.1); padding: 4px 10px; border-radius: 8px;" id="set-plan-status">PRO</span>
+                    <i class="fa-solid fa-chevron-right" style="color: var(--primary); font-size: 14px;"></i>
+                </div>
+            </div>
+            <div class="setting-row">
+                <span class="set-label" data-i18n="lbl_cur">Валюта системи</span>
+                <span class="set-val" id="set-currency" style="background: #f1f5f9; padding: 4px 10px; border-radius: 8px;">zł</span>
+            </div>
+        </div>
+        <button class="btn-main" style="background: white; color: var(--danger); border: 2px solid rgba(239,68,68,0.2); margin-top: 30px; box-shadow: none;" onclick="closeApp()">
+            <i class="fa-solid fa-power-off"></i> <span data-i18n="btn_logout">Вийти</span>
+        </button>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('home', this)">
+            <i class="fa-solid fa-chart-pie"></i><span data-i18n="nav_home">Головна</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('team', this)">
+            <i class="fa-solid fa-users"></i><span data-i18n="nav_team">Команда</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('settings', this)">
+            <i class="fa-solid fa-gear"></i><span data-i18n="nav_settings">Налаштування</span>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="subscription-modal" onclick="closeSubscriptionMenu()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 20px; text-align: center; letter-spacing: -0.5px;" data-i18n="modal_plan">Управління підпискою</h2>
+            
+            <div id="modal-status-card" class="status-card-dynamic">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 20px; font-weight: 900; letter-spacing: -0.5px;" id="modal-plan-name">...</span>
+                    <span style="color: white; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 900; letter-spacing: 1px;" id="modal-plan-badge">...</span>
+                </div>
+                <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;" id="modal-plan-desc">...</div>
+                
+                <div class="trial-progress-bg" id="trial-progress-container" style="display: none;">
+                    <div class="trial-progress-bar" id="trial-progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <div id="plans-selection-block">
+                <h3 style="font-size: 12px; font-weight: 800; margin: 0 0 12px 5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;" id="plan-select-title">Оберіть тариф:</h3>
+                
+                <div class="plan-mini" id="dash-plan-basic" onclick="selectDashPlan('basic')">
+                    <div class="p-mini-title">Basic</div>
+                    <div class="p-mini-price">29.99 zł <span style="color:var(--text-muted); font-weight:600;" data-i18n="pr_month">/ міс</span></div>
+                    <div class="p-mini-feat">
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_b1">До 2 кур'єрів у штаті</span></div>
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_b2">Базова статистика</span></div>
+                    </div>
+                </div>
+
+                <div class="plan-mini selected" id="dash-plan-pro" onclick="selectDashPlan('pro')">
+                    <div class="p-mini-title">Pro <span style="background: linear-gradient(135deg, var(--primary), #ffa07a); color: white; font-size: 9px; padding: 3px 8px; border-radius: 8px; margin-left: 6px; vertical-align: middle;">MAX</span></div>
+                    <div class="p-mini-price">59.99 zł <span style="color:var(--text-muted); font-weight:600;" data-i18n="pr_month">/ міс</span></div>
+                    <div class="p-mini-feat">
+                        <div><i class="fa-solid fa-check"></i> <b><span data-i18n="pr_p1_b">Необмежена</span></b>&nbsp;<span data-i18n="pr_p1">кількість кур'єрів</span></div>
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_p2">Глибока аналітика та експорт</span></div>
+                        <div><i class="fa-solid fa-check"></i> <span data-i18n="pr_p3">Управління менеджерами</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-sub-upgrade" id="btn-upgrade-pay" onclick="actionPayWhop()" style="margin-top: 25px;"><i class="fa-solid fa-rocket"></i> <span id="btn-pay-text" data-i18n="btn_pay">Оплатити</span> <span id="pay-price" style="opacity: 0.9; margin-left: 5px;">59.99 zł</span></button>
+            <button class="btn-sub-renew" id="btn-manage-sub" onclick="actionManageWhop()" style="display: none;"><i class="fa-solid fa-gear"></i> <span data-i18n="btn_manage">Керувати підпискою</span></button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="biz-settings-modal" onclick="closeBizSettingsMenu()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 20px;" data-i18n="set_title">Налаштування бізнесу</h2>
+            
+            <label class="form-label" data-i18n="set_name">Назва бізнесу</label>
+            <input type="text" id="input-biz-name" class="form-input" data-i18n-placeholder="set_name_ph" placeholder="Введіть назву..." style="margin-bottom: 15px;">
+            
+            <label class="form-label" data-i18n="set_addr">Адреса закладу (база)</label>
+            <div class="input-group">
+                <input type="text" id="input-biz-address" class="form-input" data-i18n-placeholder="set_addr_ph" placeholder="Почніть вводити вулицю..." autocomplete="off">
+                <div id="biz-autocomplete-list" class="autocomplete-list"></div>
+            </div>
+            
+            <label class="form-label" style="margin-top: 15px;" data-i18n="set_rad">Радіус доставки (км)</label>
+            <input type="number" id="input-biz-radius" class="form-input" data-i18n-placeholder="set_rad_ph" placeholder="Наприклад: 5" onchange="updateSettingsMap()" style="margin-bottom: 0;">
+
+            <div id="settings-map-container"></div>
+
+            <label class="form-label" style="margin-top: 15px;" data-i18n="set_cur">Валюта</label>
+            <select id="input-biz-currency" class="form-input">
+                <option value="zł">zł (PLN)</option>
+                <option value="₴">₴ (UAH)</option>
+                <option value="$">$ (USD)</option>
+                <option value="€">€ (EUR)</option>
+            </select>
+
+            <button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 5px;" data-i18n="btn_save">💾 Зберегти зміни</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="support-modal" onclick="closeSupportModal()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;"><i class="fa-solid fa-life-ring" style="color: var(--info);"></i> <span data-i18n="ticket_create_title">Створити тікет</span></h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;" data-i18n="ticket_create_desc">Ми отримаємо ваше повідомлення в Telegram і швидко відповімо.</p>
+            
+            <label class="form-label" data-i18n="ticket_label_reason">Причина звернення</label>
+            <div class="ticket-type-grid">
+                <div class="ticket-type-btn active" onclick="selectTicketType(this, 'bug')">
+                    <i class="fa-solid fa-bug"></i><span data-i18n="ticket_btn_bug">Технічний баг</span>
+                </div>
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'setup')">
+                    <i class="fa-solid fa-sliders"></i><span data-i18n="ticket_btn_setup">Налаштування</span>
+                </div>
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'finance')">
+                    <i class="fa-solid fa-credit-card"></i><span data-i18n="ticket_btn_pay">Оплата/Тариф</span>
+                </div>
+                <div class="ticket-type-btn" onclick="selectTicketType(this, 'other')">
+                    <i class="fa-solid fa-circle-question"></i><span data-i18n="ticket_btn_other">Інше</span>
+                </div>
+            </div>
+
+            <label class="form-label" data-i18n="ticket_label_topic">Тема тікета</label>
+            <input type="text" id="ticket-topic" class="form-input" data-i18n-placeholder="ticket_ph_topic" placeholder="Коротко про проблему..." style="margin-bottom: 15px;">
+            
+            <label class="form-label" data-i18n="ticket_label_msg">Опис проблеми</label>
+            <textarea id="ticket-msg" class="form-input" data-i18n-placeholder="ticket_ph_msg" placeholder="Опишіть ситуацію максимально детально..." style="height: 100px; resize: none; margin-bottom: 20px;"></textarea>
+
+            <button class="btn-main manager" id="btn-send-ticket" onclick="sendSupportTicket()">
+                <i class="fa-solid fa-paper-plane"></i> <span id="text-btn-send-ticket" data-i18n="ticket_btn_send">Відправити тікет</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="integrations-list-modal" onclick="closeIntegrationsList()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;">Каталог Інтеграцій</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Підключіть вашу касу для автоматизації доставки.</p>
+            
+            <div class="integration-list">
+                <div class="integration-card" onclick="openConnectModal('Poster POS', 'poster', '#111418', 'P', 'Знайдіть API-токен у кабінеті Poster (Налаштування -> Інтеграції -> API).')">
+                    <div class="pos-logo-box" style="background: #111418;">P</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Poster POS</div>
+                        <div class="pos-status" id="status-poster"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('ChoiceQR', 'choice', '#10b981', 'C', 'Згенеруйте токен у панелі ChoiceQR (розділ Integrations).')">
+                    <div class="pos-logo-box" style="background: #10b981;">C</div>
+                    <div class="pos-info">
+                        <div class="pos-name">ChoiceQR</div>
+                        <div class="pos-status" id="status-choice"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('Syrve', 'syrve', '#8b5cf6', 'S', 'Введіть ваш API Login від системи Syrve (iiko).')">
+                    <div class="pos-logo-box" style="background: #8b5cf6;">S</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Syrve (iiko)</div>
+                        <div class="pos-status" id="status-syrve"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('GoPOS', 'gopos', '#3b82f6', 'G', 'Скопіюйте Authorization Token з адмін-панелі GoPOS.')">
+                    <div class="pos-logo-box" style="background: #3b82f6;">G</div>
+                    <div class="pos-info">
+                        <div class="pos-name">GoPOS</div>
+                        <div class="pos-status" id="status-gopos"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pos-connect-modal" onclick="closeConnectModal()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            
+            <div class="connect-header">
+                <div class="connect-logo-large" id="connect-logo">P</div>
+                <div class="connect-title" id="connect-title">Підключити Poster</div>
+                <div class="connect-desc" id="connect-desc">Введіть токен...</div>
+            </div>
+
+            <label class="form-label">API Токен (Ключ доступу)</label>
+            <input type="text" id="input-pos-token" class="form-input" placeholder="Наприклад: 74528f8h..." style="margin-bottom: 25px; font-family: monospace;">
+
+            <button class="btn-main" id="btn-save-pos" onclick="savePosIntegration()" style="background: #111418;">
+                <i class="fa-solid fa-link"></i> Підключити
+            </button>
+            <button class="btn-main" style="background: transparent; color: var(--text-muted); box-shadow: none; margin-top: 0; padding: 12px;" onclick="closeConnectModal()">Скасувати</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. БЕЗПЕЧНЕ ВИЗНАЧЕННЯ МОВИ ТА СЛОВНИК
+        let tgLang = 'en';
+        try { 
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en'; 
+            }
+        } catch(e) {}
+        
+        let savedLang = localStorage.getItem('appLang');
+        let currentLang = savedLang || tgLang;
+        if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
+
+        const i18n = {
+            'uk': {
+                tab_today: "Сьогодні", tab_week: "Тиждень", tab_month: "Місяць",
+                metric_total: "Загальна каса", metric_heat: "Теплова карта", metric_avg: "Середній чек",
+                metric_chart: "Динаміка доходу", metric_cash: "Готівка", metric_term: "Термінал",
+                metric_orders: "Замовлень", metric_time: "Сер. час", metric_late: "Запізнення (> 45 хв)",
+                title_recent: "Останні замовлення", title_rating: "Рейтинг кур'єрів (PRO)", 
+                title_invite: "Запрошення персоналу", btn_add_c: "Додати Кур'єра", btn_add_m: "Додати Менеджера", 
+                btn_reset: "Оновити посилання (Анулювати старі)", title_active: "Активний персонал",
+                title_profile: "Профіль бізнесу", lbl_biz_id: "ID Закладу", lbl_edit: "Редактировать профіль",
+                lbl_sub: "Підписка", lbl_cur: "Валюта системи", btn_logout: "Вийти",
+                nav_home: "Головна", nav_team: "Команда", nav_settings: "Налаштування",
+                modal_plan: "Управління підпискою", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
+                set_title: "Налаштування бізнесу", set_name: "Назва бізнесу", set_addr: "Адреса закладу (база)",
+                set_rad: "Радіус доставки (км)", set_cur: "Валюта", btn_save: "💾 Зберегти зміни",
+                set_name_ph: "Введіть назву...", set_addr_ph: "Почніть вводити вулицю...", set_rad_ph: "Наприклад: 5",
+                tariff: "Тариф",
+                loading: "Завантаження...", empty_team: "В команді поки нікого немає.", empty_orders: "За цей період замовлень не знайдено",
+                empty_rating: "Немає даних для рейтингу.", err_export: "Немає замовлень для експорту.",
+                status_done: "Доставлено", status_proc: "В процесі", min: "хв", order: "Замовлення", avg_time_lbl: "Сер. час:",
+                orders_lbl: "замовлень", role_c: "Кур'єр", role_m: "Менеджер",
+                search_load: "Шукаємо адресу...", search_empty: "Нічого не знайдено 😕", search_err: "❌ Помилка пошуку",
+                alert_save: "✅ Налаштування успішно збережено!", alert_err: "❌ Помилка: ", confirm_reset: "⚠️ ВИ ВПЕВНЕНІ?\n\nВсі старі посилання миттєво перестануть працювати.",
+                alert_reset: "✅ Успіх! Старі посилання анульовано.", confirm_del: "Ви дійсно хочете звільнити працівника",
+                limit_c: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 2 кур'єри.",
+                limit_m: "⚠️ ЛІМІТ ВИЧЕРПАНО!\n\nУ тарифі BASIC можна додати максимум 1 адміністратора.",
+                err_biz: "Помилка: Business ID не знайдено.", err_tok: "Помилка безпеки: Токен запрошення відсутній.",
+                success_copy: "✅ Безпечне посилання скопійовано!",
+                f1: "Базовый дашборд", f2: "Безлімітні замовлення", f3: "Експорт CSV, Графік та Рейтинг",
+                f4: "Інтерактивна тепловая карта", f5: "Статистика часу та Запізнень", f6: "Безлімітний персонал",
+                pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Теплова карта та глибока аналітика", pr_p3: "Управління менеджерами",
+                btn_pay: "Оплатить", btn_manage: "Керувати підпискою (Whop)", btn_upgrade_now: "Оновити до PRO", btn_unlock: "Розблокувати",
+                txt_left: "Залишилося", txt_days: "днів", txt_avail: "Доступно до", txt_next_pay: "Наступне автоматичне списання:", txt_max: "Усі преміум функції розблоковано. Дякуємо, що ви з нами!", txt_expired: "Ваш тріал або підписка завершилася. Оберіть тариф для розблокування.",
+                title_sel_plan: "Оберіть тариф для продовження:", title_upsell: "⚡️ Хочете більше можливостей?", title_sel_unlock: "Оберіть тариф для розблокування:",
+                badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКУВАННЯ",
+                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРИТО",
+                toast_title: "Увага!", toast_desc: "Ваш тариф завершується дуже скоро. Оновіть підписку, щоб не втратити доступ.",
+                support_title: "Служба підтримки", support_desc: "Маєте питання чи знайшли баг?",
+                ticket_create_title: "Створити тікет", ticket_create_desc: "Ми отримаємо ваше повідомлення в Telegram і швидко відповімо.",
+                ticket_label_reason: "Причина звернення", ticket_btn_bug: "Технічний баг", ticket_btn_setup: "Налаштування", ticket_btn_pay: "Оплата/Тариф", ticket_btn_other: "Інше",
+                ticket_label_topic: "Тема тікета", ticket_ph_topic: "Коротко про проблему...",
+                ticket_label_msg: "Опис проблеми", ticket_ph_msg: "Опишіть ситуацію максимально детально...",
+                ticket_btn_send: "Відправити тікет", ticket_btn_sending: "Відправляємо...",
+                ticket_alert_empty: "📍 Будь ласка, заповніть тему та опис проблеми.",
+                ticket_alert_test: "Тікет відправлено (Тестовий режим)!"
+            },
+            'ru': {
+                tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
+                metric_total: "Общая касса", metric_heat: "Тепловая карта", metric_avg: "Средний чек",
+                metric_chart: "Динамика дохода", metric_cash: "Наличные", metric_term: "Терминал",
+                metric_orders: "Заказов", metric_time: "Ср. время", metric_late: "Опоздания (> 45 мин)",
+                title_recent: "Последние заказы", title_rating: "Рейтинг курьеров (PRO)", 
+                title_invite: "Приглашение персонала", btn_add_c: "Добавить Курьера", btn_add_m: "Добавить Менеджера", 
+                btn_reset: "Обновить ссылки (Аннулировать старые)", title_active: "Активный персонал",
+                title_profile: "Профиль бизнеса", lbl_biz_id: "ID Заведения", lbl_edit: "Редактировать профиль",
+                lbl_sub: "Подписка", lbl_cur: "Валюта системы", btn_logout: "Выйти",
+                nav_home: "Главная", nav_team: "Команда", nav_settings: "Настройки",
+                modal_plan: "Управление подпиской", plan_active: "АКТИВНА", plan_paid: "Оплачено до:",
+                set_title: "Настройки бизнеса", set_name: "Название заведения", set_addr: "Адрес заведения (база)",
+                set_rad: "Радиус доставки (км)", set_cur: "Валюта", btn_save: "💾 Сохранить изменения",
+                set_name_ph: "Введите название...", set_addr_ph: "Начните вводить улицу...", set_rad_ph: "Например: 5",
+                tariff: "Тариф",
+                loading: "Загрузка...", empty_team: "В команде пока никого нет.", empty_orders: "За этот период заказов не найдено",
+                empty_rating: "Нет данных для рейтинга.", err_export: "Нет заказов для экспорта.",
+                status_done: "Доставлено", status_proc: "В процессе", min: "мин", order: "Заказ", avg_time_lbl: "Ср. время:",
+                orders_lbl: "заказов", role_c: "Курьер", role_m: "Менеджер",
+                search_load: "Ищем адрес...", search_empty: "Ничего не найдено 😕", search_err: "❌ Ошибка поиска",
+                alert_save: "✅ Настройки успешно сохранены!", alert_err: "❌ Ошибка: ", confirm_reset: "⚠️ ВЫ УВЕРЕНЫ?\n\nВсе старые ссылки мгновенно перестанут работать.",
+                alert_reset: "✅ Успех! Старые ссылки аннулированы.", confirm_del: "Вы действительно хотите уволить сотрудника",
+                limit_c: "⚠️ ЛИМИТ ИСЧЕРПАН!\n\nВ тарифе BASIC можно добавить максимум 2 курьера.",
+                limit_m: "⚠️ ЛИМИТ ИСЧЕРПАН!\n\nВ тарифе BASIC можно добавить максимум 1 администратора.",
+                err_biz: "Ошибка: Business ID не найден.", err_tok: "Ошибка безопасности: Токен приглашения отсутствует.",
+                success_copy: "✅ Безопасная ссылка скопирована!",
+                f1: "Базовый дашборд", f2: "Безлимитные заказы", f3: "Экспорт CSV, График и Рейтинг",
+                f4: "Интерактивная тепловая карта", f5: "Статистика времени и Опозданий", f6: "Безлимитный персонал",
+                pr_month: "/ мес", pr_b1: "До 2 курьеров в штате", pr_b2: "Базовая статистика", pr_p1_b: "Неограниченное", pr_p1: "количество курьеров", pr_p2: "Тепловая карта и глубокая аналитика", pr_p3: "Управление менеджерами",
+                btn_pay: "Оплатить", btn_manage: "Управление подпиской (Whop)", btn_upgrade_now: "Обновить до PRO", btn_unlock: "Разблокировать",
+                txt_left: "Осталось", txt_days: "дней", txt_avail: "Доступно до", txt_next_pay: "Следующее списание:", txt_max: "Все функции разблокированы. Спасибо, что вы с нами!", txt_expired: "Ваш триал или подписка завершилась. Выберите тариф.",
+                title_sel_plan: "Выберите тариф для продления:", title_upsell: "⚡️ Хотите больше возможностей?", title_sel_unlock: "Выберите тариф для разблокировки:",
+                badge_active: "АКТИВНО", badge_paid: "ОПЛАЧЕНО", badge_block: "БЛОКИРОВКА",
+                state_basic: "BASIC ТАРИФ", state_pro: "PRO ТАРИФ", state_closed: "ДОСТУП ЗАКРЫТ",
+                toast_title: "Внимание!", toast_desc: "Ваш тариф скоро истекает. Обновите подписку, чтобы не потерять доступ.",
+                support_title: "Служба поддержки", support_desc: "Есть вопросы или нашли баг?",
+                ticket_create_title: "Создать тикет", ticket_create_desc: "Мы получим ваше сообщение в Telegram и быстро ответим.",
+                ticket_label_reason: "Причина обращения", ticket_btn_bug: "Технический баг", ticket_btn_setup: "Настройка", ticket_btn_pay: "Оплата/Тариф", ticket_btn_other: "Другое",
+                ticket_label_topic: "Тема тикета", ticket_ph_topic: "Коротко о проблеме...",
+                ticket_label_msg: "Описание проблемы", ticket_ph_msg: "Опишите ситуацию максимально подробно...",
+                ticket_btn_send: "Отправить тикет", ticket_btn_sending: "Отправляем...",
+                ticket_alert_empty: "📍 Пожалуйста, заполните тему и описание проблемы.",
+                ticket_alert_test: "Тикет отправлен (Тестовый режим)!"
+            },
+            'pl': {
+                tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
+                metric_total: "Całkowity utarg", metric_heat: "Mapa cieplna", metric_avg: "Średni paragon",
+                metric_chart: "Dynamika dochodu", metric_cash: "Gotówka", metric_term: "Terminal",
+                metric_orders: "Zamówień", metric_time: "Śr. czas", metric_late: "Spóźnienia (> 45 min)",
+                title_recent: "Ostatnie zamówienia", title_rating: "Ranking kurierów (PRO)", 
+                title_invite: "Zaproszenie personelu", btn_add_c: "Dodaj Kuriera", btn_add_m: "Dodaj Menedżera", 
+                btn_reset: "Odśwież linki (Anuluj stare)", title_active: "Aktywny personel",
+                title_profile: "Profil firmy", lbl_biz_id: "ID Lokalu", lbl_edit: "Edytuj profil",
+                lbl_sub: "Subskrypcja", lbl_cur: "Waluta systemu", btn_logout: "Wyloguj",
+                nav_home: "Główna", nav_team: "Zespół", nav_settings: "Ustawienia",
+                modal_plan: "Zarządzanie subskrypcją", plan_active: "AKTYWNA", plan_paid: "Opłacono do:",
+                set_title: "Ustawienia firmy", set_name: "Nazwa lokalu", set_addr: "Adres lokalu (baza)",
+                set_rad: "Promień dostawy (km)", set_cur: "Waluta", btn_save: "💾 Zapisz zmiany",
+                set_name_ph: "Wprowadź nazwę...", set_addr_ph: "Zacznij wpisywać ulicę...", set_rad_ph: "Na przykład: 5",
+                tariff: "Plan",
+                loading: "Ładowanie...", empty_team: "W zespole nikogo nie ma.", empty_orders: "Brak zamówień w tym okresie",
+                empty_rating: "Brak danych do rankingu.", err_export: "Brak zamówień do eksportu.",
+                status_done: "Dostarczono", status_proc: "W trakcie", min: "min", order: "Zamówienie", avg_time_lbl: "Śr. czas:",
+                orders_lbl: "zamówień", role_c: "Kurier", role_m: "Menedżer",
+                search_load: "Szukamy adresu...", search_empty: "Nic nie znaleziono 😕", search_err: "❌ Błąd wyszukiwania",
+                alert_save: "✅ Ustawienia zapisane pomyślnie!", alert_err: "❌ Błąd: ", confirm_reset: "⚠️ JESTEŚ PEWIEN?\n\nWszystkie stare linki natychmiast przestaną działać.",
+                alert_reset: "✅ Sukces! Stare linki anulowane.", confirm_del: "Czy na pewno chcesz zwolnić pracownika",
+                limit_c: "⚠️ LIMIT WYCZERPANY!\n\nW planie BASIC można dodać max 2 kurierów.",
+                limit_m: "⚠️ LIMIT WYCZERPANY!\n\nW planie BASIC można dodać max 1 administratora.",
+                err_biz: "Błąd: Nie znaleziono Business ID.", err_tok: "Błąd bezp.: Brak tokenu zaproszenia.",
+                success_copy: "✅ Bezpieczny link skopiowany!",
+                f1: "Podstawowy panel", f2: "Nielimitowane zamówienia", f3: "Eksport CSV, Wykres i Ranking",
+                f4: "Interaktywna mapa cieplna", f5: "Statystyki czasu i Spóźnień", f6: "Nielimitowany personel",
+                pr_month: "/ m-c", pr_b1: "Do 2 kurierów w zespole", pr_b2: "Podstawowe statystyki", pr_p1_b: "Nielimitowana", pr_p1: "liczba kurierów", pr_p2: "Mapa cieplna i głęboka analityka", pr_p3: "Zarządzanie menedżerami",
+                btn_pay: "Zapłać", btn_manage: "Zarządzaj subskrypcją (Whop)", btn_upgrade_now: "Zaktualizuj do PRO", btn_unlock: "Odblokuj",
+                txt_left: "Pozostało", txt_days: "dni", txt_avail: "Dostępne do", txt_next_pay: "Następna płatność:", txt_max: "Wszystkie funkcje odblokowane. Dziękujemy!", txt_expired: "Twój okres próbny lub subskrypcja wygasła. Wybierz plan.",
+                title_sel_plan: "Wybierz plan do przedłużenia:", title_upsell: "⚡️ Chcesz więcej funkcji?", title_sel_unlock: "Wybierz plan, aby odblokować:",
+                badge_active: "AKTYWNIE", badge_paid: "OPŁACONE", badge_block: "ZABLOKOWANE",
+                state_basic: "PLAN BASIC", state_pro: "PLAN PRO", state_closed: "DOSTĘP ZAMKNIĘTY",
+                toast_title: "Uwaga!", toast_desc: "Twój plan wkrótce wygaśnie. Odnów subskrypcję, aby nie stracić dostępu.",
+                support_title: "Wsparcie techniczne", support_desc: "Masz pytania lub znalazłeś błąd?",
+                ticket_create_title: "Utwórz zgłoszenie", ticket_create_desc: "Otrzymamy Twoją wiadomość na Telegramie i szybko odpowiemy.",
+                ticket_label_reason: "Powód zgłoszenia", ticket_btn_bug: "Błąd techniczny", ticket_btn_setup: "Konfiguracja", ticket_btn_pay: "Płatność/Plan", ticket_btn_other: "Inne",
+                ticket_label_topic: "Temat zgłoszenia", ticket_ph_topic: "Krótko o problemie...",
+                ticket_label_msg: "Opis problemu", ticket_ph_msg: "Opisz sytuację jak najdokładniej...",
+                ticket_btn_send: "Wyślij zgłoszenie", ticket_btn_sending: "Wysyłanie...",
+                ticket_alert_empty: "📍 Proszę wypełnić temat i opis problemu.",
+                ticket_alert_test: "Zgłoszenie wysłane (Tryb testowy)!"
+            },
+            'en': {
+                tab_today: "Today", tab_week: "Week", tab_month: "Month",
+                metric_total: "Total Revenue", metric_heat: "Heatmap", metric_avg: "Avg Check",
+                metric_chart: "Revenue Dynamics", metric_cash: "Cash", metric_term: "Terminal",
+                metric_orders: "Orders", metric_time: "Avg Time", metric_late: "Late (> 45 min)",
+                title_recent: "Recent Orders", title_rating: "Courier Ranking (PRO)", 
+                title_invite: "Invite Staff", btn_add_c: "Add Courier", btn_add_m: "Add Manager", 
+                btn_reset: "Reset Links (Revoke old)", title_active: "Active Staff",
+                title_profile: "Business Profile", lbl_biz_id: "Business ID", lbl_edit: "Edit Profile",
+                lbl_sub: "Subscription", lbl_cur: "System Currency", btn_logout: "Logout",
+                nav_home: "Home", nav_team: "Team", nav_settings: "Settings",
+                modal_plan: "Manage Subscription", plan_active: "ACTIVE", plan_paid: "Paid until:",
+                set_title: "Business Settings", set_name: "Business Name", set_addr: "Business Address (Base)",
+                set_rad: "Delivery Radius (km)", set_cur: "Currency", btn_save: "💾 Save Changes",
+                set_name_ph: "Enter name...", set_addr_ph: "Start typing street...", set_rad_ph: "Example: 5",
+                tariff: "Plan",
+                loading: "Loading...", empty_team: "No team members yet.", empty_orders: "No orders found for this period",
+                empty_rating: "No data for ranking.", err_export: "No orders to export.",
+                status_done: "Delivered", status_proc: "In Progress", min: "min", order: "Order", avg_time_lbl: "Avg time:",
+                orders_lbl: "orders", role_c: "Courier", role_m: "Manager",
+                search_load: "Searching address...", search_empty: "Nothing found 😕", search_err: "❌ Search error",
+                alert_save: "✅ Settings saved successfully!", alert_err: "❌ Error: ", confirm_reset: "⚠️ ARE YOU SURE?\n\nAll old links will stop working immediately.",
+                alert_reset: "✅ Success! Old links revoked.", confirm_del: "Are you sure you want to dismiss",
+                limit_c: "⚠️ LIMIT REACHED!\n\nIn BASIC plan you can add max 2 couriers.",
+                limit_m: "⚠️ LIMIT REACHED!\n\nIn BASIC plan you can add max 1 administrator.",
+                err_biz: "Error: Business ID not found.", err_tok: "Security Error: Invite token missing.",
+                success_copy: "✅ Secure link copied!",
+                f1: "Basic dashboard", f2: "Unlimited orders", f3: "CSV Export, Chart & Ranking",
+                f4: "Interactive Heatmap", f5: "Time & Late Statistics", f6: "Unlimited staff",
+                pr_month: "/ mo", pr_b1: "Up to 2 couriers", pr_b2: "Basic statistics", pr_p1_b: "Unlimited", pr_p1: "couriers", pr_p2: "Heatmap & deep analytics", pr_p3: "Manager roles",
+                btn_pay: "Pay", btn_manage: "Manage Subscription (Whop)", btn_upgrade_now: "Upgrade to PRO", btn_unlock: "Unlock",
+                txt_left: "Left", txt_days: "days", txt_avail: "Available until", txt_next_pay: "Next billing date:", txt_max: "All premium features unlocked. Thank you!", txt_expired: "Your trial or subscription has ended. Choose a plan.",
+                title_sel_plan: "Select plan to continue:", title_upsell: "⚡️ Want more features?", title_sel_unlock: "Select plan to unlock:",
+                badge_active: "ACTIVE", badge_paid: "PAID", badge_block: "BLOCKED",
+                state_basic: "BASIC PLAN", state_pro: "PRO PLAN", state_closed: "ACCESS DENIED",
+                toast_title: "Warning!", toast_desc: "Your plan is expiring very soon. Please renew to avoid losing access.",
+                support_title: "Support Service", support_desc: "Have questions or found a bug?",
+                ticket_create_title: "Create Ticket", ticket_create_desc: "We will receive your message on Telegram and reply quickly.",
+                ticket_label_reason: "Reason", ticket_btn_bug: "Technical Bug", ticket_btn_setup: "Setup Help", ticket_btn_pay: "Payment/Plan", ticket_btn_other: "Other",
+                ticket_label_topic: "Ticket Topic", ticket_ph_topic: "Briefly about the problem...",
+                ticket_label_msg: "Problem Description", ticket_ph_msg: "Describe the situation in detail...",
+                ticket_btn_send: "Send Ticket", ticket_btn_sending: "Sending...",
+                ticket_alert_empty: "📍 Please fill in the topic and description.",
+                ticket_alert_test: "Ticket sent (Test mode)!"
+            }
+        };
+
+        function t(key) { return i18n[currentLang][key] || key; }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('appLang', lang); 
+            document.getElementById('current-lang-display').innerText = lang.toUpperCase();
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (i18n[lang][key]) el.placeholder = i18n[lang][key];
+            });
+
+            if (typeof bizId !== 'undefined' && bizId) {
+                document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('badge_active')})`;
+                loadDashboardData(); 
+            }
+        }
+
+        function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
+        document.addEventListener('click', (e) => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
+
+
+        let globalOrdersForExport = []; 
+        // --- ГЛОБАЛЬНІ ЗМІННІ ІНТЕГРАЦІЙ ---
+        let currentPosSystem = '';
+        let connectedIntegrations = {}; // Додай цей рядок
+
+        // 🔴 ВСТАВ СЮДИ СВІЙ ДОМЕН З RAILWAY (без слеша в кінці)
+        const RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
+        let currentInviteToken = ''; 
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const bizId = urlParams.get('biz_id');
+        const tgUserIdParam = urlParams.get('tg_id');
+        const authToken = urlParams.get('token');
+
+        let botUsername = "DeliProBot"; 
+        let currencySymbol = "zł";
+
+        let selectedDashPlan = 'pro';
+
+        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+
+        let supabaseClient = null;
+        if (window.supabase) {
+            if (authToken) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    global: { headers: { Authorization: `Bearer ${authToken}` } }
+                });
+            } else {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+        }
+
+        let currentPlanIsPro = true;
+        let currentCouriersCount = 0;
+        let currentManagersCount = 0;
+        let currentFilter = 'today';
+        
+        let bizLat = null; let bizLon = null; let bizRadius = 5; 
+        let settingsMap = null; let settingsCircle = null; let settingsMarker = null; let revenueChart = null;
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+            window.scrollTo(0, 0);
+            if(tabId === 'home' && window.dashboardMap) { setTimeout(() => window.dashboardMap.invalidateSize(), 100); }
+        }
+
+        function setFilter(el, filterType) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
+            
+            if (filterType) { currentFilter = filterType; } 
+            else {
+                const txt = el.getAttribute('data-i18n');
+                if (txt === 'tab_today') currentFilter = 'today';
+                else if (txt === 'tab_week') currentFilter = 'week';
+                else if (txt === 'tab_month') currentFilter = 'month';
+            }
+            
+            const actTab = document.querySelector('.tab-content.active');
+            if(actTab) { actTab.style.opacity = '0.5'; setTimeout(() => actTab.style.opacity = '1', 300); }
+            
+            document.getElementById('val-total').innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="font-size:16px;"></i>';
+            document.getElementById('val-cash').innerHTML = '...'; document.getElementById('val-term').innerHTML = '...';
+            document.getElementById('val-orders').innerHTML = '...'; document.getElementById('val-late').innerHTML = '...';
+            document.getElementById('val-avg-check').innerHTML = '...'; document.getElementById('val-time').innerHTML = '...';
+            document.getElementById('recent-orders-list').innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;"><i class="fa-solid fa-circle-notch fa-spin"></i> ${t('loading')}</div>`;
+
+            loadDashboardData(); 
+        }
+
+        function closeApp() { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); }
+        function openSubscriptionMenu() { document.getElementById('subscription-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
+        function closeSubscriptionMenu() { document.getElementById('subscription-modal').classList.remove('active'); document.body.style.overflow = ''; }
+
+        function openBizSettingsMenu() { 
+            document.getElementById('biz-settings-modal').classList.add('active'); document.body.style.overflow = 'hidden'; 
+            setTimeout(() => { if(bizLat && bizLon) { document.getElementById('settings-map-container').style.display = 'block'; initSettingsMap(bizLat, bizLon, bizRadius); } }, 300);
+        }
+        function closeBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.remove('active'); document.body.style.overflow = ''; }
+
+        function initSettingsMap(lat, lon, r) {
+            if(!settingsMap) { settingsMap = L.map('settings-map-container', {zoomControl: false}).setView([lat, lon], 13); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(settingsMap); } 
+            else { settingsMap.setView([lat, lon], 13); }
+            if(settingsMarker) settingsMap.removeLayer(settingsMarker);
+            if(settingsCircle) settingsMap.removeLayer(settingsCircle);
+            const bizIcon = L.divIcon({ html: '<div style="color: #FF5A5F; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24] });
+            settingsMarker = L.marker([lat, lon], {icon: bizIcon}).addTo(settingsMap);
+            settingsCircle = L.circle([lat, lon], { color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.15, weight: 2, dashArray: '5, 5', radius: r * 1000 }).addTo(settingsMap);
+            settingsMap.fitBounds(settingsCircle.getBounds(), { padding: [20, 20] });
+            setTimeout(() => settingsMap.invalidateSize(), 200);
+        }
+
+        function updateSettingsMap() {
+            let r = parseFloat(document.getElementById('input-biz-radius').value) || 5;
+            if(bizLat && bizLon) { document.getElementById('settings-map-container').style.display = 'block'; setTimeout(() => { initSettingsMap(bizLat, bizLon, r); }, 100); }
+        }
+
+        async function saveBizSettings(btn) {
+            if (!bizId || !supabaseClient) return;
+            const newName = document.getElementById('input-biz-name').value.trim();
+            const newCurr = document.getElementById('input-biz-currency').value;
+            const newRadius = document.getElementById('input-biz-radius').value.trim();
+            const newAddress = document.getElementById('input-biz-address').value.trim();
+            
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`; btn.disabled = true;
+            
+            try {
+                let updatePayload = { name: newName, currency: newCurr };
+                if (newRadius !== "") updatePayload.radius_km = parseFloat(newRadius);
+                if (newAddress !== "") updatePayload.street = newAddress; 
+                if (bizLat !== null && bizLon !== null) { updatePayload.lat = bizLat; updatePayload.lng = bizLon; }
+
+                const { error } = await supabaseClient.from('businesses').update(updatePayload).eq('id', bizId);
+                if (error) throw error;
+                
+                alert(t('alert_save'));
+                closeBizSettingsMenu(); loadDashboardData(); 
+            } catch(e) { alert(t('alert_err') + e.message); } 
+            finally { btn.innerHTML = oldHtml; btn.disabled = false; }
+        }
+
+        // 🔴 ФУНКЦІЇ СПОВІЩЕННЯ TOAST 🔴
+        function showToast() {
+            const toast = document.getElementById('ios-toast');
+            toast.classList.add('show');
+            setTimeout(() => hideToast(), 6000); // Сховається через 6 сек
+        }
+        function hideToast() {
+            document.getElementById('ios-toast').classList.remove('show');
+        }
+
+        function selectDashPlan(plan) {
+            selectedDashPlan = plan;
+            document.getElementById('dash-plan-basic').classList.remove('selected');
+            document.getElementById('dash-plan-pro').classList.remove('selected');
+            document.getElementById(`dash-plan-${plan}`).classList.add('selected');
+            document.getElementById('pay-price').innerText = plan === 'pro' ? '59.99 zł' : '29.99 zł';
+        }
+
+        function renderSubscriptionUI(biz) {
+            let dbPlan = biz.plan || 'trial'; 
+            
+            let expireDate = new Date();
+            if (biz.subscription_expires_at) {
+                expireDate = new Date(biz.subscription_expires_at);
+            } else {
+                let createdAt = new Date(biz.created_at || Date.now());
+                expireDate = new Date(createdAt);
+                if (dbPlan === 'trial') expireDate.setDate(expireDate.getDate() + 7);
+                else if (dbPlan !== 'expired') expireDate.setDate(expireDate.getDate() + 30);
+            }
+
+            const statusCard = document.getElementById('modal-status-card');
+            const badge = document.getElementById('modal-plan-badge');
+            const planName = document.getElementById('modal-plan-name');
+            const planDesc = document.getElementById('modal-plan-desc');
+            const progressCont = document.getElementById('trial-progress-container');
+            const btnPay = document.getElementById('btn-upgrade-pay');
+            const btnManage = document.getElementById('btn-manage-sub');
+            const plansBlock = document.getElementById('plans-selection-block');
+            const basicCard = document.getElementById('dash-plan-basic');
+            const proCard = document.getElementById('dash-plan-pro');
+
+            statusCard.className = 'status-card-dynamic';
+
+            let daysLeft = Math.ceil((expireDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
+            
+            // 🔴 ВИКЛИК СПОВІЩЕННЯ ЯКЩО ЛИШИВСЯ 1 ДЕНЬ АБО МЕНШЕ (і план ще активний)
+            if (daysLeft <= 1 && daysLeft >= 0 && dbPlan !== 'expired') {
+                setTimeout(() => showToast(), 1500);
+            }
+
+            if (dbPlan === 'trial') {
+                let displayDays = Math.max(0, daysLeft);
+                let percentUsed = Math.max(0, Math.min(100, ((7 - displayDays) / 7) * 100));
+
+                statusCard.classList.add('is-trial');
+                planName.innerText = 'FREE TRIAL (PRO)'; planName.style.color = 'var(--text-main)';
+                badge.innerText = t('badge_active'); badge.style.background = 'var(--info)';
+                planDesc.innerHTML = `${t('txt_left')} <b style="color: var(--text-main);">${displayDays} ${t('txt_days')}</b>. ${t('txt_avail')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                
+                progressCont.style.display = 'block';
+                setTimeout(() => { document.getElementById('trial-progress-bar').style.width = `${percentUsed}%`; }, 100);
+                
+                plansBlock.style.display = 'block'; basicCard.style.display = 'block'; proCard.style.display = 'block';
+                document.getElementById('plan-select-title').innerText = t('title_sel_plan');
+                
+                btnPay.style.display = 'block'; btnManage.style.display = 'none';
+                document.getElementById('btn-pay-text').innerText = t('btn_pay');
+                selectDashPlan('pro');
+            } 
+            else if (dbPlan === 'basic') {
+                statusCard.classList.add('is-pro');
+                planName.innerText = t('state_basic'); planName.style.color = 'var(--text-main)';
+                badge.innerText = t('badge_paid'); badge.style.background = 'var(--success)';
+                planDesc.innerHTML = `${t('txt_next_pay')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                progressCont.style.display = 'none';
+
+                plansBlock.style.display = 'block';
+                document.getElementById('plan-select-title').innerText = t('title_upsell');
+                basicCard.style.display = 'none'; 
+                proCard.style.display = 'block';
+                selectDashPlan('pro');
+                
+                btnPay.style.display = 'block'; btnManage.style.display = 'block';
+                document.getElementById('btn-pay-text').innerText = t('btn_upgrade_now');
+                document.getElementById('pay-price').innerText = "";
+            }
+            else if (dbPlan === 'pro') {
+                statusCard.classList.add('is-pro');
+                planName.innerText = t('state_pro'); planName.style.color = 'var(--success)';
+                badge.innerText = 'MAXIMUM'; badge.style.background = 'linear-gradient(135deg, var(--primary), #ffa07a)';
+                planDesc.innerHTML = `${t('txt_max')} ${t('txt_next_pay')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
+                progressCont.style.display = 'none';
+
+                plansBlock.style.display = 'none';
+                btnPay.style.display = 'none';
+                btnManage.style.display = 'block';
+            }
+            else if (dbPlan === 'expired') {
+                statusCard.classList.add('is-expired');
+                planName.innerText = t('state_closed'); planName.style.color = 'var(--danger)';
+                badge.innerText = t('badge_block'); badge.style.background = 'var(--danger)';
+                planDesc.innerHTML = t('txt_expired');
+                progressCont.style.display = 'none';
+                
+                plansBlock.style.display = 'block'; basicCard.style.display = 'block'; proCard.style.display = 'block';
+                document.getElementById('plan-select-title').innerText = t('title_sel_unlock');
+                
+                btnPay.style.display = 'block'; btnManage.style.display = 'none';
+                document.getElementById('btn-pay-text').innerText = t('btn_unlock');
+                selectDashPlan('pro');
+
+                document.getElementById('subscription-modal').onclick = null;
+                document.getElementById('subscription-modal').classList.add('active');
+            }
+        }
+
+        function actionPayWhop() {
+            if (!bizId) return;
+            let tgUserId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || "6889016268";
+            
+            const linkPro = "https://whop.com/checkout/ТВІЙ_КОД_PRO";
+            const linkBasic = "https://whop.com/checkout/ТВІЙ_КОД_BASIC";
+            
+            const baseLink = selectedDashPlan === 'pro' ? linkPro : linkBasic;
+            const checkoutUrl = `${baseLink}?custom_fields[biz_id]=${bizId}&custom_fields[tg_user_id]=${tgUserId}`;
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.openLink(checkoutUrl);
+            } else { window.open(checkoutUrl, "_blank"); }
+        }
+
+        function actionManageWhop() {
+            if (window.Telegram && window.Telegram.WebApp) { 
+                window.Telegram.WebApp.openLink("https://whop.com/orders/"); 
+            } else {
+                window.open("https://whop.com/orders/", "_blank");
+            }
+        }
+
+        function generateInvite(role) {
+            if (!bizId) return alert(t('err_biz'));
+            if (!currentInviteToken) return alert(t('err_tok'));
+            if (!currentPlanIsPro) {
+                if (role === 'courier' && currentCouriersCount >= 2) { alert(t('limit_c')); openSubscriptionMenu(); return; }
+                if (role === 'manager' && currentManagersCount >= 1) { alert(t('limit_m')); openSubscriptionMenu(); return; }
+            }
+            let prefix = role === 'courier' ? 'c_' : 'm_';
+            navigator.clipboard.writeText(`https://t.me/${botUsername}?start=${prefix}${currentInviteToken}`).then(() => { alert(t('success_copy')); });
+        }
+
+        async function resetInviteToken() {
+            if (!confirm(t('confirm_reset'))) return;
+            if (!supabaseClient) return;
+            try {
+                const newToken = generateUUID();
+                const { error } = await supabaseClient.from('businesses').update({ invite_token: newToken }).eq('id', bizId);
+                if (error) throw error;
+                currentInviteToken = newToken;
+                alert(t('alert_reset'));
+            } catch(e) { alert(t('alert_err') + e.message); }
+        }
+
+        async function removeStaff(staffRowId, staffName) {
+            if (!confirm(`${t('confirm_del')} "${staffName}"?`)) return;
+            if (!supabaseClient) return;
+            try {
+                // Видаляємо строго по унікальному ID рядка в базі
+                const { error } = await supabaseClient.from('staff').delete().eq('id', staffRowId).eq('business_id', bizId);
+                if (error) throw error;
+                
+                loadDashboardData(); 
+            } catch (err) { alert(t('alert_err') + (err.message || '')); }
+        }
+
+        function exportOrdersCSV() {
+            if (!currentPlanIsPro) { openSubscriptionMenu(); return; }
+            if (globalOrdersForExport.length === 0) { alert(t('err_export')); return; }
+            
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += "ID,Amount,Type,Status,Created,Completed,CourierID\n";
+            
+            globalOrdersForExport.forEach(o => {
+                let status = o.status === 'completed' ? 'Completed' : 'Active';
+                let payType = o.pay_type;
+                let created = o.created_at ? new Date(o.created_at).toLocaleString('uk-UA') : '';
+                let completed = o.completed_at ? new Date(o.completed_at).toLocaleString('uk-UA') : '';
+                csvContent += `${o.id},${o.amount},${payType},${status},${created},${completed},${o.courier_id || ''}\n`;
+            });
+            
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `Export_${currentFilter}.csv`);
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        let selectedTicketReason = 'bug';
+
+        function openSupportModal() {
+            document.getElementById('support-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSupportModal() {
+            document.getElementById('support-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function selectTicketType(element, reason) {
+            document.querySelectorAll('.ticket-type-btn').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            selectedTicketReason = reason;
+        }
+
+        function sendSupportTicket() {
+            const topic = document.getElementById('ticket-topic').value.trim();
+            const msg = document.getElementById('ticket-msg').value.trim();
+
+            if (!topic || !msg) {
+                alert(t('ticket_alert_empty'));
+                return;
+            }
+
+            const ticketData = {
+                action: "support_ticket",
+                biz_id: bizId,
+                reason: selectedTicketReason,
+                topic: topic,
+                message: msg
+            };
+
+            const btn = document.getElementById('btn-send-ticket');
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t('ticket_btn_sending')}`;
+            btn.disabled = true;
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+                window.Telegram.WebApp.sendData(JSON.stringify(ticketData));
+            } else {
+                console.log("ТЕСТ ТІКЕТА:", ticketData);
+                setTimeout(() => {
+                    alert(t('ticket_alert_test'));
+                    closeSupportModal();
+                    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span id="text-btn-send-ticket">${t('ticket_btn_send')}</span>`;
+                    btn.disabled = false;
+                }, 1000);
+            }
+        }
+
+// --- ЛОГІКА ІНТЕГРАЦІЙ POS (ОНОВЛЕНО) ---
+        function openIntegrationsList() {
+            document.getElementById('integrations-list-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeIntegrationsList() {
+            document.getElementById('integrations-list-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function openConnectModal(name, id, color, letter, desc) {
+            closeIntegrationsList(); 
+            
+            setTimeout(() => {
+                currentPosSystem = id;
+                const logo = document.getElementById('connect-logo');
+                logo.innerText = letter;
+                logo.style.background = color;
+                
+                const btn = document.getElementById('btn-save-pos');
+                btn.style.background = color;
+
+                // Перевірка: якщо вже підключено — показуємо інструкцію та Webhook
+                if (connectedIntegrations[id]) {
+                    const webhookUrl = `${RAILWAY_DOMAIN}/webhook/${id}?biz_id=${bizId}`;
+                    
+                    document.getElementById('connect-title').innerText = `${name} Підключено!`;
+                    document.getElementById('connect-desc').innerHTML = `
+                        <div style="text-align:left; background:rgba(59,130,246,0.05); padding:12px; border-radius:12px; margin-bottom:15px; border:1px dashed #3b82f6;">
+                            <b style="color:var(--text-main); font-size:13px;">Налаштування Webhook:</b>
+                            <ol style="font-size:12px; color:var(--text-muted); margin-left:15px; margin-top:5px; line-height:1.6;">
+                                <li>Скопіюйте посилання нижче.</li>
+                                <li>У кабінеті каси перейдіть у <b>Налаштування → Webhooks</b>.</li>
+                                <li>Вставте посилання та оберіть подію <b>"Нове замовлення"</b>.</li>
+                            </ol>
+                        </div>
+                        <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700;">${webhookUrl}</code>
+                    `;
+                    
+                    document.getElementById('input-pos-token').style.display = 'none';
+                    btn.innerHTML = `<i class="fa-solid fa-copy"></i> Скопіювати посилання`;
+                    btn.onclick = function() {
+                        navigator.clipboard.writeText(webhookUrl);
+                        showToast("Скопійовано!", "Вставте посилання в налаштування каси.");
+                        closeConnectModal();
+                    };
+                } 
+                else {
+                    // Стандартне вікно для введення токена
+                    document.getElementById('connect-title').innerText = `Підключити ${name}`;
+                    document.getElementById('connect-desc').innerText = desc;
+                    document.getElementById('input-pos-token').style.display = 'block';
+                    document.getElementById('input-pos-token').value = '';
+                    btn.innerHTML = `<i class="fa-solid fa-link"></i> Підключити`;
+                    btn.onclick = savePosIntegration;
+                }
+
+                document.getElementById('pos-connect-modal').classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }, 300); 
+        }
+
+        async function savePosIntegration() {
+            const token = document.getElementById('input-pos-token').value.trim();
+            if (!token) {
+                alert("📍 Будь ласка, введіть API токен.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-pos');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+            btn.disabled = true;
+            
+            try {
+                if (!supabaseClient || !bizId) throw new Error("Помилка з'єднання з базою.");
+                const columnName = `${currentPosSystem}_token`;
+                
+                const { error } = await supabaseClient
+                    .from('businesses')
+                    .update({ [columnName]: token })
+                    .eq('id', bizId);
+                    
+                if (error) throw error;
+
+                connectedIntegrations[currentPosSystem] = true;
+                
+                // Оновлюємо візуальний статус у списку
+                const statusEl = document.getElementById(`status-${currentPosSystem}`);
+                if (statusEl) {
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+                    statusEl.classList.add('active');
+                    statusEl.parentElement.parentElement.classList.add('connected');
+                }
+
+                // Викликаємо функцію знову, щоб вона тепер показала Webhook замість інпуту
+                openConnectModal(currentPosSystem.toUpperCase(), currentPosSystem, btn.style.background, currentPosSystem[0].toUpperCase(), "");
+                showToast("Успіх!", "Токен збережено. Тепер налаштуйте Webhook.");
+                
+            } catch (err) {
+                alert("❌ Помилка: " + err.message);
+                btn.innerHTML = originalHtml;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        async function loadDashboardData() {
+            try {
+                if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
+                if (!bizId) { document.getElementById('display-biz-name').innerText = "DEMO MODE"; return; }
+
+                if (!supabaseClient) return;
+
+                let startDate = new Date();
+                if (currentFilter === 'today') startDate.setHours(0, 0, 0, 0);
+                else if (currentFilter === 'week') startDate.setDate(startDate.getDate() - 7);
+                else if (currentFilter === 'month') startDate.setDate(startDate.getDate() - 30);
+
+                const { data: biz } = await supabaseClient.from('businesses').select('*').eq('id', bizId).single();
+                
+                if (biz) {
+                    currencySymbol = biz.currency || "zł";
+                    currentInviteToken = biz.invite_token; 
+                    document.getElementById('display-biz-name').innerText = biz.name;
+                    document.getElementById('set-id').innerText = bizId;
+                    document.getElementById('set-currency').innerText = currencySymbol;
+
+                    document.getElementById('input-biz-name').value = biz.name || '';
+                    document.getElementById('input-biz-currency').value = biz.currency || 'zł';
+                    document.getElementById('input-biz-radius').value = biz.radius_km || '';
+                    bizRadius = biz.radius_km || 5;
+                    
+                    document.getElementById('input-biz-address').value = biz.street || '';
+                    bizLat = biz.lat || null; bizLon = biz.lng || null; 
+
+                    // 🔴 ЖОРСТКИЙ БЛОК: Дашборд закриває доступ, якщо дата в минулому
+                    if (biz.subscription_expires_at) {
+                        let expDate = new Date(biz.subscription_expires_at);
+                        if (new Date() > expDate) {
+                            biz.plan = 'expired';
+                        }
+                    }
+
+                    currentPlanIsPro = (biz.plan === 'pro' || biz.plan === 'trial');
+                    
+                    document.getElementById('display-plan').innerText = currentPlanIsPro ? 'PRO' : 'BASIC';
+                    document.getElementById('display-plan').style.color = currentPlanIsPro ? 'var(--success)' : '#8a8d91';
+                    document.getElementById('display-plan').style.background = currentPlanIsPro ? 'rgba(52, 199, 89, 0.1)' : '#edf1f7';
+                    
+                    renderSubscriptionUI(biz);
+
+                    // 🔌 ПЕРЕВІРКА ПІДКЛЮЧЕНИХ ІНТЕГРАЦІЙ (POS) ПРИ ЗАВАНТАЖЕННІ
+                    const integrationsList = ['poster', 'choice', 'syrve', 'gopos'];
+                    integrationsList.forEach(sys => {
+                        const tokenVal = biz[`${sys}_token`];
+                        const statusEl = document.getElementById(`status-${sys}`);
+                        if (tokenVal && statusEl) {
+                            connectedIntegrations[sys] = true; // ЦЕ ТРЕБА ДОДАТИ
+                            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+                            statusEl.classList.add('active');
+                            statusEl.parentElement.parentElement.classList.add('connected');
+                        }
+                    });
+
+
+                    if (!currentPlanIsPro && biz.plan !== 'expired') {
+                        ['btn-csv-export', 'card-chart', 'card-late', 'couriers-leaderboard', 'card-heatmap'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el && !el.querySelector('.pro-overlay')) {
+                                el.classList.add('pro-locked');
+                                const overlay = document.createElement('div'); overlay.className = 'pro-overlay'; 
+                                overlay.innerHTML = '<div class="pro-badge"><i class="fa-solid fa-lock"></i> PRO</div>'; 
+                                overlay.onclick = openSubscriptionMenu; el.appendChild(overlay);
+                            }
+                        });
+                    } else {
+                        ['btn-csv-export', 'card-chart', 'card-late', 'couriers-leaderboard', 'card-heatmap'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) { el.classList.remove('pro-locked'); const overlay = el.querySelector('.pro-overlay'); if (overlay) overlay.remove(); }
+                        });
+                    }
+                }
+
+                // Очищаємо список перед завантаженням, щоб уникнути "двоїння" при видаленні
+                const staffBox = document.getElementById('staff-list');
+                staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення...</div>`;
+                
+                const { data: staff } = await supabaseClient.from('staff').select('*').eq('business_id', bizId);
+                let staffMap = {}; currentCouriersCount = 0; currentManagersCount = 0;
+
+                if (staff && staff.length > 0) {
+                    staffBox.innerHTML = '';
+                    staff.forEach(person => {
+                        // Замінюємо небезпечні HTML-теги на безпечні символи
+                        let safeName = String(person.name || person.full_name || 'Staff').replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        
+                        // Правильний мапінг для рейтингу кур'єрів
+                        let staffTgId = person.tg_id || person.user_id; 
+                        staffMap[staffTgId] = safeName;
+                        
+                        if (person.role === 'courier') currentCouriersCount++; if (person.role === 'manager') currentManagersCount++;
+                        
+                        let roleClass = person.role === 'courier' ? 'role-courier' : 'role-manager'; 
+                        let roleName = person.role === 'courier' ? t('role_c') : t('role_m'); 
+                        
+                        // 🔥 СТИЛЬНІ ІКОНКИ ЗАМІСТЬ ЕМОДЖІ 🔥
+                        let avatar = person.role === 'courier' 
+                            ? '<i class="fa-solid fa-motorcycle" style="font-size: 20px; color: var(--primary);"></i>' 
+                            : '<i class="fa-solid fa-user-tie" style="font-size: 20px; color: var(--info);"></i>';
+                        
+                        // 🔥 person.id замість person.user_id для кнопки видалення 🔥
+                        staffBox.innerHTML += `
+                            <div class="team-card">
+                                <div class="team-avatar" style="background: transparent; border: 1px solid rgba(0,0,0,0.05);">${avatar}</div>
+                                <div class="team-info"><div class="team-name">${safeName}</div><div class="team-role ${roleClass}">${roleName}</div></div>
+                                <button class="btn-delete-staff" onclick="removeStaff('${person.id}', '${safeName.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                        `;
+                    });
+                } else {
+                    staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">${t('empty_team')}</div>`;
+                }
+
+                const { data: orders } = await supabaseClient.from('orders').select('*').eq('business_id', bizId).gte('created_at', startDate.toISOString()).order('created_at', { ascending: false }).limit(5000);
+                
+                globalOrdersForExport = orders || [];
+                let heatData = []; let chartDataRaw = {}; let courierStats = {};
+
+                if (orders && orders.length > 0) {
+                    let totalCash = 0, totalTerminal = 0, completedCount = 0, totalDeliveryMinutes = 0, ordersWithTimeCount = 0, lateCount = 0;
+                    
+                    orders.forEach(o => {
+                        if (o.lat && o.lon) heatData.push([parseFloat(o.lat), parseFloat(o.lon), 1]);
+                        if (o.status === 'completed') {
+                            completedCount++; let amt = parseFloat(o.amount) || 0;
+                            if (o.pay_type === 'cash') totalCash += amt; if (o.pay_type === 'terminal' || o.pay_type === 'online') totalTerminal += amt;
+                            
+                            let diffMs = 0;
+                            if (o.completed_at && o.created_at) { 
+                                diffMs = new Date(o.completed_at) - new Date(o.created_at); 
+                                if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; if(diffMs > 45 * 60 * 1000) lateCount++; } 
+                            }
+                            
+                            let d = new Date(o.created_at);
+                            let sortKey, displayLabel;
+
+                            if (currentFilter === 'today') {
+                                sortKey = String(d.getHours()).padStart(2, '0') + ':00';
+                                displayLabel = sortKey;
+                            } else {
+                                // Ключ для сортування: YYYY-MM-DD (завжди сортується правильно)
+                                sortKey = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                                // Те, що бачить юзер: DD.MM
+                                displayLabel = d.toLocaleDateString('uk-UA', {day:'2-digit', month:'2-digit'});
+                            }
+
+                            if (!chartDataRaw[sortKey]) chartDataRaw[sortKey] = { amount: 0, label: displayLabel };
+                            chartDataRaw[sortKey].amount += amt;
+
+                            let cid = o.courier_id;
+                            if (cid) {
+                                if (!courierStats[cid]) courierStats[cid] = {count: 0, timeTotal: 0, name: staffMap[cid] || '?'};
+                                courierStats[cid].count++;
+                                if (diffMs > 0) courierStats[cid].timeTotal += (diffMs / 1000 / 60);
+                            }
+                        }
+                    });
+
+                    let totalRevenue = totalCash + totalTerminal;
+                    document.getElementById('val-total').innerText = totalRevenue.toFixed(2) + ' ' + currencySymbol;
+                    document.getElementById('val-cash').innerText = totalCash.toFixed(2);
+                    document.getElementById('val-term').innerText = totalTerminal.toFixed(2);
+                    document.getElementById('val-orders').innerText = completedCount;
+                    document.getElementById('val-late').innerText = lateCount;
+                    document.getElementById('val-avg-check').innerText = completedCount > 0 ? (totalRevenue / completedCount).toFixed(2) + ' ' + currencySymbol : '0.00 ' + currencySymbol;
+                    document.getElementById('val-time').innerText = ordersWithTimeCount > 0 ? Math.round(totalDeliveryMinutes / ordersWithTimeCount) + ` ${t('min')}` : `-- ${t('min')}`;
+
+                    if (currentPlanIsPro) {
+                        let sortedKeys = Object.keys(chartDataRaw).sort();
+                        let labels = sortedKeys.map(k => chartDataRaw[k].label);
+                        let dataPoints = sortedKeys.map(k => chartDataRaw[k].amount);
+                        const ctx = document.getElementById('revenueChart').getContext('2d');
+                        if (revenueChart) revenueChart.destroy();
+                        
+                        let gradient = ctx.createLinearGradient(0, 0, 0, 160); gradient.addColorStop(0, 'rgba(255, 90, 95, 0.4)'); gradient.addColorStop(1, 'rgba(255, 90, 95, 0.0)');
+                        revenueChart = new Chart(ctx, {
+                            type: 'line', data: { labels: labels, datasets: [{ label: 'Rev', data: dataPoints, borderColor: '#FF5A5F', backgroundColor: gradient, borderWidth: 3, pointBackgroundColor: '#ffffff', pointBorderColor: '#FF5A5F', pointRadius: 4, fill: true, tension: 0.4 }] },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#8a8d91', font: {size: 10} } }, y: { grid: { color: 'rgba(0,0,0,0.05)', borderDash: [5, 5] }, ticks: { color: '#8a8d91', font: {size: 10}, beginAtZero: true } } } }
+                        });
+
+                        const lbBox = document.getElementById('couriers-leaderboard');
+                        let cArr = Object.values(courierStats).sort((a,b) => b.count - a.count);
+                        if(cArr.length > 0) {
+                            lbBox.innerHTML = '';
+                            cArr.forEach((c, index) => {
+                                let avgTime = c.count > 0 ? Math.round(c.timeTotal / c.count) : 0;
+                                let medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index+1}.`));
+                                lbBox.innerHTML += `
+                                    <div class="courier-rank">
+                                        <div class="cr-medal">${medal}</div>
+                                        <div class="cr-info"><div class="cr-name">${c.name}</div><div class="cr-stats">${t('avg_time_lbl')} ${avgTime} ${t('min')}</div></div>
+                                        <div class="cr-score"><div class="cr-score-val">${c.count}</div><div class="cr-score-lbl">${t('orders_lbl')}</div></div>
+                                    </div>
+                                `;
+                            });
+                        } else { lbBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">${t('empty_rating')}</div>`; }
+                    }
+
+                    const feedBox = document.getElementById('recent-orders-list'); feedBox.innerHTML = '';
+                    orders.slice(0, 10).forEach(o => {
+                        let isCompleted = o.status === 'completed';
+                        let statusIcon = isCompleted ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-motorcycle"></i>';
+                        let iconBg = isCompleted ? 'style="color: #34C759; background: rgba(52, 199, 89, 0.1);"' : 'style="color: #FFB020; background: rgba(255, 176, 32, 0.1);"';
+                        let statusText = isCompleted ? `<span style="color: #34C759;">${t('status_done')}</span>` : `<span style="color: #FFB020;">${t('status_proc')}</span>`;
+                        let shortId = o.id.toString().substring(0, 5).toUpperCase();
+                        let timeStr = new Date(o.created_at).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+
+                        feedBox.innerHTML += `
+                            <div class="activity-item">
+                                <div class="act-icon" style="${iconBg}">${statusIcon}</div>
+                                <div class="act-details">
+                                    <div class="act-title">${t('order')} #${shortId}</div>
+                                    <div class="act-time">${timeStr} • ${statusText}</div>
+                                </div>
+                                <div class="act-price">${parseFloat(o.amount || 0).toFixed(2)} ${currencySymbol}</div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    document.getElementById('val-total').innerText = '0.00 ' + currencySymbol; document.getElementById('val-cash').innerText = '0.00'; document.getElementById('val-term').innerText = '0.00';
+                    document.getElementById('val-orders').innerText = '0'; document.getElementById('val-late').innerText = '0'; document.getElementById('val-avg-check').innerText = '0.00 ' + currencySymbol; document.getElementById('val-time').innerText = `-- ${t('min')}`;
+
+                    document.getElementById('recent-orders-list').innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 15px 0;">${t('empty_orders')}</div>`;
+                    if(currentPlanIsPro) { document.getElementById('couriers-leaderboard').innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;">${t('empty_rating')}</div>`; if (revenueChart) { revenueChart.destroy(); revenueChart = null; } }
+                }
+
+                if (currentPlanIsPro) {
+                    setTimeout(() => {
+                        let centerLat = bizLat || 50.04132, centerLon = bizLon || 21.99901;
+                        if (!bizLat && heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
+                        if (window.dashboardMap) { window.dashboardMap.remove(); }
+                        window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
+                        L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
+                        if(bizLat && bizLon) L.circle([bizLat, bizLon], {color: '#FF5A5F', fillOpacity: 0.1, weight: 2, radius: bizRadius * 1000, dashArray: '5, 5'}).addTo(window.dashboardMap);
+                        if (heatData.length > 0) L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap); 
+                    }, 500);
+                }
+            } catch (error) { console.error("DB Error:", error); }
+        }
+
+        const bizAddrInput = document.getElementById('input-biz-address');
+        const bizAddrList = document.getElementById('biz-autocomplete-list');
+        let bizTimeout = null;
+
+        bizAddrInput.addEventListener('input', function() {
+            clearTimeout(bizTimeout); bizLat = null; bizLon = null;
+            document.getElementById('settings-map-container').style.display = 'none';
+            const query = this.value.trim();
+            if (query.length < 3) { bizAddrList.style.display = 'none'; return; }
+
+            bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('search_load')}</div>`;
+            bizAddrList.style.display = 'block';
+
+            bizTimeout = setTimeout(async () => {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
+                try {
+                    const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        bizAddrList.innerHTML = ''; 
+                        data.forEach(item => {
+                            const addr = item.address;
+                            const mainText = item.name || (addr && addr.road ? `${addr.road} ${addr.house_number || ''}`.trim() : item.display_name.split(',')[0]);
+                            const city = addr ? (addr.city || addr.town || addr.village || '') : '';
+                            const subText = city ? `${city}` : '';
+                            const div = document.createElement('div'); div.className = 'autocomplete-item';
+                            div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                            
+                            let currentLat = parseFloat(item.lat);
+                            let currentLon = parseFloat(item.lon);
+
+                            div.onclick = function() {
+                                bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
+                                bizLat = currentLat; 
+                                bizLon = currentLon;
+                                bizAddrList.style.display = 'none'; 
+                                updateSettingsMap(); 
+                            };
+                            bizAddrList.appendChild(div);
+                        });
+                    } else { bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">${t('search_empty')}</div>`; }
+                } catch(e) { bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">${t('search_err')}</div>`; }
+            }, 600); 
+        });
+
+        document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && !bizAddrList.contains(e.target)) bizAddrList.style.display = 'none'; });
+
+        // ФІНАЛЬНИЙ ЗАПУСК
+        setLanguage(currentLang);
+        loadDashboardData();
+    </script>
+</body>
+</html>
