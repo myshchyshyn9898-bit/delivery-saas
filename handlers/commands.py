@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from aiogram import Router, types, F
 from aiogram.filters import Command, CommandObject
@@ -11,6 +12,7 @@ import database as db
 import keyboards as kb
 from texts import get_text as _
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 # --- СТАНИ (FSM) ---
@@ -120,7 +122,7 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
             biz = res.data[0]
             biz_id = biz['id']
         except Exception as e:
-            print("Помилка пошуку токена:", e)
+            logger.error(f"Помилка пошуку токена: {e}")
             await message.answer(_(lang, 'link_error'))
             return
         
@@ -152,4 +154,6 @@ async def process_staff_name(message: types.Message, state: FSMContext):
         context = db.get_user_context(message.from_user.id)
         await message.answer(_(lang, 'staff_added', name=name, role=_(lang, 'role_c') if data.get('joining_role', 'courier') == "courier" else _(lang, 'role_m')))
         await show_main_menu(message, context)
-    except: await message.answer(_(lang, 'staff_add_err'))
+    except Exception as e:
+        logger.error(f"Помилка додавання персоналу: {e}")
+        await message.answer(_(lang, 'staff_add_err'))

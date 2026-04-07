@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import urllib.parse
 import os
 
@@ -12,6 +13,7 @@ import database as db
 from texts import get_text as _
 from handlers.map_service import get_route_map_file
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 # --- ОБРОБКА ДАНИХ З WEB APP ---
@@ -116,7 +118,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             else:
                 await message.answer(_(lang, 'order_save_err'))
         except Exception as e:
-            print(f"Помилка створення замовлення: {e}")
+            logger.error(f"Помилка створення замовлення: {e}")
             await message.answer(_(lang, 'order_send_err'))
 
     # ==========================================
@@ -172,7 +174,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 
             await message.answer(f"✅ Замовлення #{short_id} успішно призначено!")
         except Exception as e:
-            print(f"Помилка призначення з карти: {e}")
+            logger.error(f"Помилка призначення з карти: {e}")
             await message.answer("❌ Помилка при призначенні замовлення.")
 
     # ==========================================
@@ -192,7 +194,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 await bot.send_message(chat_id=oid, text=_('uk', 'broadcast_msg', text=msg_text), parse_mode="Markdown")
                 sent_count += 1
                 await asyncio.sleep(0.05)
-            except: pass
+            except Exception as e:
+                logger.error(f"Помилка розсилки користувачу {oid}: {e}")
         await message.answer(_(lang, 'broadcast_done', sent=sent_count, total=len(owner_ids)))
 
     # ==========================================
@@ -204,9 +207,11 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             admin_msg = (f"🆘 <b>НОВИЙ ТІКЕТ ПІДТРИМКИ</b>\n\n🏢 <b>Бізнес ID:</b> <code>{biz_id}</code>\n👤 <b>Від:</b> <a href='tg://user?id={user_id}'>Клієнт (ID: {user_id})</a>\n🏷 <b>Категорія:</b> {reason}\n📌 <b>Тема:</b> {topic}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💬 <b>Повідомлення:</b>\n<i>{message_text}</i>")
             for admin_id in SUPER_ADMIN_IDS:
                 try: await bot.send_message(chat_id=admin_id, text=admin_msg, parse_mode="HTML")
-                except: pass
+                except Exception as e:
+                    logger.error(f"Помилка відправки тікету адміну {admin_id}: {e}")
             await message.answer("✅ <b>Тікет успішно відправлено!</b> Наша служба підтримки зв'яжеться з вами найближчим часом.", parse_mode="HTML")
-        except: pass
+        except Exception as e:
+            logger.error(f"Помилка обробки тікету: {e}")
 
 # --- ОБРОБКА КНОПКИ "ЗАКРИТИ ЗАМОВЛЕННЯ" ---
 @router.callback_query(F.data.startswith("finish_order_"))
@@ -231,5 +236,8 @@ async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
             if managers_res.data:
                 for manager in managers_res.data:
                     try: await bot.send_message(chat_id=manager['user_id'], text=_(lang, 'finish_notify', short_id=short_id, amount=order_info['amount'], cur=currency, courier_name=callback.from_user.full_name), parse_mode="Markdown")
-                    except: pass
-    except: await callback.answer(_(lang, 'finish_err'), show_alert=True)
+                    except Exception as e:
+                        logger.error(f"Помилка нотифікації менеджера: {e}")
+    except Exception as e:
+        logger.error(f"Помилка закриття замовлення {order_id}: {e}")
+        await callback.answer(_(lang, 'finish_err'), show_alert=True)

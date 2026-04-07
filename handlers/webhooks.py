@@ -1,3 +1,4 @@
+import logging
 import os
 import urllib.parse
 
@@ -7,6 +8,8 @@ from aiogram import types
 
 import database as db
 from bot_setup import bot
+
+logger = logging.getLogger(__name__)
 
 
 # ==========================================
@@ -22,9 +25,12 @@ async def whop_webhook_handler(request):
                 db.activate_whop_subscription(biz_id, "pro", membership_data.get("id"))
                 if tg_user_id:
                     try: await bot.send_message(chat_id=int(tg_user_id), text="🎉 **Вітаємо! Оплата успішна!**\nТариф **PRO** активовано.", parse_mode="Markdown")
-                    except: pass
+                    except Exception as e:
+                        logger.error(f"Помилка відправки повідомлення Whop: {e}")
         return web.Response(text="OK")
-    except: return web.Response(status=500, text="Error")
+    except Exception as e:
+        logger.error(f"Помилка обробки Whop webhook: {e}")
+        return web.Response(status=500, text="Error")
 
 
 async def poster_webhook_handler(request):
@@ -44,9 +50,12 @@ async def poster_webhook_handler(request):
             if managers_res.data:
                 for manager in managers_res.data:
                     try: await bot.send_message(chat_id=manager['user_id'], text=admin_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-                    except: pass
+                    except Exception as e:
+                        logger.error(f"Помилка відправки Poster менеджеру: {e}")
         return web.Response(text="OK")
-    except: return web.Response(status=500, text="Error")
+    except Exception as e:
+        logger.error(f"Помилка обробки Poster webhook: {e}")
+        return web.Response(status=500, text="Error")
 
 
 async def start_webhook_server():
@@ -58,4 +67,4 @@ async def start_webhook_server():
     port = int(os.environ.get("PORT", 8000))
     site = web.TCPSite(runner, '0.0.0.0', port)
     await site.start()
-    print(f"🌐 Webhook сервер запущено на порту {port}")
+    logger.info(f"🌐 Webhook сервер запущено на порту {port}")
