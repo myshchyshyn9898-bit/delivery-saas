@@ -1,9 +1,12 @@
 import asyncio
 import json
+import logging
 import urllib.parse
 import requests
 import aiohttp
 
+
+logger = logging.getLogger(__name__)
 
 # --- ГЕНЕРАТОР КАРТИ (МАРШРУТ ЧЕРЕЗ MAPBOX) ---
 def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="map_preview.png"):
@@ -21,7 +24,7 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         r = requests.get(route_url, headers=headers, timeout=15)
         
         if r.status_code != 200: 
-            print(f"OSRM помилка: {r.status_code}")
+            logger.error(f"OSRM помилка: {r.status_code}")
             return None
             
         route_data = r.json()
@@ -72,11 +75,11 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
                 f.write(img_resp.content)
             return filename
         else:
-            print(f"Mapbox помилка: {img_resp.text}")
+            logger.error(f"Mapbox помилка: {img_resp.text}")
             return None
             
     except Exception as e:
-        print(f"Помилка рендеру карти Mapbox: {e}")
+        logger.error(f"Помилка рендеру карти Mapbox: {e}")
         return None
 
 
@@ -93,7 +96,7 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
                     if c_data and len(c_data) > 0:
                         c_lat, c_lon = float(c_data[0]['lat']), float(c_data[0]['lon'])
     except Exception as e:
-        print(f"❌ Критична помилка Nominatim: {e}")
+        logger.error(f"❌ Критична помилка Nominatim: {e}")
 
     if not c_lat: return None 
 
@@ -111,7 +114,7 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
                         if b_data and len(b_data) > 0:
                             b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
         except Exception as e:
-            pass
+            logger.error(f"Помилка геокодування адреси бізнесу: {e}")
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)

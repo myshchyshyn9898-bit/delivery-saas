@@ -1,7 +1,10 @@
 import datetime
+import logging
 
 import database as db
 from bot_setup import bot
+
+logger = logging.getLogger(__name__)
 
 
 # ==========================================
@@ -61,4 +64,4 @@ async def check_late_orders():
                         except Exception:
                             pass
     except Exception as e:
-        print(f"Помилка перевірки запізнень: {e}")
+        logger.error(f"Помилка перевірки запізнень: {e}")
