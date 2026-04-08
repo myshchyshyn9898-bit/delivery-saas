@@ -15,7 +15,7 @@ let currentPosSystem = '';
 let connectedIntegrations = {}; 
 
 // 🔴 ВСТАВ СЮДИ СВІЙ ДОМЕН З RAILWAY (без слеша в кінці)
-const RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
+const RAILWAY_DOMAIN = "https://delivery-saas-production-3fe6.up.railway.app";
 let currentInviteToken = ''; 
 
 // Читаємо параметри з URL (Telegram передає їх сюди)
