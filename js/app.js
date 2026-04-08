@@ -36,13 +36,22 @@ async function initSupabase() {
         const res = await fetch(`${RAILWAY_DOMAIN}/config`);
         const cfg = await res.json();
         if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
-            if (authToken) {
-                supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
-                    global: { headers: { Authorization: `Bearer ${authToken}` } }
-                });
-            } else {
-                supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
+            // Збираємо заголовки для RLS-політик
+            let globalHeaders = {};
+
+            // tg_id з URL-параметрів або з Telegram WebApp API
+            const tgId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+            if (tgId) {
+                globalHeaders['x-tg-user-id'] = String(tgId);
             }
+
+            if (authToken) {
+                globalHeaders['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
+                global: { headers: globalHeaders }
+            });
         }
     } catch(e) {
         console.error('Не вдалося завантажити конфігурацію:', e);
