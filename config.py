@@ -19,7 +19,10 @@ BASE_URL = _base_url if _base_url.endswith("/") else _base_url + "/"
 
 # Твій ID та ID помічника
 _super_admin_ids_raw = os.getenv("SUPER_ADMIN_IDS", "")
-SUPER_ADMIN_IDS = [int(x) for x in _super_admin_ids_raw.split(",") if x.strip()] if _super_admin_ids_raw.strip() else []
+try:
+    SUPER_ADMIN_IDS = [int(x) for x in _super_admin_ids_raw.split(",") if x.strip()] if _super_admin_ids_raw.strip() else []
+except ValueError as e:
+    raise ValueError(f"SUPER_ADMIN_IDS contains non-numeric values. Expected comma-separated integers, got: {_super_admin_ids_raw!r}") from e
 
 # Секрети для верифікації вебхуків (опціонально, але рекомендовано)
 WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET")
