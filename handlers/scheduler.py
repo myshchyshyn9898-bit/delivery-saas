@@ -61,7 +61,7 @@ async def check_late_orders():
                     for m in managers_res.data:
                         try:
                             await bot.send_message(chat_id=m["user_id"], text=msg, parse_mode="Markdown")
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.error(f"Помилка відправки сповіщення про запізнення менеджеру {m['user_id']}: {e}")
     except Exception as e:
         logger.error(f"Помилка перевірки запізнень: {e}")

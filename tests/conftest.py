@@ -18,6 +18,8 @@ if ROOT not in sys.path:
 # ---------------------------------------------------------------------------
 os.environ.setdefault("BOT_TOKEN", "test_bot_token")
 os.environ.setdefault("SUPABASE_JWT_SECRET", "test_jwt_secret")
+os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
+os.environ.setdefault("SUPABASE_KEY", "test_supabase_key")
 
 # ---------------------------------------------------------------------------
 # Stub heavy third-party packages BEFORE any project module is imported

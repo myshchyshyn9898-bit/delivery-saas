@@ -1,9 +1,17 @@
 import datetime
+import logging
 from datetime import timedelta, timezone
 from supabase import create_client, Client
 
 # Імпортуємо вже готові змінні, які config.py дістав із системних змінних Railway
-from config import SUPABASE_URL, SUPABASE_KEY 
+from config import SUPABASE_URL, SUPABASE_KEY
+
+logger = logging.getLogger(__name__)
+
+if not SUPABASE_URL:
+    raise RuntimeError("SUPABASE_URL environment variable is not set. Bot cannot start without it.")
+if not SUPABASE_KEY:
+    raise RuntimeError("SUPABASE_KEY environment variable is not set. Bot cannot start without it.")
 
 # Тепер ініціалізуємо клієнта, використовуючи імпортовані дані
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
