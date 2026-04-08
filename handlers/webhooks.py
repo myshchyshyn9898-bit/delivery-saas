@@ -103,23 +103,12 @@ async def poster_webhook_handler(request):
 
 async def config_handler(request):
     """Віддає Supabase anon-key фронтенду.
-    УВАГА: SUPABASE_KEY має бути ТІЛЬКИ anon key, НІКОЛИ service_role!
-    Захист: перевіряємо Origin — без нього відмовляємо (блокує curl/скрипти).
+    УВАГА: Віддаємо ТІЛЬКИ anon key (SUPABASE_KEY), НІКОЛИ service_role!
+    anon key безпечний — дані захищені через RLS.
     """
-    allowed_origins = {
-        "https://myshchyshyn9898-bit.github.io",
-        "https://web.telegram.org",
-    }
-    origin = request.headers.get("Origin", "")
-
-    # Блокуємо запити без Origin (curl, скрипти, боти)
-    if not origin or origin not in allowed_origins:
-        return web.Response(status=403, text="Forbidden")
-
     cors_headers = {
-        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
-        'Vary': 'Origin',
     }
     return web.json_response(
         {'supabase_url': SUPABASE_URL or '', 'supabase_key': SUPABASE_KEY or ''},

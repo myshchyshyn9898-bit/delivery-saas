@@ -34,6 +34,10 @@ let supabaseClient = null;
 async function initSupabase() {
     try {
         const res = await fetch(`${RAILWAY_DOMAIN}/config`);
+        if (!res.ok) {
+            console.error('Config endpoint error:', res.status, res.statusText);
+            return;
+        }
         const cfg = await res.json();
         if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
             // Збираємо заголовки для RLS-політик

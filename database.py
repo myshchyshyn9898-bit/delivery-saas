@@ -4,17 +4,21 @@ from datetime import timedelta, timezone
 from supabase import create_client, Client
 
 # Імпортуємо вже готові змінні, які config.py дістав із системних змінних Railway
-from config import SUPABASE_URL, SUPABASE_KEY
+from config import SUPABASE_URL, SUPABASE_KEY, SUPABASE_SERVICE_KEY
 
 logger = logging.getLogger(__name__)
 
 if not SUPABASE_URL:
     raise RuntimeError("SUPABASE_URL environment variable is not set. Bot cannot start without it.")
-if not SUPABASE_KEY:
-    raise RuntimeError("SUPABASE_KEY environment variable is not set. Bot cannot start without it.")
+
+# Бот використовує service_role key (обходить RLS).
+# Якщо service_role не задано — фолбек на anon key.
+_db_key = SUPABASE_SERVICE_KEY or SUPABASE_KEY
+if not _db_key:
+    raise RuntimeError("Neither SUPABASE_SERVICE_KEY nor SUPABASE_KEY is set. Bot cannot start.")
 
 # Тепер ініціалізуємо клієнта, використовуючи імпортовані дані
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase: Client = create_client(SUPABASE_URL, _db_key)
 
 # ==========================================
 # ФУНКЦІЇ ДЛЯ БІЗНЕСУ ТА АДМІНІСТРУВАННЯ
