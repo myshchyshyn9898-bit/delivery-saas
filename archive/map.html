@@ -290,8 +290,16 @@
     }
 
     var MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
-    var SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+
+    var RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
+    var _supabaseCfgCache = null;
+    async function getSupabaseCfg() {
+        if (!_supabaseCfgCache) {
+            var res = await fetch(RAILWAY_DOMAIN + '/config');
+            _supabaseCfgCache = await res.json();
+        }
+        return _supabaseCfgCache;
+    }
 
     var map, markers = [], selectedOrder = null;
     var tg, supabase, userRole = 'courier', userId, bizData;
@@ -305,7 +313,7 @@
     var authToken = urlParams.get('token');
 
     // ТОЧНО ЯК У ВЕРСІЇ 1.0:
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", async function() {
         try {
             tg = window.Telegram.WebApp;
             tg.ready();
@@ -324,7 +332,8 @@
                 return;
             }
 
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+            var cfg = await getSupabaseCfg();
+            supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
                 global: { headers: { Authorization: 'Bearer ' + authToken } }
             });
 

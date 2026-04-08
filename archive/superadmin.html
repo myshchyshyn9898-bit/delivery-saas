@@ -133,9 +133,13 @@
             } 
         } catch(e) {}
 
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+        const RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
         let supabase = null;
+
+        async function getSupabaseCfg() {
+            const res = await fetch(RAILWAY_DOMAIN + '/config');
+            return res.json();
+        }
 
         function openAdminModal(id, name, plan, created_at, extra_days) {
             document.getElementById('admin-modal').classList.add('active');
@@ -220,7 +224,8 @@
                 } catch(e) {}
 
                 step("Крок 3: З'єднання з базою...");
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                const cfg = await getSupabaseCfg();
+                supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
                     global: { headers: { 'x-telegram-user-id': tgUserId } }
                 });
 

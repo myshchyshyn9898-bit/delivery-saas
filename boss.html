@@ -286,8 +286,17 @@
     <script>
         try { if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.backgroundColor = '#020617'; } } catch(e) {}
 
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+        const RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
+        let _supabaseCfgCache = null;
+        async function getSupabaseCfg() {
+            if (!_supabaseCfgCache) {
+                const res = await fetch(RAILWAY_DOMAIN + '/config');
+                _supabaseCfgCache = await res.json();
+                _supabaseCfgCache._dbHeaders = { 'apikey': _supabaseCfgCache.supabase_key, 'Content-Type': 'application/json' };
+                if (authToken) _supabaseCfgCache._dbHeaders['Authorization'] = 'Bearer ' + authToken;
+            }
+            return _supabaseCfgCache;
+        }
         
         const urlParams = new URLSearchParams(window.location.search);
         const authToken = urlParams.get('token');
@@ -300,9 +309,6 @@
         let globalOrders = [];
         let chartInstance = null;
         let globalMap = null;
-
-        const dbHeaders = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' };
-        if (authToken) dbHeaders['Authorization'] = 'Bearer ' + authToken;
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -322,10 +328,11 @@
 
         async function loadData() {
             try {
-                let bRes = await fetch(SUPABASE_URL + '/rest/v1/businesses?select=*', { method: 'GET', headers: dbHeaders });
+                const cfg = await getSupabaseCfg();
+                let bRes = await fetch(cfg.supabase_url + '/rest/v1/businesses?select=*', { method: 'GET', headers: cfg._dbHeaders });
                 globalBusinesses = await bRes.json();
 
-                let oRes = await fetch(SUPABASE_URL + '/rest/v1/orders?select=id,business_id,amount,status,created_at&order=created_at.desc', { method: 'GET', headers: dbHeaders });
+                let oRes = await fetch(cfg.supabase_url + '/rest/v1/orders?select=id,business_id,amount,status,created_at&order=created_at.desc', { method: 'GET', headers: cfg._dbHeaders });
                 globalOrders = await oRes.json();
 
                 renderDashboard();
@@ -539,8 +546,9 @@
             btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
 
             try {
-                let res = await fetch(SUPABASE_URL + '/rest/v1/businesses?id=eq.' + bizId, {
-                    method: 'PATCH', headers: dbHeaders,
+                const cfg = await getSupabaseCfg();
+                let res = await fetch(cfg.supabase_url + '/rest/v1/businesses?id=eq.' + bizId, {
+                    method: 'PATCH', headers: cfg._dbHeaders,
                     body: JSON.stringify({ 
                         name: newName, 
                         address: newAddress,
@@ -564,7 +572,8 @@
             const staffListEl = document.getElementById('modal-staff-list');
             staffListEl.innerHTML = '<div style="text-align: center; font-size: 11px; color: var(--text-muted);">Завантаження...</div>';
             try {
-                let sRes = await fetch(SUPABASE_URL + '/rest/v1/staff?business_id=eq.' + bizId, { method: 'GET', headers: dbHeaders });
+                const cfg = await getSupabaseCfg();
+                let sRes = await fetch(cfg.supabase_url + '/rest/v1/staff?business_id=eq.' + bizId, { method: 'GET', headers: cfg._dbHeaders });
                 let staff = await sRes.json();
                 
                 if(staff.length === 0) { staffListEl.innerHTML = '<div style="font-size: 11px; color: var(--text-muted);">Персонал відсутній.</div>'; return; }
@@ -592,7 +601,8 @@
         async function deleteStaff(staffId, bizId) {
             if(!confirm("⚠️ Звільнити цього працівника?")) return;
             try {
-                await fetch(SUPABASE_URL + '/rest/v1/staff?id=eq.' + staffId, { method: 'DELETE', headers: dbHeaders });
+                const cfg = await getSupabaseCfg();
+                await fetch(cfg.supabase_url + '/rest/v1/staff?id=eq.' + staffId, { method: 'DELETE', headers: cfg._dbHeaders });
                 fetchStaff(bizId); 
             } catch(e) { alert("Помилка видалення."); }
         }
