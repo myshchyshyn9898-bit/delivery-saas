@@ -9,7 +9,9 @@ from texts import get_text as _
 URL = "https://myshchyshyn9898-bit.github.io/delivery-saas/"
 
 # Дістаємо секрет з Railway
-JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "default_secret_if_not_found")
+JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("SUPABASE_JWT_SECRET environment variable is not set. Bot cannot start without it.")
 
 def generate_token(biz_id=None, user_id=None, is_boss=False):
     """Генерує безпечну криптографічну перепустку, прив'язану до юзера"""

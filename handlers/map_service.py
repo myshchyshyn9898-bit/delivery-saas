@@ -4,6 +4,7 @@ import logging
 import urllib.parse
 import requests
 import aiohttp
+from config import MAPBOX_TOKEN
 
 
 logger = logging.getLogger(__name__)
@@ -14,11 +15,10 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
     Генерує преміальну міні-карту через Mapbox Static API.
     Малює маршрут між закладом та клієнтом.
     """
+    if not MAPBOX_TOKEN:
+        logger.warning("MAPBOX_TOKEN is not set. Map generation is disabled.")
+        return None
     try:
-        # ВСТАВ ТУТ СВІЙ ТОКЕН MAPBOX
-        MAPBOX_TOKEN = "pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg"
-        
-        # 1. Отримуємо координати маршруту (OSRM)
         route_url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
         headers = {'User-Agent': 'DeliveProBot/1.0'}
         r = requests.get(route_url, headers=headers, timeout=15)
