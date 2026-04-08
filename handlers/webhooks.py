@@ -9,7 +9,7 @@ from aiogram import types
 
 import database as db
 from bot_setup import bot
-from config import WHOP_WEBHOOK_SECRET, POSTER_WEBHOOK_SECRET
+from config import WHOP_WEBHOOK_SECRET, POSTER_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -82,8 +82,20 @@ async def poster_webhook_handler(request):
         return web.Response(status=500, text="Error")
 
 
+async def config_handler(request):
+    cors_headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET',
+    }
+    return web.json_response(
+        {'supabase_url': SUPABASE_URL or '', 'supabase_key': SUPABASE_KEY or ''},
+        headers=cors_headers,
+    )
+
+
 async def start_webhook_server():
     app = web.Application()
+    app.router.add_get('/config', config_handler)
     app.router.add_post('/webhook/whop', whop_webhook_handler)
     app.router.add_post('/webhook/poster', poster_webhook_handler) 
     runner = web.AppRunner(app)

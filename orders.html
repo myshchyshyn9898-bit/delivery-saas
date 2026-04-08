@@ -251,8 +251,15 @@
         const authToken = urlParams.get('token');
         let currencySymbol = "zł";
 
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
+        const RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
+        let _supabaseCfgCache = null;
+        async function getSupabaseCfg() {
+            if (!_supabaseCfgCache) {
+                const res = await fetch(RAILWAY_DOMAIN + '/config');
+                _supabaseCfgCache = await res.json();
+            }
+            return _supabaseCfgCache;
+        }
 
         async function loadArchiveData() {
             try {
@@ -267,13 +274,14 @@
                 if (!bizId) throw new Error(t('err_biz'));
                 if (!window.supabase) throw new Error(t('err_supa'));
 
+                const cfg = await getSupabaseCfg();
                 let supabaseClient = null;
                 if (authToken) {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+                    supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
                         global: { headers: { Authorization: `Bearer ${authToken}` } }
                     });
                 } else {
-                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
                 }
 
                 let startDate = new Date();

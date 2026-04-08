@@ -28,18 +28,24 @@ let botUsername = "DeliProBot"; // Твій бот для інвайтів
 let currencySymbol = "zł";
 let selectedDashPlan = 'pro';
 
-// 🔴 КЛЮЧІ SUPABASE
-const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA';
-
+// 🔴 КЛЮЧІ SUPABASE — завантажуються з бекенду (не зберігати тут!)
 let supabaseClient = null;
-if (window.supabase) {
-    if (authToken) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-            global: { headers: { Authorization: `Bearer ${authToken}` } }
-        });
-    } else {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function initSupabase() {
+    try {
+        const res = await fetch(`${RAILWAY_DOMAIN}/config`);
+        const cfg = await res.json();
+        if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
+            if (authToken) {
+                supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
+                    global: { headers: { Authorization: `Bearer ${authToken}` } }
+                });
+            } else {
+                supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
+            }
+        }
+    } catch(e) {
+        console.error('Не вдалося завантажити конфігурацію:', e);
     }
 }
 
@@ -737,4 +743,7 @@ bizAddrInput.addEventListener('input', function() {
 document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && !bizAddrList.contains(e.target)) bizAddrList.style.display = 'none'; });
 
 // 🏁 ЗАПУСК ДОДАТКУ
-setLanguage(currentLang);
+(async () => {
+    await initSupabase();
+    setLanguage(currentLang);
+})();

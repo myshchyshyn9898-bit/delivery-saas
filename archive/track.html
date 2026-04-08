@@ -155,9 +155,16 @@
     </div>
 
     <script>
-        // ВСТАВ СВОЇ КЛЮЧІ ТУТ!
-        const SUPABASE_URL = 'https://kvanzkcwpwmfexsmldvx.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2YW56a2N3cHdtZmV4c21sZHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzgyMzksImV4cCI6MjA4OTYxNDIzOX0.ZHXB9-PwJhH07LzPGpxK0HD-BkLGlf5w2L4WbgrX4JA'; 
+        // Ключі завантажуються з бекенду (не зберігати тут!)
+        const RAILWAY_DOMAIN = "https://delipro-bot-production.up.railway.app";
+        let _supabaseCfgCache = null;
+        async function getSupabaseCfg() {
+            if (!_supabaseCfgCache) {
+                const res = await fetch(RAILWAY_DOMAIN + '/config');
+                _supabaseCfgCache = await res.json();
+            }
+            return _supabaseCfgCache;
+        }
 
         const i18nDictionary = {
             'uk': {
@@ -350,7 +357,8 @@
                 if (typeof window.supabase === 'undefined') throw new Error(t('load_supabase_err'));
                 if (!orderId) throw new Error(t('load_link'));
 
-                const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                const cfg = await getSupabaseCfg();
+                const supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
 
                 updateLoadingText('load_search');
                 const { data: order, error: orderErr } = await supabase.from('orders').select('*').eq('id', orderId).single();
