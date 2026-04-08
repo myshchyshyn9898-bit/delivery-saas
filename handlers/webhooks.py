@@ -1,4 +1,6 @@
+import hashlib
 import hmac
+import json
 import logging
 import os
 import urllib.parse
@@ -19,18 +21,28 @@ logger = logging.getLogger(__name__)
 # ==========================================
 async def whop_webhook_handler(request):
     try:
-        if WHOP_WEBHOOK_SECRET:
-            provided = (
-                request.headers.get("X-Whop-Signature")
-                if "X-Whop-Signature" in request.headers
-                else request.headers.get("Authorization", "")
-            )
-            if not hmac.compare_digest(provided or "", WHOP_WEBHOOK_SECRET):
-                return web.Response(status=403, text="Forbidden")
-        else:
-            logger.warning("WHOP_WEBHOOK_SECRET is not set — accepting request without verification")
+        # Перевірка що секрет налаштовано
+        if not WHOP_WEBHOOK_SECRET:
+            logger.error("WHOP_WEBHOOK_SECRET is not configured — rejecting webhook")
+            return web.Response(status=500, text="Webhook secret not configured")
 
-        data = await request.json()
+        # Читаємо raw body для HMAC
+        body = await request.read()
+        signature = request.headers.get("X-Whop-Signature", "")
+
+        # Обчислюємо справжній HMAC-SHA256
+        expected = hmac.new(
+            WHOP_WEBHOOK_SECRET.encode('utf-8'),
+            body,
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(signature, expected):
+            logger.warning("Whop webhook: invalid signature")
+            return web.Response(status=403, text="Forbidden")
+
+        # Парсимо JSON з вже прочитаного body
+        data = json.loads(body)
         if data.get("event_type") == "membership.went_active":
             membership_data = data.get("data", {})
             biz_id, tg_user_id = membership_data.get("custom_fields", {}).get("biz_id"), membership_data.get("custom_fields", {}).get("tg_user_id")
@@ -48,20 +60,27 @@ async def whop_webhook_handler(request):
 
 async def poster_webhook_handler(request):
     try:
-        if POSTER_WEBHOOK_SECRET:
-            provided = (
-                request.query.get("secret")
-                if "secret" in request.query
-                else request.headers.get("X-Poster-Secret", "")
-            )
-            if not hmac.compare_digest(provided or "", POSTER_WEBHOOK_SECRET):
-                return web.Response(status=403, text="Forbidden")
-        else:
-            logger.warning("POSTER_WEBHOOK_SECRET is not set — accepting request without verification")
+        if not POSTER_WEBHOOK_SECRET:
+            logger.error("POSTER_WEBHOOK_SECRET is not configured — rejecting webhook")
+            return web.Response(status=500, text="Webhook secret not configured")
 
+        body = await request.read()
+        # Приймаємо підпис тільки з заголовка (query param небезпечний — логується у веб-серверах)
+        signature = request.headers.get("X-Poster-Signature", "")
+
+        expected = hmac.new(
+            POSTER_WEBHOOK_SECRET.encode('utf-8'),
+            body,
+            hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(signature, expected):
+            logger.warning("Poster webhook: invalid signature")
+            return web.Response(status=403, text="Forbidden")
+
+        data = json.loads(body)
         biz_id = request.query.get("biz_id")
         if not biz_id: return web.Response(status=400, text="Missing biz_id")
-        data = await request.json()
         if data.get("object") == "incoming_order" and data.get("action") == "added":
             order_data = data.get("data", {})
             client_name, phone, address, amount, comment = order_data.get("client_name", "Клієнт"), order_data.get("phone", ""), order_data.get("address", ""), str(float(order_data.get("total_sum", 0)) / 100), order_data.get("comment", "")
@@ -83,14 +102,22 @@ async def poster_webhook_handler(request):
 
 
 async def config_handler(request):
+    """Віддає Supabase anon-key фронтенду.
+    УВАГА: SUPABASE_KEY має бути ТІЛЬКИ anon key, НІКОЛИ service_role!
+    Захист: перевіряємо Origin — без нього відмовляємо (блокує curl/скрипти).
+    """
     allowed_origins = {
         "https://myshchyshyn9898-bit.github.io",
         "https://web.telegram.org",
     }
     origin = request.headers.get("Origin", "")
-    allow_origin = origin if origin in allowed_origins else "https://myshchyshyn9898-bit.github.io"
+
+    # Блокуємо запити без Origin (curl, скрипти, боти)
+    if not origin or origin not in allowed_origins:
+        return web.Response(status=403, text="Forbidden")
+
     cors_headers = {
-        'Access-Control-Allow-Origin': allow_origin,
+        'Access-Control-Allow-Origin': origin,
         'Access-Control-Allow-Methods': 'GET',
         'Vary': 'Origin',
     }

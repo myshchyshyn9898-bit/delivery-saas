@@ -2,6 +2,8 @@
 import sys
 import os
 import json
+import hmac
+import hashlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -16,10 +18,32 @@ from aiohttp import web
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_request(body: dict, query_params: dict = None):
-    """Build a fake aiohttp Request-like object."""
+TEST_WHOP_SECRET = "test-whop-secret"
+TEST_POSTER_SECRET = "test-poster-secret"
+
+
+def _make_hmac_sig(secret: str, body: bytes) -> str:
+    """Обчислює HMAC-SHA256 підпис для тестів."""
+    return hmac.new(secret.encode('utf-8'), body, hashlib.sha256).hexdigest()
+
+
+def _make_whop_request(body: dict, secret: str = TEST_WHOP_SECRET):
+    """Build a fake aiohttp Request-like object with a valid Whop HMAC signature."""
+    body_bytes = json.dumps(body).encode('utf-8')
+    sig = _make_hmac_sig(secret, body_bytes)
     req = MagicMock()
-    req.json = AsyncMock(return_value=body)
+    req.read = AsyncMock(return_value=body_bytes)
+    req.headers = {"X-Whop-Signature": sig}
+    return req
+
+
+def _make_poster_request(body: dict, query_params: dict = None, secret: str = TEST_POSTER_SECRET):
+    """Build a fake aiohttp Request-like object with a valid Poster HMAC signature."""
+    body_bytes = json.dumps(body).encode('utf-8')
+    sig = _make_hmac_sig(secret, body_bytes)
+    req = MagicMock()
+    req.read = AsyncMock(return_value=body_bytes)
+    req.headers = {"X-Poster-Signature": sig}
     req.query = query_params or {}
     return req
 
@@ -41,10 +65,11 @@ class TestWhopWebhookHandler:
                 },
             },
         }
-        req = _make_request(body)
+        req = _make_whop_request(body)
 
         with patch("database.activate_whop_subscription") as mock_activate, \
-             patch("handlers.webhooks.bot") as mock_bot:
+             patch("handlers.webhooks.bot") as mock_bot, \
+             patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", TEST_WHOP_SECRET):
             mock_bot.send_message = AsyncMock()
             from handlers import webhooks
             response = await webhooks.whop_webhook_handler(req)
@@ -64,10 +89,11 @@ class TestWhopWebhookHandler:
                 },
             },
         }
-        req = _make_request(body)
+        req = _make_whop_request(body)
 
         with patch("database.activate_whop_subscription"), \
-             patch("handlers.webhooks.bot") as mock_bot:
+             patch("handlers.webhooks.bot") as mock_bot, \
+             patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", TEST_WHOP_SECRET):
             mock_bot.send_message = AsyncMock()
             from handlers import webhooks
             await webhooks.whop_webhook_handler(req)
@@ -79,10 +105,11 @@ class TestWhopWebhookHandler:
     @pytest.mark.asyncio
     async def test_ignores_other_event_types(self):
         body = {"event_type": "membership.went_inactive", "data": {}}
-        req = _make_request(body)
+        req = _make_whop_request(body)
 
         with patch("database.activate_whop_subscription") as mock_activate, \
-             patch("handlers.webhooks.bot"):
+             patch("handlers.webhooks.bot"), \
+             patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", TEST_WHOP_SECRET):
             from handlers import webhooks
             response = await webhooks.whop_webhook_handler(req)
 
@@ -90,12 +117,41 @@ class TestWhopWebhookHandler:
         assert response.status == 200
 
     @pytest.mark.asyncio
+    async def test_returns_500_when_secret_not_configured(self):
+        """Якщо WHOP_WEBHOOK_SECRET не задано — повертати 500."""
+        body = {"event_type": "membership.went_active", "data": {}}
+        req = _make_whop_request(body)
+
+        with patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", ""):
+            from handlers import webhooks
+            response = await webhooks.whop_webhook_handler(req)
+
+        assert response.status == 500
+
+    @pytest.mark.asyncio
+    async def test_returns_403_on_invalid_signature(self):
+        """Невірний підпис — повертати 403."""
+        body = {"event_type": "membership.went_active", "data": {}}
+        body_bytes = json.dumps(body).encode('utf-8')
+        req = MagicMock()
+        req.read = AsyncMock(return_value=body_bytes)
+        req.headers = {"X-Whop-Signature": "invalid-signature"}
+
+        with patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", TEST_WHOP_SECRET):
+            from handlers import webhooks
+            response = await webhooks.whop_webhook_handler(req)
+
+        assert response.status == 403
+
+    @pytest.mark.asyncio
     async def test_returns_500_on_exception(self):
         req = MagicMock()
-        req.json = AsyncMock(side_effect=Exception("Boom"))
+        req.read = AsyncMock(side_effect=Exception("Boom"))
+        req.headers = {"X-Whop-Signature": "any"}
 
-        from handlers import webhooks
-        response = await webhooks.whop_webhook_handler(req)
+        with patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", TEST_WHOP_SECRET):
+            from handlers import webhooks
+            response = await webhooks.whop_webhook_handler(req)
 
         assert response.status == 500
 
@@ -109,10 +165,11 @@ class TestWhopWebhookHandler:
                 "custom_fields": {},
             },
         }
-        req = _make_request(body)
+        req = _make_whop_request(body)
 
         with patch("database.activate_whop_subscription") as mock_activate, \
-             patch("handlers.webhooks.bot"):
+             patch("handlers.webhooks.bot"), \
+             patch("handlers.webhooks.WHOP_WEBHOOK_SECRET", TEST_WHOP_SECRET):
             from handlers import webhooks
             response = await webhooks.whop_webhook_handler(req)
 
@@ -123,10 +180,11 @@ class TestWhopWebhookHandler:
 class TestPosterWebhookHandler:
     @pytest.mark.asyncio
     async def test_returns_400_when_biz_id_missing(self):
-        req = _make_request({}, query_params={})
+        req = _make_poster_request({}, query_params={})
 
-        from handlers import webhooks
-        response = await webhooks.poster_webhook_handler(req)
+        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+            from handlers import webhooks
+            response = await webhooks.poster_webhook_handler(req)
 
         assert response.status == 400
 
@@ -143,14 +201,15 @@ class TestPosterWebhookHandler:
                 "comment": "Ring doorbell",
             },
         }
-        req = _make_request(body, query_params={"biz_id": "biz-1"})
+        req = _make_poster_request(body, query_params={"biz_id": "biz-1"})
 
         managers_result = MagicMock(data=[{"user_id": 111}, {"user_id": 222}])
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = managers_result
 
         with patch("database.supabase") as mock_supabase, \
-             patch("handlers.webhooks.bot") as mock_bot:
+             patch("handlers.webhooks.bot") as mock_bot, \
+             patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
             mock_supabase.table.return_value = mock_table
             mock_bot.send_message = AsyncMock()
             from handlers import webhooks
@@ -162,10 +221,11 @@ class TestPosterWebhookHandler:
     @pytest.mark.asyncio
     async def test_ignores_non_new_order_events(self):
         body = {"object": "incoming_order", "action": "updated", "data": {}}
-        req = _make_request(body, query_params={"biz_id": "biz-1"})
+        req = _make_poster_request(body, query_params={"biz_id": "biz-1"})
 
         with patch("database.supabase") as mock_supabase, \
-             patch("handlers.webhooks.bot") as mock_bot:
+             patch("handlers.webhooks.bot") as mock_bot, \
+             patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
             mock_bot.send_message = AsyncMock()
             from handlers import webhooks
             response = await webhooks.poster_webhook_handler(req)
@@ -174,12 +234,42 @@ class TestPosterWebhookHandler:
         assert response.status == 200
 
     @pytest.mark.asyncio
+    async def test_returns_500_when_secret_not_configured(self):
+        """Якщо POSTER_WEBHOOK_SECRET не задано — повертати 500."""
+        body = {}
+        req = _make_poster_request(body)
+
+        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", ""):
+            from handlers import webhooks
+            response = await webhooks.poster_webhook_handler(req)
+
+        assert response.status == 500
+
+    @pytest.mark.asyncio
+    async def test_returns_403_on_invalid_signature(self):
+        """Невірний підпис — повертати 403."""
+        body = {"object": "incoming_order", "action": "added", "data": {}}
+        body_bytes = json.dumps(body).encode('utf-8')
+        req = MagicMock()
+        req.read = AsyncMock(return_value=body_bytes)
+        req.headers = {"X-Poster-Signature": "invalid-signature"}
+        req.query = {"biz_id": "biz-1"}
+
+        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+            from handlers import webhooks
+            response = await webhooks.poster_webhook_handler(req)
+
+        assert response.status == 403
+
+    @pytest.mark.asyncio
     async def test_returns_500_on_exception(self):
         req = MagicMock()
         req.query = {"biz_id": "biz-1"}
-        req.json = AsyncMock(side_effect=Exception("DB error"))
+        req.read = AsyncMock(side_effect=Exception("DB error"))
+        req.headers = {"X-Poster-Signature": "any"}
 
-        from handlers import webhooks
-        response = await webhooks.poster_webhook_handler(req)
+        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+            from handlers import webhooks
+            response = await webhooks.poster_webhook_handler(req)
 
         assert response.status == 500
