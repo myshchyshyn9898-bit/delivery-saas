@@ -62,7 +62,15 @@ TEXTS = {
         'btn_new_order': "📝 Нове замовлення",
         'btn_active_orders': "📂 Активні замовлення",
         'btn_my_deliveries': "📦 Мої доставки",
-        'btn_boss_panel': "👑 Панель Власника"
+        'btn_boss_panel': "👑 Панель Власника",
+        'expired_trial_text': "⚠️ **Ваш тестовий період або підписка завершилася!**\n\nЩоб продовжити роботу, будь ласка, відкрийте Дашборд.",
+        'btn_open_dashboard': "📊 Відкрити Дашборд",
+        'expired_no_orders': "⚠️ Підписка закінчилася. Ви не можете створювати нові замовлення. Відкрийте Дашборд.",
+        'free_order_created': "🟢 **ВІЛЬНЕ ЗАМОВЛЕННЯ #{short_id}**\n\nЗамовлення додано на карту! Відкрийте карту, щоб призначити кур'єра.\n🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`",
+        'order_assigned_success': "✅ Замовлення #{short_id} успішно призначено!",
+        'order_assign_error': "❌ Помилка при призначенні замовлення.",
+        'expired_no_report': "⚠️ Підписка закінчилася. Відкрийте Дашборд для оплати.",
+        'tracking_link_label': "🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`"
     },
     'ru': {
         'sub_expired': "⚠️ **Ваша подписка закончилась или приостановлена.**\nПожалуйста, обратитесь к администратору.",
@@ -125,7 +133,15 @@ TEXTS = {
         'btn_new_order': "📝 Новый заказ",
         'btn_active_orders': "📂 Активные заказы",
         'btn_my_deliveries': "📦 Мои доставки",
-        'btn_boss_panel': "👑 Панель Владельца"
+        'btn_boss_panel': "👑 Панель Владельца",
+        'expired_trial_text': "⚠️ **Ваш пробный период или подписка завершилась!**\n\nЧтобы продолжить работу, пожалуйста, откройте Дашборд.",
+        'btn_open_dashboard': "📊 Открыть Дашборд",
+        'expired_no_orders': "⚠️ Подписка закончилась. Вы не можете создавать новые заказы. Откройте Дашборд.",
+        'free_order_created': "🟢 **СВОБОДНЫЙ ЗАКАЗ #{short_id}**\n\nЗаказ добавлен на карту! Откройте карту, чтобы назначить курьера.\n🔗 *Ссылка для отслеживания клиентом:*\n`{tracking_link}`",
+        'order_assigned_success': "✅ Заказ #{short_id} успешно назначен!",
+        'order_assign_error': "❌ Ошибка при назначении заказа.",
+        'expired_no_report': "⚠️ Подписка закончилась. Откройте Дашборд для оплаты.",
+        'tracking_link_label': "🔗 *Ссылка для отслеживания клиентом:*\n`{tracking_link}`"
     },
     'pl': {
         'sub_expired': "⚠️ **Twoja subskrypcja wygasła lub została zawieszona.**\nProszę skontaktować się z administratorem.",
@@ -188,7 +204,15 @@ TEXTS = {
         'btn_new_order': "📝 Nowe zamówienie",
         'btn_active_orders': "📂 Aktywne zamówienia",
         'btn_my_deliveries': "📦 Moje dostawy",
-        'btn_boss_panel': "👑 Panel Właściciela"
+        'btn_boss_panel': "👑 Panel Właściciela",
+        'expired_trial_text': "⚠️ **Twój okres próbny lub subskrypcja wygasła!**\n\nAby kontynuować pracę, proszę otworzyć Panel.",
+        'btn_open_dashboard': "📊 Otwórz Panel",
+        'expired_no_orders': "⚠️ Subskrypcja wygasła. Nie możesz tworzyć nowych zamówień. Otwórz Panel.",
+        'free_order_created': "🟢 **WOLNE ZAMÓWIENIE #{short_id}**\n\nZamówienie dodane na mapę! Otwórz mapę, aby przypisać kuriera.\n🔗 *Link do śledzenia dla klienta:*\n`{tracking_link}`",
+        'order_assigned_success': "✅ Zamówienie #{short_id} pomyślnie przypisane!",
+        'order_assign_error': "❌ Błąd podczas przypisywania zamówienia.",
+        'expired_no_report': "⚠️ Subskrypcja wygasła. Otwórz Panel, aby dokonać płatności.",
+        'tracking_link_label': "🔗 *Link do śledzenia dla klienta:*\n`{tracking_link}`"
     },
     'en': {
         'sub_expired': "⚠️ **Your subscription has expired or been suspended.**\nPlease contact the administrator.",
@@ -251,7 +275,15 @@ TEXTS = {
         'btn_new_order': "📝 New Order",
         'btn_active_orders': "📂 Active Orders",
         'btn_my_deliveries': "📦 My Deliveries",
-        'btn_boss_panel': "👑 Boss Panel"
+        'btn_boss_panel': "👑 Boss Panel",
+        'expired_trial_text': "⚠️ **Your trial period or subscription has expired!**\n\nTo continue working, please open the Dashboard.",
+        'btn_open_dashboard': "📊 Open Dashboard",
+        'expired_no_orders': "⚠️ Subscription expired. You cannot create new orders. Please open the Dashboard.",
+        'free_order_created': "🟢 **FREE ORDER #{short_id}**\n\nOrder added to the map! Open the map to assign a courier.\n🔗 *Tracking link for client:*\n`{tracking_link}`",
+        'order_assigned_success': "✅ Order #{short_id} successfully assigned!",
+        'order_assign_error': "❌ Error assigning the order.",
+        'expired_no_report': "⚠️ Subscription expired. Please open the Dashboard to pay.",
+        'tracking_link_label': "🔗 *Tracking link for client:*\n`{tracking_link}`"
     }
 }
 

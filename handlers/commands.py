@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import SUPER_ADMIN_IDS
+from config import SUPER_ADMIN_IDS, BASE_URL
 import database as db
 import keyboards as kb
 from texts import get_text as _
@@ -30,9 +30,9 @@ async def show_main_menu(message: types.Message, context: dict):
     actual_plan = db.get_actual_plan(biz_id)
 
     if not biz['is_active'] or actual_plan == "expired":
-        text = "⚠️ **Ваш тестовий період або підписка завершилася!**\n\nЩоб продовжити роботу, будь ласка, відкрийте *Дашборд* та оберіть тариф (PRO)."
+        text = _(lang, 'expired_trial_text')
         builder = InlineKeyboardBuilder()
-        builder.button(text="Відкрити Дашборд", web_app=types.WebAppInfo(url=f"https://твоє-посилання-на-дашборд?biz_id={biz_id}")) # ЗАМІНИ НА СВІЙ ЛІНК ДАШБОРДУ
+        builder.button(text=_(lang, 'btn_open_dashboard'), web_app=types.WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}"))
         await message.answer(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
         return
 
@@ -65,7 +65,7 @@ async def cmd_generate_report(message: types.Message):
     biz_id = biz['id']
 
     if db.get_actual_plan(biz_id) == "expired":
-        await message.answer("⚠️ Підписка закінчилася. Відкрийте Дашборд для оплати.")
+        await message.answer(_(lang, 'expired_no_report'))
         return
 
     currency = biz.get('currency', 'zł')
