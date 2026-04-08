@@ -8,7 +8,7 @@ from aiogram import Router, types, F, Bot
 from aiogram.types import FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import SUPER_ADMIN_IDS
+from config import SUPER_ADMIN_IDS, BASE_URL
 import database as db
 from texts import get_text as _
 from handlers.map_service import get_route_map_file
@@ -43,7 +43,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             biz_id = data['biz_id']
             actual_plan = db.get_actual_plan(biz_id)
             if actual_plan == "expired":
-                await message.answer("⚠️ Підписка закінчилася. Ви не можете створювати нові замовлення. Відкрийте Дашборд.")
+                await message.answer(_(lang, 'expired_no_orders'))
                 return
 
             # 🔴 ЗМІНА: Перевіряємо чи замовлення "Вільне"
@@ -105,14 +105,12 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                         await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
                 
                 # ПОВІДОМЛЕННЯ ДЛЯ АДМІНА (ЗАЛЕЖНО ВІД РОЗПОДІЛУ)
-                tracking_link = f"https://myshchyshyn9898-bit.github.io/delivery-saas/track.html?id={order_id}"
+                tracking_link = f"{BASE_URL}track.html?id={order_id}"
                 if original_courier_id == "unassigned":
-                    admin_final_text = (f"🟢 **ВІЛЬНЕ ЗАМОВЛЕННЯ #{short_id}**\n\n"
-                                        f"Замовлення додано на карту! Відкрийте карту, щоб призначити кур'єра.\n"
-                                        f"🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`")
+                    admin_final_text = _(lang, 'free_order_created', short_id=short_id, tracking_link=tracking_link)
                 else:
                     admin_base_text = _(lang, 'order_sent', short_id=short_id)
-                    admin_final_text = f"{admin_base_text}\n\n🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`"
+                    admin_final_text = f"{admin_base_text}\n\n" + _(lang, 'tracking_link_label', tracking_link=tracking_link)
                 
                 await message.answer(admin_final_text, parse_mode="Markdown")
             else:
@@ -172,10 +170,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             else:
                 await bot.send_message(chat_id=courier_id, text=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
                 
-            await message.answer(f"✅ Замовлення #{short_id} успішно призначено!")
+            await message.answer(_(lang, 'order_assigned_success', short_id=short_id))
         except Exception as e:
             logger.error(f"Помилка призначення з карти: {e}")
-            await message.answer("❌ Помилка при призначенні замовлення.")
+            await message.answer(_(lang, 'order_assign_error'))
 
     # ==========================================
     # --- МАСОВА РОЗСИЛКА ВІД СУПЕРАДМІНА ---
