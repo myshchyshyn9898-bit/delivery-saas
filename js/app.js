@@ -275,8 +275,13 @@ function renderSubscriptionUI(biz) {
 
 function actionPayWhop() {
     if (!bizId) return;
-    let tgUserId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || "6889016268";
-    
+    let tgUserId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+
+    if (!tgUserId) {
+        alert(t('err_no_tg_id') || "Помилка: не вдалося визначити ваш Telegram ID. Спробуйте відкрити через Telegram.");
+        return;
+    }
+
     const linkPro = "https://whop.com/checkout/ТВІЙ_КОД_PRO";
     const linkBasic = "https://whop.com/checkout/ТВІЙ_КОД_BASIC";
     
