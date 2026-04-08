@@ -8,6 +8,7 @@ load_dotenv()
 API_TOKEN = os.getenv("BOT_TOKEN")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
 
 # Посилання на твій бот (не забудь замінити на реальне!)
