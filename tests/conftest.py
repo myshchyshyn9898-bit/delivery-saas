@@ -14,6 +14,12 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 # ---------------------------------------------------------------------------
+# Set required environment variables before any project module is imported
+# ---------------------------------------------------------------------------
+os.environ.setdefault("BOT_TOKEN", "test_bot_token")
+os.environ.setdefault("SUPABASE_JWT_SECRET", "test_jwt_secret")
+
+# ---------------------------------------------------------------------------
 # Stub heavy third-party packages BEFORE any project module is imported
 # ---------------------------------------------------------------------------
 

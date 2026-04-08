@@ -1,3 +1,4 @@
+import hmac
 import logging
 import os
 import urllib.parse
@@ -8,6 +9,7 @@ from aiogram import types
 
 import database as db
 from bot_setup import bot
+from config import WHOP_WEBHOOK_SECRET, POSTER_WEBHOOK_SECRET
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,13 @@ logger = logging.getLogger(__name__)
 # ==========================================
 async def whop_webhook_handler(request):
     try:
+        if WHOP_WEBHOOK_SECRET:
+            provided = request.headers.get("X-Whop-Signature") or request.headers.get("Authorization", "")
+            if not provided or not hmac.compare_digest(provided, WHOP_WEBHOOK_SECRET):
+                return web.Response(status=403, text="Forbidden")
+        else:
+            logger.warning("WHOP_WEBHOOK_SECRET is not set — accepting request without verification")
+
         data = await request.json()
         if data.get("event_type") == "membership.went_active":
             membership_data = data.get("data", {})
@@ -35,6 +44,13 @@ async def whop_webhook_handler(request):
 
 async def poster_webhook_handler(request):
     try:
+        if POSTER_WEBHOOK_SECRET:
+            provided = request.query.get("secret") or request.headers.get("X-Poster-Secret", "")
+            if not provided or not hmac.compare_digest(provided, POSTER_WEBHOOK_SECRET):
+                return web.Response(status=403, text="Forbidden")
+        else:
+            logger.warning("POSTER_WEBHOOK_SECRET is not set — accepting request without verification")
+
         biz_id = request.query.get("biz_id")
         if not biz_id: return web.Response(status=400, text="Missing biz_id")
         data = await request.json()

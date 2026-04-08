@@ -4,9 +4,7 @@ import jwt
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 from texts import get_text as _
-
-# Головне посилання на твій GitHub Pages
-URL = "https://myshchyshyn9898-bit.github.io/delivery-saas/"
+from config import BASE_URL
 
 # Дістаємо секрет з Railway
 JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
@@ -37,7 +35,7 @@ def generate_token(biz_id=None, user_id=None, is_boss=False):
 def get_reg_kb(lang='uk'):
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=_(lang, 'btn_open_app'), web_app=WebAppInfo(url=f"{URL}delivepro.html"))]
+            [KeyboardButton(text=_(lang, 'btn_open_app'), web_app=WebAppInfo(url=f"{BASE_URL}delivepro.html"))]
         ],
         resize_keyboard=True
     )
@@ -48,8 +46,8 @@ def get_owner_kb(biz_id, user_id, lang='uk'):
     token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=_(lang, 'btn_dashboard'), web_app=WebAppInfo(url=f"{URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
-            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_dashboard'), web_app=WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_report'))],
             [KeyboardButton(text=_(lang, 'btn_settings')), KeyboardButton(text=_(lang, 'btn_staff'))]
         ],
@@ -62,10 +60,10 @@ def get_manager_kb(biz_id, user_id, lang='uk'):
     token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=_(lang, 'btn_new_order'), web_app=WebAppInfo(url=f"{URL}form.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
-            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_new_order'), web_app=WebAppInfo(url=f"{BASE_URL}form.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_report'))],
-            [KeyboardButton(text=_(lang, 'btn_active_orders'), web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
+            [KeyboardButton(text=_(lang, 'btn_active_orders'), web_app=WebAppInfo(url=f"{BASE_URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
         ],
         resize_keyboard=True
     )
@@ -76,8 +74,8 @@ def get_courier_kb(biz_id, user_id, lang='uk'):
     token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
-            [KeyboardButton(text=_(lang, 'btn_my_deliveries'), web_app=WebAppInfo(url=f"{URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
+            [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
+            [KeyboardButton(text=_(lang, 'btn_my_deliveries'), web_app=WebAppInfo(url=f"{BASE_URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
         ],
         resize_keyboard=True
     )
@@ -86,7 +84,7 @@ def get_courier_kb(biz_id, user_id, lang='uk'):
 def get_superadmin_kb(user_id, lang='uk'):
     t = int(time.time())
     token = generate_token(user_id=user_id, is_boss=True) # 🔒 Передаємо user_id
-    web_app_url = f"{URL}boss.html?tg_id={user_id}&v={t}&token={token}"
+    web_app_url = f"{BASE_URL}boss.html?tg_id={user_id}&v={t}&token={token}"
     
     return ReplyKeyboardMarkup(
         keyboard=[
