@@ -83,9 +83,16 @@ async def poster_webhook_handler(request):
 
 
 async def config_handler(request):
+    allowed_origins = {
+        "https://myshchyshyn9898-bit.github.io",
+        "https://web.telegram.org",
+    }
+    origin = request.headers.get("Origin", "")
+    allow_origin = origin if origin in allowed_origins else "https://myshchyshyn9898-bit.github.io"
     cors_headers = {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': allow_origin,
         'Access-Control-Allow-Methods': 'GET',
+        'Vary': 'Origin',
     }
     return web.json_response(
         {'supabase_url': SUPABASE_URL or '', 'supabase_key': SUPABASE_KEY or ''},
