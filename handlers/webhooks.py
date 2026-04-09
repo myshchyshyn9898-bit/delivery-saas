@@ -31,6 +31,9 @@ import database as db
 from bot_setup import bot
 from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY
 from keyboards import generate_token
+from aiogram.types import FSInputFile
+from texts import get_text as _
+from handlers.map_service import get_route_map_file
 
 logger = logging.getLogger(__name__)
 
@@ -693,6 +696,87 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
         logger.error(f"[Syrve] Невідома помилка: {exc}", exc_info=True)
         return web.Response(status=500, text="Internal Server Error")
 
+# ---------------------------------------------------------------------------
+# WEBHOOK: API NEW ORDER (FROM WEBAPP FORM)
+# ---------------------------------------------------------------------------
+
+async def api_new_order_handler(request: web.Request) -> web.Response:
+    """POST /api/new_order"""
+    try:
+        data = await request.json()
+        lang = data.get("lang", "uk")
+        
+        biz_id = data['biz_id']
+        actual_plan = await db.get_actual_plan(biz_id)
+        if actual_plan == "expired":
+            return web.Response(status=403, text="expired")
+
+        original_courier_id = data.get('courier_id')
+        if original_courier_id == "unassigned":
+            data['courier_id'] = None
+
+        new_order = await db.create_new_order(data)
+
+        if new_order:
+            order_id = new_order['id']
+            short_id = str(order_id)[:6].upper()
+            biz = await db.get_business_by_id(biz_id)
+            currency = biz.get('currency', 'zł')
+            is_pro = actual_plan in ['pro', 'trial']
+            courier_lang = lang
+
+            if original_courier_id != "unassigned":
+                pay_type_str = _(courier_lang, 'pay_' + data['payment'])
+                pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
+
+                details_parts = []
+                if data.get('apt'):
+                    details_parts.append(_(courier_lang, 'apt_prefix', apt=data['apt']))
+                if data.get('code'):
+                    details_parts.append(_(courier_lang, 'code_prefix', code=data['code']))
+                details_text = _(courier_lang, 'details_prefix', details=', '.join(details_parts)) if details_parts else ""
+
+                address_query = urllib.parse.quote(data['address'])
+                route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
+
+                phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data.get('client_phone', '')))
+                if not phone_clean.startswith('+') and phone_clean:
+                    phone_clean = '+' + phone_clean
+
+                status_active = _(courier_lang, 'status_active_full')
+
+                courier_text = _(courier_lang, 'order_new',
+                                 short_id=short_id, status=status_active, address=data['address'],
+                                 details_text=details_text, phone=phone_clean, client_name=data.get('client_name', ''),
+                                 pay_icon=pay_icon, amount=data['amount'], cur=currency, pay_type=pay_type_str)
+
+                if data.get('comment'):
+                    courier_text += _(courier_lang, 'comment_prefix', comment=data['comment'])
+
+                builder = InlineKeyboardBuilder()
+                if is_pro:
+                    builder.button(text=_(courier_lang, 'btn_route'), url=route_url)
+                builder.button(text=_(courier_lang, 'btn_finish'), callback_data=f"finish_order_{order_id}")
+                builder.adjust(1)
+
+                if is_pro:
+                    map_filename = await get_route_map_file(biz, data['address'], short_id)
+                    if map_filename and os.path.exists(map_filename):
+                        photo = FSInputFile(map_filename)
+                        await bot.send_photo(chat_id=data['courier_id'], photo=photo, caption=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+                        os.remove(map_filename)
+                    else:
+                        await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+                else:
+                    await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+
+            return web.Response(text="OK")
+        else:
+            return web.Response(status=500, text="Помилка збереження замовлення")
+            
+    except Exception as exc:
+        logger.error(f"[API New Order] Помилка: {exc}", exc_info=True)
+        return web.Response(status=500, text="Internal Server Error")
 
 # ---------------------------------------------------------------------------
 # CONFIG endpoint
@@ -755,6 +839,7 @@ async def start_webhook_server() -> None:
     app.router.add_post("/webhook/choiceqr",   choiceqr_webhook_handler)
     app.router.add_post("/webhook/gopos",      gopos_webhook_handler)
     app.router.add_post("/webhook/syrve",      syrve_webhook_handler)
+    app.router.add_post("/api/new_order",      api_new_order_handler)
 
     runner = web.AppRunner(app)
     await runner.setup()
