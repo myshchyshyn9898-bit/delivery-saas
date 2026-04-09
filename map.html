@@ -295,8 +295,25 @@
     var _supabaseCfgCache = null;
     async function getSupabaseCfg() {
         if (!_supabaseCfgCache) {
-            var res = await fetch(RAILWAY_DOMAIN + '/config');
-            _supabaseCfgCache = await res.json();
+            var res;
+            try {
+                res = await fetch(RAILWAY_DOMAIN + '/config');
+            } catch (networkErr) {
+                throw new Error("Сервер недоступний (" + RAILWAY_DOMAIN + "): " + networkErr.message);
+            }
+            if (!res.ok) {
+                throw new Error("Помилка /config: HTTP " + res.status + " " + res.statusText);
+            }
+            var cfg;
+            try {
+                cfg = await res.json();
+            } catch (jsonErr) {
+                throw new Error("Невірна відповідь /config (не JSON): " + jsonErr.message);
+            }
+            if (!cfg.supabase_url || !cfg.supabase_key) {
+                throw new Error("Відповідь /config не містить supabase_url або supabase_key");
+            }
+            _supabaseCfgCache = cfg;
         }
         return _supabaseCfgCache;
     }
@@ -328,11 +345,21 @@
             }
 
             if (!window.supabase) {
-                document.getElementById('load-text').innerText = "Помилка: Supabase не підключена.";
+                document.getElementById('load-text').innerText = "Помилка: Supabase SDK не підключена.";
+                logError("window.supabase відсутній — перевірте CDN підключення");
                 return;
             }
 
-            var cfg = await getSupabaseCfg();
+            var cfg;
+            try {
+                document.getElementById('load-text').innerText = "Підключення до сервера...";
+                cfg = await getSupabaseCfg();
+            } catch (cfgErr) {
+                document.getElementById('load-text').innerText = "Помилка підключення до сервера";
+                logError(cfgErr.message);
+                return;
+            }
+
             supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
                 global: { headers: { Authorization: 'Bearer ' + authToken } }
             });
@@ -381,7 +408,8 @@
             setTimeout(initMapAndData, 100);
 
         } catch (err) {
-            logError("Помилка старту: " + err.message);
+            document.getElementById('load-text').innerText = "Помилка запуску";
+            logError("Помилка старту: " + (err.message || String(err)));
         }
     });
 
@@ -460,7 +488,8 @@
             });
 
         } catch (e) {
-            logError(e.message);
+            document.getElementById('load-text').innerText = "Помилка ініціалізації";
+            logError(e.message || String(e));
         }
     }
 
