@@ -29,7 +29,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 from bot_setup import bot
-from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY, POSTER_WEBHOOK_SECRET
+from config import SUPABASE_URL, SUPABASE_KEY, POSTER_WEBHOOK_SECRET
 from keyboards import generate_token
 
 logger = logging.getLogger(__name__)
