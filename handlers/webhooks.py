@@ -63,7 +63,28 @@ def _parse_amount(raw, divisor: int = 1) -> str:
         return str(raw or 0)
 
 
-def _build_gopos_address(delivery) -> str:
+def _parse_payment(raw: str) -> str:
+    """
+    Нормалізує тип оплати з POS-систем до одного з: cash | terminal | online.
+    Підтримує різні назви від Poster, ChoiceQR, GoPOS, Syrve.
+    """
+    if not raw:
+        return "cash"
+    r = str(raw).strip().lower()
+    CASH    = {'cash', 'готівка', 'наличные', 'gotówka', 'наличка',
+               'cash_on_delivery', 'cod', '1', 'cash_courier'}
+    TERM    = {'terminal', 'термінал', 'терминал', 'card', 'карта',
+               'card_on_delivery', 'pos', 'безготівка', '2', 'card_courier'}
+    ONLINE  = {'online', 'онлайн', 'prepaid', 'liqpay', 'monobank',
+               'fondy', 'wayforpay', 'stripe', 'internet', 'paid_online',
+               'electronic', '3', 'card_online'}
+    if r in CASH:   return "cash"
+    if r in TERM:   return "terminal"
+    if r in ONLINE: return "online"
+    return "cash"  # fallback
+
+
+
     """Збирає адресу з dict-структури GoPOS."""
     if isinstance(delivery, dict):
         street = delivery.get("street", "")
@@ -332,6 +353,15 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
             raw_sum = order_data.get("total_sum") or order_data.get("sum", 0)
             amount  = _parse_amount(raw_sum, divisor=100)
 
+            # Тип оплати: Poster передає pay_type або payment_method
+            raw_pay = (
+                order_data.get("pay_type")
+                or order_data.get("payment_method")
+                or order_data.get("payment")
+                or ""
+            )
+            payment = _parse_payment(str(raw_pay))
+
             asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
@@ -341,6 +371,7 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
                     address=address,
                     amount=amount,
                     comment=comment,
+                    payment=payment,
                 )
             )
 
@@ -415,6 +446,16 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             )
             amount = _parse_amount(raw_amount)
 
+            # Тип оплати: ChoiceQR передає payment_method або payment_type
+            raw_pay = (
+                order.get("payment_method")
+                or order.get("payment_type")
+                or order.get("payment")
+                or (order.get("payment_info") or {}).get("type", "")
+                or ""
+            )
+            payment = _parse_payment(str(raw_pay))
+
             asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
@@ -424,6 +465,7 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
                     address=address,
                     amount=amount,
                     comment=comment,
+                    payment=payment,
                 )
             )
 
@@ -502,6 +544,14 @@ async def gopos_webhook_handler(request: web.Request) -> web.Response:
             raw_amount = order.get("total") or order.get("price") or order.get("amount", 0)
             amount     = _parse_amount(raw_amount)
 
+            raw_pay = (
+                order.get("payment_method")
+                or order.get("payment_type")
+                or order.get("payment")
+                or ""
+            )
+            payment = _parse_payment(str(raw_pay))
+
             asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
@@ -511,6 +561,7 @@ async def gopos_webhook_handler(request: web.Request) -> web.Response:
                     address=address,
                     amount=amount,
                     comment=comment,
+                    payment=payment,
                 )
             )
 
@@ -608,6 +659,21 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
             # Syrve зберігає суму в копійках
             amount = _parse_amount(raw_amount, divisor=100)
 
+            # Syrve: тип оплати в payments[0].paymentType.name або paymentType
+            raw_pay = ""
+            payments_list = order.get("payments") or []
+            if payments_list and isinstance(payments_list, list):
+                first_pay = payments_list[0] if payments_list else {}
+                pay_type_obj = first_pay.get("paymentType") or {}
+                raw_pay = (
+                    pay_type_obj.get("name", "")
+                    or pay_type_obj.get("code", "")
+                    or first_pay.get("paymentTypeKind", "")
+                )
+            if not raw_pay:
+                raw_pay = order.get("paymentType") or order.get("payment") or ""
+            payment = _parse_payment(str(raw_pay))
+
             asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
@@ -617,6 +683,7 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
                     address=address,
                     amount=amount,
                     comment=comment,
+                    payment=payment,
                 )
             )
 
