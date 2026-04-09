@@ -320,7 +320,7 @@
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Підключіть вашу касу для автоматизації доставки.</p>
             
             <div class="integration-list">
-                <div class="integration-card" onclick="openConnectModal('Poster POS', 'poster', '#111418', 'P', 'Знайдіть API-токен у кабінеті Poster (Налаштування -> Інтеграції -> API).')">
+                <div class="integration-card" onclick="openConnectModal('Poster POS', 'poster', '#111418', 'P', '')">
                     <div class="pos-logo-box" style="background: #111418;">P</div>
                     <div class="pos-info">
                         <div class="pos-name">Poster POS</div>
@@ -329,7 +329,7 @@
                     <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
                 </div>
 
-                <div class="integration-card" onclick="openConnectModal('ChoiceQR', 'choice', '#10b981', 'C', 'Згенеруйте токен у панелі ChoiceQR (розділ Integrations).')">
+                <div class="integration-card" onclick="openConnectModal('ChoiceQR', 'choice', '#10b981', 'C', '')">
                     <div class="pos-logo-box" style="background: #10b981;">C</div>
                     <div class="pos-info">
                         <div class="pos-name">ChoiceQR</div>
@@ -338,20 +338,20 @@
                     <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
                 </div>
 
-                <div class="integration-card" onclick="openConnectModal('Syrve', 'syrve', '#8b5cf6', 'S', 'Введіть ваш API Login від системи Syrve (iiko).')">
-                    <div class="pos-logo-box" style="background: #8b5cf6;">S</div>
-                    <div class="pos-info">
-                        <div class="pos-name">Syrve (iiko)</div>
-                        <div class="pos-status" id="status-syrve"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
-                    </div>
-                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
-                </div>
-
-                <div class="integration-card" onclick="openConnectModal('GoPOS', 'gopos', '#3b82f6', 'G', 'Скопіюйте Authorization Token з адмін-панелі GoPOS.')">
+                <div class="integration-card" onclick="openConnectModal('GoPOS', 'gopos', '#3b82f6', 'G', '')">
                     <div class="pos-logo-box" style="background: #3b82f6;">G</div>
                     <div class="pos-info">
                         <div class="pos-name">GoPOS</div>
                         <div class="pos-status" id="status-gopos"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('Syrve (iiko)', 'syrve', '#8b5cf6', 'S', '')">
+                    <div class="pos-logo-box" style="background: #8b5cf6;">S</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Syrve (iiko)</div>
+                        <div class="pos-status" id="status-syrve"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
                     </div>
                     <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
                 </div>
