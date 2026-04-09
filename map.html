@@ -12,26 +12,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        :root { 
-            --primary: #ff7652; 
-            --info: #3b82f6; 
-            --danger: #ef4444; 
-            --bg: #f4f4f8; 
+        :root {
+            --primary: #ff7652;
+            --info: #3b82f6;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --bg: #f4f4f8;
+            --history: #8b5cf6;
         }
 
-        body { 
-            margin: 0; padding: 0; 
-            font-family: sans-serif; 
-            background: var(--bg); 
-            overflow: hidden; 
+        body {
+            margin: 0; padding: 0;
+            font-family: sans-serif;
+            background: var(--bg);
+            overflow: hidden;
         }
 
         /* ── ЕКРАН ЗАВАНТАЖЕННЯ ── */
-        #loading-screen { 
-            position: absolute; inset: 0; 
-            background: white; z-index: 9999; 
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
+        #loading-screen {
+            position: absolute; inset: 0;
+            background: white; z-index: 9999;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
             color: #333; text-align: center; padding: 20px;
         }
         .spinner { font-size: 40px; color: var(--primary); margin-bottom: 15px; }
@@ -39,46 +41,39 @@
         /* ── КАРТА ── */
         #map { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
 
-        /* ── МАРКЕРИ ──
-         * ВАЖЛИВО: НЕ використовуємо transform/translateY анімацію на маркері або піні.
-         * Mapbox прив'язує позицію до DOM-елемента, і будь-який translateY
-         * змушує маркер "пливти" відносно карти при зумі/скролі.
-         * Анімуємо тільки box-shadow / filter — вони не зміщують геометрію.
-         */
-        .custom-marker { 
+        /* ── МАРКЕРИ ── */
+        .custom-marker {
             display: flex; flex-direction: column; align-items: center; cursor: pointer;
         }
         .custom-marker:active { opacity: 0.8; }
 
-        .marker-label { 
-            background: white; padding: 4px 8px; 
-            border-radius: 8px; border: 1px solid #ddd; 
-            font-size: 13px; font-weight: bold; color: #333; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
-            display: flex; align-items: center; gap: 6px; 
-            margin-bottom: 4px; white-space: nowrap; 
+        .marker-label {
+            background: white; padding: 4px 8px;
+            border-radius: 8px; border: 1px solid #ddd;
+            font-size: 13px; font-weight: bold; color: #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 6px;
+            margin-bottom: 4px; white-space: nowrap;
         }
 
-        .time-badge { 
-            background: #fff0ed; color: var(--primary); 
-            padding: 2px 6px; border-radius: 6px; 
-            font-size: 11px; display: flex; align-items: center; 
+        /* Маркери активних замовлень */
+        .time-badge {
+            background: #fff0ed; color: var(--primary);
+            padding: 2px 6px; border-radius: 6px;
+            font-size: 11px; display: flex; align-items: center;
             gap: 4px; font-weight: bold;
         }
-        .time-badge.late { 
-            background: #fee2e2; color: var(--danger); 
-            /* Тільки тінь — не зміщує маркер */
+        .time-badge.late {
+            background: #fee2e2; color: var(--danger);
             animation: pulseRed 2s infinite;
         }
-        @keyframes pulseRed { 
-            0%   { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0.5); } 
-            70%  { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);   } 
-            100% { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0);   } 
+        @keyframes pulseRed {
+            0%   { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0.5); }
+            70%  { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);   }
+            100% { box-shadow: 0 0 0 0   rgba(239, 68, 68, 0);   }
         }
 
         .pin-icon { font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3)); line-height: 1; }
-
-        /* pin-free: пульс через filter — без translateY! */
         .pin-free   { color: var(--info);   animation: pulseFree 2s ease-in-out infinite; }
         .pin-mine   { color: #f59e0b; }
         .pin-others { color: #94a3b8; font-size: 24px; opacity: 0.8; }
@@ -88,56 +83,165 @@
             50%       { filter: drop-shadow(0px 3px 8px rgba(59,130,246,0.75)); }
         }
 
-        /* ── БЕЙДЖ РОЛІ ── */
-        #role-badge { 
-            position: absolute; top: 15px; left: 15px; 
-            background: rgba(255,255,255,0.92); 
-            padding: 8px 12px; border-radius: 10px; 
-            font-size: 12px; font-weight: bold; color: #333;
-            z-index: 5; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #ddd;
+        /* ── МАРКЕРИ ІСТОРІЇ ── */
+        .history-badge {
+            background: #ede9fe; color: var(--history);
+            padding: 2px 6px; border-radius: 6px;
+            font-size: 11px; display: flex; align-items: center;
+            gap: 4px; font-weight: bold;
+        }
+        .pin-history { color: var(--history); font-size: 24px; opacity: 0.85; }
+
+        /* ── ВЕРХНЯ ПАНЕЛЬ ── */
+        #top-bar {
+            position: absolute; top: 12px; left: 12px; right: 12px;
+            display: flex; align-items: center; gap: 8px;
+            z-index: 5;
         }
 
+        #role-badge {
+            background: rgba(255,255,255,0.95);
+            padding: 8px 12px; border-radius: 10px;
+            font-size: 12px; font-weight: bold; color: #333;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #ddd;
+            flex: 1;
+        }
+
+        /* Кнопка аналітики — тільки для admin */
+        #btn-history {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 12px; font-weight: bold;
+            color: var(--history);
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            gap: 5px;
+            align-items: center;
+        }
+        #btn-history.visible { display: flex; }
+        #btn-history.history-active {
+            background: var(--history);
+            color: white;
+            border-color: var(--history);
+        }
+
+        /* ── ПАНЕЛЬ ВИБОРУ ДАТИ (РЕЖИМ АНАЛІТИКИ) ── */
+        #history-bar {
+            position: absolute; top: 60px; left: 12px; right: 12px;
+            display: none;
+            background: rgba(255,255,255,0.97);
+            border-radius: 12px;
+            padding: 10px 14px;
+            box-shadow: 0 4px 16px rgba(139,92,246,0.15);
+            border: 1px solid #ede9fe;
+            z-index: 5;
+            align-items: center;
+            gap: 8px;
+        }
+        #history-bar.visible { display: flex; }
+
+        #history-bar label {
+            font-size: 12px; font-weight: bold; color: var(--history);
+            white-space: nowrap;
+        }
+        #history-date {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            outline: none;
+            background: #faf8ff;
+        }
+        #btn-load-history {
+            background: var(--history);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #btn-load-history:active { background: #7c3aed; }
+
+        #history-stats {
+            position: absolute; top: 116px; left: 12px; right: 12px;
+            display: none;
+            background: rgba(255,255,255,0.97);
+            border-radius: 10px;
+            padding: 8px 14px;
+            box-shadow: 0 4px 12px rgba(139,92,246,0.1);
+            border: 1px solid #ede9fe;
+            z-index: 5;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #history-stats.visible { display: flex; }
+        .stat-chip {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: bold; color: #555;
+        }
+        .stat-chip i { color: var(--history); font-size: 13px; }
+
         /* ── BOTTOM SHEET ── */
-        .bottom-sheet { 
-            position: absolute; bottom: -120%; left: 0; right: 0; 
-            background: white; border-radius: 20px 20px 0 0; padding: 20px; 
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15); 
-            transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-            z-index: 10; display: flex; flex-direction: column; gap: 12px; 
+        .bottom-sheet {
+            position: absolute; bottom: -120%; left: 0; right: 0;
+            background: white; border-radius: 20px 20px 0 0; padding: 20px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transition: bottom 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 10; display: flex; flex-direction: column; gap: 12px;
         }
         .bottom-sheet.active { bottom: 0; }
         .sheet-handle { width: 40px; height: 5px; background: #cbd5e1; border-radius: 5px; margin: 0 auto 10px; }
         .sheet-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .sheet-title  { margin: 0; font-size: 18px; color: #222; font-weight: bold; }
 
-        .sheet-info-row { 
-            display: flex; align-items: center; gap: 10px; 
-            font-size: 15px; color: #555; 
-            background: #f8fafc; padding: 10px; 
+        .sheet-info-row {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 15px; color: #555;
+            background: #f8fafc; padding: 10px;
             border-radius: 10px; border: 1px solid #eee;
         }
         .sheet-info-row i { color: var(--primary); width: 20px; text-align: center; font-size: 16px; }
+        .sheet-info-row.history-row i { color: var(--history); }
 
-        .btn-take { 
-            background: var(--primary); color: white; border: none; 
-            padding: 14px; border-radius: 12px; 
-            font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; 
-            display: flex; justify-content: center; align-items: center; gap: 8px; 
+        .btn-take {
+            background: var(--primary); color: white; border: none;
+            padding: 14px; border-radius: 12px;
+            font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
             width: 100%; box-sizing: border-box;
         }
         .btn-take:active { background: #e86343; }
 
-        .btn-cancel { 
-            background: transparent; color: #888; border: none; 
-            padding: 10px; font-size: 14px; cursor: pointer; 
+        .btn-cancel {
+            background: transparent; color: #888; border: none;
+            padding: 10px; font-size: 14px; cursor: pointer;
             width: 100%; font-weight: bold;
         }
 
-        .select-courier { 
-            width: 100%; padding: 14px; border-radius: 12px; 
-            border: 1px solid #ddd; font-size: 15px; font-weight: bold; 
-            background: #f8fafc; color: #333; outline: none; 
+        .select-courier {
+            width: 100%; padding: 14px; border-radius: 12px;
+            border: 1px solid #ddd; font-size: 15px; font-weight: bold;
+            background: #f8fafc; color: #333; outline: none;
             margin-top: 5px; box-sizing: border-box;
+        }
+
+        /* Бейдж "Виконано" в шапці панелі */
+        .badge-done {
+            background: #dcfce7; color: #16a34a;
+            padding: 3px 10px; border-radius: 20px;
+            font-size: 12px; font-weight: bold;
+            display: flex; align-items: center; gap: 4px;
         }
     </style>
 </head>
@@ -149,34 +253,73 @@
     <div id="error-text" style="color:red;font-size:13px;margin-top:10px;font-weight:bold;white-space:pre-wrap;"></div>
 </div>
 
-<div id="role-badge">Шукаю доступ...</div>
+<!-- Верхня панель: бейдж ролі + кнопка аналітики -->
+<div id="top-bar">
+    <div id="role-badge">Шукаю доступ...</div>
+    <button id="btn-history"><i class="fa-solid fa-chart-line"></i> Аналітика</button>
+</div>
+
+<!-- Панель вибору дати (з'являється в режимі аналітики) -->
+<div id="history-bar">
+    <label><i class="fa-solid fa-calendar-days"></i> Дата:</label>
+    <input type="date" id="history-date" />
+    <button id="btn-load-history"><i class="fa-solid fa-magnifying-glass"></i> Показати</button>
+</div>
+
+<!-- Міні-статистика по дню -->
+<div id="history-stats">
+    <div class="stat-chip"><i class="fa-solid fa-box-archive"></i><span id="stat-count">0 замовлень</span></div>
+    <div class="stat-chip"><i class="fa-solid fa-coins"></i><span id="stat-revenue">0 zł</span></div>
+    <div class="stat-chip"><i class="fa-solid fa-clock-rotate-left"></i><span id="stat-avg">~0 хв</span></div>
+</div>
+
 <div id="map"></div>
 
+<!-- Bottom sheet — спільний для активних і закритих замовлень -->
 <div id="bottom-sheet" class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
         <h3 id="panel-address" class="sheet-title">Адреса</h3>
-        <div id="panel-time" class="time-badge">🕒 0 хв</div>
+        <div id="panel-badge" class="time-badge">🕒 0 хв</div>
     </div>
 
-    <div class="sheet-info-row" id="panel-courier-row" style="display:none;">
-        <i class="fa-solid fa-motorcycle"></i><span id="panel-courier">Кур'єр: -</span>
-    </div>
-    <div class="sheet-info-row">
-        <i id="panel-pay-icon" class="fa-solid fa-wallet"></i><strong id="panel-pay">Оплата</strong>
+    <!-- Рядки для активних замовлень -->
+    <div id="active-rows">
+        <div class="sheet-info-row" id="panel-courier-row" style="display:none;">
+            <i class="fa-solid fa-motorcycle"></i><span id="panel-courier">Кур'єр: -</span>
+        </div>
+        <div class="sheet-info-row">
+            <i id="panel-pay-icon" class="fa-solid fa-wallet"></i><strong id="panel-pay">Оплата</strong>
+        </div>
+
+        <div id="admin-actions" style="display:none;">
+            <select id="courier-select" class="select-courier"></select>
+            <button id="btn-assign" class="btn-take" style="background:var(--info);">
+                <i class="fa-solid fa-paper-plane"></i> Призначити
+            </button>
+        </div>
+
+        <div id="courier-actions" style="display:none;">
+            <button id="btn-route" class="btn-take">
+                <i class="fa-solid fa-map-location-dot"></i> Побудувати маршрут
+            </button>
+        </div>
     </div>
 
-    <div id="admin-actions" style="display:none;">
-        <select id="courier-select" class="select-courier"></select>
-        <button id="btn-assign" class="btn-take" style="background:var(--info);">
-            <i class="fa-solid fa-paper-plane"></i> Призначити
-        </button>
-    </div>
-
-    <div id="courier-actions" style="display:none;">
-        <button id="btn-route" class="btn-take">
-            <i class="fa-solid fa-map-location-dot"></i> Побудувати маршрут
-        </button>
+    <!-- Рядки для закритих замовлень (аналітика) -->
+    <div id="history-rows" style="display:none;">
+        <div class="sheet-info-row history-row">
+            <i class="fa-solid fa-motorcycle"></i><span id="hist-courier">Кур'єр: -</span>
+        </div>
+        <div class="sheet-info-row history-row">
+            <i id="hist-pay-icon" class="fa-solid fa-wallet"></i><strong id="hist-pay">Оплата</strong>
+        </div>
+        <div class="sheet-info-row history-row">
+            <i class="fa-solid fa-stopwatch"></i><span id="hist-time">Час доставки: -</span>
+        </div>
+        <div class="sheet-info-row history-row" id="hist-comment-row" style="display:none;">
+            <i class="fa-solid fa-comment"></i><span id="hist-comment">-</span>
+        </div>
     </div>
 
     <button id="btn-cancel" class="btn-cancel">Сховати</button>
@@ -220,11 +363,12 @@
     }
 
     /* ── СТАН ── */
-    var map, markers = [], selectedOrder = null;
+    var map, markers = [], historyMarkers = [], selectedOrder = null;
     var tg, supabase, userRole = 'courier', userId, bizData;
     var availableCouriers = [];
     var timerInterval = null;
     var activeOrdersData = [];
+    var isHistoryMode = false;
 
     var urlParams = new URLSearchParams(window.location.search);
     var bizId     = urlParams.get('biz_id');
@@ -256,6 +400,11 @@
                 global: { headers: { Authorization: 'Bearer ' + authToken } }
             });
 
+            /* Встановлюємо дату за замовчуванням — вчора */
+            var yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            document.getElementById('history-date').value = yesterday.toISOString().split('T')[0];
+
             document.getElementById('btn-cancel').onclick = closePanel;
 
             document.getElementById('btn-route').onclick = function() {
@@ -283,6 +432,14 @@
                 }
             };
 
+            /* Кнопка аналітики */
+            document.getElementById('btn-history').onclick = toggleHistoryMode;
+            document.getElementById('btn-load-history').onclick = function() {
+                var date = document.getElementById('history-date').value;
+                if (!date) return tg.showAlert('Оберіть дату!');
+                loadHistoryOrders(date);
+            };
+
             setTimeout(initMapAndData, 100);
 
         } catch (err) {
@@ -291,7 +448,36 @@
         }
     });
 
-    function closePanel() { document.getElementById('bottom-sheet').classList.remove('active'); }
+    function closePanel() {
+        document.getElementById('bottom-sheet').classList.remove('active');
+        selectedOrder = null;
+    }
+
+    /* ── ПЕРЕКЛЮЧЕННЯ РЕЖИМІВ ── */
+    function toggleHistoryMode() {
+        isHistoryMode = !isHistoryMode;
+        var btn      = document.getElementById('btn-history');
+        var bar      = document.getElementById('history-bar');
+        var statsEl  = document.getElementById('history-stats');
+
+        if (isHistoryMode) {
+            btn.classList.add('history-active');
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Закрити';
+            bar.classList.add('visible');
+            /* Приховуємо активні маркери, показуємо тільки точки закритих */
+            markers.forEach(function(m) { m.getElement().style.display = 'none'; });
+            closePanel();
+        } else {
+            btn.classList.remove('history-active');
+            btn.innerHTML = '<i class="fa-solid fa-chart-line"></i> Аналітика';
+            bar.classList.remove('visible');
+            statsEl.classList.remove('visible');
+            /* Повертаємо активні маркери */
+            markers.forEach(function(m) { m.getElement().style.display = ''; });
+            clearHistoryMarkers();
+            closePanel();
+        }
+    }
 
     /* ── ІНІЦІАЛІЗАЦІЯ ── */
     async function initMapAndData() {
@@ -302,7 +488,7 @@
 
             if (bizData && String(bizData.owner_id) === String(userId)) {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = '👑 <b>Режим Адміна</b>';
+                document.getElementById('role-badge').innerHTML = '👑 <b>Режим Власника</b>';
             } else {
                 var staffRes = await supabase.from('staff').select('*').eq('user_id', userId).eq('business_id', bizId).single();
                 var staff = staffRes.data;
@@ -315,6 +501,11 @@
                 } else {
                     document.getElementById('role-badge').innerHTML = '❓ Гість';
                 }
+            }
+
+            /* Кнопка аналітики — тільки для адміна/власника */
+            if (userRole === 'admin') {
+                document.getElementById('btn-history').classList.add('visible');
             }
 
             if (userRole === 'admin') {
@@ -355,8 +546,10 @@
         } catch (e) { showError('Помилка ініціалізації'); logError(e.message || String(e)); }
     }
 
-    /* ── ЗАМОВЛЕННЯ ── */
+    /* ── АКТИВНІ ЗАМОВЛЕННЯ ── */
     async function loadOrders() {
+        /* Не перезавантажуємо активні маркери поки в режимі аналітики */
+        if (isHistoryMode) return;
         try {
             var res = await supabase.from('orders').select('*').eq('business_id', bizId).eq('status', 'pending');
             if (res.error) throw res.error;
@@ -365,26 +558,21 @@
         } catch (e) { console.error('Завантаження замовлень:', e); }
     }
 
-    /* ── ТАЙМЕР (захист від таймзон + Safari, з демо-версії) ── */
+    /* ── ТАЙМЕР (захист від таймзон + Safari) ── */
     function calculateTimeDiff(createdAtStr, estTimeMins) {
         var cleanStr  = createdAtStr.split('.')[0].split('+')[0].replace(' ', 'T');
         var now       = new Date();
-
-        // UTC-варіант (Supabase зазвичай в UTC)
         var diffUTC   = Math.floor((now - new Date(cleanStr + 'Z')) / 60000);
-        // Локальний варіант (Safari може інтерпретувати інакше)
         var diffLocal = Math.floor((now - new Date(cleanStr.replace(/-/g, '/').replace('T', ' '))) / 60000);
-
         var elapsed;
         if      (diffUTC >= 0 && diffLocal >= 0) elapsed = Math.min(diffUTC, diffLocal);
         else if (diffUTC   >= 0)                 elapsed = diffUTC;
         else if (diffLocal >= 0)                 elapsed = diffLocal;
         else                                     elapsed = 0;
-
-        return (estTimeMins || 30) - elapsed; // додатнє = залишилось хв, від'ємне = прострочено
+        return (estTimeMins || 30) - elapsed;
     }
 
-    /* ── МАРКЕРИ ── */
+    /* ── МАРКЕРИ АКТИВНИХ ── */
     function drawMarkers() {
         markers.forEach(function(m) { m.remove(); });
         markers = [];
@@ -423,37 +611,7 @@
             el.onclick = function(e) {
                 e.stopPropagation();
                 if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                selectedOrder = order;
-
-                document.getElementById('panel-address').innerText = shortAddr;
-                var pTime = document.getElementById('panel-time');
-                pTime.className = badgeClass; pTime.innerText = timeText;
-
-                var payStr = 'Онлайн', payIcon = 'fa-globe';
-                if (order.pay_type === 'cash')     { payStr = 'Готівка: '  + order.amount; payIcon = 'fa-money-bill-wave'; }
-                if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount; payIcon = 'fa-credit-card'; }
-                document.getElementById('panel-pay').innerText = payStr;
-                document.getElementById('panel-pay-icon').className = 'fa-solid ' + payIcon;
-
-                if (userRole === 'admin') {
-                    document.getElementById('courier-actions').style.display = 'none';
-                    if (isUnassigned) {
-                        document.getElementById('admin-actions').style.display = 'block';
-                        document.getElementById('panel-courier-row').style.display = 'none';
-                        document.getElementById('courier-select').value = '';
-                    } else {
-                        document.getElementById('admin-actions').style.display = 'none';
-                        document.getElementById('panel-courier-row').style.display = 'flex';
-                        var c = availableCouriers.find(function(x) { return String(x.user_id) === String(order.courier_id); });
-                        document.getElementById('panel-courier').innerHTML = "Кур'єр: <b>" + (c ? c.name : 'Призначено') + '</b>';
-                    }
-                } else {
-                    document.getElementById('admin-actions').style.display = 'none';
-                    document.getElementById('panel-courier-row').style.display = 'none';
-                    document.getElementById('courier-actions').style.display = 'block';
-                }
-
-                document.getElementById('bottom-sheet').classList.add('active');
+                openActivePanel(order, shortAddr, badgeClass, timeText, isUnassigned);
                 map.flyTo({ center: [order.lon, order.lat], zoom: 15, speed: 1.2 });
             };
 
@@ -461,7 +619,46 @@
         });
     }
 
-    /* ── ОНОВЛЕННЯ ТАЙМЕРІВ БЕЗ ПЕРЕМАЛЮВАННЯ МАРКЕРІВ ── */
+    /* ── ПАНЕЛЬ АКТИВНОГО ЗАМОВЛЕННЯ ── */
+    function openActivePanel(order, shortAddr, badgeClass, timeText, isUnassigned) {
+        selectedOrder = order;
+
+        document.getElementById('panel-address').innerText = shortAddr;
+        var pBadge = document.getElementById('panel-badge');
+        pBadge.className = badgeClass; pBadge.innerText = timeText;
+
+        var payStr = 'Онлайн', payIcon = 'fa-globe';
+        if (order.pay_type === 'cash')     { payStr = 'Готівка: '  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
+        if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount + ' zł'; payIcon = 'fa-credit-card'; }
+        document.getElementById('panel-pay').innerText = payStr;
+        document.getElementById('panel-pay-icon').className = 'fa-solid ' + payIcon;
+
+        /* Показуємо активні рядки, ховаємо рядки аналітики */
+        document.getElementById('active-rows').style.display = '';
+        document.getElementById('history-rows').style.display = 'none';
+
+        if (userRole === 'admin') {
+            document.getElementById('courier-actions').style.display = 'none';
+            if (isUnassigned) {
+                document.getElementById('admin-actions').style.display = 'block';
+                document.getElementById('panel-courier-row').style.display = 'none';
+                document.getElementById('courier-select').value = '';
+            } else {
+                document.getElementById('admin-actions').style.display = 'none';
+                document.getElementById('panel-courier-row').style.display = 'flex';
+                var c = availableCouriers.find(function(x) { return String(x.user_id) === String(order.courier_id); });
+                document.getElementById('panel-courier').innerHTML = "Кур'єр: <b>" + (c ? c.name : 'Призначено') + '</b>';
+            }
+        } else {
+            document.getElementById('admin-actions').style.display = 'none';
+            document.getElementById('panel-courier-row').style.display = 'none';
+            document.getElementById('courier-actions').style.display = 'block';
+        }
+
+        document.getElementById('bottom-sheet').classList.add('active');
+    }
+
+    /* ── ОНОВЛЕННЯ ТАЙМЕРІВ ── */
     function updateAllTimers() {
         document.querySelectorAll('.time-badge[data-created]').forEach(function(badge) {
             var created = badge.getAttribute('data-created');
@@ -471,6 +668,175 @@
             badge.className = diff < 0 ? 'time-badge late' : 'time-badge';
             badge.innerText = diff < 0 ? (diff + ' 🔥') : ('🕒 ' + diff + ' хв');
         });
+    }
+
+    /* ═══════════════════════════════════════════════
+       ── АНАЛІТИКА / ІСТОРІЯ МАРШРУТІВ ──
+    ═══════════════════════════════════════════════ */
+
+    function clearHistoryMarkers() {
+        historyMarkers.forEach(function(m) { m.remove(); });
+        historyMarkers = [];
+    }
+
+    async function loadHistoryOrders(dateStr) {
+        var btn = document.getElementById('btn-load-history');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        try {
+            /* Беремо увесь день: від 00:00:00 до 23:59:59 по вибраній даті */
+            var dayStart = dateStr + 'T00:00:00';
+            var dayEnd   = dateStr + 'T23:59:59';
+
+            var res = await supabase
+                .from('orders')
+                .select('*')
+                .eq('business_id', bizId)
+                .eq('status', 'completed')
+                .gte('completed_at', dayStart)
+                .lte('completed_at', dayEnd);
+
+            if (res.error) throw res.error;
+
+            clearHistoryMarkers();
+
+            var orders = res.data || [];
+
+            if (orders.length === 0) {
+                tg.showAlert('За цю дату немає закритих замовлень.');
+                document.getElementById('history-stats').classList.remove('visible');
+                return;
+            }
+
+            /* Статистика */
+            var totalRevenue = 0;
+            var totalMins    = 0;
+            var countMins    = 0;
+
+            orders.forEach(function(order) {
+                totalRevenue += parseFloat(order.amount) || 0;
+                if (order.created_at && order.completed_at) {
+                    var start = new Date(order.created_at.replace(' ', 'T'));
+                    var end   = new Date(order.completed_at.replace(' ', 'T'));
+                    var mins  = Math.round((end - start) / 60000);
+                    if (mins > 0 && mins < 300) { totalMins += mins; countMins++; }
+                }
+            });
+
+            var avgMins = countMins > 0 ? Math.round(totalMins / countMins) : 0;
+            document.getElementById('stat-count').innerText   = orders.length + ' замовлень';
+            document.getElementById('stat-revenue').innerText = totalRevenue.toFixed(0) + ' zł';
+            document.getElementById('stat-avg').innerText     = '~' + avgMins + ' хв';
+            document.getElementById('history-stats').classList.add('visible');
+
+            /* Малюємо маркери */
+            drawHistoryMarkers(orders);
+
+            /* Автозум на всі точки */
+            if (orders.length > 0) {
+                var bounds = new mapboxgl.LngLatBounds();
+                orders.forEach(function(o) {
+                    if (o.lat && o.lon) bounds.extend([parseFloat(o.lon), parseFloat(o.lat)]);
+                });
+                if (!bounds.isEmpty()) {
+                    map.fitBounds(bounds, { padding: 60, maxZoom: 15, speed: 1.2 });
+                }
+            }
+
+        } catch (e) {
+            tg.showAlert('Помилка завантаження: ' + e.message);
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Показати';
+        }
+    }
+
+    function drawHistoryMarkers(orders) {
+        orders.forEach(function(order) {
+            if (!order.lat || !order.lon) return;
+
+            var shortAddr = order.address.split(',')[0];
+
+            /* Знаходимо ім'я кур'єра */
+            var courierName = '—';
+            if (order.courier_id) {
+                var c = availableCouriers.find(function(x) {
+                    return String(x.user_id) === String(order.courier_id) ||
+                           String(x.tg_id)   === String(order.courier_id);
+                });
+                if (c) courierName = c.name;
+            }
+
+            var el = document.createElement('div');
+            el.className = 'custom-marker';
+            el.innerHTML =
+                '<div class="marker-label">' +
+                    '<span>' + shortAddr + '</span>' +
+                    '<span class="history-badge"><i class="fa-solid fa-check"></i> ' + courierName + '</span>' +
+                '</div>' +
+                '<div class="pin-icon pin-history"><i class="fa-solid fa-location-dot"></i></div>';
+
+            el.onclick = function(e) {
+                e.stopPropagation();
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                openHistoryPanel(order, shortAddr, courierName);
+                map.flyTo({ center: [parseFloat(order.lon), parseFloat(order.lat)], zoom: 15, speed: 1.2 });
+            };
+
+            historyMarkers.push(
+                new mapboxgl.Marker(el)
+                    .setLngLat([parseFloat(order.lon), parseFloat(order.lat)])
+                    .addTo(map)
+            );
+        });
+    }
+
+    /* ── ПАНЕЛЬ ЗАКРИТОГО ЗАМОВЛЕННЯ ── */
+    function openHistoryPanel(order, shortAddr, courierName) {
+        selectedOrder = order;
+
+        document.getElementById('panel-address').innerText = shortAddr;
+
+        /* Бейдж "Виконано" замість таймера */
+        var pBadge = document.getElementById('panel-badge');
+        pBadge.className = 'badge-done';
+        pBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Виконано';
+
+        /* Кур'єр */
+        document.getElementById('hist-courier').innerHTML = "Кур'єр: <b>" + courierName + '</b>';
+
+        /* Оплата */
+        var payStr = 'Онлайн (сплачено)', payIcon = 'fa-globe';
+        if (order.pay_type === 'cash')     { payStr = 'Готівка: '  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
+        if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount + ' zł'; payIcon = 'fa-credit-card'; }
+        document.getElementById('hist-pay').innerText = payStr;
+        document.getElementById('hist-pay-icon').className = 'fa-solid ' + payIcon;
+
+        /* Час доставки */
+        var timeStr = '—';
+        if (order.created_at && order.completed_at) {
+            var start = new Date(order.created_at.replace(' ', 'T'));
+            var end   = new Date(order.completed_at.replace(' ', 'T'));
+            var mins  = Math.round((end - start) / 60000);
+            timeStr = mins > 0 ? mins + ' хв' : '< 1 хв';
+        }
+        document.getElementById('hist-time').innerText = 'Час доставки: ' + timeStr;
+
+        /* Коментар (якщо є) */
+        if (order.comment) {
+            document.getElementById('hist-comment').innerText = order.comment;
+            document.getElementById('hist-comment-row').style.display = 'flex';
+        } else {
+            document.getElementById('hist-comment-row').style.display = 'none';
+        }
+
+        /* Показуємо рядки аналітики, ховаємо активні */
+        document.getElementById('active-rows').style.display = 'none';
+        document.getElementById('history-rows').style.display = '';
+
+        document.getElementById('bottom-sheet').classList.add('active');
     }
 </script>
 </body>
