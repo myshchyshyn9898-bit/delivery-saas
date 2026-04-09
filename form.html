@@ -295,18 +295,14 @@
 
         // Маппінг значень оплати з POS → внутрішні значення форми
         const PAY_ALIASES = {
-            // готівка
             'cash': 'cash', 'готівка': 'cash', 'наличные': 'cash', 'gotówka': 'cash',
             'наличка': 'cash', 'cash_on_delivery': 'cash', 'cod': 'cash',
-            // термінал
             'terminal': 'terminal', 'термінал': 'terminal', 'терминал': 'terminal',
-            'card': 'terminal', 'карта': 'terminal', 'карточка': 'terminal',
-            'card_on_delivery': 'terminal', 'pos': 'terminal', 'безготівка': 'terminal',
-            // онлайн
+            'card': 'terminal', 'карта': 'terminal', 'card_on_delivery': 'terminal',
+            'pos': 'terminal', 'безготівка': 'terminal',
             'online': 'online', 'онлайн': 'online', 'prepaid': 'online',
-            'liqpay': 'online', 'monobank': 'online', 'fondy': 'online',
-            'wayforpay': 'online', 'stripe': 'online', 'internet': 'online',
-            'paid_online': 'online', 'electronic': 'online',
+            'liqpay': 'online', 'monobank': 'online', 'paid_online': 'online',
+            'electronic': 'online', 'internet': 'online',
         };
 
         function prefillFromPOS() {
@@ -315,9 +311,8 @@
                 if (addrInput) {
                     const addrValue = urlParams.get('address');
                     addrInput.value = addrValue;
-
-                    // Автоматично геокодуємо адресу з POS щоб selectedLat/selectedLon були заповнені
-                    // і форма могла відправитись без ручного вибору з підказок
+                    // ✅ НЕ викликаємо dispatchEvent('input') — це відкривало autocomplete і блокувало форму
+                    // Замість цього — тихо геокодуємо у фоні через Nominatim
                     setTimeout(async () => {
                         try {
                             const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addrValue)}&format=json&limit=1`;
@@ -331,7 +326,7 @@
                         } catch (e) {
                             console.warn('[POS prefill] Geocoding error:', e);
                         }
-                    }, 600);
+                    }, 400);
                 }
             }
             if (urlParams.has('phone')) {
@@ -350,7 +345,7 @@
                 const commentInput = document.getElementById('order-comment');
                 if (commentInput) commentInput.value = urlParams.get('comment');
             }
-            // ✅ ФІКС: підставляємо тип оплати з POS (підтримуємо різні назви)
+            // ✅ Підставляємо тип оплати з POS
             if (urlParams.has('payment')) {
                 const rawPay = urlParams.get('payment').trim().toLowerCase();
                 const normalizedPay = PAY_ALIASES[rawPay] || 'cash';
@@ -568,7 +563,7 @@
             }
         }
 
-        window.submitOrder = async function() {
+        window.submitOrder = function() {
             const street = document.getElementById('address-street').value.trim();
             const apt = document.getElementById('address-apt').value.trim();
             const code = document.getElementById('address-code').value.trim();
@@ -579,21 +574,6 @@
             const clientPhone = document.getElementById('client-phone').value.trim();
             
             const estimatedTime = document.querySelector('input[name="est_time"]:checked').value;
-
-            // ✅ ФІКС: якщо адреса прийшла з POS але координати ще не підтягнулись — геокодуємо зараз
-            if ((!selectedLat || !selectedLon) && street) {
-                try {
-                    const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(street)}&format=json&limit=1`;
-                    const res = await fetch(osmUrl);
-                    const results = await res.json();
-                    if (results && results.length > 0) {
-                        selectedLat = parseFloat(results[0].lat);
-                        selectedLon = parseFloat(results[0].lon);
-                    }
-                } catch (e) {
-                    console.warn('[submit] Geocoding fallback error:', e);
-                }
-            }
 
             if (!selectedLat || !selectedLon) {
                 const msg = t('err_addr');
@@ -608,7 +588,6 @@
             }
 
             const amountVal = parseFloat(amount);
-            // ✅ courierId "unassigned" = на карту (дозволено), "" = не вибрано (помилка)
             if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || courierId === "" || courierId === null || courierId === undefined) {
                 const msg = t('err_req');
                 if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
@@ -635,11 +614,20 @@
             if (tg && tg.MainButton) {
                 tg.MainButton.showProgress();
             } else {
-                document.getElementById('btn-submit').innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> ${t('btn_loading')}`;
+                document.getElementById('btn-submit').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> ' + t('btn_loading');
             }
             
-            if (tg && tg.sendData) tg.sendData(JSON.stringify(orderData));
-            else console.log("Тестовий режим:", orderData);
+            // ✅ sendData закриває WebApp; tg.close() як страховка через 300мс
+            if (tg && tg.sendData) {
+                tg.sendData(JSON.stringify(orderData));
+                setTimeout(function() { if (tg.close) tg.close(); }, 300);
+            } else {
+                console.log("Тестовий режим:", orderData);
+                setTimeout(function() {
+                    var btn = document.getElementById('btn-submit');
+                    if (btn) btn.innerHTML = t('btn_submit');
+                }, 1500);
+            }
         };
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -758,7 +746,9 @@
                 tg.MainButton.color = "#ff6b4a"; 
                 tg.MainButton.textColor = "#ffffff";
                 tg.MainButton.show();
-                tg.MainButton.onClick(function() { window.submitOrder(); });
+                // ✅ offClick перед onClick — щоб не накопичувались дублікати при перевідкритті форми
+                tg.MainButton.offClick(window.submitOrder);
+                tg.MainButton.onClick(window.submitOrder);
             }
 
             initForm();
