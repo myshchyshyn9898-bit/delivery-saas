@@ -693,7 +693,8 @@
                 if (tg && tg.showAlert) tg.showAlert("Помилка мережі: " + err.message); else alert("Помилка: " + err.message);
                 _unlockSubmit();
             });
-
+        };  
+        
         document.addEventListener('DOMContentLoaded', async () => {
             await initSupabase();
             const addrInput = document.getElementById('address-street');
