@@ -674,18 +674,25 @@
                 document.getElementById('btn-submit').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> ' + t('btn_loading');
             }
             
-            // ✅ sendData закриває WebApp; tg.close() як страховка через 300мс
-            if (tg && tg.sendData) {
-                tg.sendData(JSON.stringify(orderData));
-                setTimeout(function() { if (tg.close) tg.close(); }, 300);
-            } else {
-                console.log("Тестовий режим:", orderData);
-                setTimeout(function() {
-                    var btn = document.getElementById('btn-submit');
-                    if (btn) btn.innerHTML = t('btn_submit');
-                }, 1500);
-            }
-        };
+            // 🚀 ВІДПРАВЛЯЄМО ДАНІ НАПРЯМУ НА СЕРВЕР (API)
+            fetch(RAILWAY_DOMAIN + '/api/new_order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            }).then(async (res) => {
+                if (res.ok) {
+                    // Якщо сервер успішно зберіг замовлення - просто закриваємо форму
+                    if (tg && tg.close) { tg.close(); } 
+                    else { alert("Успішно створено!"); _unlockSubmit(); }
+                } else {
+                    const errText = await res.text();
+                    if (tg && tg.showAlert) tg.showAlert("Помилка: " + errText); else alert("Помилка: " + errText);
+                    _unlockSubmit();
+                }
+            }).catch(err => {
+                if (tg && tg.showAlert) tg.showAlert("Помилка мережі: " + err.message); else alert("Помилка: " + err.message);
+                _unlockSubmit();
+            });
 
         document.addEventListener('DOMContentLoaded', async () => {
             await initSupabase();
