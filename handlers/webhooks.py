@@ -84,7 +84,7 @@ def _parse_payment(raw: str) -> str:
     return "cash"  # fallback
 
 
-
+def _build_gopos_address(delivery) -> str:
     """Збирає адресу з dict-структури GoPOS."""
     if isinstance(delivery, dict):
         street = delivery.get("street", "")

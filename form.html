@@ -305,29 +305,78 @@
             'electronic': 'online', 'internet': 'online',
         };
 
+        let _posGeocodingDone = false;
+
+        function _lockSubmit(label) {
+            // Блокуємо HTML-кнопку
+            const btn = document.getElementById('btn-submit');
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.innerHTML = label; }
+            // Блокуємо Telegram MainButton
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.MainButton) {
+                window.Telegram.WebApp.MainButton.disable();
+                window.Telegram.WebApp.MainButton.showProgress(false);
+            }
+        }
+
+        function _unlockSubmit() {
+            const btn = document.getElementById('btn-submit');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = t('btn_submit'); }
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.MainButton) {
+                window.Telegram.WebApp.MainButton.hideProgress();
+                window.Telegram.WebApp.MainButton.enable();
+            }
+        }
+
         function prefillFromPOS() {
             if (urlParams.has('address')) {
                 const addrInput = document.getElementById('address-street');
                 if (addrInput) {
                     const addrValue = urlParams.get('address');
                     addrInput.value = addrValue;
-                    // ✅ НЕ викликаємо dispatchEvent('input') — це відкривало autocomplete і блокувало форму
-                    // Замість цього — тихо геокодуємо у фоні через Nominatim
+
+                    _lockSubmit('<i class="fa-solid fa-spinner fa-spin" style="margin-right:8px;"></i> Геокодинг...');
+
                     setTimeout(async () => {
+                        let geocoded = false;
+
+                        // Спроба 1: Nominatim
                         try {
                             const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addrValue)}&format=json&limit=1`;
-                            const res = await fetch(osmUrl);
+                            const res = await fetch(osmUrl, { headers: { 'User-Agent': 'DeliveryBot/1.0' } });
                             const results = await res.json();
                             if (results && results.length > 0) {
                                 selectedLat = parseFloat(results[0].lat);
                                 selectedLon = parseFloat(results[0].lon);
                                 updateMapPreview(selectedLat, selectedLon);
+                                geocoded = true;
                             }
-                        } catch (e) {
-                            console.warn('[POS prefill] Geocoding error:', e);
+                        } catch (e) { console.warn('[POS prefill] Nominatim error:', e); }
+
+                        // Спроба 2: Mapbox fallback
+                        if (!geocoded && typeof MAPBOX_TOKEN !== 'undefined' && MAPBOX_TOKEN) {
+                            try {
+                                const mbUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addrValue)}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
+                                const mbRes = await fetch(mbUrl);
+                                const mbData = await mbRes.json();
+                                if (mbData.features && mbData.features.length > 0) {
+                                    selectedLat = mbData.features[0].center[1];
+                                    selectedLon = mbData.features[0].center[0];
+                                    updateMapPreview(selectedLat, selectedLon);
+                                    geocoded = true;
+                                }
+                            } catch (e) { console.warn('[POS prefill] Mapbox error:', e); }
                         }
-                    }, 400);
+
+                        _posGeocodingDone = true;
+                        _unlockSubmit();
+
+                        if (!geocoded) {
+                            console.warn('[POS prefill] Не вдалося геокодувати:', addrValue);
+                        }
+                    }, 300);
                 }
+            } else {
+                _posGeocodingDone = true; // немає адреси з POS — геокодинг не потрібен
             }
             if (urlParams.has('phone')) {
                 const phoneInput = document.getElementById('client-phone');
@@ -564,6 +613,14 @@
         }
 
         window.submitOrder = function() {
+            // Якщо геокодинг ще не завершився — не відправляємо
+            if (!_posGeocodingDone) {
+                const msg = 'Зачекайте, адреса ще визначається...';
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
+                    window.Telegram.WebApp.showAlert(msg);
+                } else { alert(msg); }
+                return;
+            }
             const street = document.getElementById('address-street').value.trim();
             const apt = document.getElementById('address-apt').value.trim();
             const code = document.getElementById('address-code').value.trim();
