@@ -30,6 +30,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import database as db
 from bot_setup import bot
 from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY, POSTER_WEBHOOK_SECRET
+from keyboards import generate_token
 
 logger = logging.getLogger(__name__)
 
@@ -121,23 +122,13 @@ async def _notify_managers_new_pos_order(
     if comment:
         admin_text += f"\n💬 <b>Коментар:</b> <i>{comment}</i>"
 
-    form_url = (
-        f"{form_base_url}"
-        f"?biz_id={urllib.parse.quote(biz_id)}"
-        f"&address={urllib.parse.quote(address or '')}"
-        f"&phone={urllib.parse.quote(phone or '')}"
-        f"&amount={urllib.parse.quote(str(amount))}"
-        f"&name={urllib.parse.quote(client_name or '')}"
-        f"&comment={urllib.parse.quote(comment or '')}"
+    markup_base_url = f"{form_base_url}?biz_id={urllib.parse.quote(biz_id)}" \
+        f"&address={urllib.parse.quote(address or '')}" \
+        f"&phone={urllib.parse.quote(phone or '')}" \
+        f"&amount={urllib.parse.quote(str(amount))}" \
+        f"&name={urllib.parse.quote(client_name or '')}" \
+        f"&comment={urllib.parse.quote(comment or '')}" \
         f"&payment={urllib.parse.quote(payment)}"
-        f"&token={urllib.parse.quote(SUPABASE_KEY or '')}"
-    )
-
-    builder = InlineKeyboardBuilder()
-    builder.button(
-        text="🛵 Призначити кур'єра",
-        web_app=types.WebAppInfo(url=form_url),
-    )
 
     managers_res = await db._run(
         lambda: db.supabase.table("staff")
@@ -157,13 +148,22 @@ async def _notify_managers_new_pos_order(
         logger.warning(f"[POS:{source}] biz={biz_id} — нікому відправляти замовлення!")
         return
 
-    markup = builder.as_markup()
     for uid in recipients:
         try:
+            # Генеруємо персональний JWT для кожного менеджера —
+            # role="authenticated" + sub=uid, сумісний з RLS Supabase
+            personal_token = generate_token(biz_id=biz_id, user_id=uid)
+            form_url = f"{markup_base_url}&token={urllib.parse.quote(personal_token)}"
+
+            builder = InlineKeyboardBuilder()
+            builder.button(
+                text="🛵 Призначити кур'єра",
+                web_app=types.WebAppInfo(url=form_url),
+            )
             await bot.send_message(
                 chat_id=uid,
                 text=admin_text,
-                reply_markup=markup,
+                reply_markup=builder.as_markup(),
                 parse_mode="HTML",
             )
             logger.info(f"[POS:{source}] Замовлення надіслано менеджеру {uid} (biz={biz_id})")
