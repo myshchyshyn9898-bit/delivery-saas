@@ -403,65 +403,107 @@ function sendSupportTicket() {
     }
 }
 
+// ==========================================
 // Інтеграції POS
+// ==========================================
+
+// Маппінг: id картки → реальний шлях webhook і назва колонки в БД
+const POS_CONFIG = {
+    poster:   { webhookPath: 'poster',   dbColumn: 'poster_token',   name: 'Poster POS',
+                tokenLabel: 'API Токен',
+                tokenHint: 'Знайдіть у кабінеті Poster: Налаштування → Інтеграції → API → Скопіюйте "API токен".',
+                webhookEvent: 'Нове замовлення доставки (incoming_order → added)',
+                webhookStep: 'Налаштування → Інтеграції → Webhooks → Додати Webhook' },
+    choice:   { webhookPath: 'choiceqr', dbColumn: 'choice_token',   name: 'ChoiceQR',
+                tokenLabel: 'Bearer Токен',
+                tokenHint: 'Перейдіть у панель ChoiceQR: Settings → Integrations → Webhooks → згенеруйте Bearer Token.',
+                webhookEvent: 'order.created',
+                webhookStep: 'Settings → Integrations → Webhooks → New Webhook' },
+    gopos:    { webhookPath: 'gopos',    dbColumn: 'gopos_token',    name: 'GoPOS',
+                tokenLabel: 'Authorization Token',
+                tokenHint: 'Скопіюйте Authorization Token з адмін-панелі GoPOS: Ustawienia → Integracje → Tokeny.',
+                webhookEvent: 'order.created',
+                webhookStep: 'Ustawienia → Integracje → Webhooki → Dodaj' },
+    syrve:    { webhookPath: 'syrve',    dbColumn: 'syrve_token',    name: 'Syrve (iiko)',
+                tokenLabel: 'API Login',
+                tokenHint: 'Введіть API Login від системи Syrve (iiko) — знаходиться в налаштуваннях інтеграцій.',
+                webhookEvent: 'DeliveryOrderStatusChanged',
+                webhookStep: 'Syrve Office → Administration → API' },
+};
+
 function openIntegrationsList() { document.getElementById('integrations-list-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
 function closeIntegrationsList() { document.getElementById('integrations-list-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
 function openConnectModal(name, id, color, letter, desc) {
-    closeIntegrationsList(); 
+    closeIntegrationsList();
     setTimeout(() => {
         currentPosSystem = id;
+        const cfg = POS_CONFIG[id] || {};
         const logo = document.getElementById('connect-logo');
         logo.innerText = letter; logo.style.background = color;
         const btn = document.getElementById('btn-save-pos'); btn.style.background = color;
 
         if (connectedIntegrations[id]) {
-            const webhookUrl = `${RAILWAY_DOMAIN}/webhook/${id}?biz_id=${bizId}`;
-            document.getElementById('connect-title').innerText = `${name} Підключено!`;
+            // Вже підключено — показуємо webhook URL і покрокову інструкцію
+            const webhookUrl = `${RAILWAY_DOMAIN}/webhook/${cfg.webhookPath || id}?biz_id=${bizId}`;
+            document.getElementById('connect-title').innerText = `${cfg.name || name} ✅ Підключено`;
             document.getElementById('connect-desc').innerHTML = `
-                <div style="text-align:left; background:rgba(59,130,246,0.05); padding:12px; border-radius:12px; margin-bottom:15px; border:1px dashed #3b82f6;">
-                    <b style="color:var(--text-main); font-size:13px;">Налаштування Webhook:</b>
-                    <ol style="font-size:12px; color:var(--text-muted); margin-left:15px; margin-top:5px; line-height:1.6;">
-                        <li>Скопіюйте посилання нижче.</li>
-                        <li>У кабінеті каси перейдіть у <b>Налаштування → Webhooks</b>.</li>
-                        <li>Вставте посилання та оберіть подію <b>"Нове замовлення"</b>.</li>
+                <div style="text-align:left; background:rgba(16,185,129,0.05); padding:12px; border-radius:12px; margin-bottom:12px; border:1px dashed #10b981;">
+                    <b style="color:#10b981; font-size:12px; display:block; margin-bottom:6px;">✅ Токен збережено. Залишилось налаштувати Webhook:</b>
+                    <ol style="font-size:12px; color:var(--text-muted); margin-left:15px; line-height:1.8;">
+                        <li>Скопіюйте посилання нижче</li>
+                        <li>У кабінеті каси відкрийте:<br><b style="color:var(--text-main);">${cfg.webhookStep || 'Налаштування → Webhooks'}</b></li>
+                        <li>Вставте посилання та оберіть подію:<br><b style="color:var(--text-main);">"${cfg.webhookEvent || 'Нове замовлення'}"</b></li>
+                        <li>Збережіть — готово! 🎉</li>
                     </ol>
                 </div>
-                <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700;">${webhookUrl}</code>
+                <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700; cursor:pointer;" onclick="navigator.clipboard.writeText('${webhookUrl}'); showToast('Скопійовано!', 'Вставте посилання в налаштування каси.');">${webhookUrl}<br><span style="color:#94a3b8; font-weight:400; font-size:10px;">натисніть щоб скопіювати</span></code>
             `;
             document.getElementById('input-pos-token').style.display = 'none';
             btn.innerHTML = `<i class="fa-solid fa-copy"></i> Скопіювати посилання`;
-            btn.onclick = function() { navigator.clipboard.writeText(webhookUrl); showToast("Скопійовано!", "Вставте посилання в налаштування каси."); closeConnectModal(); };
-        } 
-        else {
-            document.getElementById('connect-title').innerText = `Підключити ${name}`;
-            document.getElementById('connect-desc').innerText = desc;
-            document.getElementById('input-pos-token').style.display = 'block';
-            document.getElementById('input-pos-token').value = '';
+            btn.onclick = function() {
+                navigator.clipboard.writeText(webhookUrl);
+                showToast("Скопійовано!", "Вставте посилання в налаштування каси.");
+                closeConnectModal();
+            };
+        } else {
+            // Ще не підключено — показуємо форму введення токена
+            const hint = cfg.tokenHint || desc;
+            document.getElementById('connect-title').innerText = `Підключити ${cfg.name || name}`;
+            document.getElementById('connect-desc').innerHTML = `
+                <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--text-muted); line-height:1.6; text-align:left;">
+                    <b style="color:var(--text-main);">Де знайти токен?</b><br>${hint}
+                </div>`;
+            const tokenInput = document.getElementById('input-pos-token');
+            tokenInput.style.display = 'block';
+            tokenInput.placeholder = `${cfg.tokenLabel || 'API Токен'}...`;
+            tokenInput.value = '';
             btn.innerHTML = `<i class="fa-solid fa-link"></i> Підключити`;
             btn.onclick = savePosIntegration;
         }
 
         document.getElementById('pos-connect-modal').classList.add('active');
         document.body.style.overflow = 'hidden';
-    }, 300); 
+    }, 300);
 }
 
 function closeConnectModal() { document.getElementById('pos-connect-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
 async function savePosIntegration() {
     const token = document.getElementById('input-pos-token').value.trim();
-    if (!token) { alert("📍 Будь ласка, введіть API токен."); return; }
+    if (!token) { alert("📍 Будь ласка, введіть токен."); return; }
 
+    const cfg = POS_CONFIG[currentPosSystem] || {};
     const btn = document.getElementById('btn-save-pos');
     const originalHtml = btn.innerHTML;
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
     btn.disabled = true;
-    
+
     try {
         if (!supabaseClient || !bizId) throw new Error("Помилка з'єднання з базою.");
-        const columnName = `${currentPosSystem}_token`;
-        
+        // Використовуємо правильну назву колонки з конфігу
+        const columnName = cfg.dbColumn || `${currentPosSystem}_token`;
+
         const { error } = await supabaseClient.from('businesses').update({ [columnName]: token }).eq('id', bizId);
         if (error) throw error;
 
@@ -469,13 +511,20 @@ async function savePosIntegration() {
         const statusEl = document.getElementById(`status-${currentPosSystem}`);
         if (statusEl) {
             statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
-            statusEl.classList.add('active'); statusEl.parentElement.parentElement.classList.add('connected');
+            statusEl.classList.add('active');
+            statusEl.parentElement.parentElement.classList.add('connected');
         }
 
-        openConnectModal(currentPosSystem.toUpperCase(), currentPosSystem, btn.style.background, currentPosSystem[0].toUpperCase(), "");
-        showToast("Успіх!", "Токен збережено. Тепер налаштуйте Webhook.");
-    } catch (err) { alert("❌ Помилка: " + err.message); btn.innerHTML = originalHtml; } 
-    finally { btn.disabled = false; }
+        // Відразу показуємо крок 2 — налаштування webhook
+        const savedColor = btn.style.background;
+        openConnectModal(cfg.name || currentPosSystem, currentPosSystem, savedColor, currentPosSystem[0].toUpperCase(), '');
+        showToast("✅ Токен збережено!", "Тепер скопіюйте Webhook URL і вставте в касу.");
+    } catch (err) {
+        alert("❌ Помилка: " + err.message);
+        btn.innerHTML = originalHtml;
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 // 🚀 ОСНОВНА ФУНКЦІЯ: ЗАВАНТАЖЕННЯ ДАНИХ З БАЗИ 🚀
@@ -522,13 +571,12 @@ async function loadDashboardData() {
             
             renderSubscriptionUI(biz);
 
-            // Перевірка POS
-            const integrationsList = ['poster', 'choice', 'syrve', 'gopos'];
-            integrationsList.forEach(sys => {
-                const tokenVal = biz[`${sys}_token`];
-                const statusEl = document.getElementById(`status-${sys}`);
+            // Перевірка статусу POS інтеграцій
+            Object.entries(POS_CONFIG).forEach(([id, cfg]) => {
+                const tokenVal = biz[cfg.dbColumn];
+                const statusEl = document.getElementById(`status-${id}`);
                 if (tokenVal && statusEl) {
-                    connectedIntegrations[sys] = true; 
+                    connectedIntegrations[id] = true;
                     statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
                     statusEl.classList.add('active');
                     statusEl.parentElement.parentElement.classList.add('connected');
