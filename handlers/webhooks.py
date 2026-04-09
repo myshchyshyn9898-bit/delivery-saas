@@ -289,10 +289,19 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
             logger.info(f"[Poster] biz={biz_id} — запит без підпису (дозволено для тестів)")
 
         # Парсинг: JSON або form-urlencoded
+        # Poster може надсилати дані в cp1251 (Windows-1251) — пробуємо utf-8, потім cp1251
+        def _decode_body(b: bytes) -> str:
+            for enc in ("utf-8", "cp1251", "latin-1"):
+                try:
+                    return b.decode(enc)
+                except UnicodeDecodeError:
+                    continue
+            return b.decode("utf-8", errors="replace")
+
         try:
-            data = json.loads(body)
-        except json.JSONDecodeError:
-            parsed = urllib.parse.parse_qs(body.decode("utf-8", errors="replace"))
+            data = json.loads(_decode_body(body))
+        except (json.JSONDecodeError, ValueError):
+            parsed = urllib.parse.parse_qs(_decode_body(body))
             data = {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}
 
         object_type = str(data.get("object", ""))
