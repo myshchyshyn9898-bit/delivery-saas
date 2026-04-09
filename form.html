@@ -97,6 +97,21 @@
             display: none; 
             z-index: 1; 
             overflow: hidden;
+            position: relative;
+        }
+        .map-loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(248,250,252,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            gap: 8px;
+            border-radius: 12px;
         }
     </style>
 </head>
@@ -139,7 +154,11 @@
                 <div class="input-group" style="margin-bottom: 0;"><input type="text" id="address-code" class="input-field" data-i18n-placeholder="ph_code" placeholder="Домофон"></div>
             </div>
 
-            <div id="map-preview" class="map-preview"></div>
+            <div id="map-preview" class="map-preview">
+                <div class="map-loading-overlay" id="map-loading-overlay">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary);"></i> Завантаження карти...
+                </div>
+            </div>
         </div>
 
         <div class="card">
@@ -328,6 +347,10 @@
         let globalCouriers = [];
         let globalBusyIds = [];
 
+        // Promise що резолвиться після завантаження даних бізнесу
+        let bizReadyResolve;
+        const bizReady = new Promise(resolve => { bizReadyResolve = resolve; });
+
         let selectedLat = null; 
         let selectedLon = null; 
 
@@ -386,10 +409,17 @@
             return R * c; 
         }
 
-        function updateMapPreview(clientLat, clientLon) {
+        async function updateMapPreview(clientLat, clientLon) {
             const mapContainer = document.getElementById('map-preview');
             mapContainer.style.display = 'block';
+
+            // ✅ Чекаємо поки завантажаться координати бізнесу
+            await bizReady;
+
             if (map) map.resize();
+
+            // Ховаємо оверлей завантаження
+            const loadingOverlay = document.getElementById('map-loading-overlay');
 
             const drawElements = () => {
                 if (mapboxMarkers.length > 0) {
@@ -443,6 +473,8 @@
                     map.setCenter([clientLon, clientLat]);
                     map.setZoom(15);
                 }
+                // ✅ Карта готова — ховаємо оверлей
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
             };
 
             if (!map) {
@@ -463,7 +495,7 @@
         }
 
         async function initForm() {
-            if (!bizId || !supabaseClient) return;
+            if (!bizId || !supabaseClient) { bizReadyResolve(); return; }
             try {
                 const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
                 if (biz) {
@@ -471,6 +503,7 @@
                     bizLon = parseFloat(biz.lng) || null;
                     bizRadius = parseFloat(biz.radius_km) || 10; 
                 }
+                bizReadyResolve(); // ✅ Бізнес-координати завантажені
 
                 const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
                 const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
@@ -489,6 +522,7 @@
                 }
             } catch(e) { 
                 console.error("Помилка ініціалізації:", e); 
+                bizReadyResolve(); // ✅ Навіть при помилці розблоковуємо
                 const select = document.getElementById('courier-select');
                 if (select) select.innerHTML = `<option value="">${t('err_data')}</option>`;
             }
@@ -519,8 +553,8 @@
             }
 
             const amountVal = parseFloat(amount);
-            // 🔴 ВІДРЕДАГОВАНО: Тепер courierId === "unassigned" пропускається системою
-            if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || !courierId) {
+            // ✅ courierId "unassigned" = на карту (дозволено), "" = не вибрано (помилка)
+            if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || courierId === "" || courierId === null || courierId === undefined) {
                 const msg = t('err_req');
                 if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
                 return;
