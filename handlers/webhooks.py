@@ -29,7 +29,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 from bot_setup import bot
-from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY
+from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY, POSTER_WEBHOOK_SECRET
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +130,7 @@ async def _notify_managers_new_pos_order(
         f"&name={urllib.parse.quote(client_name or '')}"
         f"&comment={urllib.parse.quote(comment or '')}"
         f"&payment={urllib.parse.quote(payment)}"
+        f"&token={urllib.parse.quote(SUPABASE_KEY or '')}"
     )
 
     builder = InlineKeyboardBuilder()
@@ -322,7 +323,7 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
             raw_sum = order_data.get("total_sum") or order_data.get("sum", 0)
             amount  = _parse_amount(raw_sum, divisor=100)
 
-            asyncio.ensure_future(
+            asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
                     source="poster",
@@ -405,7 +406,7 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             )
             amount = _parse_amount(raw_amount)
 
-            asyncio.ensure_future(
+            asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
                     source="choiceqr",
@@ -492,7 +493,7 @@ async def gopos_webhook_handler(request: web.Request) -> web.Response:
             raw_amount = order.get("total") or order.get("price") or order.get("amount", 0)
             amount     = _parse_amount(raw_amount)
 
-            asyncio.ensure_future(
+            asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
                     source="gopos",
@@ -539,14 +540,13 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
         body = await request.read()
 
         incoming_sig = request.headers.get("X-Syrve-Signature", "").strip()
-        if incoming_sig:
-            expected = _hmac_sha256(stored_token, body)
-            if not _safe_hmac_equal(incoming_sig, expected):
-                logger.warning(f"[Syrve] biz={biz_id} — невірний підпис")
-                return web.Response(status=403, text="Forbidden")
-        else:
-            # Деякі конфіги Syrve не надсилають підпис — допускаємо
-            logger.info(f"[Syrve] biz={biz_id} — запит без підпису (дозволено)")
+        if not incoming_sig:
+            logger.warning(f"[Syrve] biz={biz_id} — відсутній X-Syrve-Signature")
+            return web.Response(status=403, text="Forbidden")
+        expected = _hmac_sha256(stored_token, body)
+        if not _safe_hmac_equal(incoming_sig, expected):
+            logger.warning(f"[Syrve] biz={biz_id} — невірний підпис")
+            return web.Response(status=403, text="Forbidden")
 
         try:
             data = json.loads(body)
@@ -599,7 +599,7 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
             # Syrve зберігає суму в копійках
             amount = _parse_amount(raw_amount, divisor=100)
 
-            asyncio.ensure_future(
+            asyncio.create_task(
                 _notify_managers_new_pos_order(
                     biz_id=biz_id,
                     source="syrve",

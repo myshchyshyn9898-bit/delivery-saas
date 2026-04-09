@@ -178,15 +178,44 @@ class TestWhopWebhookHandler:
 
 
 class TestPosterWebhookHandler:
+    """
+    Poster token береться з БД (biz["poster_token"]), НЕ з env.
+    Всі тести мокають db.get_business_by_id для контролю токена.
+    """
+
+    def _mock_biz(self, poster_token=TEST_POSTER_SECRET):
+        return {"poster_token": poster_token, "currency": "zł", "owner_id": 999}
+
     @pytest.mark.asyncio
     async def test_returns_400_when_biz_id_missing(self):
         req = _make_poster_request({}, query_params={})
+        from handlers import webhooks
+        response = await webhooks.poster_webhook_handler(req)
+        assert response.status == 400
 
-        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+    @pytest.mark.asyncio
+    async def test_returns_404_when_business_not_found(self):
+        body = {}
+        req = _make_poster_request(body, query_params={"biz_id": "unknown-biz"})
+
+        with patch("database.get_business_by_id", new_callable=AsyncMock, return_value=None):
             from handlers import webhooks
             response = await webhooks.poster_webhook_handler(req)
 
-        assert response.status == 400
+        assert response.status == 404
+
+    @pytest.mark.asyncio
+    async def test_returns_403_when_poster_token_not_configured(self):
+        """Якщо biz не має poster_token — повертати 403."""
+        body = {}
+        req = _make_poster_request(body, query_params={"biz_id": "biz-1"})
+
+        biz_no_token = {"poster_token": "", "currency": "zł", "owner_id": 999}
+        with patch("database.get_business_by_id", new_callable=AsyncMock, return_value=biz_no_token):
+            from handlers import webhooks
+            response = await webhooks.poster_webhook_handler(req)
+
+        assert response.status == 403
 
     @pytest.mark.asyncio
     async def test_sends_message_to_managers_on_new_order(self):
@@ -207,9 +236,9 @@ class TestPosterWebhookHandler:
         mock_table = MagicMock()
         mock_table.select.return_value.eq.return_value.eq.return_value.execute.return_value = managers_result
 
-        with patch("database.supabase") as mock_supabase, \
-             patch("handlers.webhooks.bot") as mock_bot, \
-             patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+        with patch("database.get_business_by_id", new_callable=AsyncMock, return_value=self._mock_biz()), \
+             patch("database.supabase") as mock_supabase, \
+             patch("handlers.webhooks.bot") as mock_bot:
             mock_supabase.table.return_value = mock_table
             mock_bot.send_message = AsyncMock()
             from handlers import webhooks
@@ -223,27 +252,14 @@ class TestPosterWebhookHandler:
         body = {"object": "incoming_order", "action": "updated", "data": {}}
         req = _make_poster_request(body, query_params={"biz_id": "biz-1"})
 
-        with patch("database.supabase") as mock_supabase, \
-             patch("handlers.webhooks.bot") as mock_bot, \
-             patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+        with patch("database.get_business_by_id", new_callable=AsyncMock, return_value=self._mock_biz()), \
+             patch("handlers.webhooks.bot") as mock_bot:
             mock_bot.send_message = AsyncMock()
             from handlers import webhooks
             response = await webhooks.poster_webhook_handler(req)
 
         mock_bot.send_message.assert_not_called()
         assert response.status == 200
-
-    @pytest.mark.asyncio
-    async def test_returns_500_when_secret_not_configured(self):
-        """Якщо POSTER_WEBHOOK_SECRET не задано — повертати 500."""
-        body = {}
-        req = _make_poster_request(body)
-
-        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", ""):
-            from handlers import webhooks
-            response = await webhooks.poster_webhook_handler(req)
-
-        assert response.status == 500
 
     @pytest.mark.asyncio
     async def test_returns_403_on_invalid_signature(self):
@@ -255,7 +271,7 @@ class TestPosterWebhookHandler:
         req.headers = {"X-Poster-Signature": "invalid-signature"}
         req.query = {"biz_id": "biz-1"}
 
-        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+        with patch("database.get_business_by_id", new_callable=AsyncMock, return_value=self._mock_biz()):
             from handlers import webhooks
             response = await webhooks.poster_webhook_handler(req)
 
@@ -268,7 +284,7 @@ class TestPosterWebhookHandler:
         req.read = AsyncMock(side_effect=Exception("DB error"))
         req.headers = {"X-Poster-Signature": "any"}
 
-        with patch("handlers.webhooks.POSTER_WEBHOOK_SECRET", TEST_POSTER_SECRET):
+        with patch("database.get_business_by_id", new_callable=AsyncMock, side_effect=Exception("DB error")):
             from handlers import webhooks
             response = await webhooks.poster_webhook_handler(req)
 

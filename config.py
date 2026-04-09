@@ -27,4 +27,3 @@ except ValueError as e:
 
 # Секрети для верифікації вебхуків (опціонально, але рекомендовано)
 WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET")
-POSTER_WEBHOOK_SECRET = os.getenv("POSTER_WEBHOOK_SECRET")
