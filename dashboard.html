@@ -313,72 +313,6 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="integrations-list-modal" onclick="closeIntegrationsList()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
-            <div class="sheet-handle"></div>
-            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;">Каталог Інтеграцій</h2>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Підключіть вашу касу для автоматизації доставки.</p>
-            
-            <div class="integration-list">
-                <div class="integration-card" onclick="openConnectModal('Poster POS', 'poster', '#111418', 'P', '')">
-                    <div class="pos-logo-box" style="background: #111418;">P</div>
-                    <div class="pos-info">
-                        <div class="pos-name">Poster POS</div>
-                        <div class="pos-status" id="status-poster"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
-                    </div>
-                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
-                </div>
-
-                <div class="integration-card" onclick="openConnectModal('ChoiceQR', 'choice', '#10b981', 'C', '')">
-                    <div class="pos-logo-box" style="background: #10b981;">C</div>
-                    <div class="pos-info">
-                        <div class="pos-name">ChoiceQR</div>
-                        <div class="pos-status" id="status-choice"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
-                    </div>
-                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
-                </div>
-
-                <div class="integration-card" onclick="openConnectModal('GoPOS', 'gopos', '#3b82f6', 'G', '')">
-                    <div class="pos-logo-box" style="background: #3b82f6;">G</div>
-                    <div class="pos-info">
-                        <div class="pos-name">GoPOS</div>
-                        <div class="pos-status" id="status-gopos"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
-                    </div>
-                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
-                </div>
-
-                <div class="integration-card" onclick="openConnectModal('Syrve (iiko)', 'syrve', '#8b5cf6', 'S', '')">
-                    <div class="pos-logo-box" style="background: #8b5cf6;">S</div>
-                    <div class="pos-info">
-                        <div class="pos-name">Syrve (iiko)</div>
-                        <div class="pos-status" id="status-syrve"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
-                    </div>
-                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="pos-connect-modal" onclick="closeConnectModal()">
-        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
-            <div class="sheet-handle"></div>
-            
-            <div class="connect-header">
-                <div class="connect-logo-large" id="connect-logo">P</div>
-                <div class="connect-title" id="connect-title">Підключити Poster</div>
-                <div class="connect-desc" id="connect-desc">Введіть токен...</div>
-            </div>
-
-            <label class="form-label">API Токен (Ключ доступу)</label>
-            <input type="text" id="input-pos-token" class="form-input" placeholder="Наприклад: 74528f8h..." style="margin-bottom: 25px; font-family: monospace;">
-
-            <button class="btn-main" id="btn-save-pos" onclick="savePosIntegration()" style="background: #111418;">
-                <i class="fa-solid fa-link"></i> Підключити
-            </button>
-            <button class="btn-main" style="background: transparent; color: var(--text-muted); box-shadow: none; margin-top: 0; padding: 12px;" onclick="closeConnectModal()">Скасувати</button>
-        </div>
-    </div>
-
     <!-- ════════════════════════════════════════
      БЛОК: ВИБІР РЕЖИМУ ДОСТАВКИ
      Вставити у форму реєстрації / налаштувань
@@ -469,6 +403,72 @@
 
 </div><!-- /#delivery-mode-group -->
     
+    <div class="modal-overlay" id="integrations-list-modal" onclick="closeIntegrationsList()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 5px;">Каталог Інтеграцій</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px; font-weight: 600;">Підключіть вашу касу для автоматизації доставки.</p>
+            
+            <div class="integration-list">
+                <div class="integration-card" onclick="openConnectModal('Poster POS', 'poster', '#111418', 'P', '')">
+                    <div class="pos-logo-box" style="background: #111418;">P</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Poster POS</div>
+                        <div class="pos-status" id="status-poster"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('ChoiceQR', 'choice', '#10b981', 'C', '')">
+                    <div class="pos-logo-box" style="background: #10b981;">C</div>
+                    <div class="pos-info">
+                        <div class="pos-name">ChoiceQR</div>
+                        <div class="pos-status" id="status-choice"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('GoPOS', 'gopos', '#3b82f6', 'G', '')">
+                    <div class="pos-logo-box" style="background: #3b82f6;">G</div>
+                    <div class="pos-info">
+                        <div class="pos-name">GoPOS</div>
+                        <div class="pos-status" id="status-gopos"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+
+                <div class="integration-card" onclick="openConnectModal('Syrve (iiko)', 'syrve', '#8b5cf6', 'S', '')">
+                    <div class="pos-logo-box" style="background: #8b5cf6;">S</div>
+                    <div class="pos-info">
+                        <div class="pos-name">Syrve (iiko)</div>
+                        <div class="pos-status" id="status-syrve"><i class="fa-solid fa-circle-xmark" style="color: #ef4444;"></i> Не підключено</div>
+                    </div>
+                    <i class="fa-solid fa-arrow-right" style="color: #cbd5e1;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="pos-connect-modal" onclick="closeConnectModal()">
+        <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
+            <div class="sheet-handle"></div>
+            
+            <div class="connect-header">
+                <div class="connect-logo-large" id="connect-logo">P</div>
+                <div class="connect-title" id="connect-title">Підключити Poster</div>
+                <div class="connect-desc" id="connect-desc">Введіть токен...</div>
+            </div>
+
+            <label class="form-label">API Токен (Ключ доступу)</label>
+            <input type="text" id="input-pos-token" class="form-input" placeholder="Наприклад: 74528f8h..." style="margin-bottom: 25px; font-family: monospace;">
+
+            <button class="btn-main" id="btn-save-pos" onclick="savePosIntegration()" style="background: #111418;">
+                <i class="fa-solid fa-link"></i> Підключити
+            </button>
+            <button class="btn-main" style="background: transparent; color: var(--text-muted); box-shadow: none; margin-top: 0; padding: 12px;" onclick="closeConnectModal()">Скасувати</button>
+        </div>
+    </div>
+
     <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
 </body>
