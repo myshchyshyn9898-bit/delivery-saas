@@ -151,15 +151,19 @@ async function saveBizSettings(btn) {
     const newCurr = document.getElementById('input-biz-currency').value;
     const newRadius = document.getElementById('input-biz-radius').value.trim();
     const newAddress = document.getElementById('input-biz-address').value.trim();
+    const newDeliveryMode = window.DeliveryMode ? window.DeliveryMode.get() : 'dispatcher';
+    const newGroupId = (document.getElementById('courier_group_id')?.value || '').trim();
     
     const oldHtml = btn.innerHTML;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`; btn.disabled = true;
     
     try {
-        let updatePayload = { name: newName, currency: newCurr };
+        let updatePayload = { name: newName, currency: newCurr, delivery_mode: newDeliveryMode };
         if (newRadius !== "") updatePayload.radius_km = parseFloat(newRadius);
         if (newAddress !== "") updatePayload.street = newAddress; 
         if (bizLat !== null && bizLon !== null) { updatePayload.lat = bizLat; updatePayload.lng = bizLon; }
+        if (newDeliveryMode === 'uber' && newGroupId) updatePayload.courier_group_id = newGroupId;
+        else updatePayload.courier_group_id = null;
 
         const { error } = await supabaseClient.from('businesses').update(updatePayload).eq('id', bizId);
         if (error) throw error;
