@@ -806,6 +806,78 @@ bizAddrInput.addEventListener('input', function() {
     }, 600); 
 });
 
+// ════════════════════════════════════════
+// ЛОГІКА ПЕРЕМИКАЧА РЕЖИМУ ДОСТАВКИ
+// Підключи після DOM-ready або в кінці body
+// ════════════════════════════════════════
+
+(function initDeliveryModeSelector() {
+  const cards = document.querySelectorAll('.mode-card');
+  const uberField = document.getElementById('uber-group-field');
+  const groupInput = document.getElementById('courier_group_id');
+
+  if (!cards.length || !uberField) return;
+
+  function updateModeUI() {
+    let selectedValue = null;
+
+    cards.forEach(card => {
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio.checked) {
+        card.classList.add('is-selected');
+        selectedValue = radio.value;
+      } else {
+        card.classList.remove('is-selected');
+      }
+    });
+
+    // Показуємо/ховаємо поле group_id
+    if (selectedValue === 'uber') {
+      uberField.classList.add('is-visible');
+      if (groupInput) groupInput.required = true;
+    } else {
+      uberField.classList.remove('is-visible');
+      if (groupInput) {
+        groupInput.required = false;
+        groupInput.value = '';
+      }
+    }
+  }
+
+  // Слухаємо зміни на картках
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const radio = card.querySelector('input[type="radio"]');
+      radio.checked = true;
+      updateModeUI();
+    });
+  });
+
+  // Ініціалізація при завантаженні
+  // (якщо dashboard підвантажує збережені дані — можна передати поточний режим)
+  updateModeUI();
+
+  // Публічний метод: дозволяє встановити режим програмно (з бекенду/API)
+  // Використання: window.DeliveryMode.set('uber');
+  window.DeliveryMode = {
+    set: function(mode) {
+      cards.forEach(card => {
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio.value === mode) radio.checked = true;
+      });
+      updateModeUI();
+    },
+    get: function() {
+      let val = 'dispatcher';
+      cards.forEach(card => {
+        const radio = card.querySelector('input[type="radio"]');
+        if (radio.checked) val = radio.value;
+      });
+      return val;
+    }
+  };
+})();
+
 document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && !bizAddrList.contains(e.target)) bizAddrList.style.display = 'none'; });
 
 // 🏁 ЗАПУСК ДОДАТКУ
