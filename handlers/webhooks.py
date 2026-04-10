@@ -101,7 +101,7 @@ def _build_gopos_address(delivery) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Єдиний хелпер: відправити повідомлення менеджерам/власнику
+# Єдиний хелпер: відправити повідомлення менеджерам/власнику (ОНОВЛЕНО ДЛЯ UBER)
 # ---------------------------------------------------------------------------
 
 async def _notify_managers_new_pos_order(
@@ -115,8 +115,9 @@ async def _notify_managers_new_pos_order(
     payment: str = "cash",
 ):
     """
-    Надсилає менеджерам (або власнику) картку нового POS-замовлення
-    з кнопкою WebApp для призначення кур'єра.
+    Надсилає картку нового POS-замовлення.
+    dispatcher-mode: менеджерам з кнопкою WebApp (стара логіка).
+    uber-mode: одразу створює замовлення і кидає в групу кур'єрів.
     """
     source_labels = {
         "poster":   "🔶 POSTER",
@@ -126,73 +127,133 @@ async def _notify_managers_new_pos_order(
     }
     source_label = source_labels.get(source, f"📦 {source.upper()}")
 
-    # Отримуємо бізнес для валюти та BASE_URL форми
     biz = await db.get_business_by_id(biz_id)
-    currency = (biz or {}).get("currency", "zł")
-
-    base_url = os.environ.get(
-        "BASE_URL",
-        "https://myshchyshyn9898-bit.github.io/delivery-saas",
-    ).rstrip("/")
-    form_base_url = f"{base_url}/form.html"
-
-    admin_text = (
-        f"🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source_label}!</b>\n\n"
-        f"👤 <b>Клієнт:</b> {client_name or '—'}\n"
-        f"📞 <b>Телефон:</b> {phone or '—'}\n"
-        f"📍 <b>Адреса:</b> {address or '—'}\n"
-        f"💰 <b>Сума:</b> {amount} {currency}\n"
-    )
-    if comment:
-        admin_text += f"\n💬 <b>Коментар:</b> <i>{comment}</i>"
-
-    markup_base_url = f"{form_base_url}?biz_id={urllib.parse.quote(biz_id)}" \
-        f"&address={urllib.parse.quote(address or '')}" \
-        f"&phone={urllib.parse.quote(phone or '')}" \
-        f"&amount={urllib.parse.quote(str(amount))}" \
-        f"&name={urllib.parse.quote(client_name or '')}" \
-        f"&comment={urllib.parse.quote(comment or '')}" \
-        f"&payment={urllib.parse.quote(payment)}"
-
-    managers_res = await db._run(
-        lambda: db.supabase.table("staff")
-            .select("user_id")
-            .eq("business_id", biz_id)
-            .eq("role", "manager")
-            .execute()
-    )
-
-    recipients = []
-    if managers_res.data:
-        recipients = [int(m["user_id"]) for m in managers_res.data]
-    elif biz and biz.get("owner_id"):
-        recipients = [int(biz["owner_id"])]
-
-    if not recipients:
-        logger.warning(f"[POS:{source}] biz={biz_id} — нікому відправляти замовлення!")
+    if not biz:
         return
 
-    for uid in recipients:
-        try:
-            # Генеруємо персональний JWT для кожного менеджера —
-            # role="authenticated" + sub=uid, сумісний з RLS Supabase
-            personal_token = generate_token(biz_id=biz_id, user_id=uid)
-            form_url = f"{markup_base_url}&token={urllib.parse.quote(personal_token)}"
+    delivery_mode = biz.get("delivery_mode", "dispatcher")
+    currency = biz.get("currency", "zł")
+    pay_icon = "💵" if payment == "cash" else ("💳" if payment == "terminal" else "🌐")
 
-            builder = InlineKeyboardBuilder()
-            builder.button(
-                text="🛵 Призначити кур'єра",
-                web_app=types.WebAppInfo(url=form_url),
-            )
+    # ── DISPATCHER MODE (стара незмінна логіка) ───────────────────
+    if delivery_mode == 'dispatcher':
+        base_url = os.environ.get(
+            "BASE_URL",
+            "https://myshchyshyn9898-bit.github.io/delivery-saas",
+        ).rstrip("/")
+        form_base_url = f"{base_url}/form.html"
+
+        admin_text = (
+            f"🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source_label}!</b>\n\n"
+            f"👤 <b>Клієнт:</b> {client_name or '—'}\n"
+            f"📞 <b>Телефон:</b> {phone or '—'}\n"
+            f"📍 <b>Адреса:</b> {address or '—'}\n"
+            f"💰 <b>Сума:</b> {amount} {currency}\n"
+        )
+        if comment:
+            admin_text += f"\n💬 <b>Коментар:</b> <i>{comment}</i>"
+
+        markup_base_url = f"{form_base_url}?biz_id={urllib.parse.quote(biz_id)}" \
+            f"&address={urllib.parse.quote(address or '')}" \
+            f"&phone={urllib.parse.quote(phone or '')}" \
+            f"&amount={urllib.parse.quote(str(amount))}" \
+            f"&name={urllib.parse.quote(client_name or '')}" \
+            f"&comment={urllib.parse.quote(comment or '')}" \
+            f"&payment={urllib.parse.quote(payment)}"
+
+        managers_res = await db._run(
+            lambda: db.supabase.table("staff")
+                .select("user_id")
+                .eq("business_id", biz_id)
+                .eq("role", "manager")
+                .execute()
+        )
+
+        recipients = []
+        if managers_res.data:
+            recipients = [int(m["user_id"]) for m in managers_res.data]
+        elif biz and biz.get("owner_id"):
+            recipients = [int(biz["owner_id"])]
+
+        if not recipients:
+            logger.warning(f"[POS:{source}] biz={biz_id} — нікому відправляти замовлення!")
+            return
+
+        for uid in recipients:
+            try:
+                personal_token = generate_token(biz_id=biz_id, user_id=uid)
+                form_url = f"{markup_base_url}&token={urllib.parse.quote(personal_token)}"
+
+                builder = InlineKeyboardBuilder()
+                builder.button(
+                    text="🛵 Призначити кур'єра",
+                    web_app=types.WebAppInfo(url=form_url),
+                )
+                await bot.send_message(
+                    chat_id=uid,
+                    text=admin_text,
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML",
+                )
+                logger.info(f"[POS:{source}] Замовлення надіслано менеджеру {uid} (biz={biz_id})")
+            except Exception as exc:
+                logger.error(f"[POS:{source}] Помилка відправки менеджеру {uid}: {exc}")
+
+    # ── UBER MODE (нова логіка вільної каси) ───────────────────────
+    elif delivery_mode == 'uber':
+        group_id = biz.get('courier_group_id')
+        if not group_id:
+            logger.warning(f"[uber] biz_id={biz_id}: courier_group_id не задано, пропускаємо")
+            return
+
+        # 1. Автоматично створюємо замовлення в базі (не призначено)
+        new_order_payload = {
+            "biz_id": biz_id,
+            "client_name": client_name,
+            "client_phone": phone,
+            "address": address,
+            "amount": amount,
+            "payment": payment,
+            "comment": comment,
+            "courier_id": None
+        }
+        
+        new_order = await db.create_new_order(new_order_payload)
+        if not new_order:
+            logger.error(f"[uber] Не вдалося створити замовлення в БД для biz_id={biz_id}")
+            return
+            
+        order_id = new_order['id']
+        short_id = str(order_id)[:6].upper()
+
+        text = (
+            f"{source_label}\n"
+            f"🛵 <b>Нове замовлення #{short_id}</b>\n\n"
+            f"📍 <b>Адреса:</b> {address or '—'}\n"
+            f"👤 <b>Клієнт:</b> {client_name or '—'}\n"
+            f"📞 <b>Телефон:</b> {phone or '—'}\n"
+            f"{pay_icon} <b>Сума:</b> {amount} {currency} ({payment})\n"
+        )
+        if comment:
+            text += f"\n💬 <b>Коментар:</b> <i>{comment}</i>\n"
+        text += f"\n⏳ <i>Хто перший — той і везе!</i>"
+
+        builder = InlineKeyboardBuilder()
+        builder.button(
+            text="✅ Взяти замовлення",
+            callback_data=f"take_order_{order_id}"
+        )
+
+        try:
             await bot.send_message(
-                chat_id=uid,
-                text=admin_text,
+                chat_id=group_id,
+                text=text,
                 reply_markup=builder.as_markup(),
-                parse_mode="HTML",
+                parse_mode="HTML"
             )
-            logger.info(f"[POS:{source}] Замовлення надіслано менеджеру {uid} (biz={biz_id})")
-        except Exception as exc:
-            logger.error(f"[POS:{source}] Помилка відправки менеджеру {uid}: {exc}")
+            logger.info(f"[uber] Замовлення {order_id} кинуто в групу {group_id}")
+        except Exception as e:
+            logger.error(f"[uber] Помилка надсилання в групу {group_id}: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -265,12 +326,6 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
 # ---------------------------------------------------------------------------
 # WEBHOOK: POSTER POS
 # Документація: https://dev.joinposter.com/docs/api/pos-system/webhooks
-#
-# Верифікація (підтримуємо два варіанти):
-#   1. ?verify=<md5>  — MD5(account_secret + ';' + timestamp) або MD5(account_secret)
-#   2. X-Poster-Signature — HMAC-SHA256(poster_token, body)
-#   Якщо жодного немає — пропускаємо (Poster іноді не підписує тестові запити).
-# URL: POST /webhook/poster?biz_id=<uuid>
 # ---------------------------------------------------------------------------
 
 async def poster_webhook_handler(request: web.Request) -> web.Response:
@@ -295,14 +350,11 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
         header_sig   = request.headers.get("X-Poster-Signature", "").strip()
 
         if header_sig:
-            # Варіант 2: HMAC-SHA256
             expected = _hmac_sha256(poster_token, body)
             if not _safe_hmac_equal(header_sig, expected):
                 logger.warning(f"[Poster] biz={biz_id} — невірний X-Poster-Signature")
                 return web.Response(status=403, text="Forbidden")
-
         elif verify_param:
-            # Варіант 1: MD5(secret + ';' + timestamp) або MD5(secret)
             timestamp = request.query.get("timestamp", "")
             raw = f"{poster_token};{timestamp}" if timestamp else poster_token
             expected_md5 = hashlib.md5(raw.encode("utf-8")).hexdigest()
@@ -312,8 +364,6 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
         else:
             logger.info(f"[Poster] biz={biz_id} — запит без підпису (дозволено для тестів)")
 
-        # Парсинг: JSON або form-urlencoded
-        # Poster може надсилати дані в cp1251 (Windows-1251) — пробуємо utf-8, потім cp1251
         def _decode_body(b: bytes) -> str:
             for enc in ("utf-8", "cp1251", "latin-1"):
                 try:
@@ -352,11 +402,9 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
             address = order_data.get("address") or order_data.get("delivery_address", "")
             comment = order_data.get("comment", "")
 
-            # Poster зберігає суму в копійках (×100)
             raw_sum = order_data.get("total_sum") or order_data.get("sum", 0)
             amount  = _parse_amount(raw_sum, divisor=100)
 
-            # Тип оплати: Poster передає pay_type або payment_method
             raw_pay = (
                 order_data.get("pay_type")
                 or order_data.get("payment_method")
@@ -387,11 +435,6 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
 
 # ---------------------------------------------------------------------------
 # WEBHOOK: CHOICEQR
-# Документація: https://docs.choiceqr.com/integrations/webhooks
-#
-# Верифікація: Authorization: Bearer <choice_token>
-# Якщо заголовку немає або токен невірний — відхиляємо.
-# URL: POST /webhook/choiceqr?biz_id=<uuid>
 # ---------------------------------------------------------------------------
 
 async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
@@ -410,7 +453,6 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             logger.warning(f"[ChoiceQR] biz={biz_id} — choice_token не налаштовано")
             return web.Response(status=403, text="Integration not configured")
 
-        # Верифікація: Bearer токен обов'язковий
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             logger.warning(f"[ChoiceQR] biz={biz_id} — відсутній Authorization Bearer")
@@ -449,7 +491,6 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             )
             amount = _parse_amount(raw_amount)
 
-            # Тип оплати: ChoiceQR передає payment_method або payment_type
             raw_pay = (
                 order.get("payment_method")
                 or order.get("payment_type")
@@ -481,11 +522,6 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
 
 # ---------------------------------------------------------------------------
 # WEBHOOK: GOPOS
-# Документація: https://gopos.pl/api-docs
-#
-# Верифікація: X-GoPOS-Signature = HMAC-SHA256(gopos_token, body)
-# Заголовок обов'язковий — без нього відхиляємо.
-# URL: POST /webhook/gopos?biz_id=<uuid>
 # ---------------------------------------------------------------------------
 
 async def gopos_webhook_handler(request: web.Request) -> web.Response:
@@ -577,11 +613,6 @@ async def gopos_webhook_handler(request: web.Request) -> web.Response:
 
 # ---------------------------------------------------------------------------
 # WEBHOOK: SYRVE (iiko)
-# Документація: https://ru.iiko.help/articles/#!api-documentations
-#
-# Верифікація: X-Syrve-Signature = HMAC-SHA256(syrve_token, body)
-# Подія: DeliveryOrderStatusChanged з orderStatus == "New"
-# URL: POST /webhook/syrve?biz_id=<uuid>
 # ---------------------------------------------------------------------------
 
 async def syrve_webhook_handler(request: web.Request) -> web.Response:
@@ -620,7 +651,6 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
         event = data.get("eventType") or data.get("event", "")
         logger.info(f"[Syrve] biz={biz_id} event={event}")
 
-        # Нове замовлення доставки
         is_new = (
             event == "DeliveryOrderStatusChanged"
             and data.get("orderStatus") == "New"
@@ -635,7 +665,6 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
             client_name = f"{first} {last}".strip() or "Клієнт"
             phone = customer.get("cellPhone") or customer.get("phone", "")
 
-            # Складання адреси з вкладеної структури Syrve
             addr_obj = order.get("address") or order.get("deliveryAddress") or {}
             if isinstance(addr_obj, dict):
                 street_obj = addr_obj.get("street") or {}
@@ -659,10 +688,8 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
 
             comment    = order.get("comment", "")
             raw_amount = order.get("sum") or order.get("total") or order.get("amount", 0)
-            # Syrve зберігає суму в копійках
             amount = _parse_amount(raw_amount, divisor=100)
 
-            # Syrve: тип оплати в payments[0].paymentType.name або paymentType
             raw_pay = ""
             payments_list = order.get("payments") or []
             if payments_list and isinstance(payments_list, list):
@@ -856,3 +883,4 @@ async def start_webhook_server() -> None:
     logger.info("   POST /webhook/choiceqr   (ChoiceQR)")
     logger.info("   POST /webhook/gopos      (GoPOS)")
     logger.info("   POST /webhook/syrve      (Syrve / iiko)")
+
