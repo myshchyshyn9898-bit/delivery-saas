@@ -760,52 +760,6 @@ async function loadDashboardData() {
     } catch (error) { console.error("DB Error:", error); }
 }
 
-// Автозаповнення адреси
-const bizAddrInput = document.getElementById('input-biz-address');
-const bizAddrList = document.getElementById('biz-autocomplete-list');
-let bizTimeout = null;
-
-bizAddrInput.addEventListener('input', function() {
-    clearTimeout(bizTimeout); bizLat = null; bizLon = null;
-    document.getElementById('settings-map-container').style.display = 'none';
-    const query = this.value.trim();
-    if (query.length < 3) { bizAddrList.style.display = 'none'; return; }
-
-    bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('search_load')}</div>`;
-    bizAddrList.style.display = 'block';
-
-    bizTimeout = setTimeout(async () => {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
-        try {
-            const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
-            const data = await res.json();
-            if (data && data.length > 0) {
-                bizAddrList.innerHTML = ''; 
-                data.forEach(item => {
-                    const addr = item.address;
-                    const mainText = item.name || (addr && addr.road ? `${addr.road} ${addr.house_number || ''}`.trim() : item.display_name.split(',')[0]);
-                    const city = addr ? (addr.city || addr.town || addr.village || '') : '';
-                    const subText = city ? `${city}` : '';
-                    const div = document.createElement('div'); div.className = 'autocomplete-item';
-                    div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
-                    
-                    let currentLat = parseFloat(item.lat);
-                    let currentLon = parseFloat(item.lon);
-
-                    div.onclick = function() {
-                        bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
-                        bizLat = currentLat; 
-                        bizLon = currentLon;
-                        bizAddrList.style.display = 'none'; 
-                        updateSettingsMap(); 
-                    };
-                    bizAddrList.appendChild(div);
-                });
-            } else { bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">${t('search_empty')}</div>`; }
-        } catch(e) { bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">${t('search_err')}</div>`; }
-    }, 600); 
-});
-
 // ════════════════════════════════════════
 // ЛОГІКА ПЕРЕМИКАЧА РЕЖИМУ ДОСТАВКИ
 // Підключи після DOM-ready або в кінці body
@@ -877,6 +831,56 @@ bizAddrInput.addEventListener('input', function() {
     }
   };
 })();
+// Після отримання даних бізнесу з API
+window.DeliveryMode.set(bizData.delivery_mode || 'dispatcher');
+if (bizData.courier_group_id) {
+  document.getElementById('courier_group_id').value = bizData.courier_group_id;
+}
+// Автозаповнення адреси
+const bizAddrInput = document.getElementById('input-biz-address');
+const bizAddrList = document.getElementById('biz-autocomplete-list');
+let bizTimeout = null;
+
+bizAddrInput.addEventListener('input', function() {
+    clearTimeout(bizTimeout); bizLat = null; bizLon = null;
+    document.getElementById('settings-map-container').style.display = 'none';
+    const query = this.value.trim();
+    if (query.length < 3) { bizAddrList.style.display = 'none'; return; }
+
+    bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: var(--primary); text-align: center; font-weight: 600;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('search_load')}</div>`;
+    bizAddrList.style.display = 'block';
+
+    bizTimeout = setTimeout(async () => {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5`;
+        try {
+            const res = await fetch(url, { headers: { 'Accept-Language': currentLang } });
+            const data = await res.json();
+            if (data && data.length > 0) {
+                bizAddrList.innerHTML = ''; 
+                data.forEach(item => {
+                    const addr = item.address;
+                    const mainText = item.name || (addr && addr.road ? `${addr.road} ${addr.house_number || ''}`.trim() : item.display_name.split(',')[0]);
+                    const city = addr ? (addr.city || addr.town || addr.village || '') : '';
+                    const subText = city ? `${city}` : '';
+                    const div = document.createElement('div'); div.className = 'autocomplete-item';
+                    div.innerHTML = `<div class="addr-main">${mainText}</div><div class="addr-sub">${subText}</div>`;
+                    
+                    let currentLat = parseFloat(item.lat);
+                    let currentLon = parseFloat(item.lon);
+
+                    div.onclick = function() {
+                        bizAddrInput.value = `${mainText}, ${city}`.replace(/, $/, '');
+                        bizLat = currentLat; 
+                        bizLon = currentLon;
+                        bizAddrList.style.display = 'none'; 
+                        updateSettingsMap(); 
+                    };
+                    bizAddrList.appendChild(div);
+                });
+            } else { bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #8a8d91; text-align: center;">${t('search_empty')}</div>`; }
+        } catch(e) { bizAddrList.innerHTML = `<div class="autocomplete-item" style="color: #ff3b30; text-align: center;">${t('search_err')}</div>`; }
+    }, 600); 
+});
 
 document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && !bizAddrList.contains(e.target)) bizAddrList.style.display = 'none'; });
 
