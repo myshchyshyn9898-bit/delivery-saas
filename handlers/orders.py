@@ -423,24 +423,30 @@ async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
         res = await db._run(lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute())
         await db.update_order_status(order_id, "completed")
 
-        # Оновлюємо текст особистого повідомлення кур'єра
-        status_active = _(lang, 'status_active_full')
-        status_done = _(lang, 'status_done_full')
-        msg_text = callback.message.caption or callback.message.text or ""
+        # Оновлюємо текст особистого повідомлення кур'єра (dispatcher)
+        import html as html_module
+        try:
+            msg_html = callback.message.html_text
+        except AttributeError:
+            msg_html = callback.message.caption or callback.message.text or ""
 
-        async def _edit(parse_mode, new_text):
-            if callback.message.caption is not None:
-                await callback.message.edit_caption(caption=new_text, reply_markup=None, parse_mode=parse_mode)
-            else:
-                await callback.message.edit_text(text=new_text, reply_markup=None, parse_mode=parse_mode)
-
-        if status_active in msg_text:
-            await _edit("Markdown", msg_text.replace(status_active, status_done))
+        # Замінюємо статус на "Доставлено"
+        done_marker = "✅ <b>Доставлено</b>"
+        if "🟢 <b>Активний</b>" in msg_html:
+            new_msg = msg_html.replace("🟢 <b>Активний</b>", done_marker)
         else:
-            try:
-                await _edit("Markdown", msg_text)
-            except Exception:
-                pass
+            new_msg = msg_html + f"\n\n{done_marker}"
+
+        if len(new_msg) > 1024:
+            new_msg = new_msg[:1020] + "..."
+
+        try:
+            if callback.message.caption is not None:
+                await callback.message.edit_caption(caption=new_msg, reply_markup=None, parse_mode="HTML")
+            else:
+                await callback.message.edit_text(text=new_msg, reply_markup=None, parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"[finish_order] edit failed: {e}")
 
         await callback.answer(_(lang, 'finish_success'))
 
@@ -522,74 +528,62 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
             await callback.answer("⚡️ Хтось був швидшим! Замовлення вже забрали.", show_alert=True)
             return
 
+        import html as html_module
         short_id = str(order_id)[:6].upper()
-        biz_id = order.get('business_id')
-        biz = await db.get_business_by_id(biz_id) if biz_id else None
-        currency = biz.get('currency', 'zł') if biz else 'zł'
 
-        pay_type = order.get('pay_type', 'cash')
-        pay_icon = "💵" if pay_type == "cash" else ("💳" if pay_type == "terminal" else "🌐")
-        pay_type_str = _(lang, 'pay_' + pay_type)
-
-        address = order.get('address', '—')
+        # Адреса для маршруту
+        address = order.get('address', '')
         address_query = urllib.parse.quote(address)
-        route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
-        amount = order.get('amount', '0')
-        phone = order.get('client_phone', '—')
-        client_name = order.get('client_name', 'Клієнт')
-        comment = order.get('comment', '')
+        route_url = f"https://www.google.com/maps/search/?api=1&query={address_query}"
 
-        # Визначаємо details_text (зберігається в БД або порожньо)
-        details_text = ""
+        # 3. Бронебійне оновлення повідомлення — беремо html_text з Telegram
+        safe_name = html_module.escape(taker_name)
 
-        # 3. Оновлюємо повідомлення в групі — тепер з кнопками закриття
-        status_line = f"🟡 <b>Везтиме: {taker_name}</b>"
-        new_text = _build_uber_group_text(
-            short_id, "", address, details_text,
-            client_name, phone, pay_icon, amount, currency,
-            pay_type_str, comment, status_line
-        )
-        # Обрізаємо до 1024 символів (ліміт Telegram caption)
-        if len(new_text) > 1024:
-            new_text = new_text[:1020] + "..."
+        try:
+            original_html = callback.message.html_text
+        except AttributeError:
+            original_html = callback.message.caption or callback.message.text or ""
 
-        new_kb = _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency, state="delivering")
+        # Замінюємо статус "Активний" на "Везтиме: Ім'я"
+        import re as _re
+        # Видаляємо всі варіанти статус-рядка (новий і старий формати)
+        original_html = _re.sub(r"🟢 <b>Активний</b>[^
+]*", "", original_html)
+        original_html = original_html.replace("⏳ <i>Хто перший — той і везе!</i>", "")
+        original_html = original_html.replace("⏳ Хто перший — той і везе!", "")
+        original_html = original_html.strip()
+
+        updated_text = original_html + f"\n\n🟡 <b>Везтиме: {safe_name}</b>"
+
+        # Ліміт caption 1024 символи
+        if len(updated_text) > 1024:
+            updated_text = updated_text[:1020] + "..."
+
+        # Клавіатура: Маршрут + Завершити
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🗺 Маршрут", url=route_url)
+        builder.button(text="✅ Завершити", callback_data=f"finish_order_{order_id}")
+        builder.adjust(1)
 
         try:
             if callback.message.caption is not None:
-                # Повідомлення з фото — редагуємо caption
                 await callback.message.edit_caption(
-                    caption=new_text, reply_markup=new_kb, parse_mode="HTML"
+                    caption=updated_text,
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
                 )
             else:
-                # Текстове повідомлення
                 await callback.message.edit_text(
-                    text=new_text, reply_markup=new_kb, parse_mode="HTML"
+                    text=updated_text,
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
                 )
         except Exception as e:
             logger.error(f"[take_order] edit failed: {e}")
-            # Fallback — спробуємо без parse_mode якщо HTML-помилка
-            try:
-                plain_text = (
-                    f"🛵 Замовлення #{short_id}\n\n"
-                    f"📍 {address}\n"
-                    f"👤 {client_name}\n"
-                    f"📞 {phone}\n"
-                    f"{pay_icon} {amount} {currency}\n"
-                    f"🟡 Везтиме: {taker_name}"
-                )
-                if callback.message.caption is not None:
-                    await callback.message.edit_caption(
-                        caption=plain_text, reply_markup=new_kb
-                    )
-                else:
-                    await callback.message.edit_text(
-                        text=plain_text, reply_markup=new_kb
-                    )
-            except Exception as e2:
-                logger.error(f"[take_order] fallback edit failed: {e2}")
+            await callback.answer(f"❌ Помилка: {str(e)[:100]}", show_alert=True)
+            return
 
-        await callback.answer(f"✅ Ви взяли замовлення #{short_id}!", show_alert=False)
+        await callback.answer("✅ Ви успішно взяли замовлення!", show_alert=False)
 
     except Exception as e:
         logger.error(f"Помилка take_order {order_id} від {taker_id}: {e}")
@@ -652,13 +646,30 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
         client_name = order.get('client_name', 'Клієнт')
         comment = order.get('comment', '')
 
-        # 3. Оновлюємо повідомлення в групі — фінальний статус, без кнопок
-        status_line = f"✅ <b>Доставлено: {courier_name}</b>"
-        final_text = _build_uber_group_text(
-            short_id, "", address, "",
-            client_name, phone, pay_icon, amount, currency,
-            pay_type_str, comment, status_line
-        )
+        # 3. Бронебійне оновлення — беремо html_text з Telegram
+        import html as html_module
+        safe_courier = html_module.escape(courier_name)
+
+        try:
+            original_html = callback.message.html_text
+        except AttributeError:
+            original_html = callback.message.caption or callback.message.text or ""
+
+        # Замінюємо рядок "Везтиме" на "Доставлено"
+        if f"🟡 <b>Везтиме: {safe_courier}</b>" in original_html:
+            final_text = original_html.replace(
+                f"🟡 <b>Везтиме: {safe_courier}</b>",
+                f"✅ <b>Доставлено: {safe_courier}</b>"
+            )
+        else:
+            # Fallback — замінюємо будь-який рядок "Везтиме"
+            import re
+            final_text = re.sub(
+                r"🟡 <b>Везтиме:.*?</b>",
+                f"✅ <b>Доставлено: {safe_courier}</b>",
+                original_html
+            )
+
         if len(final_text) > 1024:
             final_text = final_text[:1020] + "..."
 
@@ -673,15 +684,6 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
                 )
         except Exception as e:
             logger.error(f"[uber_close] edit failed: {e}")
-            # Fallback без HTML
-            try:
-                plain = f"✅ Доставлено: {courier_name}\n📍 {address}\n{pay_icon} {amount} {currency}"
-                if callback.message.caption is not None:
-                    await callback.message.edit_caption(caption=plain, reply_markup=None)
-                else:
-                    await callback.message.edit_text(text=plain, reply_markup=None)
-            except Exception as e2:
-                logger.error(f"[uber_close] fallback failed: {e2}")
 
         await callback.answer("✅ Замовлення закрито!", show_alert=False)
 
