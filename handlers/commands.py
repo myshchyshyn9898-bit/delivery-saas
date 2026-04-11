@@ -72,7 +72,7 @@ async def cmd_generate_report(message: types.Message):
         return
 
     currency = biz.get('currency', 'zł')
-    report_data, total_cash, total_term = await db.get_daily_report(biz_id)
+    report_data, total_cash, total_term, total_online = await db.get_daily_report(biz_id)
 
     if not report_data:
         await message.answer(_(lang, 'zvit_empty'))
@@ -82,11 +82,21 @@ async def cmd_generate_report(message: types.Message):
     text = _(lang, 'zvit_title', time=now_time)
 
     for c_id, stats in report_data.items():
-        text += f"👤 {stats['name']}: {stats['count']} | 💵 {stats['cash']:.2f} | 🏧 {stats['term']:.2f}\n"
+        line = f"👤 {stats['name']}: {stats['count']} зам."
+        if stats['cash'] > 0:
+            line += f" | 💵 {stats['cash']:.2f}"
+        if stats['term'] > 0:
+            line += f" | 🏧 {stats['term']:.2f}"
+        if stats.get('online', 0) > 0:
+            line += f" | 🌐 {stats['online']} онл."
+        text += line + "\n"
 
     text += "➖ ➖ ➖ ➖ ➖\n"
     text += _(lang, 'zvit_cash', cash=f"{total_cash:.2f}", cur=currency)
+    text += "\n"
     text += _(lang, 'zvit_term', term=f"{total_term:.2f}", cur=currency)
+    if total_online > 0:
+        text += f"\n🌐 Онлайн: {total_online} замовлень (сплачено)"
 
     await message.answer(text)
 

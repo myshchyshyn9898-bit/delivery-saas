@@ -21,33 +21,63 @@ router = Router()
 # ХЕЛПЕР: будує текст групового повідомлення (uber-режим)
 # ===========================================================================
 
-def _build_uber_group_text(short_id, source_label, address, details_text,
-                            client_name, phone, pay_icon, amount, currency,
-                            pay_type_str, comment, status_line):
+def _build_order_text(short_id, address, details_text, client_name,
+                       phone, pay_type, amount, currency, comment,
+                       status_line, source_label=""):
     """
-    Будує уніфікований текст для групового повідомлення uber-режиму.
-    status_line — рядок статусу, наприклад:
-        "🟢 <b>Активний</b> — хто перший, той і везе!"
-        "🟡 <b>Везтиме: Іван</b>"
-        "✅ <b>Доставлено: Іван</b>"
+    Будує уніфікований текст замовлення для БУДЬ-ЯКОГО режиму.
+    Формат: як в старому боті — з роздільниками і чітким статусом.
+
+    status_line приклади:
+        "🟢 Активний"
+        "🟡 В дорозі (Везтиме: Іван)"
+        "🔴 Закрито (14:32, Іван - 💵)"
     """
+    import html as _h
+    import datetime
+
+    # Тип оплати — рядок і сума
+    if pay_type == "cash":
+        pay_line = f"💵 Готівка: {amount} {currency}"
+    elif pay_type == "terminal":
+        pay_line = f"🏧 Термінал: {amount} {currency}"
+    else:
+        pay_line = f"💳 Оплата: ОНЛАЙН (Сплачено)"
+
     prefix = f"{source_label}\n" if source_label else ""
     txt = (
         f"{prefix}"
-        f"🛵 <b>Нове замовлення #{short_id}</b>\n\n"
+        f"📦 <b>ЗАМОВЛЕННЯ #{short_id}</b>\n"
+        f"➖➖➖➖➖➖\n"
+        f"<b>Статус:</b> {status_line}\n\n"
         f"📍 <b>Адреса:</b> {address}\n"
     )
     if details_text:
         txt += f"🏢 <b>Деталі:</b> {details_text}\n"
-    txt += (
-        f"👤 <b>Клієнт:</b> {client_name or '—'}\n"
-        f"📞 <b>Телефон:</b> {phone or '—'}\n"
-        f"{pay_icon} <b>Сума:</b> {amount} {currency} ({pay_type_str})\n"
-    )
+    if client_name and client_name not in ("—", "Клієнт", ""):
+        txt += f"👤 <b>Клієнт:</b> {client_name}\n"
+    txt += f"📞 <b>Тел:</b> {phone or '—'}\n"
+    txt += f"{pay_line}\n"
+    txt += "➖➖➖➖➖➖"
     if comment:
-        txt += f"\n💬 <b>Коментар:</b> <i>{comment}</i>\n"
-    txt += f"\n{status_line}"
+        txt += f"\n🗣 <b>Коментар:</b> {comment}"
     return txt
+
+
+# Зворотна сумісність — старе ім'я
+def _build_uber_group_text(short_id, source_label, address, details_text,
+                            client_name, phone, pay_icon, amount, currency,
+                            pay_type_str, comment, status_line):
+    # Визначаємо pay_type з pay_icon
+    if pay_icon == "💵":
+        pay_type = "cash"
+    elif pay_icon == "💳" or pay_icon == "🏧":
+        pay_type = "terminal"
+    else:
+        pay_type = "online"
+    return _build_order_text(short_id, address, details_text, client_name,
+                              phone, pay_type, amount, currency, comment,
+                              status_line, source_label)
 
 
 def _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency, state="pending"):
@@ -239,25 +269,31 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
             # ── DISPATCHER MODE ──────────────────────────────────────────────
             elif original_courier_id != "unassigned":
-                courier_text = _(lang, 'order_new',
-                                 short_id=short_id,
-                                 status=_(lang, 'status_active_full'),
-                                 address=address,
-                                 details_text=details_text,
-                                 phone=phone_clean,
-                                 client_name=client_name,
-                                 pay_icon=pay_icon,
-                                 amount=amount,
-                                 cur=currency,
-                                 pay_type=pay_type_str)
-
-                if comment:
-                    courier_text += _(lang, 'comment_prefix', comment=comment)
+                import html as _hd
+                courier_text = _build_order_text(
+                    short_id=short_id,
+                    address=_hd.escape(address),
+                    details_text=_hd.escape(details_text),
+                    client_name=_hd.escape(client_name),
+                    phone=_hd.escape(phone_clean),
+                    pay_type=pay_type,
+                    amount=amount,
+                    currency=currency,
+                    comment=_hd.escape(comment),
+                    status_line="🟢 Активний"
+                )
 
                 builder = InlineKeyboardBuilder()
                 if is_pro:
                     builder.button(text=_(lang, 'btn_route'), url=route_url)
-                builder.button(text=_(lang, 'btn_finish'), callback_data=f"finish_order_{order_id}")
+                if phone_clean:
+                    builder.button(text="📞 Подзвонити", url=f"tel:{phone_clean}")
+                if pay_type == "online":
+                    builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
+                else:
+                    # Показуємо ОБИДВІ — адмін міг вибрати готівку, але клієнт платить карткою
+                    builder.button(text=f"💵 Готівка — {amount} {currency}", callback_data=f"dispatcher_close_cash_{order_id}")
+                    builder.button(text=f"🏧 Термінал — {amount} {currency}", callback_data=f"dispatcher_close_terminal_{order_id}")
                 builder.adjust(1)
 
                 if is_pro:
@@ -317,25 +353,31 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             address_query = urllib.parse.quote(address)
             route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
 
-            courier_text = _(lang, 'order_new',
-                             short_id=short_id,
-                             status=_(lang, 'status_active_full'),
-                             address=address,
-                             details_text="",
-                             phone=order_db.get('client_phone', '-'),
-                             client_name=order_db.get('client_name', 'Клієнт'),
-                             pay_icon=pay_icon,
-                             amount=order_db['amount'],
-                             cur=currency,
-                             pay_type=pay_type_str)
-
-            if order_db.get('comment'):
-                courier_text += _(lang, 'comment_prefix', comment=order_db['comment'])
+            import html as _ha
+            courier_text = _build_order_text(
+                short_id=short_id,
+                address=_ha.escape(address),
+                details_text="",
+                client_name=_ha.escape(order_db.get("client_name", "") or ""),
+                phone=_ha.escape(order_db.get("client_phone", "—") or "—"),
+                pay_type=pay_type,
+                amount=order_db["amount"],
+                currency=currency,
+                comment=_ha.escape(order_db.get("comment", "") or ""),
+                status_line="🟢 Активний"
+            )
 
             builder = InlineKeyboardBuilder()
             if is_pro:
                 builder.button(text=_(lang, 'btn_route'), url=route_url)
-            builder.button(text=_(lang, 'btn_finish'), callback_data=f"finish_order_{order_id}")
+            phone_for_call = order_db.get('client_phone', '')
+            if phone_for_call:
+                builder.button(text="📞 Подзвонити", url=f"tel:{phone_for_call}")
+            if pay_type == "online":
+                builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
+            else:
+                builder.button(text=f"💵 Готівка — {order_db['amount']} {currency}", callback_data=f"dispatcher_close_cash_{order_id}")
+                builder.button(text=f"🏧 Термінал — {order_db['amount']} {currency}", callback_data=f"dispatcher_close_terminal_{order_id}")
             builder.adjust(1)
 
             if is_pro:
@@ -423,19 +465,36 @@ async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
         res = await db._run(lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute())
         await db.update_order_status(order_id, "completed")
 
-        # Оновлюємо текст особистого повідомлення кур'єра (dispatcher)
-        import html as html_module
-        try:
-            msg_html = callback.message.html_text
-        except AttributeError:
-            msg_html = callback.message.caption or callback.message.text or ""
+        # Оновлюємо статус — будуємо з нуля в новому стилі
+        import html as _hf
+        import datetime as _dtf
 
-        # Замінюємо статус на "Доставлено"
-        done_marker = "✅ <b>Доставлено</b>"
-        if "🟢 <b>Активний</b>" in msg_html:
-            new_msg = msg_html.replace("🟢 <b>Активний</b>", done_marker)
+        if res.data:
+            ord_info   = res.data[0]
+            courier_fn = callback.from_user.full_name
+            time_str_f = _dtf.datetime.now().strftime("%H:%M")
+            pay_tp     = ord_info.get("pay_type", "cash")
+            pay_icon_f = "💵" if pay_tp == "cash" else ("🏧" if pay_tp == "terminal" else "✅")
+            biz_fn     = await db.get_business_by_id(ord_info["business_id"])
+            cur_fn     = biz_fn.get("currency", "zł") if biz_fn else "zł"
+            short_fn   = str(ord_info["id"])[:6].upper()
+
+            status_fn  = f"🔴 Закрито ({time_str_f}, {_hf.escape(courier_fn)} - {pay_icon_f})"
+
+            new_msg = _build_order_text(
+                short_id=short_fn,
+                address=_hf.escape(ord_info.get("address", "—")),
+                details_text=_hf.escape(ord_info.get("details", "") or ""),
+                client_name=_hf.escape(ord_info.get("client_name", "") or ""),
+                phone=_hf.escape(ord_info.get("client_phone", "—") or "—"),
+                pay_type=pay_tp,
+                amount=ord_info.get("amount", "0"),
+                currency=cur_fn,
+                comment=_hf.escape(ord_info.get("comment", "") or ""),
+                status_line=status_fn
+            )
         else:
-            new_msg = msg_html + f"\n\n{done_marker}"
+            new_msg = "✅ Замовлення закрито."
 
         if len(new_msg) > 1024:
             new_msg = new_msg[:1020] + "..."
@@ -489,27 +548,53 @@ async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
 
 @router.callback_query(F.data.startswith("take_order_"))
 async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
-    order_id = callback.data.replace("take_order_", "")
-    taker_id = callback.from_user.id
+    import html as _html
+    import urllib.parse as _ul
+
+    # 1. Одразу відповідаємо Telegram — кнопка перестає крутитись
+    try:
+        await callback.answer("⏳ Беремо замовлення...", show_alert=False)
+    except Exception:
+        pass
+
+    order_id  = callback.data.replace("take_order_", "")
+    taker_id  = callback.from_user.id
     taker_name = callback.from_user.full_name
-    lang = callback.from_user.language_code
 
     try:
-        # 1. Читаємо замовлення
+        # 2. Свіжі дані з БД
         res = await db._run(
             lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
         )
         if not res.data:
-            await callback.answer("❌ Замовлення не знайдено.", show_alert=True)
+            await callback.message.answer("❌ Замовлення не знайдено в базі.")
             return
 
         order = res.data[0]
 
-        if order['status'] != 'pending':
-            await callback.answer("⚡️ Хтось був швидшим! Замовлення вже забрали.", show_alert=True)
+        # 3. Перевірка що ще pending
+        if order["status"] != "pending":
+            await callback.message.answer(
+                f"⚡️ Замовлення #{str(order_id)[:6].upper()} вже забрав інший кур'єр!"
+            )
             return
 
-        # 2. Атомарно захоплюємо (race condition protection)
+        # 4. Перевіряємо чи кур'єр є в staff
+        staff_check = await db._run(
+            lambda: db.supabase.table("staff")
+                .select("user_id, business_id")
+                .eq("user_id", taker_id)
+                .eq("business_id", order["business_id"])
+                .execute()
+        )
+        if not staff_check.data:
+            await callback.message.answer(
+                "⛔️ Вас немає в персоналі цього закладу!\n\n"
+                "Попросіть адміна додати вас через посилання-запрошення."
+            )
+            return
+
+        # 5. Атомарне захоплення
         await db._run(
             lambda: db.supabase.table("orders")
                 .update({"status": "delivering", "courier_id": taker_id})
@@ -518,160 +603,259 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
                 .execute()
         )
 
+        # 6. Перевірка що саме ми захопили
         verify = await db._run(
             lambda: db.supabase.table("orders")
-                .select("courier_id, status")
+                .select("courier_id")
                 .eq("id", order_id)
                 .execute()
         )
-        if not verify.data or str(verify.data[0].get('courier_id')) != str(taker_id):
-            await callback.answer("⚡️ Хтось був швидшим! Замовлення вже забрали.", show_alert=True)
+        if not verify.data or str(verify.data[0].get("courier_id")) != str(taker_id):
+            await callback.message.answer("⚡️ Хтось був швидшим!")
             return
 
-        import html as html_module
-        short_id = str(order_id)[:6].upper()
+        # 6. Будуємо текст З НУЛЯ — стиль як в старому боті
+        import html as _h
+        import datetime as _dt
 
-        # Адреса для маршруту
-        address = order.get('address', '')
-        address_query = urllib.parse.quote(address)
-        route_url = f"https://www.google.com/maps/search/?api=1&query={address_query}"
+        short_id  = str(order_id)[:6].upper()
+        biz_id    = order["business_id"]
+        biz       = await db.get_business_by_id(biz_id)
+        currency  = biz.get("currency", "zł") if biz else "zł"
 
-        # 3. Бронебійне оновлення повідомлення — беремо html_text з Telegram
-        safe_name = html_module.escape(taker_name)
+        pay_type  = order.get("pay_type", "cash")
+        amount    = order.get("amount", "0")
+        address   = _h.escape(order.get("address", "—"))
+        details   = _h.escape(order.get("details", "") or "")
+        client    = _h.escape(order.get("client_name", "") or "")
+        phone     = _h.escape(order.get("client_phone", "—") or "—")
+        comment   = _h.escape(order.get("comment", "") or "")
+        safe_name = _h.escape(taker_name)
 
-        try:
-            original_html = callback.message.html_text
-        except AttributeError:
-            original_html = callback.message.caption or callback.message.text or ""
+        status_line = f"🟡 В дорозі (Везтиме: {safe_name})"
 
-        # Замінюємо статус "Активний" на "Везтиме: Ім'я"
-        import re as _re
-        # Видаляємо всі варіанти статус-рядка (новий і старий формати)
-        original_html = _re.sub("🟢 <b>Активний</b>[^\\n]*", "", original_html)
-        original_html = original_html.replace("⏳ <i>Хто перший — той і везе!</i>", "")
-        original_html = original_html.replace("⏳ Хто перший — той і везе!", "")
-        original_html = original_html.strip()
+        text = _build_order_text(short_id, address, details, client,
+                                  phone, pay_type, amount, currency,
+                                  comment, status_line)
 
-        updated_text = original_html + f"\n\n🟡 <b>Везтиме: {safe_name}</b>"
+        if len(text) > 1024:
+            text = text[:1020] + "..."
 
-        # Ліміт caption 1024 символи
-        if len(updated_text) > 1024:
-            updated_text = updated_text[:1020] + "..."
-
-        # Клавіатура: Маршрут + Завершити
+        # 7. Кнопки: Маршрут + Подзвонити + Готівка/Термінал (обидві) або Онлайн
         builder = InlineKeyboardBuilder()
+        route_url = f"https://www.google.com/maps/dir/?api=1&destination={_ul.quote(order.get('address', ''))}"
+        raw_phone = order.get("client_phone", "") or ""
+        amount    = order.get("amount", "0")
+
         builder.button(text="🗺 Маршрут", url=route_url)
-        builder.button(text="✅ Завершити", callback_data=f"finish_order_{order_id}")
-        builder.adjust(1)
+        if raw_phone:
+            builder.button(text="📞 Подзвонити", url=f"tel:{raw_phone}")
 
-        try:
-            if callback.message.caption is not None:
-                await callback.message.edit_caption(
-                    caption=updated_text,
-                    reply_markup=builder.as_markup(),
-                    parse_mode="HTML"
-                )
-            else:
-                await callback.message.edit_text(
-                    text=updated_text,
-                    reply_markup=builder.as_markup(),
-                    parse_mode="HTML"
-                )
-        except Exception as e:
-            logger.error(f"[take_order] edit failed: {e}")
-            await callback.answer(f"❌ Помилка: {str(e)[:100]}", show_alert=True)
-            return
+        if pay_type == "online":
+            builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"uber_close_online_{order_id}")
+        else:
+            # Завжди показуємо ОБИДВІ кнопки — готівка і термінал
+            builder.button(text=f"💵 Готівка — {amount} {currency}", callback_data=f"uber_close_cash_{order_id}")
+            builder.button(text=f"🏧 Термінал — {amount} {currency}", callback_data=f"uber_close_terminal_{order_id}")
 
-        await callback.answer("✅ Ви успішно взяли замовлення!", show_alert=False)
+        builder.adjust(2, 2, 1) if pay_type != "online" and raw_phone else builder.adjust(1)
+
+        # 8. Оновлюємо повідомлення
+        if callback.message.caption is not None:
+            await callback.message.edit_caption(
+                caption=text, reply_markup=builder.as_markup(), parse_mode="HTML"
+            )
+        else:
+            await callback.message.edit_text(
+                text=text, reply_markup=builder.as_markup(), parse_mode="HTML"
+            )
 
     except Exception as e:
-        logger.error(f"Помилка take_order {order_id} від {taker_id}: {e}")
-        await callback.answer("❌ Виникла помилка. Спробуйте ще раз.", show_alert=True)
-
+        logger.error(f"КРИТИЧНА ПОМИЛКА take_order {order_id}: {e}")
+        await callback.message.answer(f"❌ Системна помилка при взятті замовлення: {e}")
 
 # ===========================================================================
-# UBER MODE: закриття замовлення прямо в груповому повідомленні
+# DISPATCHER MODE: закриття замовлення з типом оплати
 # ===========================================================================
 
-@router.callback_query(F.data.startswith("uber_close_"))
-async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
+@router.callback_query(F.data.startswith("dispatcher_close_"))
+async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
     """
-    Формат: uber_close_{pay_type}_{order_id}
+    Формат: dispatcher_close_{pay_type}_{order_id}
     pay_type: cash | terminal | online
     """
-    parts = callback.data.replace("uber_close_", "").split("_", 1)
+    import html as _html
+
+    try:
+        await callback.answer("✅ Закриваємо...", show_alert=False)
+    except Exception:
+        pass
+
+    parts = callback.data.replace("dispatcher_close_", "").split("_", 1)
     if len(parts) != 2:
-        await callback.answer("❌ Помилка формату.", show_alert=True)
+        await callback.message.answer("❌ Помилка формату.")
         return
 
     pay_type_closed, order_id = parts[0], parts[1]
     courier_name = callback.from_user.full_name
-    lang = callback.from_user.language_code
+    lang = callback.from_user.language_code or "uk"
 
     try:
-        # 1. Читаємо замовлення
         res = await db._run(
             lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
         )
         if not res.data:
-            await callback.answer("❌ Замовлення не знайдено.", show_alert=True)
+            await callback.message.answer("❌ Замовлення не знайдено.")
             return
 
         order = res.data[0]
 
-        # Перевіряємо що закриває саме той хто взяв
-        if str(order.get('courier_id')) != str(callback.from_user.id):
-            await callback.answer("⛔️ Це замовлення веде інший кур'єр.", show_alert=True)
+        if order["status"] == "completed":
+            await callback.message.answer("✅ Замовлення вже закрите.")
             return
 
-        if order['status'] == 'completed':
-            await callback.answer("✅ Замовлення вже закрите.", show_alert=True)
-            return
-
-        # 2. Закриваємо в БД
-        await db.update_order_status(order_id, "completed")
+        # Закриваємо в БД з реальним типом оплати який натиснув кур'єр
+        await db.update_order_status(order_id, "completed", actual_pay_type=pay_type_closed)
 
         short_id = str(order_id)[:6].upper()
-        biz_id = order['business_id']
-        biz = await db.get_business_by_id(biz_id)
-        currency = biz.get('currency', 'zł') if biz else 'zł'
+        biz_id   = order["business_id"]
+        biz      = await db.get_business_by_id(biz_id)
+        currency = biz.get("currency", "zł") if biz else "zł"
 
-        pay_type = order.get('pay_type', 'cash')
-        pay_icon = "💵" if pay_type == "cash" else ("💳" if pay_type == "terminal" else "🌐")
-        pay_type_str = _(lang, 'pay_' + pay_type)
-        amount = order.get('amount', '0')
-        address = order.get('address', '—')
-        phone = order.get('client_phone', '—')
-        client_name = order.get('client_name', 'Клієнт')
-        comment = order.get('comment', '')
+        pay_type     = pay_type_closed  # Реальний тип що натиснув кур'єр
+        pay_icon     = "💵" if pay_type == "cash" else ("💳" if pay_type == "terminal" else "🌐")
+        pay_type_str = {"cash": "Готівка", "terminal": "Термінал", "online": "Онлайн"}.get(pay_type, pay_type)
 
-        # 3. Бронебійне оновлення — беремо html_text з Telegram
-        import html as html_module
-        safe_courier = html_module.escape(courier_name)
+        safe_courier = _html.escape(courier_name)
+
+        # Будуємо фінальний текст — стиль старого боту
+        import datetime as _dt2
+        time_str2    = _dt2.datetime.now().strftime("%H:%M")
+        pay_icon_d   = "💵" if pay_type == "cash" else ("🏧" if pay_type == "terminal" else "✅")
+        status_line2 = f"🔴 Закрито ({time_str2}, {safe_courier} - {pay_icon_d})"
+
+        safe_addr2    = __import__("html").escape(order.get("address", "—"))
+        safe_client2  = __import__("html").escape(order.get("client_name", "") or "")
+        safe_phone2   = __import__("html").escape(order.get("client_phone", "—") or "—")
+        safe_comment2 = __import__("html").escape(order.get("comment", "") or "")
+        details2      = __import__("html").escape(order.get("details", "") or "")
+
+        done_text = _build_order_text(short_id, safe_addr2, details2,
+                                       safe_client2, safe_phone2,
+                                       pay_type, order.get("amount", "0"),
+                                       currency, safe_comment2, status_line2)
+        if len(done_text) > 1024:
+            done_text = done_text[:1020] + "..."
 
         try:
-            original_html = callback.message.html_text
-        except AttributeError:
-            original_html = callback.message.caption or callback.message.text or ""
+            if callback.message.caption is not None:
+                await callback.message.edit_caption(caption=done_text, reply_markup=None, parse_mode="HTML")
+            else:
+                await callback.message.edit_text(text=done_text, reply_markup=None, parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"[dispatcher_close] edit failed: {e}")
 
-        # Замінюємо рядок "Везтиме" на "Доставлено"
-        if f"🟡 <b>Везтиме: {safe_courier}</b>" in original_html:
-            final_text = original_html.replace(
-                f"🟡 <b>Везтиме: {safe_courier}</b>",
-                f"✅ <b>Доставлено: {safe_courier}</b>"
-            )
-        else:
-            # Fallback — замінюємо будь-який рядок "Везтиме"
-            import re
-            final_text = re.sub(
-                r"🟡 <b>Везтиме:.*?</b>",
-                f"✅ <b>Доставлено: {safe_courier}</b>",
-                original_html
-            )
+        # Нотифікація адміну/менеджеру
+        notify_text = _(lang, "finish_notify",
+                        short_id=short_id,
+                        amount=order.get("amount", "0"),
+                        cur=currency,
+                        courier_name=courier_name)
+
+        managers_res = await db._run(
+            lambda: db.supabase.table("staff").select("user_id")
+                .eq("business_id", biz_id).eq("role", "manager").execute()
+        )
+        notify_ids = [int(m["user_id"]) for m in managers_res.data] if managers_res.data else []
+        if not notify_ids and biz and biz.get("owner_id"):
+            notify_ids = [int(biz["owner_id"])]
+
+        for uid in notify_ids:
+            try:
+                await bot.send_message(chat_id=uid, text=notify_text, parse_mode="Markdown")
+            except Exception as e:
+                logger.error(f"Помилка нотифікації {uid}: {e}")
+
+    except Exception as e:
+        logger.error(f"КРИТИЧНА ПОМИЛКА dispatcher_close {order_id}: {e}")
+        await callback.message.answer(f"❌ Помилка: {e}")
+
+
+@router.callback_query(F.data.startswith("uber_close_"))
+async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
+    """
+    Формат callback_data: uber_close_{pay_type}_{order_id}
+    pay_type: cash | terminal | online
+    """
+    import html as _html
+
+    # 1. Одразу відповідаємо Telegram
+    try:
+        await callback.answer("✅ Закриваємо замовлення...", show_alert=False)
+    except Exception:
+        pass
+
+    parts = callback.data.replace("uber_close_", "").split("_", 1)
+    if len(parts) != 2:
+        await callback.message.answer("❌ Помилка формату callback.")
+        return
+
+    pay_type_closed, order_id = parts[0], parts[1]
+    courier_name = callback.from_user.full_name
+
+    try:
+        # 2. Читаємо замовлення
+        res = await db._run(
+            lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
+        )
+        if not res.data:
+            await callback.message.answer("❌ Замовлення не знайдено.")
+            return
+
+        order = res.data[0]
+
+        # 3. Перевірка що закриває той хто взяв
+        if str(order.get("courier_id")) != str(callback.from_user.id):
+            await callback.message.answer("⛔️ Це замовлення веде інший кур'єр.")
+            return
+
+        if order["status"] == "completed":
+            await callback.message.answer("✅ Замовлення вже закрите.")
+            return
+
+        # 4. Закриваємо в БД з реальним типом оплати який натиснув кур'єр
+        await db.update_order_status(order_id, "completed", actual_pay_type=pay_type_closed)
+
+        short_id = str(order_id)[:6].upper()
+        biz_id   = order["business_id"]
+        biz      = await db.get_business_by_id(biz_id)
+        currency = biz.get("currency", "zł") if biz else "zł"
+
+        pay_type     = pay_type_closed  # Використовуємо реальний тип що натиснув кур'єр
+        pay_icon     = "💵" if pay_type == "cash" else ("💳" if pay_type == "terminal" else "🌐")
+        pay_type_str = {"cash": "Готівка", "terminal": "Термінал", "online": "Онлайн"}.get(pay_type, pay_type)
+
+        safe_courier = _html.escape(courier_name)
+        safe_address = _html.escape(order.get("address", "—"))
+        safe_client  = _html.escape(order.get("client_name", "Клієнт"))
+        safe_phone   = _html.escape(order.get("client_phone", "—") or "—")
+        safe_comment = _html.escape(order.get("comment", "") or "")
+
+        # 5. Будуємо фінальний текст — стиль старого боту
+        import datetime as _dt
+        time_str    = _dt.datetime.now().strftime("%H:%M")
+        pay_icon_cl = "💵" if pay_type == "cash" else ("🏧" if pay_type == "terminal" else "✅")
+        status_line = f"🔴 Закрито ({time_str}, {safe_courier} - {pay_icon_cl})"
+
+        final_text = _build_order_text(short_id, safe_address, "",
+                                        safe_client, safe_phone,
+                                        pay_type, order.get("amount", "0"),
+                                        currency, safe_comment, status_line)
 
         if len(final_text) > 1024:
             final_text = final_text[:1020] + "..."
 
+        # 6. Оновлюємо повідомлення — прибираємо кнопки
         try:
             if callback.message.caption is not None:
                 await callback.message.edit_caption(
@@ -684,12 +868,11 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
         except Exception as e:
             logger.error(f"[uber_close] edit failed: {e}")
 
-        await callback.answer("✅ Замовлення закрито!", show_alert=False)
-
-        # 4. Нотифікація менеджерів / власника
-        notify_text = _(lang, 'finish_notify',
+        # 7. Нотифікація менеджерів / власника
+        lang = callback.from_user.language_code or "uk"
+        notify_text = _(lang, "finish_notify",
                         short_id=short_id,
-                        amount=amount,
+                        amount=order.get("amount", "0"),
                         cur=currency,
                         courier_name=courier_name)
 
@@ -697,9 +880,9 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
             lambda: db.supabase.table("staff").select("user_id")
                 .eq("business_id", biz_id).eq("role", "manager").execute()
         )
-        notify_ids = [int(m['user_id']) for m in managers_res.data] if managers_res.data else []
-        if not notify_ids and biz and biz.get('owner_id'):
-            notify_ids = [int(biz['owner_id'])]
+        notify_ids = [int(m["user_id"]) for m in managers_res.data] if managers_res.data else []
+        if not notify_ids and biz and biz.get("owner_id"):
+            notify_ids = [int(biz["owner_id"])]
 
         for uid in notify_ids:
             try:
@@ -708,5 +891,5 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
                 logger.error(f"Помилка нотифікації {uid}: {e}")
 
     except Exception as e:
-        logger.error(f"Помилка uber_close {order_id}: {e}")
-        await callback.answer("❌ Виникла помилка.", show_alert=True)
+        logger.error(f"КРИТИЧНА ПОМИЛКА uber_close {order_id}: {e}")
+        await callback.message.answer(f"❌ Системна помилка при закритті замовлення: {e}")
