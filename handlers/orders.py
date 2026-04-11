@@ -549,19 +549,45 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
             client_name, phone, pay_icon, amount, currency,
             pay_type_str, comment, status_line
         )
+        # Обрізаємо до 1024 символів (ліміт Telegram caption)
+        if len(new_text) > 1024:
+            new_text = new_text[:1020] + "..."
+
         new_kb = _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency, state="delivering")
 
         try:
             if callback.message.caption is not None:
+                # Повідомлення з фото — редагуємо caption
                 await callback.message.edit_caption(
                     caption=new_text, reply_markup=new_kb, parse_mode="HTML"
                 )
             else:
+                # Текстове повідомлення
                 await callback.message.edit_text(
                     text=new_text, reply_markup=new_kb, parse_mode="HTML"
                 )
         except Exception as e:
-            logger.error(f"[take_order] Помилка оновлення групового повідомлення: {e}")
+            logger.error(f"[take_order] edit failed: {e}")
+            # Fallback — спробуємо без parse_mode якщо HTML-помилка
+            try:
+                plain_text = (
+                    f"🛵 Замовлення #{short_id}\n\n"
+                    f"📍 {address}\n"
+                    f"👤 {client_name}\n"
+                    f"📞 {phone}\n"
+                    f"{pay_icon} {amount} {currency}\n"
+                    f"🟡 Везтиме: {taker_name}"
+                )
+                if callback.message.caption is not None:
+                    await callback.message.edit_caption(
+                        caption=plain_text, reply_markup=new_kb
+                    )
+                else:
+                    await callback.message.edit_text(
+                        text=plain_text, reply_markup=new_kb
+                    )
+            except Exception as e2:
+                logger.error(f"[take_order] fallback edit failed: {e2}")
 
         await callback.answer(f"✅ Ви взяли замовлення #{short_id}!", show_alert=False)
 
@@ -633,6 +659,8 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
             client_name, phone, pay_icon, amount, currency,
             pay_type_str, comment, status_line
         )
+        if len(final_text) > 1024:
+            final_text = final_text[:1020] + "..."
 
         try:
             if callback.message.caption is not None:
@@ -644,7 +672,16 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
                     text=final_text, reply_markup=None, parse_mode="HTML"
                 )
         except Exception as e:
-            logger.error(f"[uber_close] Помилка оновлення повідомлення: {e}")
+            logger.error(f"[uber_close] edit failed: {e}")
+            # Fallback без HTML
+            try:
+                plain = f"✅ Доставлено: {courier_name}\n📍 {address}\n{pay_icon} {amount} {currency}"
+                if callback.message.caption is not None:
+                    await callback.message.edit_caption(caption=plain, reply_markup=None)
+                else:
+                    await callback.message.edit_text(text=plain, reply_markup=None)
+            except Exception as e2:
+                logger.error(f"[uber_close] fallback failed: {e2}")
 
         await callback.answer("✅ Замовлення закрито!", show_alert=False)
 
