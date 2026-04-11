@@ -1,0 +1,8 @@
+aiogram
+supabase
+requests==2.31.0
+apscheduler
+staticmap==0.5.6
+python-dotenv
+aiohttp==3.13.3
+PyJWT
