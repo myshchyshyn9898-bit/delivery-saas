@@ -448,7 +448,6 @@ function openConnectModal(name, id, color, letter, desc) {
         const btn = document.getElementById('btn-save-pos'); btn.style.background = color;
 
         if (connectedIntegrations[id]) {
-            // Вже підключено — показуємо webhook URL і покрокову інструкцію
             const webhookUrl = `${RAILWAY_DOMAIN}/webhook/${cfg.webhookPath || id}?biz_id=${bizId}`;
             document.getElementById('connect-title').innerText = `${cfg.name || name} ✅ Підключено`;
             document.getElementById('connect-desc').innerHTML = `
@@ -471,7 +470,6 @@ function openConnectModal(name, id, color, letter, desc) {
                 closeConnectModal();
             };
         } else {
-            // Ще не підключено — показуємо форму введення токена
             const hint = cfg.tokenHint || desc;
             document.getElementById('connect-title').innerText = `Підключити ${cfg.name || name}`;
             document.getElementById('connect-desc').innerHTML = `
@@ -505,7 +503,6 @@ async function savePosIntegration() {
 
     try {
         if (!supabaseClient || !bizId) throw new Error("Помилка з'єднання з базою.");
-        // Використовуємо правильну назву колонки з конфігу
         const columnName = cfg.dbColumn || `${currentPosSystem}_token`;
 
         const { error } = await supabaseClient.from('businesses').update({ [columnName]: token }).eq('id', bizId);
@@ -519,7 +516,6 @@ async function savePosIntegration() {
             statusEl.parentElement.parentElement.classList.add('connected');
         }
 
-        // Відразу показуємо крок 2 — налаштування webhook
         const savedColor = btn.style.background;
         openConnectModal(cfg.name || currentPosSystem, currentPosSystem, savedColor, currentPosSystem[0].toUpperCase(), '');
         showToast("✅ Токен збережено!", "Тепер скопіюйте Webhook URL і вставте в касу.");
@@ -561,7 +557,15 @@ async function loadDashboardData() {
             document.getElementById('input-biz-address').value = biz.street || '';
             bizLat = biz.lat || null; bizLon = biz.lng || null; 
 
-            // Блок якщо закінчилася підписка
+            // 👇 Встановлюємо збережений режим доставки 👇
+            if (window.DeliveryMode) {
+                window.DeliveryMode.set(biz.delivery_mode || 'dispatcher');
+            }
+            if (biz.courier_group_id && document.getElementById('courier_group_id')) {
+                document.getElementById('courier_group_id').value = biz.courier_group_id;
+            }
+            // 👆 ================================== 👆
+
             if (biz.subscription_expires_at) {
                 let expDate = new Date(biz.subscription_expires_at);
                 if (new Date() > expDate) { biz.plan = 'expired'; }
@@ -575,7 +579,6 @@ async function loadDashboardData() {
             
             renderSubscriptionUI(biz);
 
-            // Перевірка статусу POS інтеграцій
             Object.entries(POS_CONFIG).forEach(([id, cfg]) => {
                 const tokenVal = biz[cfg.dbColumn];
                 const statusEl = document.getElementById(`status-${id}`);
@@ -812,11 +815,9 @@ async function loadDashboardData() {
   });
 
   // Ініціалізація при завантаженні
-  // (якщо dashboard підвантажує збережені дані — можна передати поточний режим)
   updateModeUI();
 
   // Публічний метод: дозволяє встановити режим програмно (з бекенду/API)
-  // Використання: window.DeliveryMode.set('uber');
   window.DeliveryMode = {
     set: function(mode) {
       cards.forEach(card => {
@@ -835,11 +836,7 @@ async function loadDashboardData() {
     }
   };
 })();
-// Після отримання даних бізнесу з API
-window.DeliveryMode.set(bizData.delivery_mode || 'dispatcher');
-if (bizData.courier_group_id) {
-  document.getElementById('courier_group_id').value = bizData.courier_group_id;
-}
+
 // Автозаповнення адреси
 const bizAddrInput = document.getElementById('input-biz-address');
 const bizAddrList = document.getElementById('biz-autocomplete-list');
