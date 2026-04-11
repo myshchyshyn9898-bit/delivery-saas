@@ -269,3 +269,103 @@ async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
     except Exception as e:
         logger.error(f"Помилка закриття замовлення {order_id}: {e}")
         await callback.answer(_(lang, 'finish_err'), show_alert=True)
+
+
+# — ОБРОБКА КНОПКИ "ВЗЯТИ ЗАМОВЛЕННЯ" (Uber Mode) —
+
+@router.callback_query(F.data.startswith("take_order_"))
+async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
+    order_id = callback.data.replace("take_order_", "")
+    taker_id = callback.from_user.id
+    taker_name = callback.from_user.full_name
+    
+    try:
+        # 1. Перевіряємо актуальний статус замовлення
+        res = await db._run(
+            lambda: db.supabase.table("orders")
+                .select("id, status, business_id, address")
+                .eq("id", order_id)
+                .execute()
+        )
+        if not res.data:
+            await callback.answer("❌ Замовлення не знайдено.", show_alert=True)
+            return
+            
+        order = res.data[0]
+        
+        # 2. Якщо замовлення вже забрали — повідомляємо і виходимо
+        if order['status'] != 'pending':
+            await callback.answer("⚡️ Хтось був швидшим! Замовлення вже забрали.", show_alert=True)
+            return
+            
+        # 3. Міняємо статус і записуємо кур'єра
+        await db._run(
+            lambda: db.supabase.table("orders")
+                .update({
+                    "status": "delivering",
+                    "courier_id": taker_id,
+                })
+                .eq("id", order_id)
+                .eq("status", "pending")   # Умова гонки: оновлюємо тільки якщо ще pending
+                .execute()
+        )
+        
+        # 4. Ще раз перечитуємо — переконуємось, що саме ми захопили замовлення
+        verify = await db._run(
+            lambda: db.supabase.table("orders")
+                .select("courier_id, status")
+                .eq("id", order_id)
+                .execute()
+        )
+        
+        if not verify.data or str(verify.data[0].get('courier_id')) != str(taker_id):
+            await callback.answer("⚡️ Хтось був швидшим! Замовлення вже забрали.", show_alert=True)
+            return
+
+        # 5. Оновлюємо повідомлення в групі: забираємо кнопку, показуємо кур'єра
+        short_id = str(order_id)[:6].upper()
+        
+        # Визначаємо текст повідомлення (залежно від того, чи воно з HTML/Markdown)
+        original_text = callback.message.text or callback.message.caption or ""
+        
+        # Якщо в тексті був напис про "Вільну касу", міняємо його
+        if "⏳ <i>Хто перший — той і везе!</i>" in original_text or "⏳ _Хто перший — той і везе!_" in original_text:
+            updated_text = original_text.replace(
+                "⏳ <i>Хто перший — той і везе!</i>", f"🟡 <b>Везтиме: {taker_name}</b>"
+            ).replace(
+                "⏳ _Хто перший — той і везе!_", f"🟡 *Везтиме: {taker_name}*"
+            )
+        else:
+            updated_text = original_text + f"\n\n🟡 <b>Везтиме: {taker_name}</b>"
+
+        # Будуємо нову клавіатуру: залишаємо кнопку "Завершити" та маршрут
+        builder = InlineKeyboardBuilder()
+        
+        # Додаємо кнопку Маршруту
+        address_query = urllib.parse.quote(order.get('address', ''))
+        route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
+        builder.button(text="🗺 Маршрут", url=route_url)
+        
+        # Додаємо кнопку Завершення
+        builder.button(text="✅ Завершити доставку", callback_data=f"finish_order_{order_id}")
+        builder.adjust(1)
+        
+        # Оновлюємо повідомлення залежно від того, чи там є картинка
+        if callback.message.text:
+            await callback.message.edit_text(
+                text=updated_text,
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        elif callback.message.caption:
+            await callback.message.edit_caption(
+                caption=updated_text,
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+            
+        await callback.answer(f"✅ Ви успішно взяли замовлення #{short_id}!", show_alert=False)
+        
+    except Exception as e:
+        logger.error(f"Помилка take_order {order_id} від {taker_id}: {e}")
+        await callback.answer("❌ Виникла помилка. Спробуйте ще раз.", show_alert=True)
