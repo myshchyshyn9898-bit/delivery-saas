@@ -56,6 +56,10 @@ async def register_new_business(owner_id: int, biz_data: dict):
         "radius_km": int(biz_data.get("radius", 5)),
         "currency": biz_data.get("currency", "zł"),
         "payments": biz_data.get("payments", []),
+        # ✅ ВИПРАВЛЕНО: зберігаємо режим доставки (dispatcher/uber)
+        "delivery_mode": biz_data.get("delivery_mode", "dispatcher"),
+        # ✅ ВИПРАВЛЕНО: зберігаємо ID групи кур'єрів для uber-режиму
+        "courier_group_id": biz_data.get("courier_group_id"),
         "plan": "trial",
         "subscription_expires_at": trial_end.isoformat(),
         "is_active": True
@@ -171,11 +175,16 @@ async def create_new_order(order_data: dict):
     result = await _run(lambda: supabase.table("orders").insert(data).execute())
     return result.data[0] if result.data else None
 
-async def update_order_status(order_id: str, new_status: str):
-    """Оновлює статус замовлення в базі та фіксує час завершення"""
+async def update_order_status(order_id: str, new_status: str, actual_pay_type: str = None):
+    """Оновлює статус замовлення в базі та фіксує час завершення.
+    actual_pay_type — реальний тип оплати який натиснув кур'єр (може відрізнятись від вибраного адміном)
+    """
     data = {"status": new_status}
     if new_status == "completed":
         data["completed_at"] = datetime.datetime.now(timezone.utc).isoformat()
+    # ✅ Зберігаємо реальний тип оплати якщо кур'єр змінив
+    if actual_pay_type:
+        data["pay_type"] = actual_pay_type
     await _run(lambda: supabase.table("orders").update(data).eq("id", order_id).execute())
 
 async def get_daily_report(biz_id: str):
@@ -202,18 +211,24 @@ async def get_daily_report(biz_id: str):
     report = {}
     total_cash = 0
     total_term = 0
+    total_online = 0
 
     for o in orders:
         c_id = str(o['courier_id'])
         if c_id not in report:
-            report[c_id] = {'count': 0, 'cash': 0.0, 'term': 0.0, 'name': staff_dict.get(c_id, "Невідомий")}
+            report[c_id] = {'count': 0, 'cash': 0.0, 'term': 0.0, 'online': 0, 'name': staff_dict.get(c_id, "Невідомий")}
         report[c_id]['count'] += 1
         amt = float(o['amount'])
-        if o['pay_type'] == 'cash':
+        pay = o['pay_type']
+        if pay == 'cash':
             report[c_id]['cash'] += amt
             total_cash += amt
-        else:
+        elif pay == 'terminal':
             report[c_id]['term'] += amt
             total_term += amt
+        else:
+            # online — сума вже сплачена, окремо рахуємо кількість
+            report[c_id]['online'] += 1
+            total_online += 1
 
-    return report, total_cash, total_term
+    return report, total_cash, total_term, total_online

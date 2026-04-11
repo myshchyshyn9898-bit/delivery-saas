@@ -1098,6 +1098,11 @@
                 lng = center.lng;
             }
 
+            // Читаємо delivery_mode з форми
+            const selectedModeEl = document.querySelector('input[name="delivery_mode"]:checked');
+            const selectedDeliveryMode = selectedModeEl ? selectedModeEl.value : 'dispatcher';
+            const courierGroupId = (document.getElementById('courier_group_id')?.value || '').trim();
+
             const bizData = {
                 action: "register_business",
                 name: name,
@@ -1113,7 +1118,10 @@
                 radius: document.getElementById('biz-radius').value,
                 currency: document.getElementById('biz-currency').value,
                 payments: paymentMethods,
-                plan: selectedPlan, 
+                // ✅ ВИПРАВЛЕНО: передаємо режим доставки при реєстрації
+                delivery_mode: selectedDeliveryMode,
+                courier_group_id: selectedDeliveryMode === 'uber' ? courierGroupId : null,
+                plan: selectedPlan,
                 trial: true
             };
 
