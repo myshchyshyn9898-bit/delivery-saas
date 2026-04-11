@@ -199,14 +199,14 @@ async def _notify_managers_new_pos_order(
             except Exception as exc:
                 logger.error(f"[POS:{source}] Помилка відправки менеджеру {uid}: {exc}")
 
-    # ── UBER MODE (нова логіка вільної каси) ───────────────────────
+    # ── UBER MODE (логіка вільної каси — з картою та кнопками в групі) ────
     elif delivery_mode == 'uber':
         group_id = biz.get('courier_group_id')
         if not group_id:
             logger.warning(f"[uber] biz_id={biz_id}: courier_group_id не задано, пропускаємо")
             return
 
-        # 1. Автоматично створюємо замовлення в базі (не призначено)
+        # 1. Зберігаємо замовлення в БД
         new_order_payload = {
             "biz_id": biz_id,
             "client_name": client_name,
@@ -217,43 +217,30 @@ async def _notify_managers_new_pos_order(
             "comment": comment,
             "courier_id": None
         }
-        
+
         new_order = await db.create_new_order(new_order_payload)
         if not new_order:
             logger.error(f"[uber] Не вдалося створити замовлення в БД для biz_id={biz_id}")
             return
-            
+
         order_id = new_order['id']
         short_id = str(order_id)[:6].upper()
 
-        text = (
-            f"{source_label}\n"
-            f"🛵 <b>Нове замовлення #{short_id}</b>\n\n"
-            f"📍 <b>Адреса:</b> {address or '—'}\n"
-            f"👤 <b>Клієнт:</b> {client_name or '—'}\n"
-            f"📞 <b>Телефон:</b> {phone or '—'}\n"
-            f"{pay_icon} <b>Сума:</b> {amount} {currency} ({payment})\n"
-        )
-        if comment:
-            text += f"\n💬 <b>Коментар:</b> <i>{comment}</i>\n"
-        text += f"\n⏳ <i>Хто перший — той і везе!</i>"
+        # 2. Локалізований тип оплати
+        pay_type_str = {"cash": "Готівка", "terminal": "Термінал", "online": "Онлайн"}.get(payment, payment)
 
-        builder = InlineKeyboardBuilder()
-        builder.button(
-            text="✅ Взяти замовлення",
-            callback_data=f"take_order_{order_id}"
+        # 3. Надсилаємо в групу через спільний хелпер (з картою + правильними кнопками)
+        from handlers.orders import _send_uber_group_message
+        await _send_uber_group_message(
+            bot=bot, group_id=group_id, biz=biz,
+            order_id=order_id, short_id=short_id,
+            address=address, details_text="",
+            client_name=client_name, phone=phone,
+            pay_icon=pay_icon, amount=amount, currency=currency,
+            pay_type_str=pay_type_str, pay_type=payment,
+            comment=comment, source_label=source_label
         )
-
-        try:
-            await bot.send_message(
-                chat_id=group_id,
-                text=text,
-                reply_markup=builder.as_markup(),
-                parse_mode="HTML"
-            )
-            logger.info(f"[uber] Замовлення {order_id} кинуто в групу {group_id}")
-        except Exception as e:
-            logger.error(f"[uber] Помилка надсилання в групу {group_id}: {e}")
+        logger.info(f"[uber POS] Замовлення {order_id} кинуто в групу {group_id}")
 
 
 # ---------------------------------------------------------------------------
@@ -771,33 +758,21 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
             if not phone_clean.startswith('+') and phone_clean:
                 phone_clean = '+' + phone_clean
 
-            # ── UBER MODE: Відправка в загальну групу ──
+            # ── UBER MODE: Відправка в загальну групу (з картою + кнопками) ──
             if original_courier_id == "unassigned" and delivery_mode == 'uber':
                 group_id = biz.get('courier_group_id')
                 if group_id:
-                    text = (
-                        f"🛵 <b>Нове замовлення #{short_id}</b> (Створено вручну)\n\n"
-                        f"📍 <b>Адреса:</b> {data['address']}\n"
+                    from handlers.orders import _send_uber_group_message
+                    await _send_uber_group_message(
+                        bot=bot, group_id=group_id, biz=biz,
+                        order_id=order_id, short_id=short_id,
+                        address=data['address'], details_text=details_text,
+                        client_name=data.get('client_name', '—'), phone=phone_clean,
+                        pay_icon=pay_icon, amount=data['amount'], currency=currency,
+                        pay_type_str=pay_type_str, pay_type=data['payment'],
+                        comment=data.get('comment', '')
                     )
-                    if details_text:
-                        text += f"🏢 <b>Деталі:</b> {details_text}\n"
-                    text += (
-                        f"👤 <b>Клієнт:</b> {data.get('client_name', '—')}\n"
-                        f"📞 <b>Телефон:</b> {phone_clean}\n"
-                        f"{pay_icon} <b>Сума:</b> {data['amount']} {currency} ({pay_type_str})\n"
-                    )
-                    if data.get('comment'):
-                        text += f"\n💬 <b>Коментар:</b> <i>{data['comment']}</i>\n"
-                    text += f"\n⏳ <i>Хто перший — той і везе!</i>"
-
-                    builder = InlineKeyboardBuilder()
-                    builder.button(text="✅ Взяти замовлення", callback_data=f"take_order_{order_id}")
-
-                    try:
-                        await bot.send_message(chat_id=group_id, text=text, reply_markup=builder.as_markup(), parse_mode="HTML")
-                        logger.info(f"[uber api] Ручне замовлення {order_id} кинуто в групу {group_id}")
-                    except Exception as e:
-                        logger.error(f"[uber api] Помилка надсилання в групу {group_id}: {e}")
+                    logger.info(f"[uber api] Ручне замовлення {order_id} кинуто в групу {group_id}")
                 else:
                     logger.warning(f"Uber mode, але courier_group_id не задано для biz_id={biz_id}")
 
