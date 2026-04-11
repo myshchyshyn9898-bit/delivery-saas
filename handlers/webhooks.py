@@ -742,6 +742,7 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
         if original_courier_id == "unassigned":
             data['courier_id'] = None
 
+        # Створюємо замовлення в базі
         new_order = await db.create_new_order(data)
 
         if new_order:
@@ -749,27 +750,59 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
             short_id = str(order_id)[:6].upper()
             biz = await db.get_business_by_id(biz_id)
             currency = biz.get('currency', 'zł')
+            delivery_mode = biz.get('delivery_mode', 'dispatcher')
             is_pro = actual_plan in ['pro', 'trial']
             courier_lang = lang
 
-            if original_courier_id != "unassigned":
-                pay_type_str = _(courier_lang, 'pay_' + data['payment'])
-                pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
+            pay_type_str = _(courier_lang, 'pay_' + data['payment'])
+            pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")
 
-                details_parts = []
-                if data.get('apt'):
-                    details_parts.append(_(courier_lang, 'apt_prefix', apt=data['apt']))
-                if data.get('code'):
-                    details_parts.append(_(courier_lang, 'code_prefix', code=data['code']))
-                details_text = _(courier_lang, 'details_prefix', details=', '.join(details_parts)) if details_parts else ""
+            details_parts = []
+            if data.get('apt'):
+                details_parts.append(_(courier_lang, 'apt_prefix', apt=data['apt']))
+            if data.get('code'):
+                details_parts.append(_(courier_lang, 'code_prefix', code=data['code']))
+            details_text = _(courier_lang, 'details_prefix', details=', '.join(details_parts)) if details_parts else ""
 
-                address_query = urllib.parse.quote(data['address'])
-                route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
+            address_query = urllib.parse.quote(data['address'])
+            route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
 
-                phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data.get('client_phone', '')))
-                if not phone_clean.startswith('+') and phone_clean:
-                    phone_clean = '+' + phone_clean
+            phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data.get('client_phone', '')))
+            if not phone_clean.startswith('+') and phone_clean:
+                phone_clean = '+' + phone_clean
 
+            # ── UBER MODE: Відправка в загальну групу ──
+            if original_courier_id == "unassigned" and delivery_mode == 'uber':
+                group_id = biz.get('courier_group_id')
+                if group_id:
+                    text = (
+                        f"🛵 <b>Нове замовлення #{short_id}</b> (Створено вручну)\n\n"
+                        f"📍 <b>Адреса:</b> {data['address']}\n"
+                    )
+                    if details_text:
+                        text += f"🏢 <b>Деталі:</b> {details_text}\n"
+                    text += (
+                        f"👤 <b>Клієнт:</b> {data.get('client_name', '—')}\n"
+                        f"📞 <b>Телефон:</b> {phone_clean}\n"
+                        f"{pay_icon} <b>Сума:</b> {data['amount']} {currency} ({pay_type_str})\n"
+                    )
+                    if data.get('comment'):
+                        text += f"\n💬 <b>Коментар:</b> <i>{data['comment']}</i>\n"
+                    text += f"\n⏳ <i>Хто перший — той і везе!</i>"
+
+                    builder = InlineKeyboardBuilder()
+                    builder.button(text="✅ Взяти замовлення", callback_data=f"take_order_{order_id}")
+
+                    try:
+                        await bot.send_message(chat_id=group_id, text=text, reply_markup=builder.as_markup(), parse_mode="HTML")
+                        logger.info(f"[uber api] Ручне замовлення {order_id} кинуто в групу {group_id}")
+                    except Exception as e:
+                        logger.error(f"[uber api] Помилка надсилання в групу {group_id}: {e}")
+                else:
+                    logger.warning(f"Uber mode, але courier_group_id не задано для biz_id={biz_id}")
+
+            # ── DISPATCHER MODE: Відправка конкретному кур'єру (стара логіка) ──
+            elif original_courier_id != "unassigned":
                 status_active = _(courier_lang, 'status_active_full')
 
                 courier_text = _(courier_lang, 'order_new',
@@ -804,6 +837,7 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
     except Exception as exc:
         logger.error(f"[API New Order] Помилка: {exc}", exc_info=True)
         return web.Response(status=500, text="Internal Server Error")
+
 
 # ---------------------------------------------------------------------------
 # CONFIG endpoint
