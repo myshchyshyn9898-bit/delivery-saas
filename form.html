@@ -192,7 +192,7 @@
             </div>
         </div>
 
-        <div class="card" style="border-color: #bfdbfe; background: #eff6ff;">
+        <div class="card" id="courier-card" style="border-color: #bfdbfe; background: #eff6ff;">
             <div class="card-header" style="color: var(--info);"><i class="fa-solid fa-motorcycle"></i> <span data-i18n="card_courier">Призначити кур'єра</span></div>
             <div class="input-group" style="margin-bottom: 0;">
                 <select id="courier-select" class="select-field" style="background: white;">
@@ -233,7 +233,6 @@
         let currentLang = savedLang || tgLang;
         if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
 
-        // 🔴 ДОДАНО ПЕРЕКЛАДИ ДЛЯ "ВІЛЬНОГО ЗАМОВЛЕННЯ"
         const i18n = {
             'uk': {
                 title_main: "Нове замовлення", card_client: "Дані клієнта", ph_name: "Ім'я клієнта (напр. Олексій)", ph_phone: "Телефон (+48...)",
@@ -242,7 +241,8 @@
                 card_time: "Очікуваний час доставки",
                 card_courier: "Призначити кур'єра", select_c: "Оберіть кур'єра зі списку...", no_c: "Немає доступних кур'єрів",
                 err_data: "Помилка завантаження даних", c_busy: "В дорозі", c_free: "Вільний", ph_comment: "Коментар (необов'язково)",
-                btn_submit: "Створити та Відправити", btn_loading: "Відправляємо...", tg_btn_submit: "СТВОРИТИ ТА ВІДПРАВИТИ",
+                btn_submit: "Створити та Відправити", btn_uber_submit: "Відправити в загальну групу", btn_loading: "Відправляємо...", 
+                tg_btn_submit: "СТВОРИТИ ТА ВІДПРАВИТИ", tg_btn_uber_submit: "ВІДПРАВИТИ В ГРУПУ",
                 search_load: "Шукаємо адресу...", search_empty: "Адресу не знайдено, або вона поза зоною доставки ({r} км).", search_err: "Помилка пошуку",
                 country_def: "Польща", km: "км", err_addr: "📍 Будь ласка, почніть вводити адресу і обов'язково ОБЕРІТЬ її з випадаючого списку!",
                 err_phone: "Будь ласка, введіть коректний номер телефону!", err_req: "Заповніть обов'язкові поля: вулицю, суму та оберіть кур'єра!",
@@ -255,7 +255,8 @@
                 card_time: "Ожидаемое время доставки",
                 card_courier: "Назначить курьера", select_c: "Выберите курьера из списка...", no_c: "Нет доступных курьеров",
                 err_data: "Ошибка загрузки данных", c_busy: "В пути", c_free: "Свободен", ph_comment: "Комментарий (необязательно)",
-                btn_submit: "Создать и Отправить", btn_loading: "Отправляем...", tg_btn_submit: "СОЗДАТЬ И ОТПРАВИТЬ",
+                btn_submit: "Создать и Отправить", btn_uber_submit: "Отправить в общую группу", btn_loading: "Отправляем...", 
+                tg_btn_submit: "СОЗДАТЬ И ОТПРАВИТЬ", tg_btn_uber_submit: "ОТПРАВИТЬ В ГРУППУ",
                 search_load: "Ищем адрес...", search_empty: "Адрес не найден, или он вне зоны доставки ({r} км).", search_err: "Ошибка поиска",
                 country_def: "Польша", km: "км", err_addr: "📍 Пожалуйста, начните вводить адрес и обязательно ВЫБЕРИТЕ его из списка!",
                 err_phone: "Пожалуйста, введите корректный номер телефона!", err_req: "Заполните обязательные поля: улицу, сумму и выберите курьера!",
@@ -268,7 +269,8 @@
                 card_time: "Przewidywany czas dostawy",
                 card_courier: "Przypisz kuriera", select_c: "Wybierz kuriera z listy...", no_c: "Brak dostępnych kurierów",
                 err_data: "Błąd ładowania danych", c_busy: "W trasie", c_free: "Wolny", ph_comment: "Komentarz (opcjonalnie)",
-                btn_submit: "Utwórz i Wyślij", btn_loading: "Wysyłanie...", tg_btn_submit: "UTWÓRZ I WYŚLIJ",
+                btn_submit: "Utwórz i Wyślij", btn_uber_submit: "Wyślij do grupy ogólnej", btn_loading: "Wysyłanie...", 
+                tg_btn_submit: "UTWÓRZ I WYŚLIJ", tg_btn_uber_submit: "WYŚLIJ DO GRUPY",
                 search_load: "Szukamy adresu...", search_empty: "Nie znaleziono adresu lub jest poza strefą dostawy ({r} km).", search_err: "Błąd wyszukiwania",
                 country_def: "Polska", km: "km", err_addr: "📍 Proszę zacząć wpisywać adres i koniecznie WYBRAĆ go z listy rozwijanej!",
                 err_phone: "Proszę wprowadzić poprawny numer telefonu!", err_req: "Wypełnij wymagane pola: ulicę, kwotę i wybierz kuriera!",
@@ -281,7 +283,8 @@
                 card_time: "Estimated delivery time",
                 card_courier: "Assign Courier", select_c: "Select courier from list...", no_c: "No available couriers",
                 err_data: "Data loading error", c_busy: "On the way", c_free: "Free", ph_comment: "Comment (optional)",
-                btn_submit: "Create & Send", btn_loading: "Sending...", tg_btn_submit: "CREATE & SEND",
+                btn_submit: "Create & Send", btn_uber_submit: "Send to common group", btn_loading: "Sending...", 
+                tg_btn_submit: "CREATE & SEND", tg_btn_uber_submit: "SEND TO GROUP",
                 search_load: "Searching address...", search_empty: "Address not found or out of delivery zone ({r} km).", search_err: "Search error",
                 country_def: "Poland", km: "km", err_addr: "📍 Please start typing the address and make sure to SELECT it from the list!",
                 err_phone: "Please enter a valid phone number!", err_req: "Fill in the required fields: street, amount, and select a courier!",
@@ -293,7 +296,6 @@
         const bizId = urlParams.get('biz_id');
         const authToken = urlParams.get('token');
 
-        // Маппінг значень оплати з POS → внутрішні значення форми
         const PAY_ALIASES = {
             'cash': 'cash', 'готівка': 'cash', 'наличные': 'cash', 'gotówka': 'cash',
             'наличка': 'cash', 'cash_on_delivery': 'cash', 'cod': 'cash',
@@ -306,12 +308,11 @@
         };
 
         let _posGeocodingDone = false;
+        let isUberMode = false; // 🔴 Глобальний флаг режиму
 
         function _lockSubmit(label) {
-            // Блокуємо HTML-кнопку
             const btn = document.getElementById('btn-submit');
             if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.innerHTML = label; }
-            // Блокуємо Telegram MainButton
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.MainButton) {
                 window.Telegram.WebApp.MainButton.disable();
                 window.Telegram.WebApp.MainButton.showProgress(false);
@@ -320,7 +321,8 @@
 
         function _unlockSubmit() {
             const btn = document.getElementById('btn-submit');
-            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = t('btn_submit'); }
+            const submitText = isUberMode ? t('btn_uber_submit') : t('btn_submit');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.innerHTML = submitText; }
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.MainButton) {
                 window.Telegram.WebApp.MainButton.hideProgress();
                 window.Telegram.WebApp.MainButton.enable();
@@ -338,8 +340,6 @@
 
                     setTimeout(async () => {
                         let geocoded = false;
-
-                        // Спроба 1: Nominatim
                         try {
                             const osmUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addrValue)}&format=json&limit=1`;
                             const res = await fetch(osmUrl, { headers: { 'User-Agent': 'DeliveryBot/1.0' } });
@@ -352,7 +352,6 @@
                             }
                         } catch (e) { console.warn('[POS prefill] Nominatim error:', e); }
 
-                        // Спроба 2: Mapbox fallback
                         if (!geocoded && typeof MAPBOX_TOKEN !== 'undefined' && MAPBOX_TOKEN) {
                             try {
                                 const mbUrl = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addrValue)}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
@@ -369,32 +368,15 @@
 
                         _posGeocodingDone = true;
                         _unlockSubmit();
-
-                        if (!geocoded) {
-                            console.warn('[POS prefill] Не вдалося геокодувати:', addrValue);
-                        }
                     }, 300);
                 }
             } else {
-                _posGeocodingDone = true; // немає адреси з POS — геокодинг не потрібен
+                _posGeocodingDone = true; 
             }
-            if (urlParams.has('phone')) {
-                const phoneInput = document.getElementById('client-phone');
-                if (phoneInput) phoneInput.value = urlParams.get('phone');
-            }
-            if (urlParams.has('amount')) {
-                const amountInput = document.getElementById('order-amount');
-                if (amountInput) amountInput.value = urlParams.get('amount');
-            }
-            if (urlParams.has('name')) {
-                const nameInput = document.getElementById('client-name');
-                if (nameInput) nameInput.value = urlParams.get('name');
-            }
-            if (urlParams.has('comment')) {
-                const commentInput = document.getElementById('order-comment');
-                if (commentInput) commentInput.value = urlParams.get('comment');
-            }
-            // ✅ Підставляємо тип оплати з POS
+            if (urlParams.has('phone')) document.getElementById('client-phone').value = urlParams.get('phone');
+            if (urlParams.has('amount')) document.getElementById('order-amount').value = urlParams.get('amount');
+            if (urlParams.has('name')) document.getElementById('client-name').value = urlParams.get('name');
+            if (urlParams.has('comment')) document.getElementById('order-comment').value = urlParams.get('comment');
             if (urlParams.has('payment')) {
                 const rawPay = urlParams.get('payment').trim().toLowerCase();
                 const normalizedPay = PAY_ALIASES[rawPay] || 'cash';
@@ -419,9 +401,7 @@
                         supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
                     }
                 }
-            } catch(e) {
-                console.error('Не вдалося завантажити конфігурацію:', e);
-            }
+            } catch(e) { console.error('Не вдалося завантажити конфігурацію:', e); }
         }
 
         let bizLat = null;
@@ -431,7 +411,6 @@
         let globalCouriers = [];
         let globalBusyIds = [];
 
-        // Promise що резолвиться після завантаження даних бізнесу
         let bizReadyResolve;
         const bizReady = new Promise(resolve => { bizReadyResolve = resolve; });
 
@@ -444,7 +423,6 @@
             const select = document.getElementById('courier-select');
             if (!select || globalCouriers.length === 0) return;
             
-            // 🔴 ДОДАНО ОПЦІЮ "ВІЛЬНОГО ЗАМОВЛЕННЯ"
             select.innerHTML = `
                 <option value="" disabled>${t('select_c')}</option>
                 <option value="unassigned" selected style="color: var(--info); font-weight: 700;">${t('unassigned_opt')}</option>
@@ -473,11 +451,13 @@
                 if (i18n[lang][key]) el.placeholder = i18n[lang][key];
             });
 
-            if (tg && tg.MainButton) {
-                tg.MainButton.text = t('tg_btn_submit');
-            }
+            // 🔴 АДАПТАЦІЯ КНОПКИ ПІД РЕЖИМ
+            const submitText = isUberMode ? t('tg_btn_uber_submit') : t('tg_btn_submit');
+            if (tg && tg.MainButton) tg.MainButton.text = submitText;
+            const htmlBtn = document.getElementById('btn-submit');
+            if (htmlBtn) htmlBtn.innerText = isUberMode ? t('btn_uber_submit') : t('btn_submit');
 
-            renderCouriers();
+            if (!isUberMode) renderCouriers();
         }
 
         function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
@@ -497,128 +477,94 @@
             const mapContainer = document.getElementById('map-preview');
             mapContainer.style.display = 'block';
 
-            // ✅ Чекаємо поки завантажаться координати бізнесу
             await bizReady;
-
             if (map) map.resize();
 
-            // Ховаємо оверлей завантаження
             const loadingOverlay = document.getElementById('map-loading-overlay');
 
             const drawElements = () => {
-                if (mapboxMarkers.length > 0) {
-                    mapboxMarkers.forEach(m => m.remove());
-                    mapboxMarkers = [];
-                }
+                if (mapboxMarkers.length > 0) { mapboxMarkers.forEach(m => m.remove()); mapboxMarkers = []; }
 
-                const bizEl = document.createElement('div');
-                bizEl.innerHTML = '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>';
+                const bizEl = document.createElement('div'); bizEl.innerHTML = '<div style="color: #ff6b4a; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>';
+                const clientEl = document.createElement('div'); clientEl.innerHTML = '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>';
 
-                const clientEl = document.createElement('div');
-                clientEl.innerHTML = '<div style="color: #3b82f6; font-size: 28px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-location-dot"></i></div>';
-
-                if (bizLat && bizLon) {
-                    mapboxMarkers.push(new mapboxgl.Marker(bizEl).setLngLat([bizLon, bizLat]).addTo(map));
-                }
+                if (bizLat && bizLon) mapboxMarkers.push(new mapboxgl.Marker(bizEl).setLngLat([bizLon, bizLat]).addTo(map));
                 mapboxMarkers.push(new mapboxgl.Marker(clientEl).setLngLat([clientLon, clientLat]).addTo(map));
 
                 if (bizLat && bizLon) {
                     const routeData = {
                         'type': 'FeatureCollection',
-                        'features': [{
-                            'type': 'Feature',
-                            'geometry': {
-                                'type': 'LineString',
-                                'coordinates': [[bizLon, bizLat], [clientLon, clientLat]]
-                            }
-                        }]
+                        'features': [{ 'type': 'Feature', 'geometry': { 'type': 'LineString', 'coordinates': [[bizLon, bizLat], [clientLon, clientLat]] } }]
                     };
 
-                    if (map.getSource('route')) {
-                        map.getSource('route').setData(routeData);
-                    } else {
+                    if (map.getSource('route')) map.getSource('route').setData(routeData);
+                    else {
                         map.addSource('route', { 'type': 'geojson', 'data': routeData });
-                        map.addLayer({
-                            'id': 'route',
-                            'type': 'line',
-                            'source': 'route',
-                            'layout': { 'line-join': 'round', 'line-cap': 'round' },
-                            'paint': {
-                                'line-color': '#ff6b4a',
-                                'line-width': 3,
-                                'line-dasharray': [2, 2]
-                            }
-                        });
+                        map.addLayer({ 'id': 'route', 'type': 'line', 'source': 'route', 'layout': { 'line-join': 'round', 'line-cap': 'round' }, 'paint': { 'line-color': '#ff6b4a', 'line-width': 3, 'line-dasharray': [2, 2] } });
                     }
-
                     const bounds = new mapboxgl.LngLatBounds([bizLon, bizLat], [clientLon, clientLat]);
                     map.fitBounds(bounds, { padding: 30, maxZoom: 15 });
                 } else {
                     map.setCenter([clientLon, clientLat]);
                     map.setZoom(15);
                 }
-                // ✅ Карта готова — ховаємо оверлей
                 if (loadingOverlay) loadingOverlay.style.display = 'none';
             };
 
             if (!map) {
-                let initLat = bizLat || clientLat;
-                let initLon = bizLon || clientLon;
-                map = new mapboxgl.Map({
-                    container: 'map-preview',
-                    style: 'mapbox://styles/mapbox/streets-v12',
-                    center: [initLon, initLat],
-                    zoom: 12,
-                    interactive: false
-                });
+                let initLat = bizLat || clientLat; let initLon = bizLon || clientLon;
+                map = new mapboxgl.Map({ container: 'map-preview', style: 'mapbox://styles/mapbox/streets-v12', center: [initLon, initLat], zoom: 12, interactive: false });
                 map.on('load', drawElements);
             } else {
-                if (map.isStyleLoaded()) drawElements();
-                else map.once('load', drawElements);
+                if (map.isStyleLoaded()) drawElements(); else map.once('load', drawElements);
             }
         }
 
         async function initForm() {
             if (!bizId || !supabaseClient) { bizReadyResolve(); return; }
             try {
-                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km').eq('id', bizId).single();
+                // 🔴 ЗАПРОС РЕЖИМУ РОБОТИ З БАЗИ ДАНИХ
+                const { data: biz } = await supabaseClient.from('businesses').select('lat, lng, radius_km, delivery_mode').eq('id', bizId).single();
                 if (biz) {
                     bizLat = parseFloat(biz.lat) || null;
                     bizLon = parseFloat(biz.lng) || null;
                     bizRadius = parseFloat(biz.radius_km) || 10; 
+                    isUberMode = (biz.delivery_mode === 'uber'); // Встановлюємо флаг
                 }
-                bizReadyResolve(); // ✅ Бізнес-координати завантажені
+                bizReadyResolve(); 
 
-                const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
-                const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
-                
                 const select = document.getElementById('courier-select');
-                if (couriers && couriers.length > 0) {
-                    globalCouriers = couriers;
-                    globalBusyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
-                    renderCouriers();
+                const courierCard = document.getElementById('courier-card');
+
+                // 🔴 АДАПТАЦІЯ ФОРМИ ПІД UBER-РЕЖИМ
+                if (isUberMode) {
+                    courierCard.style.display = 'none'; // Ховаємо блок кур'єра
+                    select.innerHTML = `<option value="unassigned" selected>Вільне замовлення</option>`; // Примусово "непризначено"
+                    setLanguage(currentLang); // Оновлюємо текст кнопок
                 } else {
-                    // 🔴 НАВІТЬ ЯКЩО НЕМАЄ КУР'ЄРІВ, ДАЄМО МОЖЛИВІСТЬ КИНУТИ НА КАРТУ
-                    select.innerHTML = `
-                        <option value="" disabled>${t('no_c')}</option>
-                        <option value="unassigned" selected style="color: var(--info); font-weight: 700;">${t('unassigned_opt')}</option>
-                    `;
+                    const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
+                    const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
+                    
+                    if (couriers && couriers.length > 0) {
+                        globalCouriers = couriers;
+                        globalBusyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
+                        renderCouriers();
+                    } else {
+                        select.innerHTML = `<option value="" disabled>${t('no_c')}</option><option value="unassigned" selected style="color: var(--info); font-weight: 700;">${t('unassigned_opt')}</option>`;
+                    }
                 }
             } catch(e) { 
                 console.error("Помилка ініціалізації:", e); 
-                bizReadyResolve(); // ✅ Навіть при помилці розблоковуємо
+                bizReadyResolve(); 
                 const select = document.getElementById('courier-select');
-                if (select) select.innerHTML = `<option value="">${t('err_data')}</option>`;
+                if (select && !isUberMode) select.innerHTML = `<option value="">${t('err_data')}</option>`;
             }
         }
 
         window.submitOrder = function() {
-            // Якщо геокодинг ще не завершився — не відправляємо
             if (!_posGeocodingDone) {
                 const msg = 'Зачекайте, адреса ще визначається...';
-                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
-                    window.Telegram.WebApp.showAlert(msg);
-                } else { alert(msg); }
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
                 return;
             }
             const street = document.getElementById('address-street').value.trim();
@@ -645,7 +591,8 @@
             }
 
             const amountVal = parseFloat(amount);
-            if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || courierId === "" || courierId === null || courierId === undefined) {
+            // 🔴 ДЛЯ UBER РЕЖИМУ COURIER_ID МОЖЕ БУТИ 'unassigned', ТОМУ ПЕРЕВІРКА ПОМ'ЯКШЕНА
+            if (!street || !amount || isNaN(amountVal) || amountVal <= 0 || (!isUberMode && courierId === "")) {
                 const msg = t('err_req');
                 if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
                 return;
@@ -661,7 +608,8 @@
                 code: code,      
                 amount: amount,
                 payment: selectedPayment,
-                courier_id: courierId,
+                // Якщо Uber-режим — примусово шлемо 'unassigned', інакше те, що вибрали
+                courier_id: isUberMode ? 'unassigned' : courierId,
                 comment: document.getElementById('order-comment').value.trim(),
                 lat: selectedLat,
                 lon: selectedLon,
@@ -674,14 +622,12 @@
                 document.getElementById('btn-submit').innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 8px;"></i> ' + t('btn_loading');
             }
             
-            // 🚀 ВІДПРАВЛЯЄМО ДАНІ НАПРЯМУ НА СЕРВЕР (API)
             fetch(RAILWAY_DOMAIN + '/api/new_order', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData)
             }).then(async (res) => {
                 if (res.ok) {
-                    // Якщо сервер успішно зберіг замовлення - просто закриваємо форму
                     if (tg && tg.close) { tg.close(); } 
                     else { alert("Успішно створено!"); _unlockSubmit(); }
                 } else {
@@ -727,22 +673,14 @@
                         if (mapboxRes.features) {
                             mapboxRes.features.forEach(item => {
                                 let cleanName = item.place_name.replace(/, Poland|, Polska|, Subcarpathian Voivodeship|, województwo podkarpackie/gi, "").trim();
-                                combinedResults.push({
-                                    name: cleanName,
-                                    lat: parseFloat(item.center[1]),
-                                    lon: parseFloat(item.center[0])
-                                });
+                                combinedResults.push({ name: cleanName, lat: parseFloat(item.center[1]), lon: parseFloat(item.center[0]) });
                             });
                         }
 
                         if (Array.isArray(osmRes)) {
                             osmRes.forEach(item => {
                                 let cleanName = item.display_name.replace(/, Polska|, Poland|, województwo podkarpackie/gi, "").trim();
-                                combinedResults.push({
-                                    name: cleanName,
-                                    lat: parseFloat(item.lat),
-                                    lon: parseFloat(item.lon)
-                                });
+                                combinedResults.push({ name: cleanName, lat: parseFloat(item.lat), lon: parseFloat(item.lon) });
                             });
                         }
 
@@ -754,9 +692,7 @@
                             let key = item.name.toLowerCase().substring(0, 15);
                             if (!seenNames.has(key)) {
                                 seenNames.add(key);
-                                if (!bizLat || item.distance <= bizRadius) {
-                                    uniqueResults.push(item);
-                                }
+                                if (!bizLat || item.distance <= bizRadius) uniqueResults.push(item);
                             }
                         });
 
@@ -777,8 +713,7 @@
                                 
                                 div.onclick = function() {
                                     addrInput.value = item.name;
-                                    selectedLat = item.lat; 
-                                    selectedLon = item.lon; 
+                                    selectedLat = item.lat; selectedLon = item.lon; 
                                     addrList.style.display = 'none';
                                     updateMapPreview(selectedLat, selectedLon);
                                 };
@@ -786,16 +721,10 @@
                             });
                         } else {
                             const emptyMsg = t('search_empty').replace('{r}', bizRadius);
-                            addrList.innerHTML = `
-                                <div class="autocomplete-item text-center text-danger">
-                                    <i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 6px; font-size: 16px;"></i><br>
-                                    ${emptyMsg}
-                                </div>`;
+                            addrList.innerHTML = `<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-triangle-exclamation" style="margin-bottom: 6px; font-size: 16px;"></i><br>${emptyMsg}</div>`;
                         }
 
-                    } catch(e) { 
-                        addrList.innerHTML = `<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-circle-xmark" style="margin-right: 6px;"></i>${t('search_err')}</div>`;
-                    }
+                    } catch(e) { addrList.innerHTML = `<div class="autocomplete-item text-center text-danger"><i class="fa-solid fa-circle-xmark" style="margin-right: 6px;"></i>${t('search_err')}</div>`; }
                 }, 800); 
             });
 
@@ -811,7 +740,6 @@
                 tg.MainButton.color = "#ff6b4a"; 
                 tg.MainButton.textColor = "#ffffff";
                 tg.MainButton.show();
-                // ✅ offClick перед onClick — щоб не накопичувались дублікати при перевідкритті форми
                 tg.MainButton.offClick(window.submitOrder);
                 tg.MainButton.onClick(window.submitOrder);
             }
