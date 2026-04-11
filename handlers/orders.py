@@ -547,8 +547,7 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
         # Замінюємо статус "Активний" на "Везтиме: Ім'я"
         import re as _re
         # Видаляємо всі варіанти статус-рядка (новий і старий формати)
-        original_html = _re.sub(r"🟢 <b>Активний</b>[^
-]*", "", original_html)
+        original_html = _re.sub("🟢 <b>Активний</b>[^\\n]*", "", original_html)
         original_html = original_html.replace("⏳ <i>Хто перший — той і везе!</i>", "")
         original_html = original_html.replace("⏳ Хто перший — той і везе!", "")
         original_html = original_html.strip()
