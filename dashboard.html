@@ -268,14 +268,66 @@
             <div id="settings-map-container"></div>
 
             <label class="form-label" style="margin-top: 15px;" data-i18n="set_cur">Валюта</label>
-            <select id="input-biz-currency" class="form-input">
+            <select id="input-biz-currency" class="form-input" style="margin-bottom: 20px;">
                 <option value="zł">zł (PLN)</option>
                 <option value="₴">₴ (UAH)</option>
                 <option value="$">$ (USD)</option>
                 <option value="€">€ (EUR)</option>
             </select>
 
-            <button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 5px;" data-i18n="btn_save">💾 Зберегти зміни</button>
+            <div class="form-group" id="delivery-mode-group">
+              <label class="form-label">
+                <i class="fas fa-motorcycle"></i> Режим роботи доставки
+              </label>
+
+              <div class="mode-selector">
+                <label class="mode-card" id="mode-card-dispatcher">
+                  <input type="radio" name="delivery_mode" value="dispatcher" id="mode-dispatcher" checked />
+                  <div class="mode-card__inner">
+                    <div class="mode-card__icon">
+                      <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="mode-card__content">
+                      <div class="mode-card__title">👑 Диспетчер (Класика)</div>
+                      <div class="mode-card__desc">
+                        Замовлення приходять адміну, який призначає кур'єрів через карту.
+                      </div>
+                    </div>
+                    <div class="mode-card__check">
+                      <i class="fas fa-check-circle"></i>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="mode-card" id="mode-card-uber">
+                  <input type="radio" name="delivery_mode" value="uber" id="mode-uber" />
+                  <div class="mode-card__inner">
+                    <div class="mode-card__icon mode-card__icon--uber">
+                      <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="mode-card__content">
+                      <div class="mode-card__title">🛵 Вільна каса (Glovo-стиль)</div>
+                      <div class="mode-card__desc">
+                        Замовлення падають у загальну групу, хто з кур'єрів перший натиснув — той і везе.
+                      </div>
+                    </div>
+                    <div class="mode-card__check">
+                      <i class="fas fa-check-circle"></i>
+                    </div>
+                  </div>
+                </label>
+              </div><div class="uber-group-field" id="uber-group-field">
+                <div class="uber-group-field__inner">
+                  <i class="fas fa-users uber-group-field__icon"></i>
+                  <div class="uber-group-field__body">
+                    <label class="form-label" for="courier_group_id">ID Telegram-групи кур'єрів</label>
+                    <input type="text" id="courier_group_id" name="courier_group_id" class="form-input" placeholder="-1001234567890" inputmode="numeric" />
+                    <div class="uber-group-field__hint">
+                      <i class="fas fa-info-circle"></i> Додайте бота в групу та надішліть будь-яке повідомлення. ID групи починається з <code>-100</code>.
+                    </div>
+                  </div>
+                </div>
+              </div></div><button class="btn-sub-renew" onclick="saveBizSettings(this)" style="margin-top: 15px;" data-i18n="btn_save">💾 Зберегти зміни</button>
         </div>
     </div>
 
@@ -312,96 +364,6 @@
             </button>
         </div>
     </div>
-
-    <!-- ════════════════════════════════════════
-     БЛОК: ВИБІР РЕЖИМУ ДОСТАВКИ
-     Вставити у форму реєстрації / налаштувань
-     ════════════════════════════════════════ -->
-<div class="form-group" id="delivery-mode-group">
-  <label class="form-label">
-    <i class="fas fa-motorcycle"></i> Режим роботи доставки
-  </label>
-
-  <div class="mode-selector">
-
-    <!-- Картка 1: Диспетчер -->
-    <label class="mode-card" id="mode-card-dispatcher">
-      <input
-        type="radio"
-        name="delivery_mode"
-        value="dispatcher"
-        id="mode-dispatcher"
-        checked
-      />
-      <div class="mode-card__inner">
-        <div class="mode-card__icon">
-          <i class="fas fa-user-tie"></i>
-        </div>
-        <div class="mode-card__content">
-          <div class="mode-card__title">👑 Диспетчер (Класика)</div>
-          <div class="mode-card__desc">
-            Замовлення приходять адміну, який призначає кур'єрів через карту.
-          </div>
-        </div>
-        <div class="mode-card__check">
-          <i class="fas fa-check-circle"></i>
-        </div>
-      </div>
-    </label>
-
-    <!-- Картка 2: Uber Mode -->
-    <label class="mode-card" id="mode-card-uber">
-      <input
-        type="radio"
-        name="delivery_mode"
-        value="uber"
-        id="mode-uber"
-      />
-      <div class="mode-card__inner">
-        <div class="mode-card__icon mode-card__icon--uber">
-          <i class="fas fa-bolt"></i>
-        </div>
-        <div class="mode-card__content">
-          <div class="mode-card__title">🛵 Вільна каса (Glovo-стиль)</div>
-          <div class="mode-card__desc">
-            Замовлення падають у загальну групу, хто з кур'єрів перший натиснув — той і везе.
-          </div>
-        </div>
-        <div class="mode-card__check">
-          <i class="fas fa-check-circle"></i>
-        </div>
-      </div>
-    </label>
-
-  </div><!-- /.mode-selector -->
-
-  <!-- Додаткове поле — з'являється тільки для uber -->
-  <div class="uber-group-field" id="uber-group-field">
-    <div class="uber-group-field__inner">
-      <i class="fas fa-users uber-group-field__icon"></i>
-      <div class="uber-group-field__body">
-        <label class="form-label" for="courier_group_id">
-          ID Telegram-групи кур'єрів
-        </label>
-        <input
-          type="text"
-          id="courier_group_id"
-          name="courier_group_id"
-          class="form-input"
-          placeholder="-1001234567890"
-          inputmode="numeric"
-        />
-        <div class="uber-group-field__hint">
-          <i class="fas fa-info-circle"></i>
-          Додайте бота в групу та надішліть будь-яке повідомлення. ID групи починається з
-          <code>-100</code>. Дізнатись ID можна через
-          <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a>.
-        </div>
-      </div>
-    </div>
-  </div><!-- /.uber-group-field -->
-
-</div><!-- /#delivery-mode-group -->
     
     <div class="modal-overlay" id="integrations-list-modal" onclick="closeIntegrationsList()">
         <div class="bottom-sheet" onclick="event.stopPropagation()" style="padding-bottom: 30px;">
