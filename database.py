@@ -158,12 +158,25 @@ async def get_courier(user_id: int):
 
 async def create_new_order(order_data: dict):
     """Записуємо нове замовлення в таблицю orders"""
+    # Збираємо деталі (квартира/поверх/домофон) якщо передані окремо
+    details = order_data.get('details', '')
+    if not details:
+        parts = []
+        if order_data.get('apt'):
+            parts.append(f"Кв/Оф: {order_data['apt']}")
+        if order_data.get('floor'):
+            parts.append(f"Пов: {order_data['floor']}")
+        if order_data.get('code'):
+            parts.append(f"Домофон: {order_data['code']}")
+        details = ', '.join(parts)
+
     data = {
         "business_id": order_data['biz_id'],
         "courier_id": order_data['courier_id'],
         "client_name": order_data.get('client_name'),
         "client_phone": order_data.get('client_phone'),
         "address": order_data.get('address'),
+        "details": details,
         "amount": order_data.get('amount'),
         "pay_type": order_data.get('payment'),
         "comment": order_data.get('comment'),

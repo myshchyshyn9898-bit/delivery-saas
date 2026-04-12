@@ -123,11 +123,21 @@ async def _send_uber_group_message(bot: Bot, group_id, biz, order_id, short_id,
     Надсилає замовлення в групу кур'єрів (uber-режим) з картою або без.
     Повертає message_id надісланого повідомлення або None.
     """
-    status_line = "🟢 <b>Активний</b> — хто перший, той і везе!"
-    text = _build_uber_group_text(
-        short_id, source_label, address, details_text,
-        client_name, phone, pay_icon, amount, currency,
-        pay_type_str, comment, status_line
+    import html as _hug
+    _e = _hug.escape
+    status_line = "🟢 Активний — хто перший, той і везе!"
+    text = _build_order_text(
+        short_id=short_id,
+        address=_e(address),
+        details_text=_e(details_text),
+        client_name=_e(client_name) if client_name else "",
+        phone=_e(phone) if phone else "—",
+        pay_type=pay_type,
+        amount=amount,
+        currency=currency,
+        comment=_e(comment) if comment else "",
+        status_line=status_line,
+        source_label=source_label
     )
 
     address_query = urllib.parse.quote(address)
@@ -303,18 +313,18 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                         await bot.send_photo(
                             chat_id=data['courier_id'], photo=photo,
                             caption=courier_text, reply_markup=builder.as_markup(),
-                            parse_mode="Markdown"
+                            parse_mode="HTML"
                         )
                         os.remove(map_filename)
                     else:
                         await bot.send_message(
                             chat_id=data['courier_id'], text=courier_text,
-                            reply_markup=builder.as_markup(), parse_mode="Markdown"
+                            reply_markup=builder.as_markup(), parse_mode="HTML"
                         )
                 else:
                     await bot.send_message(
                         chat_id=data['courier_id'], text=courier_text,
-                        reply_markup=builder.as_markup(), parse_mode="Markdown"
+                        reply_markup=builder.as_markup(), parse_mode="HTML"
                     )
 
             tracking_link = f"{BASE_URL}track.html?id={order_id}"
@@ -387,18 +397,18 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     await bot.send_photo(
                         chat_id=courier_id, photo=photo,
                         caption=courier_text, reply_markup=builder.as_markup(),
-                        parse_mode="Markdown"
+                        parse_mode="HTML"
                     )
                     os.remove(map_filename)
                 else:
                     await bot.send_message(
                         chat_id=courier_id, text=courier_text,
-                        reply_markup=builder.as_markup(), parse_mode="Markdown"
+                        reply_markup=builder.as_markup(), parse_mode="HTML"
                     )
             else:
                 await bot.send_message(
                     chat_id=courier_id, text=courier_text,
-                    reply_markup=builder.as_markup(), parse_mode="Markdown"
+                    reply_markup=builder.as_markup(), parse_mode="HTML"
                 )
 
             await message.answer(_(lang, 'order_assigned_success', short_id=short_id))
@@ -847,7 +857,8 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
         pay_icon_cl = "💵" if pay_type == "cash" else ("🏧" if pay_type == "terminal" else "✅")
         status_line = f"🔴 Закрито ({time_str}, {safe_courier} - {pay_icon_cl})"
 
-        final_text = _build_order_text(short_id, safe_address, "",
+        safe_details = _html.escape(order.get("details", "") or "")
+        final_text = _build_order_text(short_id, safe_address, safe_details,
                                         safe_client, safe_phone,
                                         pay_type, order.get("amount", "0"),
                                         currency, safe_comment, status_line)

@@ -142,16 +142,17 @@ async def _notify_managers_new_pos_order(
             "https://myshchyshyn9898-bit.github.io/delivery-saas",
         ).rstrip("/")
         form_base_url = f"{base_url}/form.html"
-
+        import html as _ph
+        _pe = _ph.escape
         admin_text = (
             f"🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source_label}!</b>\n\n"
-            f"👤 <b>Клієнт:</b> {client_name or '—'}\n"
-            f"📞 <b>Телефон:</b> {phone or '—'}\n"
-            f"📍 <b>Адреса:</b> {address or '—'}\n"
-            f"💰 <b>Сума:</b> {amount} {currency}\n"
+            f"👤 <b>Клієнт:</b> {_pe(client_name) if client_name else '—'}\n"
+            f"📞 <b>Телефон:</b> {_pe(phone) if phone else '—'}\n"
+            f"📍 <b>Адреса:</b> {_pe(address) if address else '—'}\n"
+            f"💰 <b>Сума:</b> {_pe(str(amount))} {currency}\n"
         )
         if comment:
-            admin_text += f"\n💬 <b>Коментар:</b> <i>{comment}</i>"
+            admin_text += f"\n💬 <b>Коментар:</b> <i>{_pe(comment)}</i>"
 
         markup_base_url = f"{form_base_url}?biz_id={urllib.parse.quote(biz_id)}" \
             f"&address={urllib.parse.quote(address or '')}" \
@@ -776,34 +777,47 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
                 else:
                     logger.warning(f"Uber mode, але courier_group_id не задано для biz_id={biz_id}")
 
-            # ── DISPATCHER MODE: Відправка конкретному кур'єру (стара логіка) ──
+            # ── DISPATCHER MODE: Відправка конкретному кур'єру ──
             elif original_courier_id != "unassigned":
-                status_active = _(courier_lang, 'status_active_full')
+                import html as _wh
+                from handlers.orders import _build_order_text
 
-                courier_text = _(courier_lang, 'order_new',
-                                 short_id=short_id, status=status_active, address=data['address'],
-                                 details_text=details_text, phone=phone_clean, client_name=data.get('client_name', ''),
-                                 pay_icon=pay_icon, amount=data['amount'], cur=currency, pay_type=pay_type_str)
-
-                if data.get('comment'):
-                    courier_text += _(courier_lang, 'comment_prefix', comment=data['comment'])
+                pay_type_d = data['payment']
+                courier_text = _build_order_text(
+                    short_id=short_id,
+                    address=_wh.escape(data['address']),
+                    details_text=_wh.escape(details_text),
+                    client_name=_wh.escape(data.get('client_name', '') or ''),
+                    phone=_wh.escape(phone_clean),
+                    pay_type=pay_type_d,
+                    amount=data['amount'],
+                    currency=currency,
+                    comment=_wh.escape(data.get('comment', '') or ''),
+                    status_line="🟢 Активний"
+                )
 
                 builder = InlineKeyboardBuilder()
                 if is_pro:
                     builder.button(text=_(courier_lang, 'btn_route'), url=route_url)
-                builder.button(text=_(courier_lang, 'btn_finish'), callback_data=f"finish_order_{order_id}")
+                if phone_clean:
+                    builder.button(text="📞 Подзвонити", url=f"tel:{phone_clean}")
+                if pay_type_d == "online":
+                    builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
+                else:
+                    builder.button(text=f"💵 Готівка — {data['amount']} {currency}", callback_data=f"dispatcher_close_cash_{order_id}")
+                    builder.button(text=f"🏧 Термінал — {data['amount']} {currency}", callback_data=f"dispatcher_close_terminal_{order_id}")
                 builder.adjust(1)
 
                 if is_pro:
                     map_filename = await get_route_map_file(biz, data['address'], short_id)
                     if map_filename and os.path.exists(map_filename):
                         photo = FSInputFile(map_filename)
-                        await bot.send_photo(chat_id=data['courier_id'], photo=photo, caption=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+                        await bot.send_photo(chat_id=data['courier_id'], photo=photo, caption=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
                         os.remove(map_filename)
                     else:
-                        await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+                        await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
                 else:
-                    await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+                    await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
             return web.Response(text="OK")
         else:
