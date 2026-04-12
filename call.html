@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Call • Hero Sushi</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* Базові налаштування (як у ваших інших Web Apps) */
+    body { font-family: sans-serif; background: #f4f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: #333; overflow: hidden; }
+    
+    /* Основний контейнер, який виїжджає знизу (стиль вашої bottom-sheet) */
+    .call-card { background: white; border-radius: 20px 20px 0 0; padding: 30px 20px; box-shadow: 0 -8px 30px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 400px; position: absolute; bottom: 0; animation: slideUp 0.4s ease-out; }
+    
+    /* Анімація виїзду картки знизу */
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    
+    /* Контейнер для великої іконки */
+    .icon-wrapper { background: #fff0ed; width: 80px; height: 80px; border-radius: 40px; display: flex; justify-content: center; align-items: center; margin: 0 auto 20px auto; color: #ff7652; font-size: 35px; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
+    
+    /* Анімоване пульсуюче кільце навколо іконки (ефект "дзвінка") */
+    .icon-wrapper::after { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%; background: #ff7652; opacity: 0.3; animation: pulseCall 1.2s infinite; }
+    @keyframes pulseCall { 0% { transform: scale(1); opacity: 0.3; } 100% { transform: scale(1.6); opacity: 0; } }
+    
+    /* Заголовок та підзаголовок */
+    h3 { margin: 0 0 10px 0; color: #1c1e21; font-size: 19px; }
+    p { margin: 0; color: #8a8d91; font-size: 14px; line-height: 1.4; }
+    
+    /* Додаткові іконки */
+    .fa-spinner { color: #8a8d91; font-size: 14px; margin-right: 6px; }
+</style>
+<script>
+window.onload = function () {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    if (!code) {
+        document.body.innerHTML = "Немає номера для дзвінка.";
+        return;
+    }
+
+    // --- Зберігаємо вашу ідеальну функціональність ---
+    if (/^\d{8}$/.test(code)) {
+        // 8 цифр Uber-коду → дзвінок через одну коротку паузу
+        window.location.href = "tel:223076593," + code + "#";
+    } else {
+        // Інакше звичайний дзвінок
+        window.location.href = "tel:" + code;
+    }
+};
+</script>
+</head>
+<body>
+    <div class="call-card">
+        <div class="icon-wrapper">
+            <i class="fa-solid fa-phone-volume"></i>
+        </div>
+        <h3>Hero Sushi Дзвінок</h3>
+        <p><i class="fa-solid fa-circle-notch fa-spin"></i> Відкриття дзвінка...</p>
+        <p style="font-size: 11px; margin-top: 5px;">Зараз телефон відкриє набір номера</p>
+    </div>
+</body>
+</html>
