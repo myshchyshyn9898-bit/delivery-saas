@@ -101,8 +101,10 @@ def _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency,
     builder.button(text="🗺 Маршрут", url=route_url)
 
     if phone:
-        call_url = f"tel:{phone}"
-        builder.button(text="📞 Подзвонити", url=call_url)
+        digits_only = "".join(filter(str.isdigit, phone))
+        btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
+        call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(phone)}"
+        builder.button(text=btn_text, url=call_url)
 
     if pay_type == "cash":
         builder.button(text=f"💵 Готівка — {amount} {currency}", callback_data=f"uber_close_cash_{order_id}")
@@ -297,7 +299,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 if is_pro:
                     builder.button(text=_(lang, 'btn_route'), url=route_url)
                 if phone_clean:
-                    builder.button(text="📞 Подзвонити", url=f"tel:{phone_clean}")
+                    digits_only = "".join(filter(str.isdigit, phone_clean))
+                    btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
+                    call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(phone_clean)}"
+                    builder.button(text=btn_text, url=call_url)
                 if pay_type == "online":
                     builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
                 else:
@@ -382,7 +387,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 builder.button(text=_(lang, 'btn_route'), url=route_url)
             phone_for_call = order_db.get('client_phone', '')
             if phone_for_call:
-                builder.button(text="📞 Подзвонити", url=f"tel:{phone_for_call}")
+                digits_only = "".join(filter(str.isdigit, phone_for_call))
+                btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
+                call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(phone_for_call)}"
+                builder.button(text=btn_text, url=call_url)
             if pay_type == "online":
                 builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
             else:
@@ -659,7 +667,10 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
 
         builder.button(text="🗺 Маршрут", url=route_url)
         if raw_phone:
-            builder.button(text="📞 Подзвонити", url=f"tel:{raw_phone}")
+            digits_only = "".join(filter(str.isdigit, raw_phone))
+            btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
+            call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(raw_phone)}"
+            builder.button(text=btn_text, url=call_url)
 
         if pay_type == "online":
             builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"uber_close_online_{order_id}")
