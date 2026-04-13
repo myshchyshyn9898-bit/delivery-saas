@@ -155,20 +155,20 @@
         .trial-text i { color: var(--primary); margin-right: 5px;}
 
         /* ========================================= */
-        /* 🔥 ЕКРАН: ВИБІР РЕЖИМУ ДОСТАВКИ (ВИПРАВЛЕНО ВИСОТУ) */
+        /* 🔥 ЕКРАН: ВИБІР РЕЖИМУ (Виправлено перекриття та клавіатуру) */
         /* ========================================= */
         #screen-mode { background: var(--bg-secondary); padding: 0; } 
         
-        /* Зменшена висота панелі, щоб не перекривала текст */
+        /* Панель стала меншою (17vh) і переміщена у scrollable-content */
         .mode-hero-panel {
-            width: 100%; height: 17vh; min-height: 180px;
+            width: 100%; height: 17vh; min-height: 150px;
             background: radial-gradient(circle at top right, #2a3b5c, #0f172a);
             border-radius: 0 0 35px 35px;
             display: flex; align-items: center; justify-content: center;
             position: relative; transition: background 0.6s ease;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
         .mode-hero-panel::before {
             content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
@@ -214,8 +214,8 @@
         @keyframes broadcastWave { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         .mh-label-text { color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; margin-top: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
 
-        /* Зменшено наїзд карток, щоб не перекривало текст */
-        .mode-cards-wrapper { padding: 0 20px; margin-top: -20px; position: relative; z-index: 10;}
+        /* ВІДСТУП МІЖ КАРТКАМИ І ТЕКСТОМ (Без перекриття) */
+        .mode-cards-wrapper { padding: 0 20px; margin-top: 15px; position: relative; z-index: 10;}
 
         .delivery-mode-card {
             background: white; border: 2px solid var(--border); border-radius: 24px; padding: 20px; margin-bottom: 16px;
@@ -422,35 +422,35 @@
 
     <div id="screen-mode" class="screen">
         
-        <div class="mode-hero-panel" id="mode-hero-panel">
+        <div class="scrollable-content" style="padding: 0;">
             
-            <div class="mh-content active" id="mh-dispatcher">
-                <div class="anim-scene">
-                    <div class="scene-path"></div>
-                    <div class="scene-node"><i class="fa-solid fa-laptop"></i></div>
-                    <div class="scene-order"><i class="fa-solid fa-box"></i></div>
-                    <div class="scene-node"><i class="fa-solid fa-motorcycle"></i></div>
-                </div>
-                <div class="mh-label-text">Ручне призначення</div>
-            </div>
-
-            <div class="mh-content" id="mh-uber">
-                <div class="uber-scene">
-                    <div class="broadcast-ring"></div>
-                    <div class="broadcast-ring"></div>
-                    
-                    <div class="uber-chat-mock">
-                        <div class="uc-head">Нове замовлення</div>
-                        <div style="font-size:11px; color:#1c1e21;">📍 вул. Франка, 12</div>
-                        <div class="uc-btn">Забрати собі</div>
+            <div class="mode-hero-panel" id="mode-hero-panel">
+                <div class="mh-content active" id="mh-dispatcher">
+                    <div class="anim-scene">
+                        <div class="scene-path"></div>
+                        <div class="scene-node"><i class="fa-solid fa-laptop"></i></div>
+                        <div class="scene-order"><i class="fa-solid fa-box"></i></div>
+                        <div class="scene-node"><i class="fa-solid fa-motorcycle"></i></div>
                     </div>
-                    <i class="fa-solid fa-hand-pointer cursor-pointer"></i>
+                    <div class="mh-label-text" data-i18n="mh_disp_lbl">Ручне призначення</div>
                 </div>
-                <div class="mh-label-text" style="margin-top: 10px;">Хто перший — той і везе</div>
-            </div>
-        </div>
 
-        <div class="scrollable-content" style="padding-top: 0;">
+                <div class="mh-content" id="mh-uber">
+                    <div class="uber-scene">
+                        <div class="broadcast-ring"></div>
+                        <div class="broadcast-ring"></div>
+                        
+                        <div class="uber-chat-mock">
+                            <div class="uc-head" data-i18n="mh_uber_new">Нове замовлення</div>
+                            <div style="font-size:11px; color:#1c1e21;" data-i18n="mh_uber_addr">📍 вул. Франка, 12</div>
+                            <div class="uc-btn" data-i18n="mh_uber_btn">Забрати собі</div>
+                        </div>
+                        <i class="fa-solid fa-hand-pointer cursor-pointer"></i>
+                    </div>
+                    <div class="mh-label-text" style="margin-top: 10px;" data-i18n="mh_uber_lbl">Хто перший — той і везе</div>
+                </div>
+            </div>
+
             <div class="mode-cards-wrapper">
                 <div class="form-section-title" data-i18n="mode_title" style="text-align: center; margin-bottom: 20px;">Як працює ваша доставка?</div>
                 
@@ -476,7 +476,7 @@
                     <div class="uber-group-wrapper" id="uber-group-field">
                         <div class="uber-hint" style="margin-bottom: 5px; font-weight:bold;" data-i18n="mode_uber_id">ID групи кур'єрів:</div>
                         <input type="text" id="courier_group_id" class="uber-input-mock" placeholder="-1001234567890">
-                        <div class="uber-hint">Додайте бота в групу. ID починається з -100.</div>
+                        <div class="uber-hint" data-i18n="mode_uber_hint">Додайте бота в групу. ID починається з -100.</div>
                     </div>
                 </label>
             </div>
@@ -581,7 +581,8 @@
                 btn_next: "Далі", btn_plan: "Обрати тариф",
                 pr_title: "Оберіть підписку", pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_b3: "Техпідтримка", pr_pop: "ПОПУЛЯРНИЙ", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Глибока аналітика та експорт", pr_p3: "Управління менеджерами",
                 btn_trial: "Почати 7 днів безкоштовно", txt_cancel: "Скасувати можна в будь-який момент",
-                mode_title: "Як працює ваша доставка?", mode_disp_t: "👑 Класика (Диспетчер)", mode_disp_d: "Замовлення приходять адміну, який призначає кур'єрів через карту вручну.", mode_uber_t: "🛵 Вільна каса (Uber)", mode_uber_d: "Замовлення падають у загальну групу. Хто перший натиснув — той і везе.", mode_uber_id: "ID групи кур'єрів:",
+                mode_title: "Як працює ваша доставка?", mode_disp_t: "👑 Класика (Диспетчер)", mode_disp_d: "Замовлення приходять адміну, який призначає кур'єрів через карту вручну.", mode_uber_t: "🛵 Вільна каса (Uber)", mode_uber_d: "Замовлення падають у загальну групу. Хто перший натиснув — той і везе.", mode_uber_id: "ID групи кур'єрів:", mode_uber_hint: "Додайте бота в групу. ID починається з -100.",
+                mh_disp_lbl: "Ручне призначення", mh_uber_new: "Нове замовлення", mh_uber_addr: "📍 вул. Франка, 12", mh_uber_btn: "Забрати собі", mh_uber_lbl: "Хто перший — той і везе",
                 reg_title: "Профіль бізнесу", reg_h1: "Основне", reg_ph_name: "Назва закладу (напр. Hero Sushi)", reg_ph_desc: "Короткий опис закладу...", reg_ph_phone: "Контактний телефон", reg_h2: "Локація", reg_ph_country: "Країна (напр. Польща)", country_def: "Польща", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту", reg_h3: "Фінанси та Оплата", cur_pl: "Польський Злотий (zł)", cur_ua: "Українська Гривня (₴)", cur_eu: "Євро (€)", reg_pay_lbl: "Приймаємо до оплати:", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
                 btn_create: "Створити кабінет", alert_err: "📍 Будь ласка, введіть хоча б Назву закладу та Місто.", alert_load: "⏳ Створюємо кабінет...", anim_process: "⏳ В процесі", anim_deliv: "✅ Доставлено"
             },
@@ -594,7 +595,8 @@
                 btn_next: "Далее", btn_plan: "Выбрать тариф",
                 pr_title: "Выберите подписку", pr_month: "/ мес", pr_b1: "До 2 курьеров в штате", pr_b2: "Базовая статистика", pr_b3: "Техподдержка", pr_pop: "ПОПУЛЯРНЫЙ", pr_p1_b: "Неограниченное", pr_p1: "количество курьеров", pr_p2: "Глубокая аналитика и экспорт", pr_p3: "Управление менеджерами",
                 btn_trial: "Начать 7 дней бесплатно", txt_cancel: "Отменить можно в любой момент",
-                mode_title: "Как работает ваша доставка?", mode_disp_t: "👑 Классика (Диспетчер)", mode_disp_d: "Заказы приходят админу, который назначает курьеров через карту вручную.", mode_uber_t: "🛵 Свободная касса (Uber)", mode_uber_d: "Заказы падают в общую группу. Кто первый нажал — тот и везет.", mode_uber_id: "ID группы курьеров:",
+                mode_title: "Как работает ваша доставка?", mode_disp_t: "👑 Классика (Диспетчер)", mode_disp_d: "Заказы приходят админу, который назначает курьеров через карту вручную.", mode_uber_t: "🛵 Свободная касса (Uber)", mode_uber_d: "Заказы падают в общую группу. Кто первый нажал — тот и везет.", mode_uber_id: "ID группы курьеров:", mode_uber_hint: "Добавьте бота в группу. ID начинается с -100.",
+                mh_disp_lbl: "Ручное назначение", mh_uber_new: "Новый заказ", mh_uber_addr: "📍 ул. Франко, 12", mh_uber_btn: "Забрать себе", mh_uber_lbl: "Кто первый — тот и везет",
                 reg_title: "Профиль бизнеса", reg_h1: "Основное", reg_ph_name: "Название заведения (напр. Hero Sushi)", reg_ph_desc: "Краткое описание заведения...", reg_ph_phone: "Контактный телефон", reg_h2: "Локация", reg_ph_country: "Страна (напр. Польша)", country_def: "Польша", reg_ph_city: "Город (напр. Варшава)", reg_ph_street: "Улица и номер (начните вводить...)", reg_ph_radius: "Радиус доставки (км)", reg_map_hint: "Выберите адрес из списка или подвиньте карту", reg_h3: "Финансы и Оплата", cur_pl: "Польский Злотый (zł)", cur_ua: "Украинская Гривна (₴)", cur_eu: "Евро (€)", reg_pay_lbl: "Принимаем к оплате:", pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
                 btn_create: "Создать кабинет", alert_err: "📍 Пожалуйста, введите хотя бы Название заведения и Город.", alert_load: "⏳ Создаем кабинет...", anim_process: "⏳ В процессе", anim_deliv: "✅ Доставлено"
             },
@@ -607,7 +609,8 @@
                 btn_next: "Dalej", btn_plan: "Wybierz plan",
                 pr_title: "Wybierz subskrypcję", pr_month: "/ m-c", pr_b1: "Do 2 kurierów w zespole", pr_b2: "Podstawowe statystyki", pr_b3: "Wsparcie techniczne", pr_pop: "POPULARNY", pr_p1_b: "Nieograniczona", pr_p1: "liczba kurierów", pr_p2: "Głęboka analityka i eksport", pr_p3: "Zarządzanie menedżerami",
                 btn_trial: "Zacznij 7 dni za darmo", txt_cancel: "Możesz anulować w dowolnym momencie",
-                mode_title: "Jak działa twoja dostawa?", mode_disp_t: "👑 Klasyka (Dyspozytor)", mode_disp_d: "Zamówienia trafiają do administratora, który ręcznie przydziela kurierów z mapy.", mode_uber_t: "🛵 Wolna kasa (Uber)", mode_uber_d: "Zamówienia wpadają do ogólnej grupy. Kto pierwszy kliknie, ten bierze.", mode_uber_id: "ID grupy kurierów:",
+                mode_title: "Jak działa twoja dostawa?", mode_disp_t: "👑 Klasyka (Dyspozytor)", mode_disp_d: "Zamówienia trafiają do administratora, który ręcznie przydziela kurierów z mapy.", mode_uber_t: "🛵 Wolna kasa (Uber)", mode_uber_d: "Zamówienia wpadają do ogólnej grupy. Kto pierwszy kliknie, ten bierze.", mode_uber_id: "ID grupy kurierów:", mode_uber_hint: "Dodaj bota do grupy. ID zaczyna się od -100.",
+                mh_disp_lbl: "Ręczne przydzielanie", mh_uber_new: "Nowe zamówienie", mh_uber_addr: "📍 ul. Franka, 12", mh_uber_btn: "Biorę to", mh_uber_lbl: "Kto pierwszy, ten lepszy",
                 reg_title: "Profil firmy", reg_h1: "Podstawowe", reg_ph_name: "Nazwa lokalu (np. Hero Sushi)", reg_ph_desc: "Krótki opis lokalu...", reg_ph_phone: "Telefon kontaktowy", reg_h2: "Lokalizacja", reg_ph_country: "Kraj (np. Polska)", country_def: "Polska", reg_ph_city: "Miasto (np. Warszawa)", reg_ph_street: "Ulica i numer (zacznij wpisywać...)", reg_ph_radius: "Promień dostawy (km)", reg_map_hint: "Wybierz adres z listy lub przesuń mapę", reg_h3: "Finanse i Płatności", cur_pl: "Polski Złoty (zł)", cur_ua: "Hrywnia Ukraińska (₴)", cur_eu: "Euro (€)", reg_pay_lbl: "Akceptujemy płatności:", pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
                 btn_create: "Utwórz konto", alert_err: "📍 Proszę podać przynajmniej Nazwę lokalu i Miasto.", alert_load: "⏳ Tworzenie konta...", anim_process: "⏳ W trakcie", anim_deliv: "✅ Dostarczono"
             },
@@ -620,7 +623,8 @@
                 btn_next: "Next", btn_plan: "Choose plan",
                 pr_title: "Choose Subscription", pr_month: "/ mo", pr_b1: "Up to 2 couriers", pr_b2: "Basic statistics", pr_b3: "Tech support", pr_pop: "POPULAR", pr_p1_b: "Unlimited", pr_p1: "couriers", pr_p2: "Deep analytics & export", pr_p3: "Manager roles",
                 btn_trial: "Start 7 days for free", txt_cancel: "Cancel anytime",
-                mode_title: "How does your delivery work?", mode_disp_t: "👑 Classic (Dispatcher)", mode_disp_d: "Orders go to admin, who manually assigns couriers via map.", mode_uber_t: "🛵 Open pool (Uber)", mode_uber_d: "Orders drop to a common group. First to click takes it.", mode_uber_id: "Couriers Group ID:",
+                mode_title: "How does your delivery work?", mode_disp_t: "👑 Classic (Dispatcher)", mode_disp_d: "Orders go to admin, who manually assigns couriers via map.", mode_uber_t: "🛵 Open pool (Uber)", mode_uber_d: "Orders drop to a common group. First to click takes it.", mode_uber_id: "Couriers Group ID:", mode_uber_hint: "Add bot to group. ID starts with -100.",
+                mh_disp_lbl: "Manual Assignment", mh_uber_new: "New Order", mh_uber_addr: "📍 Franko st, 12", mh_uber_btn: "Take it", mh_uber_lbl: "First come, first served",
                 reg_title: "Business Profile", reg_h1: "General", reg_ph_name: "Business name (e.g. Hero Sushi)", reg_ph_desc: "Short description...", reg_ph_phone: "Contact phone", reg_h2: "Location", reg_ph_country: "Country (e.g. Poland)", country_def: "Poland", reg_ph_city: "City (e.g. Warsaw)", reg_ph_street: "Street and number (start typing...)", reg_ph_radius: "Delivery radius (km)", reg_map_hint: "Select an address from the list or move the map", reg_h3: "Finance & Payments", cur_pl: "Polish Złoty (zł)", cur_ua: "Ukrainian Hryvnia (₴)", cur_eu: "Euro (€)", reg_pay_lbl: "Accepted payment methods:", pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
                 btn_create: "Create account", alert_err: "📍 Please enter at least the Business Name and City.", alert_load: "⏳ Creating account...", anim_process: "⏳ In progress", anim_deliv: "✅ Delivered"
             }
@@ -751,7 +755,7 @@
             document.getElementById(`plan-${plan}`).classList.add('selected');
         }
 
-        // --- ЛОГІКА ДЛЯ ЕКРАНУ ВИБОРУ РЕЖИМУ (З АНІМАЦІЄЮ HERO ПАНЕЛІ) ---
+        // --- ЛОГІКА ДЛЯ ЕКРАНУ ВИБОРУ РЕЖИМУ ---
         (function initDeliveryModeSelector() {
           const cards = document.querySelectorAll('.delivery-mode-card');
           const uberField = document.getElementById('uber-group-field');
