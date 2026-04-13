@@ -1,4 +1,5 @@
 import os
+import zoneinfo
 from dotenv import load_dotenv
 
 # Завантажуємо змінні з файлу .env
@@ -27,3 +28,10 @@ except ValueError as e:
 
 # Секрети для верифікації вебхуків (опціонально, але рекомендовано)
 WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET")
+
+# ✅ ВИПРАВЛЕНО: Timezone з env (враховує літній/зимовий час автоматично)
+_tz_name = os.getenv("BUSINESS_TIMEZONE", "Europe/Warsaw")
+try:
+    BUSINESS_TZ = zoneinfo.ZoneInfo(_tz_name)
+except zoneinfo.ZoneInfoNotFoundError:
+    BUSINESS_TZ = zoneinfo.ZoneInfo("UTC")

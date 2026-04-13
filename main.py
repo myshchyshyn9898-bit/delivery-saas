@@ -5,6 +5,7 @@ from bot_setup import bot, dp, scheduler
 from handlers import commands, orders, admin
 from handlers.webhooks import start_webhook_server
 from handlers.scheduler import check_late_orders
+from middleware import ThrottlingMiddleware
 
 # ==========================================
 # НАЛАШТУВАННЯ ЛОГУВАННЯ
@@ -19,6 +20,10 @@ logger = logging.getLogger(__name__)
 dp.include_router(commands.router)
 dp.include_router(orders.router)
 dp.include_router(admin.router)
+
+# ✅ ВИПРАВЛЕНО: Rate limiting — 1 повідомлення/сек, 0.5 сек для кнопок
+dp.message.middleware(ThrottlingMiddleware(rate_limit=1.0))
+dp.callback_query.middleware(ThrottlingMiddleware(rate_limit=0.5))
 
 # ==========================================
 # ГОЛОВНИЙ ЗАПУСК

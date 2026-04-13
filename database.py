@@ -138,14 +138,36 @@ async def get_user_context(user_id: int):
     return None
 
 async def create_staff(user_id: int, name: str, biz_id: str, role: str = 'courier'):
-    """Записуємо кур'єра або менеджера в базу"""
+    """Записуємо кур'єра або менеджера в базу.
+
+    ✅ ВИПРАВЛЕНО bug #1: раніше upsert on_conflict='user_id' перезаписував весь запис,
+    тому кур'єр міг бути тільки в одному бізнесі — при повторній реєстрації він
+    'зникав' з попереднього закладу. Тепер перевіряємо пару (user_id, business_id):
+    якщо такий запис вже є — оновлюємо ім'я/роль, якщо немає — вставляємо новий.
+    """
+    # Перевіряємо чи вже є запис для цієї пари (user_id + business_id)
+    existing = await _run(
+        lambda: supabase.table("staff")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("business_id", biz_id)
+            .execute()
+    )
     data = {
         "user_id": user_id,
         "name": name,
         "business_id": biz_id,
         "role": role
     }
-    return await _run(lambda: supabase.table("staff").insert(data).execute())
+    if existing.data:
+        # Запис є — оновлюємо ім'я та роль
+        record_id = existing.data[0]["id"]
+        return await _run(
+            lambda: supabase.table("staff").update({"name": name, "role": role}).eq("id", record_id).execute()
+        )
+    else:
+        # Нового кур'єра — просто вставляємо
+        return await _run(lambda: supabase.table("staff").insert(data).execute())
 
 async def get_courier(user_id: int):
     """Отримуємо інфо про конкретного працівника"""
@@ -201,9 +223,31 @@ async def update_order_status(order_id: str, new_status: str, actual_pay_type: s
     await _run(lambda: supabase.table("orders").update(data).eq("id", order_id).execute())
 
 async def get_daily_report(biz_id: str):
-    """Генерує дані для звіту адміна за поточний день"""
-    today = datetime.datetime.now(timezone.utc).date()
-    start_of_day = datetime.datetime(today.year, today.month, today.day, tzinfo=timezone.utc).isoformat()
+    """Генерує дані для звіту адміна за поточний день.
+
+    ✅ ВИПРАВЛЕНО bug #4: раніше використовувалась глобальна BUSINESS_TZ,
+    тому бізнеси в різних містах рахували день неправильно.
+    Тепер timezone береться з поля businesses.timezone якщо є,
+    інакше fallback до глобальної BUSINESS_TZ.
+    """
+    import zoneinfo as _zi
+    from config import BUSINESS_TZ
+
+    # Намагаємось дістати timezone бізнесу. Якщо колонки timezone ще немає в БД
+    # або будь-яка інша помилка — мовчки падаємо на глобальний BUSINESS_TZ.
+    biz_tz = BUSINESS_TZ
+    try:
+        tz_res = await _run(
+            lambda: supabase.table("businesses").select("timezone").eq("id", biz_id).execute()
+        )
+        if tz_res.data and tz_res.data[0].get("timezone"):
+            biz_tz = _zi.ZoneInfo(tz_res.data[0]["timezone"])
+    except Exception:
+        pass  # колонки немає або невалідна tz — fallback до BUSINESS_TZ
+
+    now_local = datetime.datetime.now(biz_tz)
+    start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_day = start_local.astimezone(timezone.utc).isoformat()
 
     res_orders = await _run(
         lambda: supabase.table("orders")
@@ -225,11 +269,14 @@ async def get_daily_report(biz_id: str):
     total_cash = 0
     total_term = 0
     total_online = 0
+    total_online_sum = 0.0  # ✅ ВИПРАВЛЕНО bug #10: рахуємо суму онлайн-замовлень
 
     for o in orders:
+        if not o.get('courier_id'):
+            continue  # пропускаємо замовлення без призначеного кур'єра
         c_id = str(o['courier_id'])
         if c_id not in report:
-            report[c_id] = {'count': 0, 'cash': 0.0, 'term': 0.0, 'online': 0, 'name': staff_dict.get(c_id, "Невідомий")}
+            report[c_id] = {'count': 0, 'cash': 0.0, 'term': 0.0, 'online': 0, 'online_sum': 0.0, 'name': staff_dict.get(c_id, "Невідомий")}
         report[c_id]['count'] += 1
         amt = float(o['amount'])
         pay = o['pay_type']
@@ -240,8 +287,45 @@ async def get_daily_report(biz_id: str):
             report[c_id]['term'] += amt
             total_term += amt
         else:
-            # online — сума вже сплачена, окремо рахуємо кількість
+            # online — сума вже сплачена онлайн
             report[c_id]['online'] += 1
+            report[c_id]['online_sum'] += amt
             total_online += 1
+            total_online_sum += amt
 
-    return report, total_cash, total_term, total_online
+    return report, total_cash, total_term, total_online, total_online_sum
+
+# ==========================================
+# ✅ ВИПРАВЛЕНО: IN-MEMORY КЕШ для get_user_context
+# Зменшує кількість DB запитів з 2-3 до 0 протягом 60 сек
+# ==========================================
+
+import time as _time
+from typing import Optional
+
+_context_cache: dict = {}
+_CACHE_TTL = 60  # секунд
+
+async def get_user_context_cached(user_id: int) -> Optional[dict]:
+    """
+    Кешована версія get_user_context.
+    Перший виклик іде в БД, наступні 60 сек — з пам'яті.
+    """
+    now = _time.monotonic()
+    cached = _context_cache.get(user_id)
+
+    if cached:
+        ts, data = cached
+        if now - ts < _CACHE_TTL:
+            return data
+
+    context = await get_user_context(user_id)
+    _context_cache[user_id] = (now, context)
+    return context
+
+def invalidate_user_cache(user_id: int):
+    """
+    Скидає кеш для юзера. Викликати після зміни ролі,
+    реєстрації бізнесу або додавання персоналу.
+    """
+    _context_cache.pop(user_id, None)

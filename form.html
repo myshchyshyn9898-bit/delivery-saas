@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
+        <meta name="server-url" content="https://delivery-saas-production-3fe6.up.railway.app">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Нове замовлення</title>
@@ -629,7 +630,10 @@
             
             fetch(RAILWAY_DOMAIN + '/api/new_order', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {})
+                },
                 body: JSON.stringify(orderData)
             }).then(async (res) => {
                 if (res.ok) {
