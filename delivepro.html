@@ -92,9 +92,6 @@
         .graph-svg { width: 100%; height: 100%; overflow: visible; }
         .graph-line { stroke: var(--primary); stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 200; stroke-dashoffset: 200; animation: drawLine 4s infinite ease-out; }
         .graph-fill { fill: url(#graphGrad); opacity: 0; animation: fadeFill 4s infinite ease-out; }
-        
-        @keyframes drawLine { 0%, 15% { stroke-dashoffset: 200; } 60%, 100% { stroke-dashoffset: 0; } }
-        @keyframes fadeFill { 0%, 40% { opacity: 0; } 60%, 100% { opacity: 1; } }
 
         /* Команда */
         .edge-team-list { width: 100%; padding: 0 15px; display: flex; flex-direction: column; gap: 12px; animation: teamFloat 5s infinite ease-in-out;}
@@ -106,24 +103,38 @@
         .tr-info div:last-child { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; display: inline-block; margin-top: 5px; background: rgba(59, 130, 246, 0.1); color: var(--acc-blue);}
         .tr-info .role-courier { background: rgba(255, 118, 82, 0.1) !important; color: var(--primary) !important;}
         
-        /* Форма */
+        /* Форма з Mapbox Style */
         .edge-form { width: 100%; background: white; border-radius: 30px 30px 0 0; padding: 25px; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); animation: slideUpFloat 6s infinite ease-in-out alternate-reverse;}
         .cf-input { border: 2px solid var(--border); border-radius: 16px; height: 55px; background: #fbfcfd; display: flex; align-items: center; padding: 0 15px; margin-bottom: 20px; font-weight: 600; font-size: 15px; color: var(--text-main);}
         .cf-input::after { content: ''; animation: typeAddress 6s infinite;}
-        .real-map-bg { height: 160px; border-radius: 18px; position: relative; border: 2px solid var(--border); background-image: url('https://tile.openstreetmap.org/14/9024/5533.png'); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; overflow: hidden;}
+        
+        /* Світла мапа Mapbox */
+        .real-map-bg { 
+            height: 160px; border-radius: 18px; position: relative; border: 1px solid var(--border); 
+            background-color: #f8fafc;
+            background-image: url('https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/21.999,50.041,13,0/600x300?access_token=pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg'); 
+            background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);
+        }
         .cf-route-line { position: absolute; width: 60%; height: 3px; background-image: linear-gradient(to right, var(--primary) 50%, transparent 50%); background-size: 15px 3px; top: 50%; left: 20%; transform: rotate(-15deg); z-index: 1; opacity: 0.8; animation: drawDashedRoute 6s infinite linear;}
         .cf-marker-store { position: absolute; left: 15%; top: 60%; width: 34px; height: 34px; background: #1c1e21; border-radius: 10px; z-index: 2; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; box-shadow: 0 6px 15px rgba(0,0,0,0.3);}
         .cf-marker-client { position: absolute; right: 15%; top: 30%; width: 34px; height: 34px; background: var(--primary); border-radius: 50%; z-index: 2; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; border: 3px solid white; box-shadow: 0 6px 15px rgba(0,0,0,0.3);}
 
-        /* Телеграм Карта */
+        /* Телеграм з ТЕМНИМ Mapbox Style */
         .edge-tg { width: 95%; background: #1c1c1e; border-radius: 24px 24px 24px 6px; padding: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); animation: teamFloat 6s infinite ease-in-out;}
-        .premium-css-map { height: 140px; border-radius: 14px; margin-bottom: 15px; position: relative; background-color: #242426; background-image: linear-gradient(#2c2c2e 2px, transparent 2px), linear-gradient(90deg, #2c2c2e 2px, transparent 2px); background-size: 30px 30px; background-position: center; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #3a3a3c; }
-        .premium-css-map::before { content: ''; position: absolute; width: 150%; height: 150%; background: radial-gradient(circle at center, transparent 30%, #242426 80%); z-index: 1; pointer-events: none; }
-        .premium-css-map svg { position: absolute; width: 100%; height: 100%; z-index: 0; opacity: 0.5; }
+        
+        .premium-css-map { 
+            height: 140px; border-radius: 14px; margin-bottom: 15px; position: relative; background-color: #242426; 
+            background-image: url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/21.999,50.041,13,0/600x300?access_token=pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg'); 
+            background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #3a3a3c; 
+        }
+        
         .glowing-route { position: absolute; width: 65%; height: 4px; background: linear-gradient(90deg, #ff7652, #ffa07a); transform: rotate(-15deg); border-radius: 4px; box-shadow: 0 0 12px rgba(255, 118, 82, 0.6); z-index: 2; animation: pulseGlow 3s infinite alternate; }
         .pm-marker-store { position: absolute; left: 15%; top: 55%; width: 34px; height: 34px; background: #1c1e21; border-radius: 10px; z-index: 3; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid #3a3a3c;}
         .pm-marker-client { position: absolute; right: 15%; top: 25%; width: 34px; height: 34px; background: var(--primary); border-radius: 50%; z-index: 3; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; border: 3px solid #242426; box-shadow: 0 4px 12px rgba(0,0,0,0.5);}
 
+        @keyframes drawLine { 0%, 15% { stroke-dashoffset: 200; } 60%, 100% { stroke-dashoffset: 0; } }
+        @keyframes fadeFill { 0%, 40% { opacity: 0; } 60%, 100% { opacity: 1; } }
         @keyframes slideUpFloat { 0%, 100% { transform: translateY(10px); } 50% { transform: translateY(-5px); } }
         @keyframes teamFloat { 0%, 100% { transform: translateY(5px); } 50% { transform: translateY(-5px); } }
         @keyframes teamPop { 0%, 40% { max-height: 0; opacity: 0; padding: 0; margin-bottom: 0; border-width: 0;} 45%, 100% { max-height: 100px; opacity: 1; padding: 18px; margin-bottom: 0; border-width: 1px;} }
@@ -155,11 +166,10 @@
         .trial-text i { color: var(--primary); margin-right: 5px;}
 
         /* ========================================= */
-        /* 🔥 ЕКРАН: ВИБІР РЕЖИМУ (Виправлено перекриття та клавіатуру) */
+        /* 🔥 ЕКРАН: ВИБІР РЕЖИМУ ДОСТАВКИ */
         /* ========================================= */
         #screen-mode { background: var(--bg-secondary); padding: 0; } 
         
-        /* Панель стала меншою (17vh) і переміщена у scrollable-content */
         .mode-hero-panel {
             width: 100%; height: 17vh; min-height: 150px;
             background: radial-gradient(circle at top right, #2a3b5c, #0f172a);
@@ -180,7 +190,6 @@
         .mh-content { position: absolute; width: 100%; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(15px) scale(0.95); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; z-index: 2; }
         .mh-content.active { opacity: 1; transform: translateY(0) scale(1); }
 
-        /* Анімація Диспетчера */
         .anim-scene { display: flex; align-items: center; justify-content: space-between; width: 200px; position: relative; height: 70px;}
         .scene-node { width: 50px; height: 50px; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 2; }
         .scene-order { position: absolute; width: 28px; height: 28px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; box-shadow: 0 5px 15px rgba(255, 118, 82, 0.4); z-index: 1; top: 21px; animation: flyOrder 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1); }
@@ -193,7 +202,6 @@
             100% { left: calc(100% - 40px); opacity: 0; transform: scale(0.5); }
         }
 
-        /* Анімація Uber */
         .uber-scene { position: relative; display: flex; flex-direction: column; align-items: center; height: 95px; justify-content: center; width: 100%;}
         .uber-chat-mock { background: white; padding: 10px 14px; border-radius: 14px 14px 14px 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; z-index: 2; animation: floatChat 3s infinite ease-in-out; display: flex; flex-direction: column; gap: 6px; width: 160px;}
         .uc-head { font-size: 11px; color: #d97706; font-weight: 900; text-transform: uppercase;}
@@ -214,7 +222,6 @@
         @keyframes broadcastWave { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
         .mh-label-text { color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; margin-top: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
 
-        /* ВІДСТУП МІЖ КАРТКАМИ І ТЕКСТОМ (Без перекриття) */
         .mode-cards-wrapper { padding: 0 20px; margin-top: 15px; position: relative; z-index: 10;}
 
         .delivery-mode-card {
@@ -363,19 +370,14 @@
                 <div class="slide-visual-fade">
                     <div class="edge-tg">
                         <div class="premium-css-map">
-                            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
-                                <path d="M-10,30 Q40,60 100,40 T210,60" stroke="#3a3a3c" stroke-width="3" fill="none"/>
-                                <path d="M60,-10 Q80,40 50,110" stroke="#3a3a3c" stroke-width="3" fill="none"/>
-                                <path d="M140,-10 Q120,40 160,110" stroke="#3a3a3c" stroke-width="3" fill="none"/>
-                            </svg>
                             <div class="glowing-route"></div>
                             <div class="pm-marker-store"><i class="fa-solid fa-store"></i></div>
                             <div class="pm-marker-client"><i class="fa-solid fa-location-dot"></i></div>
                         </div>
                         <div class="tg-text">
-                            <b>📦 ЗАМОВЛЕННЯ #N209</b><br>
-                            <div class="tg-status">Статус: <div class="tg-status-dot"></div> Закрито (22:34)</div>
-                            <div class="tg-details">📍 Адреса: 52f, Miła, Drabinianka<br>💳 Оплата: ОНЛАЙН (Сплачено)</div>
+                            <b data-i18n="tg_title">📦 ЗАМОВЛЕННЯ #N209</b><br>
+                            <div class="tg-status"><span data-i18n="tg_stat_lbl">Статус:</span> <div class="tg-status-dot"></div> <span data-i18n="tg_stat_val">Закрито (22:34)</span></div>
+                            <div class="tg-details" data-i18n="tg_details">📍 Адреса: 52f, Miła, Drabinianka<br>💳 Оплата: ОНЛАЙН (Сплачено)</div>
                         </div>
                     </div>
                 </div>
@@ -577,13 +579,14 @@
                 s1_title: "Глибока Аналітика", s1_desc: "Контролюйте доходи, час та зони доставки у реальному часі.", lbl_total_cash: "Загальна каса", lbl_heatmap: "Динаміка доходу",
                 s2_title: "Керування командою", s2_desc: "Додавайте та видаляйте менеджерів і кур'єрів в один клік.", name_manager: "Олексій М.", name_courier1: "Іван К.", name_courier2: "Максим В.", lbl_manager: "МЕНЕДЖЕР", lbl_courier: "КУР'ЄР",
                 s3_title: "Розумна форма", s3_desc: "Автоматичний пошук адреси, перевірка зони та швидке створення маршруту.", s3_input_street: "Адреса доставки", 
-                s4_title: "Робоче місце кур'єра", s4_desc: "Карта маршруту та закриття замовлень — усе в єдиному повідомленні Telegram.", txt_order_num: "📦 Замовлення #A1B2C", s4_street: "📍 Baker Street, 12", btn_route: "Маршрут",
+                s4_title: "Робоче місце кур'єра", s4_desc: "Карта маршруту та закриття замовлень — усе в єдиному повідомленні Telegram.", 
+                tg_title: "📦 ЗАМОВЛЕННЯ #N209", tg_stat_lbl: "Статус:", tg_stat_val: "Закрито (22:34)", tg_details: "📍 Адреса: 52f, Miła, Drabinianka<br>💳 Оплата: ОНЛАЙН (Сплачено)", btn_route: "Маршрут",
                 btn_next: "Далі", btn_plan: "Обрати тариф",
                 pr_title: "Оберіть підписку", pr_month: "/ міс", pr_b1: "До 2 кур'єрів у штаті", pr_b2: "Базова статистика", pr_b3: "Техпідтримка", pr_pop: "ПОПУЛЯРНИЙ", pr_p1_b: "Необмежена", pr_p1: "кількість кур'єрів", pr_p2: "Глибока аналітика та експорт", pr_p3: "Управління менеджерами",
                 btn_trial: "Почати 7 днів безкоштовно", txt_cancel: "Скасувати можна в будь-який момент",
                 mode_title: "Як працює ваша доставка?", mode_disp_t: "👑 Класика (Диспетчер)", mode_disp_d: "Замовлення приходять адміну, який призначає кур'єрів через карту вручну.", mode_uber_t: "🛵 Вільна каса (Uber)", mode_uber_d: "Замовлення падають у загальну групу. Хто перший натиснув — той і везе.", mode_uber_id: "ID групи кур'єрів:", mode_uber_hint: "Додайте бота в групу. ID починається з -100.",
                 mh_disp_lbl: "Ручне призначення", mh_uber_new: "Нове замовлення", mh_uber_addr: "📍 вул. Франка, 12", mh_uber_btn: "Забрати собі", mh_uber_lbl: "Хто перший — той і везе",
-                reg_title: "Профіль бізнесу", reg_h1: "Основне", reg_ph_name: "Назва закладу (напр. Hero Sushi)", reg_ph_desc: "Короткий опис закладу...", reg_ph_phone: "Контактний телефон", reg_h2: "Локація", reg_ph_country: "Країна (напр. Польща)", country_def: "Польща", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту", reg_h3: "Фінанси та Оплата", cur_pl: "Польський Злотий (zł)", cur_ua: "Українська Гривня (₴)", cur_eu: "Євро (€)", reg_pay_lbl: "Приймаємо до оплати:", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
+                reg_title: "Профіль бізнесу", reg_h1: "Основное", reg_ph_name: "Назва закладу (напр. Hero Sushi)", reg_ph_desc: "Короткий опис закладу...", reg_ph_phone: "Контактний телефон", reg_h2: "Локація", reg_ph_country: "Країна (напр. Польща)", country_def: "Польща", reg_ph_city: "Місто (напр. Варшава)", reg_ph_street: "Вулиця та номер (почніть вводити...)", reg_ph_radius: "Радіус доставки (км)", reg_map_hint: "Виберіть адресу зі списку або посуньте карту", reg_h3: "Фінанси та Оплата", cur_pl: "Польський Злотий (zł)", cur_ua: "Українська Гривня (₴)", cur_eu: "Євро (€)", reg_pay_lbl: "Приймаємо до оплати:", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
                 btn_create: "Створити кабінет", alert_err: "📍 Будь ласка, введіть хоча б Назву закладу та Місто.", alert_load: "⏳ Створюємо кабінет...", anim_process: "⏳ В процесі", anim_deliv: "✅ Доставлено"
             },
             'ru': {
@@ -591,7 +594,8 @@
                 s1_title: "Глубокая Аналитика", s1_desc: "Контролируйте доходы, время и зоны доставки в реальном времени.", lbl_total_cash: "Общая касса", lbl_heatmap: "Динамика дохода",
                 s2_title: "Управление командой", s2_desc: "Добавляйте и удаляйте менеджеров и курьеров в один клик.", name_manager: "Алексей М.", name_courier1: "Иван К.", name_courier2: "Максим В.", lbl_manager: "МЕНЕДЖЕР", lbl_courier: "КУРЬЕР",
                 s3_title: "Умная форма", s3_desc: "Автоматический поиск адреса, проверка зоны и быстрое создание маршрута.", s3_input_street: "Адрес доставки", 
-                s4_title: "Рабочее место курьера", s4_desc: "Карта маршрута и закрытие заказов — всё в одном сообщении Telegram.", txt_order_num: "📦 Заказ #A1B2C", s4_street: "📍 Baker Street, 12", btn_route: "Маршрут",
+                s4_title: "Рабочее место курьера", s4_desc: "Карта маршрута и закрытие заказов — всё в одном сообщении Telegram.", 
+                tg_title: "📦 ЗАКАЗ #N209", tg_stat_lbl: "Статус:", tg_stat_val: "Закрыто (22:34)", tg_details: "📍 Адрес: 52f, Miła, Drabinianka<br>💳 Оплата: ОНЛАЙН (Оплачено)", btn_route: "Маршрут",
                 btn_next: "Далее", btn_plan: "Выбрать тариф",
                 pr_title: "Выберите подписку", pr_month: "/ мес", pr_b1: "До 2 курьеров в штате", pr_b2: "Базовая статистика", pr_b3: "Техподдержка", pr_pop: "ПОПУЛЯРНЫЙ", pr_p1_b: "Неограниченное", pr_p1: "количество курьеров", pr_p2: "Глубокая аналитика и экспорт", pr_p3: "Управление менеджерами",
                 btn_trial: "Начать 7 дней бесплатно", txt_cancel: "Отменить можно в любой момент",
@@ -605,7 +609,8 @@
                 s1_title: "Głęboka Analityka", s1_desc: "Kontroluj dochody, czas i strefy dostaw w czasie rzeczywistym.", lbl_total_cash: "Całkowity utarg", lbl_heatmap: "Dynamika dochodów",
                 s2_title: "Zarządzanie zespołem", s2_desc: "Dodawaj i usuwaj menedżerów i kurierów jednym kliknięciem.", name_manager: "Aleksy M.", name_courier1: "Jan K.", name_courier2: "Maksym W.", lbl_manager: "MENEDŻER", lbl_courier: "KURIER",
                 s3_title: "Inteligentny formularz", s3_desc: "Automatyczne wyszukiwanie adresu, sprawdzanie strefy i szybkie tworzenie trasy.", s3_input_street: "Adres dostawy", 
-                s4_title: "Miejsce pracy kuriera", s4_desc: "Mapa trasy i zamykanie zamówień — wszystko w jednej wiadomości Telegram.", txt_order_num: "📦 Zamówienie #A1B2C", s4_street: "📍 Baker Street, 12", btn_route: "Trasa",
+                s4_title: "Miejsce pracy kuriera", s4_desc: "Mapa trasy i zamykanie zamówień — wszystko w jednej wiadomości Telegram.", 
+                tg_title: "📦 ZAMÓWIENIE #N209", tg_stat_lbl: "Status:", tg_stat_val: "Zamknięte (22:34)", tg_details: "📍 Adres: 52f, Miła, Drabinianka<br>💳 Płatność: ONLINE (Opłacono)", btn_route: "Trasa",
                 btn_next: "Dalej", btn_plan: "Wybierz plan",
                 pr_title: "Wybierz subskrypcję", pr_month: "/ m-c", pr_b1: "Do 2 kurierów w zespole", pr_b2: "Podstawowe statystyki", pr_b3: "Wsparcie techniczne", pr_pop: "POPULARNY", pr_p1_b: "Nieograniczona", pr_p1: "liczba kurierów", pr_p2: "Głęboka analityka i eksport", pr_p3: "Zarządzanie menedżerami",
                 btn_trial: "Zacznij 7 dni za darmo", txt_cancel: "Możesz anulować w dowolnym momencie",
@@ -619,7 +624,8 @@
                 s1_title: "Deep Analytics", s1_desc: "Control revenue, time, and delivery zones in real-time.", lbl_total_cash: "Total Revenue", lbl_heatmap: "Revenue Dynamics",
                 s2_title: "Team Management", s2_desc: "Add and remove managers and couriers in one click.", name_manager: "Alex M.", name_courier1: "John K.", name_courier2: "Max W.", lbl_manager: "MANAGER", lbl_courier: "COURIER",
                 s3_title: "Smart Form", s3_desc: "Auto address search, zone check, and fast route creation.", s3_input_street: "Delivery Address", 
-                s4_title: "Courier Workspace", s4_desc: "Route map and order completion — all in a single Telegram message.", txt_order_num: "📦 Order #A1B2C", s4_street: "📍 Baker Street, 12", btn_route: "Route",
+                s4_title: "Courier Workspace", s4_desc: "Route map and order completion — all in a single Telegram message.", 
+                tg_title: "📦 ORDER #N209", tg_stat_lbl: "Status:", tg_stat_val: "Closed (22:34)", tg_details: "📍 Address: 52f, Miła, Drabinianka<br>💳 Payment: ONLINE (Paid)", btn_route: "Route",
                 btn_next: "Next", btn_plan: "Choose plan",
                 pr_title: "Choose Subscription", pr_month: "/ mo", pr_b1: "Up to 2 couriers", pr_b2: "Basic statistics", pr_b3: "Tech support", pr_pop: "POPULAR", pr_p1_b: "Unlimited", pr_p1: "couriers", pr_p2: "Deep analytics & export", pr_p3: "Manager roles",
                 btn_trial: "Start 7 days for free", txt_cancel: "Cancel anytime",
