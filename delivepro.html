@@ -6,9 +6,7 @@
     <title>DeliPro</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -25,7 +23,6 @@
             --acc-green: #34C759;
             --acc-blue: #4A6CF7;
             
-            /* Змінні для перекладу CSS-анімацій */
             --txt-process: "⏳ В процесі";
             --txt-delivered: "✅ Доставлено";
         }
@@ -42,6 +39,7 @@
         .lang-item:last-child { border-bottom: none; }
         .lang-item:active { background: #fbfcfd; color: var(--primary); }
 
+        /* БАЗОВИЙ ЕКРАН */
         .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100vh; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s ease, transform 0.4s ease; transform: translateX(15px); background: var(--bg-color); }
         .screen.active { opacity: 1; pointer-events: auto; transform: translateX(0); }
         
@@ -63,7 +61,7 @@
         .btn-trial { background: #111418; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); }
 
         /* ========================================= */
-        /* 🔥 ПРЕМІУМ ОНБОРДИНГ (БЕЗРАМОЧНИЙ) */
+        /* ОНБОРДИНГ */
         /* ========================================= */
         #screen-onboard { padding: 0; background: #ffffff; } 
         .carousel { display: flex; transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1); height: 100%; width: 100%; }
@@ -83,7 +81,7 @@
         .dot { width: 10px; height: 10px; border-radius: 50%; background: #edf1f7; transition: 0.3s ease; }
         .dot.active { background: var(--primary); width: 25px; border-radius: 5px; }
 
-        /* --- Слайд 1: Аналітика (З градієнтним графіком) --- */
+        /* Аналітика */
         .edge-mockup { width: 100%; background: white; border-radius: 30px 30px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); border-top: 1px solid var(--border); padding: 25px 20px; display: flex; flex-direction: column; gap: 15px; animation: slideUpFloat 6s infinite ease-in-out;}
         .el-red-card { background: linear-gradient(135deg, #FF5A5F, #ff8a76); color: white; padding: 20px; border-radius: 20px; }
         .el-graph-card { height: 160px; display: flex; flex-direction: column; background: #fbfcfd; border-radius: 20px; padding: 20px;}
@@ -98,7 +96,7 @@
         @keyframes drawLine { 0%, 15% { stroke-dashoffset: 200; } 60%, 100% { stroke-dashoffset: 0; } }
         @keyframes fadeFill { 0%, 40% { opacity: 0; } 60%, 100% { opacity: 1; } }
 
-        /* --- Слайд 2: Команда --- */
+        /* Команда */
         .edge-team-list { width: 100%; padding: 0 15px; display: flex; flex-direction: column; gap: 12px; animation: teamFloat 5s infinite ease-in-out;}
         .team-row { background: white; border-radius: 20px; padding: 18px; display: flex; align-items: center; gap: 15px; box-shadow: 0 10px 35px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.02); }
         .team-row:nth-child(2) { animation-delay: 0.2s; }
@@ -108,7 +106,7 @@
         .tr-info div:last-child { font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 6px; display: inline-block; margin-top: 5px; background: rgba(59, 130, 246, 0.1); color: var(--acc-blue);}
         .tr-info .role-courier { background: rgba(255, 118, 82, 0.1) !important; color: var(--primary) !important;}
         
-        /* --- Слайд 3: Форма --- */
+        /* Форма */
         .edge-form { width: 100%; background: white; border-radius: 30px 30px 0 0; padding: 25px; box-shadow: 0 -10px 40px rgba(0,0,0,0.05); animation: slideUpFloat 6s infinite ease-in-out alternate-reverse;}
         .cf-input { border: 2px solid var(--border); border-radius: 16px; height: 55px; background: #fbfcfd; display: flex; align-items: center; padding: 0 15px; margin-bottom: 20px; font-weight: 600; font-size: 15px; color: var(--text-main);}
         .cf-input::after { content: ''; animation: typeAddress 6s infinite;}
@@ -117,13 +115,12 @@
         .cf-marker-store { position: absolute; left: 15%; top: 60%; width: 34px; height: 34px; background: #1c1e21; border-radius: 10px; z-index: 2; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; box-shadow: 0 6px 15px rgba(0,0,0,0.3);}
         .cf-marker-client { position: absolute; right: 15%; top: 30%; width: 34px; height: 34px; background: var(--primary); border-radius: 50%; z-index: 2; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; border: 3px solid white; box-shadow: 0 6px 15px rgba(0,0,0,0.3);}
 
-        /* --- Слайд 4: CSS Карта з преміум-іконками --- */
+        /* Телеграм Карта */
         .edge-tg { width: 95%; background: #1c1c1e; border-radius: 24px 24px 24px 6px; padding: 20px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); animation: teamFloat 6s infinite ease-in-out;}
         .premium-css-map { height: 140px; border-radius: 14px; margin-bottom: 15px; position: relative; background-color: #242426; background-image: linear-gradient(#2c2c2e 2px, transparent 2px), linear-gradient(90deg, #2c2c2e 2px, transparent 2px); background-size: 30px 30px; background-position: center; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #3a3a3c; }
         .premium-css-map::before { content: ''; position: absolute; width: 150%; height: 150%; background: radial-gradient(circle at center, transparent 30%, #242426 80%); z-index: 1; pointer-events: none; }
         .premium-css-map svg { position: absolute; width: 100%; height: 100%; z-index: 0; opacity: 0.5; }
         .glowing-route { position: absolute; width: 65%; height: 4px; background: linear-gradient(90deg, #ff7652, #ffa07a); transform: rotate(-15deg); border-radius: 4px; box-shadow: 0 0 12px rgba(255, 118, 82, 0.6); z-index: 2; animation: pulseGlow 3s infinite alternate; }
-        
         .pm-marker-store { position: absolute; left: 15%; top: 55%; width: 34px; height: 34px; background: #1c1e21; border-radius: 10px; z-index: 3; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid #3a3a3c;}
         .pm-marker-client { position: absolute; right: 15%; top: 25%; width: 34px; height: 34px; background: var(--primary); border-radius: 50%; z-index: 3; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; border: 3px solid #242426; box-shadow: 0 4px 12px rgba(0,0,0,0.5);}
 
@@ -158,15 +155,20 @@
         .trial-text i { color: var(--primary); margin-right: 5px;}
 
         /* ========================================= */
-        /* 🔥 ЕКРАН: ВИБІР РЕЖИМУ (З ДОПРАЦЬОВАНОЮ HERO ПАНЕЛЛЮ) */
+        /* 🔥 ЕКРАН: ВИБІР РЕЖИМУ ДОСТАВКИ (ВИПРАВЛЕНО ВИСОТУ) */
         /* ========================================= */
         #screen-mode { background: var(--bg-secondary); padding: 0; } 
         
+        /* Зменшена висота панелі, щоб не перекривала текст */
         .mode-hero-panel {
-            width: 100%; height: 35vh;
+            width: 100%; height: 26vh; min-height: 180px;
             background: radial-gradient(circle at top right, #2a3b5c, #0f172a);
-            border-radius: 0 0 40px 40px; display: flex; align-items: center; justify-content: center;
-            position: relative; transition: background 0.6s ease; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 0 0 35px 35px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; transition: background 0.6s ease;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding-bottom: 15px;
         }
         .mode-hero-panel::before {
             content: ''; position: absolute; top:0; left:0; right:0; bottom:0;
@@ -175,45 +177,50 @@
         }
         .mode-hero-panel.is-uber { background: radial-gradient(circle at top right, #fbbf24, #d97706); }
         
-        .mh-content { position: absolute; width: 100%; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(20px) scale(0.95); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; z-index: 2; }
+        .mh-content { position: absolute; width: 100%; display: flex; flex-direction: column; align-items: center; opacity: 0; transform: translateY(15px) scale(0.95); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; z-index: 2; }
         .mh-content.active { opacity: 1; transform: translateY(0) scale(1); }
 
         /* Анімація Диспетчера */
-        .anim-scene { display: flex; align-items: center; justify-content: space-between; width: 220px; position: relative; height: 80px;}
-        .scene-node { width: 60px; height: 60px; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 2; }
-        .scene-order { position: absolute; width: 34px; height: 34px; background: var(--primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; box-shadow: 0 5px 15px rgba(255, 118, 82, 0.4); z-index: 1; top: 23px; animation: flyOrder 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1); }
-        .scene-path { position: absolute; left: 40px; right: 40px; height: 2px; border-top: 3px dashed rgba(255,255,255,0.3); top: 50%; z-index: 0; }
+        .anim-scene { display: flex; align-items: center; justify-content: space-between; width: 200px; position: relative; height: 70px;}
+        .scene-node { width: 50px; height: 50px; background: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: white; border: 1px solid rgba(255,255,255,0.25); box-shadow: 0 10px 25px rgba(0,0,0,0.3); z-index: 2; }
+        .scene-order { position: absolute; width: 28px; height: 28px; background: var(--primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; box-shadow: 0 5px 15px rgba(255, 118, 82, 0.4); z-index: 1; top: 21px; animation: flyOrder 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+        .scene-path { position: absolute; left: 35px; right: 35px; height: 2px; border-top: 2px dashed rgba(255,255,255,0.3); top: 50%; z-index: 0; }
         
         @keyframes flyOrder { 
             0% { left: 15px; opacity: 0; transform: scale(0.5); }
             15% { opacity: 1; transform: scale(1); }
-            85% { left: calc(100% - 50px); opacity: 1; transform: scale(1); }
-            100% { left: calc(100% - 50px); opacity: 0; transform: scale(0.5); }
+            85% { left: calc(100% - 40px); opacity: 1; transform: scale(1); }
+            100% { left: calc(100% - 40px); opacity: 0; transform: scale(0.5); }
         }
 
         /* Анімація Uber */
-        .uber-scene { position: relative; display: flex; flex-direction: column; align-items: center; height: 110px; justify-content: center; width: 100%;}
-        .uber-chat-mock { background: white; padding: 12px 15px; border-radius: 16px 16px 16px 4px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); position: relative; z-index: 2; animation: floatChat 3s infinite ease-in-out; display: flex; flex-direction: column; gap: 8px; width: 170px;}
-        .uc-head { font-size: 12px; color: #d97706; font-weight: 900; text-transform: uppercase;}
-        .uc-btn { background: #d97706; color: white; border-radius: 8px; padding: 8px; font-size: 11px; font-weight: 800; text-align: center; }
+        .uber-scene { position: relative; display: flex; flex-direction: column; align-items: center; height: 95px; justify-content: center; width: 100%;}
+        .uber-chat-mock { background: white; padding: 10px 14px; border-radius: 14px 14px 14px 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; z-index: 2; animation: floatChat 3s infinite ease-in-out; display: flex; flex-direction: column; gap: 6px; width: 160px;}
+        .uc-head { font-size: 11px; color: #d97706; font-weight: 900; text-transform: uppercase;}
+        .uc-btn { background: #d97706; color: white; border-radius: 6px; padding: 6px; font-size: 10px; font-weight: 800; text-align: center; }
         
-        .cursor-pointer { position: absolute; font-size: 32px; color: #1c1e21; filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3)); z-index: 3; animation: clickAction 3s infinite; }
-        .broadcast-ring { position: absolute; width: 60px; height: 60px; border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; z-index: 1; top: 20px; animation: broadcastWave 3s infinite ease-out; }
+        .cursor-pointer { position: absolute; font-size: 26px; color: #1c1e21; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.3)); z-index: 3; animation: clickAction 3s infinite; }
+        .broadcast-ring { position: absolute; width: 50px; height: 50px; border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; z-index: 1; top: 15px; animation: broadcastWave 3s infinite ease-out; }
         .broadcast-ring:nth-child(2) { animation-delay: 0.5s; }
 
-        @keyframes floatChat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        @keyframes floatChat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
         @keyframes clickAction { 
-            0%, 20% { bottom: -20px; right: 0; opacity: 0; transform: scale(1.5); }
-            40% { bottom: 15px; right: 30px; opacity: 1; transform: scale(1); }
-            50% { bottom: 15px; right: 30px; transform: scale(0.85); }
-            60%, 80% { bottom: 15px; right: 30px; opacity: 1; transform: scale(1); }
-            100% { bottom: -20px; right: 0; opacity: 0; transform: scale(1.5); }
+            0%, 20% { bottom: -15px; right: 10px; opacity: 0; transform: scale(1.5); }
+            40% { bottom: 12px; right: 35px; opacity: 1; transform: scale(1); }
+            50% { bottom: 12px; right: 35px; transform: scale(0.85); }
+            60%, 80% { bottom: 12px; right: 35px; opacity: 1; transform: scale(1); }
+            100% { bottom: -15px; right: 10px; opacity: 0; transform: scale(1.5); }
         }
         @keyframes broadcastWave { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
-        .mh-label-text { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; margin-top: 15px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .mh-label-text { color: rgba(255,255,255,0.9); font-size: 12px; font-weight: 600; margin-top: 10px; letter-spacing: 0.5px; text-transform: uppercase; }
 
-        .mode-cards-wrapper { padding: 0 20px; margin-top: -35px; position: relative; z-index: 10;}
-        .delivery-mode-card { background: white; border: 2px solid var(--border); border-radius: 24px; padding: 20px; margin-bottom: 16px; transition: all 0.3s ease; position: relative; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.04); display: block; }
+        /* Зменшено наїзд карток, щоб не перекривало текст */
+        .mode-cards-wrapper { padding: 0 20px; margin-top: -20px; position: relative; z-index: 10;}
+
+        .delivery-mode-card {
+            background: white; border: 2px solid var(--border); border-radius: 24px; padding: 20px; margin-bottom: 16px;
+            transition: all 0.3s ease; position: relative; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.04); display: block;
+        }
         .delivery-mode-card input[type="radio"] { display: none; }
         .delivery-mode-card:active { transform: scale(0.98); }
         .delivery-mode-card.active { border-color: var(--primary); background: #ffffff; box-shadow: 0 15px 35px rgba(255, 118, 82, 0.15); }
@@ -229,6 +236,7 @@
         
         .dmc-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; padding-left: 65px; font-weight: 500;}
         
+        /* Поле ID групи */
         .uber-group-wrapper { overflow: hidden; max-height: 0; opacity: 0; transition: 0.4s ease; padding-left: 65px;}
         .uber-group-wrapper.is-visible { max-height: 150px; opacity: 1; margin-top: 15px; }
         .uber-input-mock { width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #fde68a; background: #fffbeb; font-size: 14px; outline: none; transition: 0.2s; color: var(--text-main); font-weight: bold;}
@@ -444,7 +452,7 @@
 
         <div class="scrollable-content" style="padding-top: 0;">
             <div class="mode-cards-wrapper">
-                <div class="form-section-title" data-i18n="mode_title" style="text-align: center; margin-bottom: 25px;">Як працює ваша доставка?</div>
+                <div class="form-section-title" data-i18n="mode_title" style="text-align: center; margin-bottom: 20px;">Як працює ваша доставка?</div>
                 
                 <label class="delivery-mode-card active" id="dm-card-dispatcher">
                     <input type="radio" name="delivery_mode" value="dispatcher" checked>
@@ -502,7 +510,7 @@
                     <input type="text" id="biz-country" class="input-field" data-i18n-placeholder="reg_ph_country" data-i18n-val="country_def" style="margin-bottom: 10px;">
                     <input type="text" id="biz-city" class="input-field" data-i18n-placeholder="reg_ph_city" placeholder="Місто" style="margin-bottom: 10px;">
                     <div style="position: relative;">
-                        <input type="text" id="biz-street" class="input-field" data-i18n-placeholder="reg_ph_street" placeholder="Вулиця..." autocomplete="off">
+                        <input type="text" id="biz-street" class="input-field" data-i18n-placeholder="reg_ph_street" placeholder="Вулиця та номер (почніть вводити...)" autocomplete="off">
                         <div id="biz-autocomplete-list" class="autocomplete-list"></div>
                     </div>
                 </div>
