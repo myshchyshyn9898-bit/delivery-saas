@@ -385,7 +385,12 @@
             }
         }
 
-        const RAILWAY_DOMAIN = "https://delivery-saas-production-3fe6.up.railway.app";
+                // SERVER_URL: автоматично визначається або береться з мета-тегу
+        const RAILWAY_DOMAIN = (function() {
+            const meta = document.querySelector('meta[name="server-url"]');
+            if (meta && meta.content) return meta.content.replace(/\/$/, '');
+            return "https://delivery-saas-production-3fe6.up.railway.app";
+        })();
         let supabaseClient = null;
 
         async function initSupabase() {

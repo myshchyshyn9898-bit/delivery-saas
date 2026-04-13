@@ -850,6 +850,11 @@ async def config_handler(request: web.Request) -> web.Response:
     )
 
 
+async def health_handler(request: web.Request) -> web.Response:
+    """GET /health — health check для Railway/UptimeRobot."""
+    return web.json_response({"status": "ok"}, headers=CORS_HEADERS)
+
+
 async def cors_preflight_handler(request: web.Request) -> web.Response:
     """OPTIONS — відповідь на preflight-запити браузера."""
     return web.Response(status=204, headers=CORS_HEADERS)
@@ -879,6 +884,7 @@ async def start_webhook_server() -> None:
 
     # Службові
     app.router.add_get("/config",              config_handler)
+    app.router.add_get("/health",              health_handler)
     app.router.add_options("/{path_info:.*}",  cors_preflight_handler)
 
     # Whop — підписки

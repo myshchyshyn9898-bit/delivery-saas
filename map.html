@@ -361,7 +361,12 @@
 
     /* ── КОНФІГ ── */
     var MAPBOX_TOKEN   = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
-    var RAILWAY_DOMAIN = 'https://delivery-saas-production-3fe6.up.railway.app';
+            // SERVER_URL: автоматично визначається або береться з мета-тегу
+        var RAILWAY_DOMAIN = (function() {
+            const meta = document.querySelector('meta[name="server-url"]');
+            if (meta && meta.content) return meta.content.replace(/\/$/, '');
+            return "https://delivery-saas-production-3fe6.up.railway.app";
+        })();
 
     var _supabaseCfgCache = null;
     async function getSupabaseCfg() {

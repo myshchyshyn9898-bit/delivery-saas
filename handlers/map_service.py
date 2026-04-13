@@ -89,7 +89,8 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     client_url = f"https://nominatim.openstreetmap.org/search?q={encoded_client}&format=json&limit=1"
     
     try:
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(client_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
                 if resp.status == 200:
                     c_data = await resp.json()
@@ -107,7 +108,8 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"
         try:
-            async with aiohttp.ClientSession() as session:
+            timeout2 = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout2) as session:
                 async with session.get(biz_url, headers={'User-Agent': 'DeliveProBot/1.0'}) as resp:
                     if resp.status == 200:
                         b_data = await resp.json()

@@ -21,6 +21,32 @@ router = Router()
 # ХЕЛПЕР: будує текст групового повідомлення (uber-режим)
 # ===========================================================================
 
+def _build_call_url(phone: str, biz: dict = None) -> tuple:
+    """
+    Повертає (btn_text, call_url) для кнопки дзвінка.
+    - 8 цифр → Uber Call (набирає номер Uber + код)
+    - інакше → звичайний дзвінок
+    dispatcher береться з biz['uber_dispatcher'] або дефолтний польський
+    """
+    base = BASE_URL.rstrip('/')
+    digits_only = "".join(filter(str.isdigit, phone or ""))
+
+    if len(digits_only) == 8:
+        # Uber-код — потрібен номер диспетчера
+        dispatcher = ""
+        if biz and biz.get("uber_dispatcher"):
+            dispatcher = str(biz["uber_dispatcher"]).strip()
+        if dispatcher:
+            call_url = f"{base}/call.html?code={urllib.parse.quote(digits_only)}&dispatcher={urllib.parse.quote(dispatcher)}"
+        else:
+            call_url = f"{base}/call.html?code={urllib.parse.quote(digits_only)}"
+        return "🚖 Uber Call", call_url
+    else:
+        # Звичайний номер
+        call_url = f"{base}/call.html?code={urllib.parse.quote(phone)}"
+        return "📞 Подзвонити", call_url
+
+
 def _build_order_text(short_id, address, details_text, client_name,
                        phone, pay_type, amount, currency, comment,
                        status_line, source_label=""):
@@ -101,10 +127,8 @@ def _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency,
     builder.button(text="🗺 Маршрут", url=route_url)
 
     if phone:
-        digits_only = "".join(filter(str.isdigit, phone))
-        btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
-        call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(phone)}"
-        builder.button(text=btn_text, url=call_url)
+        _btn_text, _call_url = _build_call_url(phone)
+        builder.button(text=_btn_text, url=_call_url)
 
     if pay_type == "cash":
         builder.button(text=f"💵 Готівка — {amount} {currency}", callback_data=f"uber_close_cash_{order_id}")
@@ -299,10 +323,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 if is_pro:
                     builder.button(text=_(lang, 'btn_route'), url=route_url)
                 if phone_clean:
-                    digits_only = "".join(filter(str.isdigit, phone_clean))
-                    btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
-                    call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(phone_clean)}"
-                    builder.button(text=btn_text, url=call_url)
+                    _btn_t, _call_u = _build_call_url(phone_clean, biz)
+                    builder.button(text=_btn_t, url=_call_u)
                 if pay_type == "online":
                     builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
                 else:
@@ -372,7 +394,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             courier_text = _build_order_text(
                 short_id=short_id,
                 address=_ha.escape(address),
-                details_text="",
+                details_text=_ha.escape(order_db.get("details", "") or ""),
                 client_name=_ha.escape(order_db.get("client_name", "") or ""),
                 phone=_ha.escape(order_db.get("client_phone", "—") or "—"),
                 pay_type=pay_type,
@@ -387,10 +409,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 builder.button(text=_(lang, 'btn_route'), url=route_url)
             phone_for_call = order_db.get('client_phone', '')
             if phone_for_call:
-                digits_only = "".join(filter(str.isdigit, phone_for_call))
-                btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
-                call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(phone_for_call)}"
-                builder.button(text=btn_text, url=call_url)
+                _btn_a, _call_a = _build_call_url(phone_for_call, biz)
+                builder.button(text=_btn_a, url=_call_a)
             if pay_type == "online":
                 builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
             else:
@@ -535,11 +555,13 @@ async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
             biz = await db.get_business_by_id(biz_id)
             currency = biz.get('currency', 'zł') if biz else 'zł'
 
+            # Екрануємо спецсимволи Markdown в імені кур'єра
+            _safe_cname = callback.from_user.full_name.translate(str.maketrans({'_': r'\_', '*': r'\*', '`': r'\`'}))
             notify_text = _(lang, 'finish_notify',
                             short_id=short_id,
                             amount=order_info['amount'],
                             cur=currency,
-                            courier_name=callback.from_user.full_name)
+                            courier_name=_safe_cname)
 
             managers_res = await db._run(
                 lambda: db.supabase.table("staff").select("user_id")
@@ -667,10 +689,8 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
 
         builder.button(text="🗺 Маршрут", url=route_url)
         if raw_phone:
-            digits_only = "".join(filter(str.isdigit, raw_phone))
-            btn_text = "🚖 Uber Call" if len(digits_only) == 8 else "📞 Подзвонити"
-            call_url = f"{BASE_URL.rstrip('/')}/call.html?code={urllib.parse.quote(raw_phone)}"
-            builder.button(text=btn_text, url=call_url)
+            _btn_tk, _call_tk = _build_call_url(raw_phone, biz)
+            builder.button(text=_btn_tk, url=_call_tk)
 
         if pay_type == "online":
             builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"uber_close_online_{order_id}")
@@ -755,11 +775,12 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
         pay_icon_d   = "💵" if pay_type == "cash" else ("🏧" if pay_type == "terminal" else "✅")
         status_line2 = f"🔴 Закрито ({time_str2}, {safe_courier} - {pay_icon_d})"
 
-        safe_addr2    = __import__("html").escape(order.get("address", "—"))
-        safe_client2  = __import__("html").escape(order.get("client_name", "") or "")
-        safe_phone2   = __import__("html").escape(order.get("client_phone", "—") or "—")
-        safe_comment2 = __import__("html").escape(order.get("comment", "") or "")
-        details2      = __import__("html").escape(order.get("details", "") or "")
+        import html as _hdc
+        safe_addr2    = _hdc.escape(order.get("address", "—"))
+        safe_client2  = _hdc.escape(order.get("client_name", "") or "")
+        safe_phone2   = _hdc.escape(order.get("client_phone", "—") or "—")
+        safe_comment2 = _hdc.escape(order.get("comment", "") or "")
+        details2      = _hdc.escape(order.get("details", "") or "")
 
         done_text = _build_order_text(short_id, safe_addr2, details2,
                                        safe_client2, safe_phone2,
@@ -777,11 +798,12 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
             logger.error(f"[dispatcher_close] edit failed: {e}")
 
         # Нотифікація адміну/менеджеру
+        _safe_cn = courier_name.translate(str.maketrans({'_': r'\_', '*': r'\*', '`': r'\`'}))
         notify_text = _(lang, "finish_notify",
                         short_id=short_id,
                         amount=order.get("amount", "0"),
                         cur=currency,
-                        courier_name=courier_name)
+                        courier_name=_safe_cn)
 
         managers_res = await db._run(
             lambda: db.supabase.table("staff").select("user_id")
@@ -892,11 +914,12 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
 
         # 7. Нотифікація менеджерів / власника
         lang = callback.from_user.language_code or "uk"
+        _safe_ucn = courier_name.translate(str.maketrans({'_': r'\_', '*': r'\*', '`': r'\`'}))
         notify_text = _(lang, "finish_notify",
                         short_id=short_id,
                         amount=order.get("amount", "0"),
                         cur=currency,
-                        courier_name=courier_name)
+                        courier_name=_safe_ucn)
 
         managers_res = await db._run(
             lambda: db.supabase.table("staff").select("user_id")

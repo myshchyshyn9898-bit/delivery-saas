@@ -15,7 +15,12 @@ let currentPosSystem = '';
 let connectedIntegrations = {}; 
 
 // 🔴 ВСТАВ СЮДИ СВІЙ ДОМЕН З RAILWAY (без слеша в кінці)
-const RAILWAY_DOMAIN = "https://delivery-saas-production-3fe6.up.railway.app";
+// SERVER_URL: змінюється тут або через мета-тег <meta name="server-url" content="...">
+const RAILWAY_DOMAIN = (function() {
+    const meta = document.querySelector('meta[name="server-url"]');
+    if (meta && meta.content) return meta.content.replace(/\/$/, '');
+    return "https://delivery-saas-production-3fe6.up.railway.app";
+})();
 let currentInviteToken = ''; 
 
 // Читаємо параметри з URL (Telegram передає їх сюди)
