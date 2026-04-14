@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
-        <meta name="server-url" content="https://delivery-saas-production-3fe6.up.railway.app">
+    <meta name="server-url" content="https://delivery-saas-production-3fe6.up.railway.app">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DeliPro</title>
@@ -49,9 +49,8 @@
 
         /* --- SPLASH SCREEN --- */
         #screen-splash { background: linear-gradient(135deg, #1a1e24 0%, #111418 100%); color: white; align-items: center; justify-content: center; padding: 0;}
-        .dp-logo { width: 120px; height: 120px; background: linear-gradient(135deg, var(--primary), #ffa07a); border-radius: 35px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 40px rgba(255, 118, 82, 0.4); animation: logoPulse 2.5s infinite ease-in-out; margin-bottom: 30px; }
-        .dp-logo-icon { color: white; font-size: 55px; font-weight: 900; letter-spacing: -2px; }
-        .dp-logo-icon span { font-size: 26px; opacity: 0.8; vertical-align: top; margin-left: -2px;}
+        .dp-logo { width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; animation: logoPulse 2.5s infinite ease-in-out; margin-bottom: 30px; }
+        .dp-img-logo { width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; filter: drop-shadow(0 10px 30px rgba(255, 118, 82, 0.4)); }
         @keyframes logoPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
         .splash-title { font-size: 36px; font-weight: 900; letter-spacing: -1px; margin-bottom: 8px; }
         .splash-subtitle { color: #a0a5aa; font-size: 16px; text-align: center; line-height: 1.4; margin-bottom: 60px; }
@@ -272,7 +271,7 @@
 
     <div id="screen-splash" class="screen active">
         <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div class="dp-logo"><div class="dp-logo-icon">D<span>Pro</span></div></div>
+            <div class="dp-logo"><img src="logo.jpg" alt="DeliPro Logo" class="dp-img-logo"></div>
             <div class="splash-title">DeliPro</div>
             <div class="splash-subtitle" data-i18n="splash_sub">Еволюція твоєї доставки.<br>Швидко. Просто. Прибутково.</div>
         </div>
@@ -825,4 +824,4 @@
         }
     </script>
 </body>
-</html>
+</html> 
