@@ -310,6 +310,7 @@ TEXTS = {
         'shift_photo_end_caption': "📸 Конец смены — {name}\n🛣 {km} км",
         'shift_photo_not_found': "❌ Фото не найдено.",
         'btn_shift_report': "📋 Отчёт смен",
+        }, 'pl': {
         'sub_expired': "⚠️ **Twoja subskrypcja wygasła lub została zawieszona.**\nProszę skontaktować się z administratorem.",
         'owner_panel': "🏢 **Panel właściciela: {name}**",
         'manager_panel': "👨‍💼 **Panel menedżera: {name}**",
@@ -463,6 +464,7 @@ TEXTS = {
         'shift_photo_end_caption': "📸 Koniec zmiany — {name}\n🛣 {km} km",
         'shift_photo_not_found': "❌ Zdjęcie nie znalezione.",
         'btn_shift_report': "📋 Raport zmian",
+        }, 'en': {
         'sub_expired': "⚠️ **Your subscription has expired or been suspended.**\nPlease contact the administrator.",
         'owner_panel': "🏢 **Owner Panel: {name}**",
         'manager_panel': "👨‍💼 **Manager Panel: {name}**",
@@ -616,7 +618,8 @@ TEXTS = {
         'shift_photo_end_caption': "📸 Shift end — {name}\n🛣 {km} km",
         'shift_photo_not_found': "❌ Photo not found.",
         'btn_shift_report': "📋 Shift Report",
-
+   }
+}
 def get_text(lang_code: str, key: str, **kwargs) -> str:
     """Отримує переклад з TEXTS. Якщо мови нема - бере англійську. Дозволяє форматування."""
     lang = lang_code if lang_code in TEXTS else 'en'
