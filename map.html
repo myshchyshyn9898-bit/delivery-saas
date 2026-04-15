@@ -455,7 +455,7 @@
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Обробка...';
 
                 try {
-                    // Перевіряємо актуальний статус
+                    // 1. Перевіряємо актуальний статус
                     var checkRes = await supabase.from('orders').select('status, courier_id').eq('id', selectedOrder.id).single();
                     if (checkRes.data && checkRes.data.status !== 'pending') {
                         tg.showAlert('⚡️ Хтось був швидшим! Замовлення вже забрали.');
@@ -463,7 +463,7 @@
                         return;
                     }
 
-                    // Атомарно захоплюємо
+                    // 2. Атомарно захоплюємо в Supabase
                     var result = await supabase.from('orders')
                         .update({ status: 'delivering', courier_id: userId })
                         .eq('id', selectedOrder.id)
@@ -471,7 +471,7 @@
 
                     if (result.error) throw result.error;
 
-                    // Перевіряємо що саме ми захопили
+                    // 3. Перевіряємо що саме ми захопили
                     var verify = await supabase.from('orders').select('courier_id, status').eq('id', selectedOrder.id).single();
                     if (!verify.data || String(verify.data.courier_id) !== String(userId)) {
                         tg.showAlert('⚡️ Хтось був швидшим! Замовлення вже забрали.');
@@ -479,9 +479,35 @@
                         return;
                     }
 
+                    // 4. Повідомляємо бота через API (НЕ sendData — WebApp залишається відкритим!)
+                    //    Бот оновить групове повідомлення і надішле кур'єру особисте з кнопками
+                    try {
+                        const serverUrl = document.querySelector('meta[name="server-url"]')?.content || '';
+                        await fetch(serverUrl + '/api/take_order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + authToken
+                            },
+                            body: JSON.stringify({
+                                order_id: selectedOrder.id,
+                                courier_id: userId,
+                                courier_name: tg.initDataUnsafe?.user?.username
+                                    ? '@' + tg.initDataUnsafe.user.username
+                                    : (tg.initDataUnsafe?.user?.first_name || 'Кур\'єр'),
+                                lang: currentLang || 'en'
+                            })
+                        });
+                    } catch(apiErr) {
+                        console.warn('[take_order] API call failed:', apiErr);
+                        // Не критично — замовлення вже захоплено в Supabase
+                    }
+
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert('✅ Ви взяли замовлення! Деталі — в Telegram.');
-                    closePanel(); loadOrders();
+
+                    // 5. Карта залишається відкритою — просто оновлюємо маркери
+                    closePanel();
+                    loadOrders();
 
                 } catch(e) {
                     tg.showAlert('Помилка: ' + e.message);
@@ -634,9 +660,27 @@
         /* Не перезавантажуємо активні маркери поки в режимі аналітики */
         if (isHistoryMode) return;
         try {
-            var res = await supabase.from('orders').select('*').eq('business_id', bizId).eq('status', 'pending');
+            /* Завантажуємо і pending і delivering — обидва "активні" статуси */
+            var res = await supabase.from('orders').select('*')
+                .eq('business_id', bizId)
+                .in('status', ['pending', 'delivering']);
             if (res.error) throw res.error;
             activeOrdersData = res.data || [];
+
+            /* Для uber-режиму завантажуємо імена кур'єрів щоб показати на маркері */
+            if (deliveryMode === 'uber' && activeOrdersData.length > 0) {
+                var courierIds = [...new Set(
+                    activeOrdersData
+                        .filter(function(o) { return o.courier_id && o.courier_id !== 'unassigned'; })
+                        .map(function(o) { return String(o.courier_id); })
+                )];
+                if (courierIds.length > 0 && availableCouriers.length === 0) {
+                    /* Якщо ще не завантажили кур'єрів — завантажуємо зараз */
+                    var staffRes = await supabase.from('staff').select('user_id, name').eq('business_id', bizId);
+                    if (staffRes.data) availableCouriers = staffRes.data;
+                }
+            }
+
             drawMarkers();
         } catch (e) { console.error('Завантаження замовлень:', e); }
     }
@@ -665,12 +709,13 @@
 
             var isUnassigned = !order.courier_id || order.courier_id === 'unassigned';
             var isMine       = String(order.courier_id) === String(userId);
+            var isDelivering = order.status === 'delivering';
 
-            // Uber: кур'єр бачить вільні + своє; delivering чужих — не показуємо
-            // Dispatcher: кур'єр бачить тільки своє + unassigned (щоб не плутати)
+            // Uber: кур'єр бачить вільні + своє delivering; чужі delivering — теж показуємо але сірим
+            // Dispatcher: кур'єр бачить тільки своє + unassigned
             if (userRole === 'courier') {
                 if (deliveryMode === 'uber') {
-                    if (!isMine && !isUnassigned) return; // чуже delivering — не показуємо
+                    // показуємо все: вільні + своє + чужі delivering (сірим)
                 } else {
                     if (!isMine && !isUnassigned) return;
                 }
@@ -681,44 +726,79 @@
             var pinClass     = 'pin-free';
             var labelOpacity = '1';
 
+            /* Знаходимо ім'я кур'єра для delivering замовлень */
+            var courierDisplayName = '';
+            if (isDelivering && order.courier_id) {
+                var foundCourier = availableCouriers.find(function(c) {
+                    return String(c.user_id || c.tg_id) === String(order.courier_id);
+                });
+                courierDisplayName = foundCourier ? foundCourier.name : ('ID:' + String(order.courier_id).slice(-4));
+            }
+
             if (userRole === 'admin') {
-                if (!isUnassigned) { pinClass = 'pin-others'; labelOpacity = '0.7'; }
+                if (isDelivering) { pinClass = 'pin-others'; labelOpacity = '0.75'; }
+                else if (!isUnassigned) { pinClass = 'pin-others'; labelOpacity = '0.7'; }
             } else {
-                if (isMine) pinClass = 'pin-mine';
-                // Uber: вільне — яскравий, delivering чужих вже відфільтровані
+                if (isMine) {
+                    pinClass = 'pin-mine';
+                } else if (isDelivering) {
+                    /* Чужі delivering — сірий (тільки uber бачить їх) */
+                    pinClass = 'pin-others';
+                    labelOpacity = '0.6';
+                }
             }
 
             var shortAddr  = order.address.split(',')[0];
             var badgeClass = isLate ? 'time-badge late' : 'time-badge';
             var timeText   = isLate ? (diffMins + ' 🔥') : ('🕒 ' + diffMins + ' хв');
 
+            /* Для delivering замовлень — показуємо ім'я кур'єра замість таймера */
+            var badgeHtml;
+            if (isDelivering && courierDisplayName) {
+                badgeHtml = '<span class="time-badge" style="background:rgba(100,116,139,0.12);color:#64748b;">🛵 ' + courierDisplayName + '</span>';
+            } else {
+                badgeHtml = '<span class="' + badgeClass + '" data-created="' + order.created_at + '" data-est="' + (order.est_time || 30) + '">' + timeText + '</span>';
+            }
+
             var el = document.createElement('div');
             el.className = 'custom-marker';
             el.innerHTML =
                 '<div class="marker-label" style="opacity:' + labelOpacity + '">' +
                     '<span>' + shortAddr + '</span>' +
-                    '<span class="' + badgeClass + '" data-created="' + order.created_at + '" data-est="' + (order.est_time || 30) + '">' + timeText + '</span>' +
+                    badgeHtml +
                 '</div>' +
                 '<div class="pin-icon ' + pinClass + '"><i class="fa-solid fa-location-dot"></i></div>';
 
-            el.onclick = function(e) {
-                e.stopPropagation();
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                openActivePanel(order, shortAddr, badgeClass, timeText, isUnassigned);
-                map.flyTo({ center: [order.lon, order.lat], zoom: 15, speed: 1.2 });
-            };
+            el.onclick = (function(capturedOrder, capturedShortAddr, capturedBadgeClass, capturedTimeText, capturedIsUnassigned, capturedIsDelivering, capturedCourierName) {
+                return function(e) {
+                    e.stopPropagation();
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    openActivePanel(capturedOrder, capturedShortAddr, capturedBadgeClass, capturedTimeText, capturedIsUnassigned, capturedIsDelivering, capturedCourierName);
+                    map.flyTo({ center: [capturedOrder.lon, capturedOrder.lat], zoom: 15, speed: 1.2 });
+                };
+            })(order, shortAddr, badgeClass, timeText, isUnassigned, isDelivering, courierDisplayName);
 
             markers.push(new mapboxgl.Marker(el).setLngLat([order.lon, order.lat]).addTo(map));
         });
     }
 
     /* ── ПАНЕЛЬ АКТИВНОГО ЗАМОВЛЕННЯ ── */
-    function openActivePanel(order, shortAddr, badgeClass, timeText, isUnassigned) {
+    function openActivePanel(order, shortAddr, badgeClass, timeText, isUnassigned, isDelivering, courierDisplayName) {
         selectedOrder = order;
 
         document.getElementById('panel-address').innerText = shortAddr;
         var pBadge = document.getElementById('panel-badge');
-        pBadge.className = badgeClass; pBadge.innerText = timeText;
+        if (isDelivering && courierDisplayName) {
+            pBadge.className = 'time-badge';
+            pBadge.style.background = 'rgba(100,116,139,0.12)';
+            pBadge.style.color = '#64748b';
+            pBadge.innerText = '🛵 ' + courierDisplayName;
+        } else {
+            pBadge.className = badgeClass;
+            pBadge.style.background = '';
+            pBadge.style.color = '';
+            pBadge.innerText = timeText;
+        }
 
         var payStr = 'Онлайн', payIcon = 'fa-globe';
         if (order.pay_type === 'cash')     { payStr = 'Готівка: '  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
@@ -750,13 +830,14 @@
         }
 
         if (userRole === 'admin') {
-            // DISPATCHER: адмін призначає кур'єра
+            // Адмін: показуємо кур'єра якщо призначено, або форму призначення
             if (isUnassigned) {
                 document.getElementById('admin-actions').style.display = 'block';
             } else {
                 document.getElementById('panel-courier-row').style.display = 'flex';
                 var c = availableCouriers.find(function(x) { return String(x.user_id) === String(order.courier_id); });
-                document.getElementById('panel-courier').innerHTML = "Кур\'єр: <b>" + (c ? c.name : 'Призначено') + '</b>';
+                var cName = courierDisplayName || (c ? c.name : 'Кур\'єр');
+                document.getElementById('panel-courier').innerHTML = "Кур\'єр: <b>" + cName + '</b>';
             }
         } else {
             // COURIER
@@ -769,7 +850,11 @@
                     // Моє замовлення — показуємо маршрут
                     document.getElementById('uber-mine-actions').style.display = 'block';
                 }
-                // Чужі delivering — нічого не показуємо
+                // Чужі delivering — показуємо хто везе (без кнопок)
+                if (!isUnassigned && !isMineOrder && courierDisplayName) {
+                    document.getElementById('panel-courier-row').style.display = 'flex';
+                    document.getElementById('panel-courier').innerHTML = "Везе: <b>" + courierDisplayName + '</b>';
+                }
             } else {
                 // DISPATCHER: кур'єр бачить тільки свої — маршрут
                 document.getElementById('courier-actions').style.display = 'block';

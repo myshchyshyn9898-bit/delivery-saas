@@ -43,12 +43,12 @@ def get_reg_kb(lang='uk'):
 # --- 2. МЕНЮ ВЛАСНИКА ---
 def get_owner_kb(biz_id, user_id, lang='uk'):
     t = int(time.time())
-    token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
+    token = generate_token(biz_id=biz_id, user_id=user_id)
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=_(lang, 'btn_dashboard'), web_app=WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
-            [KeyboardButton(text=_(lang, 'btn_report'))],
+            [KeyboardButton(text=_(lang, 'btn_report')), KeyboardButton(text=_(lang, 'btn_shift_report'))],
             [KeyboardButton(text=_(lang, 'btn_settings')), KeyboardButton(text=_(lang, 'btn_staff'))]
         ],
         resize_keyboard=True
@@ -57,23 +57,25 @@ def get_owner_kb(biz_id, user_id, lang='uk'):
 # --- 3. МЕНЮ МЕНЕДЖЕРА ---
 def get_manager_kb(biz_id, user_id, lang='uk'):
     t = int(time.time())
-    token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
+    token = generate_token(biz_id=biz_id, user_id=user_id)
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=_(lang, 'btn_new_order'), web_app=WebAppInfo(url=f"{BASE_URL}form.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
-            [KeyboardButton(text=_(lang, 'btn_report'))],
+            [KeyboardButton(text=_(lang, 'btn_report')), KeyboardButton(text=_(lang, 'btn_shift_report'))],
             [KeyboardButton(text=_(lang, 'btn_active_orders'), web_app=WebAppInfo(url=f"{BASE_URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
         ],
         resize_keyboard=True
     )
 
 # --- 4. МЕНЮ КУР'ЄРА ---
-def get_courier_kb(biz_id, user_id, lang='uk'):
+def get_courier_kb(biz_id, user_id, lang='uk', shift_active=False):
     t = int(time.time())
-    token = generate_token(biz_id=biz_id, user_id=user_id) # 🔒 Передаємо user_id
+    token = generate_token(biz_id=biz_id, user_id=user_id)
+    shift_btn = KeyboardButton(text=_(lang, 'btn_close_shift')) if shift_active else KeyboardButton(text=_(lang, 'btn_start_shift'))
     return ReplyKeyboardMarkup(
         keyboard=[
+            [shift_btn],
             [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_my_deliveries'), web_app=WebAppInfo(url=f"{BASE_URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]
         ],

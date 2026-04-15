@@ -134,6 +134,8 @@ async def _notify_managers_new_pos_order(
     delivery_mode = biz.get("delivery_mode", "dispatcher")
     currency = biz.get("currency", "zł")
     pay_icon = "💵" if payment == "cash" else ("💳" if payment == "terminal" else "🌐")
+    # Для POS-нотифікацій використовуємо мову бізнесу або 'en' як дефолт
+    biz_lang = biz.get("lang", "en")
 
     # ── DISPATCHER MODE ───────────────────────────────────────────────────────
     if delivery_mode == 'dispatcher':
@@ -165,15 +167,16 @@ async def _notify_managers_new_pos_order(
         except Exception as exc:
             logger.error(f"[POS:{source}] Не вдалось зберегти в БД: {exc}")
 
-        admin_text = (
-            f"🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source_label}!</b>\n\n"
-            f"👤 <b>Клієнт:</b> {_pe(client_name) if client_name else '—'}\n"
-            f"📞 <b>Телефон:</b> {_pe(phone) if phone else '—'}\n"
-            f"📍 <b>Адреса:</b> {_pe(address) if address else '—'}\n"
-            f"💰 <b>Сума:</b> {_pe(str(amount))} {currency}\n"
+        admin_text = _(biz_lang, 'pos_order_new',
+            source=source_label,
+            client=_pe(client_name) if client_name else '—',
+            phone=_pe(phone) if phone else '—',
+            address=_pe(address) if address else '—',
+            amount=_pe(str(amount)),
+            cur=currency,
         )
         if comment:
-            admin_text += f"\n💬 <b>Коментар:</b> <i>{_pe(comment)}</i>"
+            admin_text += _(biz_lang, 'pos_order_comment', comment=_pe(comment))
 
         markup_base_url = f"{form_base_url}?biz_id={urllib.parse.quote(biz_id)}" \
             f"&address={urllib.parse.quote(address or '')}" \
@@ -211,7 +214,7 @@ async def _notify_managers_new_pos_order(
 
                 builder = InlineKeyboardBuilder()
                 builder.button(
-                    text="🛵 Призначити кур'єра",
+                    text=_(biz_lang, 'btn_assign_courier'),
                     web_app=types.WebAppInfo(url=form_url),
                 )
                 await bot.send_message(
@@ -252,7 +255,7 @@ async def _notify_managers_new_pos_order(
         short_id = str(order_id)[:6].upper()
 
         # 2. Локалізований тип оплати
-        pay_type_str = {"cash": "Готівка", "terminal": "Термінал", "online": "Онлайн"}.get(payment, payment)
+        pay_type_str = _(biz_lang, 'pay_' + payment)
 
         # 3. Надсилаємо в групу через спільний хелпер (з картою + правильними кнопками)
         from handlers.orders import _send_uber_group_message
@@ -263,7 +266,7 @@ async def _notify_managers_new_pos_order(
             client_name=client_name, phone=phone,
             pay_icon=pay_icon, amount=amount, currency=currency,
             pay_type_str=pay_type_str, pay_type=payment,
-            comment=comment, source_label=source_label
+            comment=comment, source_label=source_label, lang=biz_lang
         )
         logger.info(f"[uber POS] Замовлення {order_id} кинуто в групу {group_id}")
 
@@ -319,12 +322,16 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
 
                 if tg_user_id:
                     try:
+                        # Беремо мову власника з БД або fallback на en
+                        owner_lang = "en"
+                        try:
+                            biz_for_lang = await db.get_business_by_id(biz_id)
+                            owner_lang = (biz_for_lang or {}).get("lang", "en")
+                        except Exception:
+                            pass
                         await bot.send_message(
                             chat_id=int(tg_user_id),
-                            text=(
-                                "🎉 <b>Вітаємо! Оплата успішна!</b>\n"
-                                "Тариф <b>PRO</b> активовано. Дякуємо за довіру! 🚀"
-                            ),
+                            text=_(owner_lang, 'pro_activated'),
                             parse_mode="HTML",
                         )
                     except Exception as exc:
@@ -413,7 +420,7 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
             client_name = (
                 order_data.get("client_name")
                 or order_data.get("firstname")
-                or "Клієнт"
+                or "—"
             )
             phone   = order_data.get("phone") or order_data.get("client_phone", "")
             address = order_data.get("address") or order_data.get("delivery_address", "")
@@ -494,7 +501,7 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             order = data.get("order") or data.get("data") or data
 
             customer    = order.get("customer") or {}
-            client_name = customer.get("name") or order.get("customer_name", "Клієнт")
+            client_name = customer.get("name") or order.get("customer_name", "—")
             phone       = customer.get("phone") or order.get("customer_phone", "")
 
             delivery = order.get("delivery") or {}
@@ -585,7 +592,7 @@ async def gopos_webhook_handler(request: web.Request) -> web.Response:
             client_name = (
                 order.get("customer_name")
                 or order.get("client_name")
-                or customer.get("name", "Клієнт")
+                or customer.get("name", "—")
             )
             phone = (
                 order.get("customer_phone")
@@ -679,7 +686,7 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
 
             first = customer.get("name") or customer.get("firstName", "")
             last  = customer.get("lastName", "")
-            client_name = f"{first} {last}".strip() or "Клієнт"
+            client_name = f"{first} {last}".strip() or "—"
             phone = customer.get("cellPhone") or customer.get("phone", "")
 
             addr_obj = order.get("address") or order.get("deliveryAddress") or {}
@@ -819,7 +826,7 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
                         client_name=data.get('client_name', '—'), phone=phone_clean,
                         pay_icon=pay_icon, amount=data['amount'], currency=currency,
                         pay_type_str=pay_type_str, pay_type=data['payment'],
-                        comment=data.get('comment', '')
+                        comment=data.get('comment', ''), lang=courier_lang
                     )
                     logger.info(f"[uber api] Ручне замовлення {order_id} кинуто в групу {group_id}")
                 else:
@@ -828,7 +835,7 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
             # ── DISPATCHER MODE: Відправка конкретному кур'єру ──
             elif original_courier_id != "unassigned":
                 import html as _wh
-                from handlers.orders import _build_order_text
+                from handlers.orders import _build_order_text, _build_call_url
 
                 pay_type_d = data['payment']
                 courier_text = _build_order_text(
@@ -841,19 +848,21 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
                     amount=data['amount'],
                     currency=currency,
                     comment=_wh.escape(data.get('comment', '') or ''),
-                    status_line="🟢 Активний"
+                    status_line=_(courier_lang, 'order_status_active_short'),
+                    lang=courier_lang
                 )
 
                 builder = InlineKeyboardBuilder()
                 if is_pro:
                     builder.button(text=_(courier_lang, 'btn_route'), url=route_url)
                 if phone_clean:
-                    builder.button(text="📞 Подзвонити", url=f"tel:{phone_clean}")
+                    _btn_wh, _url_wh = _build_call_url(phone_clean, biz, lang=courier_lang)
+                    builder.button(text=_btn_wh, url=_url_wh)
                 if pay_type_d == "online":
-                    builder.button(text="✅ Закрити (Онлайн оплачено)", callback_data=f"dispatcher_close_online_{order_id}")
+                    builder.button(text=_(courier_lang, 'btn_close_online'), callback_data=f"dispatcher_close_online_{order_id}")
                 else:
-                    builder.button(text=f"💵 Готівка — {data['amount']} {currency}", callback_data=f"dispatcher_close_cash_{order_id}")
-                    builder.button(text=f"🏧 Термінал — {data['amount']} {currency}", callback_data=f"dispatcher_close_terminal_{order_id}")
+                    builder.button(text=_(courier_lang, 'btn_close_cash', amount=data['amount'], cur=currency), callback_data=f"dispatcher_close_cash_{order_id}")
+                    builder.button(text=_(courier_lang, 'btn_close_terminal', amount=data['amount'], cur=currency), callback_data=f"dispatcher_close_terminal_{order_id}")
                 builder.adjust(1)
 
                 if is_pro:
@@ -968,6 +977,158 @@ async def invalidate_cache_handler(request: web.Request) -> web.Response:
         return web.Response(status=500, text="Internal Server Error")
 
 # ---------------------------------------------------------------------------
+# WEBHOOK: /api/take_order — кур'єр бере замовлення з карти (НЕ закриває WebApp)
+# ---------------------------------------------------------------------------
+
+async def api_take_order_handler(request: web.Request) -> web.Response:
+    """
+    POST /api/take_order
+    Викликається з map.html замість tg.sendData() — щоб WebApp НЕ закривався.
+    Оновлює групове повідомлення та надсилає кур'єру особисте з кнопками.
+
+    Body JSON: { order_id, courier_id, courier_name, lang }
+    Auth: Bearer JWT
+    """
+    try:
+        import jwt as _jwt
+        from keyboards import JWT_SECRET
+        from handlers.orders import _build_order_text, _build_call_url, _build_uber_keyboard
+
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return web.json_response({"ok": False, "error": "Missing token"}, status=403, headers=CORS_HEADERS)
+        token_str = auth_header[len("Bearer "):].strip()
+        try:
+            payload = _jwt.decode(token_str, JWT_SECRET, algorithms=["HS256"])
+        except (_jwt.ExpiredSignatureError, _jwt.InvalidTokenError) as e:
+            return web.json_response({"ok": False, "error": str(e)}, status=403, headers=CORS_HEADERS)
+
+        data       = await request.json()
+        order_id   = data.get("order_id")
+        courier_id = data.get("courier_id")
+        courier_name = data.get("courier_name", "Кур'єр")
+        lang       = data.get("lang", "en")
+
+        if not order_id or not courier_id:
+            return web.json_response({"ok": False, "error": "Missing order_id or courier_id"}, status=400, headers=CORS_HEADERS)
+
+        # Перевіряємо що JWT належить саме цьому courier_id
+        if str(payload.get("user_id", "")) != str(courier_id):
+            return web.json_response({"ok": False, "error": "Token user_id mismatch"}, status=403, headers=CORS_HEADERS)
+
+        # Читаємо замовлення
+        res = await db._run(
+            lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
+        )
+        if not res.data:
+            return web.json_response({"ok": False, "error": "Order not found"}, status=404, headers=CORS_HEADERS)
+        order = res.data[0]
+
+        # Перевірка статусу — має бути delivering (вже оновлено Supabase-клієнтом на карті)
+        # Але також перевіряємо що саме цей кур'єр захопив
+        if str(order.get("courier_id", "")) != str(courier_id):
+            return web.json_response({"ok": False, "error": "Order taken by another courier"}, status=409, headers=CORS_HEADERS)
+
+        biz_id   = order["business_id"]
+        biz      = await db.get_business_by_id(biz_id)
+        if not biz:
+            return web.json_response({"ok": False, "error": "Business not found"}, status=404, headers=CORS_HEADERS)
+
+        currency  = biz.get("currency", "zł")
+        group_id  = biz.get("courier_group_id")
+        short_id  = str(order_id)[:6].upper()
+        pay_type  = order.get("pay_type", "cash")
+        amount    = order.get("amount", "0")
+
+        import html as _he
+        safe_name    = _he.escape(courier_name)
+        safe_address = _he.escape(order.get("address", "—"))
+        safe_details = _he.escape(order.get("details", "") or "")
+        safe_client  = _he.escape(order.get("client_name", "") or "")
+        safe_phone   = _he.escape(order.get("client_phone", "—") or "—")
+        safe_comment = _he.escape(order.get("comment", "") or "")
+
+        status_line  = _(lang, "order_status_delivering", courier=safe_name)
+        updated_text = _build_order_text(
+            short_id=short_id,
+            address=safe_address,
+            details_text=safe_details,
+            client_name=safe_client,
+            phone=safe_phone,
+            pay_type=pay_type,
+            amount=amount,
+            currency=currency,
+            comment=safe_comment,
+            status_line=status_line,
+            lang=lang
+        )
+
+        # Кнопки для кур'єра
+        raw_phone = order.get("client_phone", "") or ""
+        route_url = f"https://www.google.com/maps/dir/?api=1&destination={urllib.parse.quote(order.get('address', ''))}"
+        builder   = InlineKeyboardBuilder()
+        builder.button(text=_(lang, "btn_route"), url=route_url)
+        if raw_phone:
+            _bt, _cu = _build_call_url(raw_phone, biz, lang=lang)
+            builder.button(text=_bt, url=_cu)
+        if pay_type == "online":
+            builder.button(text=_(lang, "btn_close_online"), callback_data=f"uber_close_online_{order_id}")
+        else:
+            builder.button(text=_(lang, "btn_close_cash", amount=amount, cur=currency), callback_data=f"uber_close_cash_{order_id}")
+            builder.button(text=_(lang, "btn_close_terminal", amount=amount, cur=currency), callback_data=f"uber_close_terminal_{order_id}")
+        if raw_phone and pay_type != "online":
+            builder.adjust(2, 2)
+        elif raw_phone:
+            builder.adjust(2, 1)
+        else:
+            builder.adjust(1)
+
+        markup = builder.as_markup()
+
+        # 1. Надсилаємо кур'єру ОСОБИСТЕ повідомлення з кнопками
+        try:
+            await bot.send_message(
+                chat_id=int(courier_id),
+                text=updated_text,
+                reply_markup=markup,
+                parse_mode="HTML"
+            )
+        except Exception as ep:
+            logger.warning(f"[api_take_order] Не вдалось надіслати особисте кур'єру {courier_id}: {ep}")
+
+        # 2. Оновлюємо повідомлення в ГРУПІ — змінюємо текст і ПРИБИРАЄМО кнопки
+        #    (щоб інші кур'єри не могли натиснути "Взяти замовлення")
+        if group_id:
+            group_msg_id = order.get("group_message_id")
+            if group_msg_id:
+                # Кнопки для групи — без кнопок закриття (тільки маршрут для інформації)
+                group_builder = InlineKeyboardBuilder()
+                group_builder.button(text=_(lang, "btn_route"), url=route_url)
+                group_markup = group_builder.as_markup()
+                try:
+                    await bot.edit_message_caption(
+                        chat_id=group_id, message_id=group_msg_id,
+                        caption=updated_text, reply_markup=group_markup, parse_mode="HTML"
+                    )
+                except Exception:
+                    try:
+                        await bot.edit_message_text(
+                            chat_id=group_id, message_id=group_msg_id,
+                            text=updated_text, reply_markup=group_markup, parse_mode="HTML"
+                        )
+                    except Exception as eg:
+                        logger.warning(f"[api_take_order] Не вдалось оновити group msg: {eg}")
+
+        db.invalidate_user_cache(int(courier_id))
+        logger.info(f"[api_take_order] Замовлення {order_id} взяв кур'єр {courier_id}")
+        return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+    except Exception as exc:
+        logger.error(f"[api_take_order] Помилка: {exc}", exc_info=True)
+        return web.json_response({"ok": False, "error": str(exc)}, status=500, headers=CORS_HEADERS)
+
+
+# ---------------------------------------------------------------------------
 # Реєстрація маршрутів та запуск сервера
 # ---------------------------------------------------------------------------
 
@@ -989,6 +1150,7 @@ async def start_webhook_server() -> None:
     app.router.add_post("/webhook/gopos",      gopos_webhook_handler)
     app.router.add_post("/webhook/syrve",      syrve_webhook_handler)
     app.router.add_post("/api/new_order",      api_new_order_handler)
+    app.router.add_post("/api/take_order",     api_take_order_handler)
     app.router.add_post("/api/invalidate_cache", invalidate_cache_handler)
 
     runner = web.AppRunner(app)

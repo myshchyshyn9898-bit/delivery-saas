@@ -200,12 +200,13 @@ async function saveBizSettings(btn) {
     const newAddress = document.getElementById('input-biz-address').value.trim();
     const newDeliveryMode = window.DeliveryMode ? window.DeliveryMode.get() : 'dispatcher';
     const newGroupId = (document.getElementById('courier_group_id')?.value || '').trim();
+    const newKmRate = parseFloat(document.getElementById('input-km-rate')?.value) || 0;
     
     const oldHtml = btn.innerHTML;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`; btn.disabled = true;
     
     try {
-        let updatePayload = { name: newName, currency: newCurr, delivery_mode: newDeliveryMode };
+        let updatePayload = { name: newName, currency: newCurr, delivery_mode: newDeliveryMode, km_rate: newKmRate };
         if (newRadius !== "") updatePayload.radius_km = parseFloat(newRadius);
         if (newAddress !== "") updatePayload.street = newAddress; 
         if (bizLat !== null && bizLon !== null) { updatePayload.lat = bizLat; updatePayload.lng = bizLon; }
@@ -629,6 +630,10 @@ async function loadDashboardData() {
             
             document.getElementById('input-biz-address').value = biz.street || '';
             bizLat = biz.lat || null; bizLon = biz.lng || null; 
+
+            if (document.getElementById('input-km-rate')) {
+                document.getElementById('input-km-rate').value = biz.km_rate || '';
+            }
 
             // 👇 Встановлюємо збережений режим доставки 👇
             if (window.DeliveryMode) {

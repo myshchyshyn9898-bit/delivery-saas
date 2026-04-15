@@ -53,8 +53,6 @@ TEXTS = {
         'sa_empty': "📭 Бізнесів поки немає.",
         'sa_manage': "🚀 Керування SaaS:",
         'sa_changed': "Статус змінено!",
-        
-        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Відкрити DelivePro",
         'btn_dashboard': "📊 Дашборд",
         'btn_map': "🗺 Карта замовлень",
@@ -74,7 +72,89 @@ TEXTS = {
         'order_assign_error': "❌ Помилка при призначенні замовлення.",
         'order_already_assigned': "⚠️ Це замовлення вже призначено кур'єру.",
         'expired_no_report': "⚠️ Підписка закінчилася. Відкрийте Дашборд для оплати.",
-        'tracking_link_label': "🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`"
+        'tracking_link_label': "🔗 *Лінк для відстеження клієнтом:*\n`{tracking_link}`",
+        'order_status_active': "🟢 Активний — хто перший, той і везе!",
+        'order_status_active_short': "🟢 Активний",
+        'order_status_delivering': "🟡 В дорозі (Везтиме: {courier})",
+        'order_status_closed': "🔴 Закрито ({time}, {courier} - {pay_icon})",
+        'order_label': "ЗАМОВЛЕННЯ",
+        'order_label_free': "ВІЛЬНЕ ЗАМОВЛЕННЯ",
+        'order_label_new': "НОВЕ ЗАМОВЛЕННЯ",
+        'order_label_no_courier': "(без кур'єра)",
+        'order_status_lbl': "Статус",
+        'order_address_lbl': "Адреса",
+        'order_details_lbl': "Деталі",
+        'order_client_lbl': "Клієнт",
+        'order_tel_lbl': "Тел",
+        'order_comment_lbl': "Коментар",
+        'order_pay_cash_line': "💵 Готівка: {amount} {cur}",
+        'order_pay_terminal_line': "🏧 Термінал: {amount} {cur}",
+        'order_pay_online_line': "💳 Оплата: ОНЛАЙН (Сплачено)",
+        'btn_take_order': "✅ Взяти замовлення",
+        'btn_call': "📞 Подзвонити",
+        'btn_close_online': "✅ Закрити (Онлайн оплачено)",
+        'btn_close_cash': "💵 Готівка — {amount} {cur}",
+        'btn_close_terminal': "🏧 Термінал — {amount} {cur}",
+        'closing_order': "✅ Закриваємо замовлення...",
+        'order_not_found': "❌ Замовлення не знайдено.",
+        'order_format_error': "❌ Помилка формату callback.",
+        'order_already_closed': "✅ Замовлення вже закрите.",
+        'order_wrong_courier': "⛔️ Це замовлення веде інший кур'єр.",
+        'courier_not_in_staff': "⛔️ Кур'єра не знайдено в персоналі цього закладу.",
+        'free_order_manager_notify': "📦 <b>НОВЕ ЗАМОВЛЕННЯ #{short_id}</b> (без кур'єра)\n\n📍 <b>Адреса:</b> {address}\n👤 <b>Клієнт:</b> {client_name}\n📞 <b>Тел:</b> {phone}\n💰 <b>Сума:</b> {amount} {cur}\n⚠️ Призначте кур'єра через карту замовлень.",
+        'courier_returns': "🏠 Кур'єр повертається на базу.",
+        'courier_free': "✅ Кур'єр __вільний__ для роботи.",
+        'report_courier_line': "👤 {name}: {count} зам.",
+        'report_online_line': " | 🌐 {count} онл. ({sum})",
+        'report_online_summary': "\n🌐 Онлайн: {count} замовлень | {sum} {cur} (сплачено)",
+        'generic_error': "❌ Помилка: {error}",
+        'ticket_sent': "✅ <b>Тікет успішно відправлено!</b> Наша служба підтримки зв'яжеться з вами найближчим часом.",
+        'ticket_admin_msg': "🆘 <b>НОВИЙ ТІКЕТ ПІДТРИМКИ</b>\n\n🏢 <b>Бізнес ID:</b> <code>{biz_id}</code>\n👤 <b>Від:</b> <a href='tg://user?id={user_id}'>Клієнт (ID: {user_id})</a>\n🏷 <b>Категорія:</b> {reason}\n📌 <b>Тема:</b> {topic}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💬 <b>Повідомлення:</b>\n<i>{message}</i>",
+        'btn_call_regular': "📞 Подзвонити",
+        'btn_assign_courier': "🛵 Призначити кур'єра",
+        'pos_order_new': "🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source}!</b>\n\n👤 <b>Клієнт:</b> {client}\n📞 <b>Телефон:</b> {phone}\n📍 <b>Адреса:</b> {address}\n💰 <b>Сума:</b> {amount} {cur}",
+        'pos_order_comment': "\n💬 <b>Коментар:</b> <i>{comment}</i>",
+        'pro_activated': "🎉 <b>Вітаємо! Оплата успішна!</b>\nТариф <b>PRO</b> активовано. Дякуємо за довіру! 🚀",
+        'client_default': "Клієнт",
+        # --- ЗМІНА КУР'ЄРА ---
+        'btn_start_shift': "🟢 Розпочати зміну",
+        'btn_close_shift': "🔴 Закрити зміну",
+        'shift_already_active': "⚠️ У вас вже є активна зміна. Спочатку закрийте її.",
+        'shift_send_start_photo': "📸 Зробіть фото спідометра перед початком зміни та надішліть його сюди.",
+        'shift_send_start_km': "✅ Фото отримано!\n\nТепер введіть поточний кілометраж числом (наприклад: <b>12340</b>):",
+        'shift_started': "✅ Зміну розпочато!\n\n🛣 Кілометраж <b>{name}</b> на початок зміни: <b>{km} км</b>\n\nУдачі на маршруті! 🚀",
+        'shift_photo_forwarded': "📸 <b>Фото спідометра — початок зміни</b>\n👤 Кур'єр: <b>{name}</b>\n🛣 Км: <b>{km}</b>",
+        'shift_end_photo_forwarded': "📸 <b>Фото спідометра — кінець зміни</b>\n👤 Кур'єр: <b>{name}</b>\n🛣 Км: <b>{km}</b>",
+        'shift_no_active': "⚠️ У вас немає активної зміни. Спочатку розпочніть зміну.",
+        'shift_send_end_photo': "📸 Надішліть фото спідометра для закриття зміни.",
+        'shift_send_end_km': "✅ Фото отримано!\n\nВведіть поточний кілометраж числом:",
+        'shift_km_invalid': "❌ Невірний формат. Введіть ціле число, наприклад: <b>12500</b>",
+        'shift_km_less_than_start': "❌ Кінцевий кілометраж не може бути меншим за початковий (<b>{start_km} км</b>). Спробуйте ще раз.",
+        'shift_report': (
+            "📊 <b>Звіт за зміну — {name}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🛣 Кілометраж за зміну: <b>{km} км</b>\n"
+            "📦 Замовлень: <b>{orders}</b>\n"
+            "💵 Готівка: <b>{cash} {cur}</b>\n"
+            "💳 Термінал: <b>{term} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🚗 До сплати за км: <b>{km} × {rate} = {km_total} {cur}</b>\n"
+            "🏦 До здачі в касу: <b>{cash} − {km_total} = {to_pay} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "✅ Зміну закрито. Гарного відпочинку! 🏠"
+        ),
+        'shift_admin_report_header': "📊 <b>ЗВІТ ЗМІН — {date}</b>\n➖➖➖➖➖➖➖➖➖\n",
+        'shift_admin_report_line': (
+            "👤 <b>{name}</b>\n"
+            "  🛣 Км: {km} | 📦 Зам: {orders} | 💵 {cash} / 💳 {term} {cur}\n"
+            "  🚗 За км: {km_total} {cur} | 🏦 В касу: {to_pay} {cur}\n\n"
+        ),
+        'shift_admin_report_empty': "📭 Сьогодні ще немає закритих змін.",
+        'btn_shift_view_photo': "📸 Фото ({name})",
+        'shift_photo_start_caption': "📸 Початок зміни — {name}\n🛣 {km} км",
+        'shift_photo_end_caption': "📸 Кінець зміни — {name}\n🛣 {km} км",
+        'shift_photo_not_found': "❌ Фото не знайдено.",
+        'btn_shift_report': "📋 Звіт змін",
     },
     'ru': {
         'sub_expired': "⚠️ **Ваша подписка закончилась или приостановлена.**\nПожалуйста, обратитесь к администратору.",
@@ -95,7 +175,7 @@ TEXTS = {
         'role_m_full': "Менеджера 👨‍💼",
         'invite_welcome': "👋 Приветствуем!\nВы получили приглашение на должность **{role}** в заведение **{biz_name}**.\n\n✏️ Введите ваши Имя и Фамилию, чтобы присоединиться к команде:",
         'start_welcome': "🌟 **Добро пожаловать в DelivePro!**\n\nЭволюция вашей доставки начинается здесь. Нажмите кнопку ниже, чтобы настроить свой бизнес.",
-        'biz_already_exists': "⚠️ У вас вже є зареєстрований заклад. Якщо хочете змінити налаштування — відкрийте панель керування.",
+        'biz_already_exists': "⚠️ У вас уже есть зарегистрированное заведение. Если хотите изменить настройки — откройте панель управления.",
         'biz_created': "🎉 **Поздравляем! Ваш бизнес '{biz_name}' успешно создан.**\n📦 **Тариф:** {plan} (Активировано 7 дней триала)\n\nТеперь вы можете перейти к полноценному управлению 👇",
         'reg_error': "❌ Произошла ошибка при регистрации.",
         'pay_cash': "Наличные",
@@ -103,7 +183,7 @@ TEXTS = {
         'pay_online': "Онлайн",
         'apt_prefix': "Кв/Оф: {apt}",
         'code_prefix': "Домофон: {code}",
-        'details_prefix': "🏢 Деталі: {details}\n",
+        'details_prefix': "🏢 Детали: {details}\n",
         'status_active_full': "Статус: 🟢 Активный",
         'status_done_full': "Статус: ✅ ДОСТАВЛЕНО",
         'order_new': "📦 **НОВЫЙ ЗАКАЗ #{short_id}**\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n{status}\n\n📍 **Адрес:** {address}\n{details_text}📞 **Тел:** {phone} ({client_name})\n{pay_icon} **Оплата:** {amount} {cur} ({pay_type})\n",
@@ -120,18 +200,16 @@ TEXTS = {
         'broadcast_done': "✅ Рассылка успешно завершена!\nДоставлено: **{sent} из {total}** пользователей.",
         'role_c': "Курьер",
         'role_m': "Менеджер",
-        'staff_added': "✅ Поздравляем, {name}! Вы успешно присоединились к команде как {role}.",
+        'staff_added': "✅ Добро пожаловать, {name}! Вы успешно присоединились к команде как {role}.",
         'staff_add_err': "❌ Ошибка при добавлении. Возможно, вы уже работаете здесь.",
-        'finish_success': "🎉 Заказ успешно завершен! Деньги в кассе.",
+        'finish_success': "🎉 Заказ успешно завершён! Деньги в кассе.",
         'finish_notify': "✅ **Заказ доставлен!**\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n📦 Номер: `#{short_id}`\n💰 Сумма: {amount} {cur}\n🛵 Курьер: {courier_name}\n⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n🏠 Курьер возвращается на базу.",
         'finish_err': "❌ Ошибка завершения",
         'sa_empty': "📭 Бизнесов пока нет.",
         'sa_manage': "🚀 Управление SaaS:",
-        'sa_changed': "Статус изменен!",
-
-        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
+        'sa_changed': "Статус изменён!",
         'btn_open_app': "🚀 Открыть DelivePro",
-        'btn_dashboard': "📊 Дашборд",
+        'btn_dashboard': "📊 Панель",
         'btn_map': "🗺 Карта заказов",
         'btn_report': "📊 Сделать отчет",
         'btn_settings': "⚙️ Настройки бизнеса",
@@ -140,18 +218,98 @@ TEXTS = {
         'btn_active_orders': "📂 Активные заказы",
         'btn_my_deliveries': "📦 Мои доставки",
         'btn_boss_panel': "👑 Панель Владельца",
-        'expired_trial_text': "⚠️ **Ваш пробный период или подписка завершилась!**\n\nЧтобы продолжить работу, пожалуйста, откройте Дашборд.",
-        'expired_staff_text': "⚠️ **Подписка заведения завершилась.**\n\nОбратитесь к владельцу для продления.",
-        'btn_open_dashboard': "📊 Открыть Дашборд",
-        'expired_no_orders': "⚠️ Подписка закончилась. Вы не можете создавать новые заказы. Откройте Дашборд.",
+        'expired_trial_text': "⚠️ **Ваш пробный период или подписка истекли!**\n\nЧтобы продолжить работу, пожалуйста, откройте Панель.",
+        'expired_staff_text': "⚠️ **Подписка заведения истекла.**\n\nСвяжитесь с владельцем для продления.",
+        'btn_open_dashboard': "📊 Открыть Панель",
+        'expired_no_orders': "⚠️ Подписка истекла. Вы не можете создавать новые заказы. Откройте Панель.",
         'free_order_created': "🟢 **СВОБОДНЫЙ ЗАКАЗ #{short_id}**\n\nЗаказ добавлен на карту! Откройте карту, чтобы назначить курьера.\n🔗 *Ссылка для отслеживания клиентом:*\n`{tracking_link}`",
         'order_assigned_success': "✅ Заказ #{short_id} успешно назначен!",
         'order_assign_error': "❌ Ошибка при назначении заказа.",
         'order_already_assigned': "⚠️ Этот заказ уже назначен курьеру.",
-        'expired_no_report': "⚠️ Подписка закончилась. Откройте Дашборд для оплаты.",
-        'tracking_link_label': "🔗 *Ссылка для отслеживания клиентом:*\n`{tracking_link}`"
-    },
-    'pl': {
+        'expired_no_report': "⚠️ Подписка истекла. Откройте Панель для оплаты.",
+        'tracking_link_label': "🔗 *Ссылка для отслеживания клиентом:*\n`{tracking_link}`",
+        'order_status_active': "🟢 Активный — кто первый, тот и везёт!",
+        'order_status_active_short': "🟢 Активный",
+        'order_status_delivering': "🟡 В пути (Везёт: {courier})",
+        'order_status_closed': "🔴 Закрыто ({time}, {courier} - {pay_icon})",
+        'order_label': "ЗАКАЗ",
+        'order_label_free': "СВОБОДНЫЙ ЗАКАЗ",
+        'order_label_new': "НОВЫЙ ЗАКАЗ",
+        'order_label_no_courier': "(без курьера)",
+        'order_status_lbl': "Статус",
+        'order_address_lbl': "Адрес",
+        'order_details_lbl': "Детали",
+        'order_client_lbl': "Клиент",
+        'order_tel_lbl': "Тел",
+        'order_comment_lbl': "Комментарий",
+        'order_pay_cash_line': "💵 Наличные: {amount} {cur}",
+        'order_pay_terminal_line': "🏧 Терминал: {amount} {cur}",
+        'order_pay_online_line': "💳 Оплата: ОНЛАЙН (Оплачено)",
+        'btn_take_order': "✅ Взять заказ",
+        'btn_call': "📞 Позвонить",
+        'btn_close_online': "✅ Закрыть (Онлайн оплачено)",
+        'btn_close_cash': "💵 Наличные — {amount} {cur}",
+        'btn_close_terminal': "🏧 Терминал — {amount} {cur}",
+        'closing_order': "✅ Закрываем заказ...",
+        'order_not_found': "❌ Заказ не найден.",
+        'order_format_error': "❌ Ошибка формата callback.",
+        'order_already_closed': "✅ Заказ уже закрыт.",
+        'order_wrong_courier': "⛔️ Этот заказ ведёт другой курьер.",
+        'courier_not_in_staff': "⛔️ Курьер не найден в персонале этого заведения.",
+        'free_order_manager_notify': "📦 <b>НОВЫЙ ЗАКАЗ #{short_id}</b> (без курьера)\n\n📍 <b>Адрес:</b> {address}\n👤 <b>Клиент:</b> {client_name}\n📞 <b>Тел:</b> {phone}\n💰 <b>Сумма:</b> {amount} {cur}\n⚠️ Назначьте курьера через карту заказов.",
+        'courier_returns': "🏠 Курьер возвращается на базу.",
+        'courier_free': "✅ Курьер __свободен__ для работы.",
+        'report_courier_line': "👤 {name}: {count} зак.",
+        'report_online_line': " | 🌐 {count} онл. ({sum})",
+        'report_online_summary': "\n🌐 Онлайн: {count} заказов | {sum} {cur} (оплачено)",
+        'generic_error': "❌ Ошибка: {error}",
+        'ticket_sent': "✅ <b>Тикет успешно отправлен!</b> Наша служба поддержки свяжется с вами в ближайшее время.",
+        'ticket_admin_msg': "🆘 <b>НОВЫЙ ТИКЕТ ПОДДЕРЖКИ</b>\n\n🏢 <b>Бизнес ID:</b> <code>{biz_id}</code>\n👤 <b>От:</b> <a href='tg://user?id={user_id}'>Клиент (ID: {user_id})</a>\n🏷 <b>Категория:</b> {reason}\n📌 <b>Тема:</b> {topic}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💬 <b>Сообщение:</b>\n<i>{message}</i>",
+        'btn_call_regular': "📞 Позвонить",
+        'btn_assign_courier': "🛵 Назначить курьера",
+        'pos_order_new': "🔥 <b>НОВЫЙ ЗАКАЗ С {source}!</b>\n\n👤 <b>Клиент:</b> {client}\n📞 <b>Телефон:</b> {phone}\n📍 <b>Адрес:</b> {address}\n💰 <b>Сумма:</b> {amount} {cur}",
+        'pos_order_comment': "\n💬 <b>Комментарий:</b> <i>{comment}</i>",
+        'pro_activated': "🎉 <b>Поздравляем! Оплата прошла успешно!</b>\nТариф <b>PRO</b> активирован. Спасибо за доверие! 🚀",
+        'client_default': "Клиент",
+        # --- СМЕНА КУРЬЕРА ---
+        'btn_start_shift': "🟢 Начать смену",
+        'btn_close_shift': "🔴 Закрыть смену",
+        'shift_already_active': "⚠️ У вас уже есть активная смена. Сначала закройте её.",
+        'shift_send_start_photo': "📸 Сделайте фото спидометра перед началом смены и отправьте его сюда.",
+        'shift_send_start_km': "✅ Фото получено!\n\nТеперь введите текущий километраж числом (например: <b>12340</b>):",
+        'shift_started': "✅ Смена начата!\n\n🛣 Километраж <b>{name}</b> на начало смены: <b>{km} км</b>\n\nУдачи на маршруте! 🚀",
+        'shift_photo_forwarded': "📸 <b>Фото спидометра — начало смены</b>\n👤 Курьер: <b>{name}</b>\n🛣 Км: <b>{km}</b>",
+        'shift_end_photo_forwarded': "📸 <b>Фото спидометра — конец смены</b>\n👤 Курьер: <b>{name}</b>\n🛣 Км: <b>{km}</b>",
+        'shift_no_active': "⚠️ У вас нет активной смены. Сначала начните смену.",
+        'shift_send_end_photo': "📸 Отправьте фото спидометра для закрытия смены.",
+        'shift_send_end_km': "✅ Фото получено!\n\nВведите текущий километраж числом:",
+        'shift_km_invalid': "❌ Неверный формат. Введите целое число, например: <b>12500</b>",
+        'shift_km_less_than_start': "❌ Конечный километраж не может быть меньше начального (<b>{start_km} км</b>). Попробуйте ещё раз.",
+        'shift_report': (
+            "📊 <b>Отчёт за смену — {name}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🛣 Километраж за смену: <b>{km} км</b>\n"
+            "📦 Заказов: <b>{orders}</b>\n"
+            "💵 Наличные: <b>{cash} {cur}</b>\n"
+            "💳 Терминал: <b>{term} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🚗 К оплате за км: <b>{km} × {rate} = {km_total} {cur}</b>\n"
+            "🏦 Сдать в кассу: <b>{cash} − {km_total} = {to_pay} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "✅ Смена закрыта. Хорошего отдыха! 🏠"
+        ),
+        'shift_admin_report_header': "📊 <b>ОТЧЁТ СМЕН — {date}</b>\n➖➖➖➖➖➖➖➖➖\n",
+        'shift_admin_report_line': (
+            "👤 <b>{name}</b>\n"
+            "  🛣 Км: {km} | 📦 Зак: {orders} | 💵 {cash} / 💳 {term} {cur}\n"
+            "  🚗 За км: {km_total} {cur} | 🏦 В кассу: {to_pay} {cur}\n\n"
+        ),
+        'shift_admin_report_empty': "📭 Сегодня ещё нет закрытых смен.",
+        'btn_shift_view_photo': "📸 Фото ({name})",
+        'shift_photo_start_caption': "📸 Начало смены — {name}\n🛣 {km} км",
+        'shift_photo_end_caption': "📸 Конец смены — {name}\n🛣 {km} км",
+        'shift_photo_not_found': "❌ Фото не найдено.",
+        'btn_shift_report': "📋 Отчёт смен",
         'sub_expired': "⚠️ **Twoja subskrypcja wygasła lub została zawieszona.**\nProszę skontaktować się z administratorem.",
         'owner_panel': "🏢 **Panel właściciela: {name}**",
         'manager_panel': "👨‍💼 **Panel menedżera: {name}**",
@@ -170,7 +328,7 @@ TEXTS = {
         'role_m_full': "Menedżera 👨‍💼",
         'invite_welcome': "👋 Witamy!\nOtrzymałeś zaproszenie na stanowisko **{role}** w lokalu **{biz_name}**.\n\n✏️ Wprowadź swoje Imię i Nazwisko, aby dołączyć do zespołu:",
         'start_welcome': "🌟 **Witamy w DelivePro!**\n\nEwolucja Twojej dostawy zaczyna się tutaj. Kliknij przycisk poniżej, aby skonfigurować swój biznes.",
-        'biz_already_exists': "⚠️ У вас вже є зареєстрований заклад. Якщо хочете змінити налаштування — відкрийте панель керування.",
+        'biz_already_exists': "⚠️ Masz już zarejestrowany lokal. Jeśli chcesz zmienić ustawienia — otwórz panel sterowania.",
         'biz_created': "🎉 **Gratulacje! Twój biznes '{biz_name}' został pomyślnie utworzony.**\n📦 **Plan:** {plan} (Aktywowano 7 dni okresu próbnego)\n\nTeraz możesz przejść do pełnego zarządzania 👇",
         'reg_error': "❌ Wystąpił błąd podczas rejestracji.",
         'pay_cash': "Gotówka",
@@ -203,8 +361,6 @@ TEXTS = {
         'sa_empty': "📭 Na razie brak firm.",
         'sa_manage': "🚀 Zarządzanie SaaS:",
         'sa_changed': "Status zmieniony!",
-
-        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Otwórz DelivePro",
         'btn_dashboard': "📊 Panel",
         'btn_map': "🗺 Mapa zamówień",
@@ -224,9 +380,89 @@ TEXTS = {
         'order_assign_error': "❌ Błąd podczas przypisywania zamówienia.",
         'order_already_assigned': "⚠️ To zamówienie zostało już przypisane kurierowi.",
         'expired_no_report': "⚠️ Subskrypcja wygasła. Otwórz Panel, aby dokonać płatności.",
-        'tracking_link_label': "🔗 *Link do śledzenia dla klienta:*\n`{tracking_link}`"
-    },
-    'en': {
+        'tracking_link_label': "🔗 *Link do śledzenia dla klienta:*\n`{tracking_link}`",
+        'order_status_active': "🟢 Aktywny — kto pierwszy, ten wiezie!",
+        'order_status_active_short': "🟢 Aktywny",
+        'order_status_delivering': "🟡 W drodze (Wiezie: {courier})",
+        'order_status_closed': "🔴 Zamknięto ({time}, {courier} - {pay_icon})",
+        'order_label': "ZAMÓWIENIE",
+        'order_label_free': "WOLNE ZAMÓWIENIE",
+        'order_label_new': "NOWE ZAMÓWIENIE",
+        'order_label_no_courier': "(bez kuriera)",
+        'order_status_lbl': "Status",
+        'order_address_lbl': "Adres",
+        'order_details_lbl': "Szczegóły",
+        'order_client_lbl': "Klient",
+        'order_tel_lbl': "Tel",
+        'order_comment_lbl': "Komentarz",
+        'order_pay_cash_line': "💵 Gotówka: {amount} {cur}",
+        'order_pay_terminal_line': "🏧 Terminal: {amount} {cur}",
+        'order_pay_online_line': "💳 Płatność: ONLINE (Opłacono)",
+        'btn_take_order': "✅ Weź zamówienie",
+        'btn_call': "📞 Zadzwoń",
+        'btn_close_online': "✅ Zamknij (Online opłacono)",
+        'btn_close_cash': "💵 Gotówka — {amount} {cur}",
+        'btn_close_terminal': "🏧 Terminal — {amount} {cur}",
+        'closing_order': "✅ Zamykamy zamówienie...",
+        'order_not_found': "❌ Zamówienie nie znalezione.",
+        'order_format_error': "❌ Błąd formatu callback.",
+        'order_already_closed': "✅ Zamówienie już zamknięte.",
+        'order_wrong_courier': "⛔️ To zamówienie prowadzi inny kurier.",
+        'courier_not_in_staff': "⛔️ Kurier nie znaleziony w personelu tego lokalu.",
+        'free_order_manager_notify': "📦 <b>NOWE ZAMÓWIENIE #{short_id}</b> (bez kuriera)\n\n📍 <b>Adres:</b> {address}\n👤 <b>Klient:</b> {client_name}\n📞 <b>Tel:</b> {phone}\n💰 <b>Kwota:</b> {amount} {cur}\n⚠️ Przypisz kuriera przez mapę zamówień.",
+        'courier_returns': "🏠 Kurier wraca do bazy.",
+        'courier_free': "✅ Kurier __wolny__ do pracy.",
+        'report_courier_line': "👤 {name}: {count} zam.",
+        'report_online_line': " | 🌐 {count} onl. ({sum})",
+        'report_online_summary': "\n🌐 Online: {count} zamówień | {sum} {cur} (opłacono)",
+        'generic_error': "❌ Błąd: {error}",
+        'ticket_sent': "✅ <b>Zgłoszenie zostało wysłane!</b> Nasz dział wsparcia skontaktuje się z Tobą wkrótce.",
+        'ticket_admin_msg': "🆘 <b>NOWE ZGŁOSZENIE WSPARCIA</b>\n\n🏢 <b>ID Firmy:</b> <code>{biz_id}</code>\n👤 <b>Od:</b> <a href='tg://user?id={user_id}'>Klient (ID: {user_id})</a>\n🏷 <b>Kategoria:</b> {reason}\n📌 <b>Temat:</b> {topic}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💬 <b>Wiadomość:</b>\n<i>{message}</i>",
+        'btn_call_regular': "📞 Zadzwoń",
+        'btn_assign_courier': "🛵 Przypisz kuriera",
+        'pos_order_new': "🔥 <b>NOWE ZAMÓWIENIE Z {source}!</b>\n\n👤 <b>Klient:</b> {client}\n📞 <b>Telefon:</b> {phone}\n📍 <b>Adres:</b> {address}\n💰 <b>Kwota:</b> {amount} {cur}",
+        'pos_order_comment': "\n💬 <b>Komentarz:</b> <i>{comment}</i>",
+        'pro_activated': "🎉 <b>Gratulacje! Płatność zakończona sukcesem!</b>\nPlan <b>PRO</b> aktywowany. Dziękujemy za zaufanie! 🚀",
+        'client_default': "Klient",
+        # --- ZMIANA KURIERA ---
+        'btn_start_shift': "🟢 Rozpocznij zmianę",
+        'btn_close_shift': "🔴 Zakończ zmianę",
+        'shift_already_active': "⚠️ Masz już aktywną zmianę. Najpierw ją zakończ.",
+        'shift_send_start_photo': "📸 Zrób zdjęcie licznika przed rozpoczęciem zmiany i wyślij je tutaj.",
+        'shift_send_start_km': "✅ Zdjęcie otrzymane!\n\nTeraz wprowadź aktualny przebieg liczbą (np: <b>12340</b>):",
+        'shift_started': "✅ Zmiana rozpoczęta!\n\n🛣 Przebieg <b>{name}</b> na początku zmiany: <b>{km} km</b>\n\nPowodzenia na trasie! 🚀",
+        'shift_photo_forwarded': "📸 <b>Zdjęcie licznika — początek zmiany</b>\n👤 Kurier: <b>{name}</b>\n🛣 Km: <b>{km}</b>",
+        'shift_end_photo_forwarded': "📸 <b>Zdjęcie licznika — koniec zmiany</b>\n👤 Kurier: <b>{name}</b>\n🛣 Km: <b>{km}</b>",
+        'shift_no_active': "⚠️ Nie masz aktywnej zmiany. Najpierw rozpocznij zmianę.",
+        'shift_send_end_photo': "📸 Wyślij zdjęcie licznika, aby zakończyć zmianę.",
+        'shift_send_end_km': "✅ Zdjęcie otrzymane!\n\nWprowadź aktualny przebieg liczbą:",
+        'shift_km_invalid': "❌ Nieprawidłowy format. Wprowadź liczbę całkowitą, np: <b>12500</b>",
+        'shift_km_less_than_start': "❌ Końcowy przebieg nie może być mniejszy niż początkowy (<b>{start_km} km</b>). Spróbuj ponownie.",
+        'shift_report': (
+            "📊 <b>Raport zmiany — {name}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🛣 Przebieg: <b>{km} km</b>\n"
+            "📦 Zamówień: <b>{orders}</b>\n"
+            "💵 Gotówka: <b>{cash} {cur}</b>\n"
+            "💳 Terminal: <b>{term} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🚗 Do zapłaty za km: <b>{km} × {rate} = {km_total} {cur}</b>\n"
+            "🏦 Do kasy: <b>{cash} − {km_total} = {to_pay} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "✅ Zmiana zakończona. Dobrego wypoczynku! 🏠"
+        ),
+        'shift_admin_report_header': "📊 <b>RAPORT ZMIAN — {date}</b>\n➖➖➖➖➖➖➖➖➖\n",
+        'shift_admin_report_line': (
+            "👤 <b>{name}</b>\n"
+            "  🛣 Km: {km} | 📦 Zam: {orders} | 💵 {cash} / 💳 {term} {cur}\n"
+            "  🚗 Za km: {km_total} {cur} | 🏦 Do kasy: {to_pay} {cur}\n\n"
+        ),
+        'shift_admin_report_empty': "📭 Dziś nie ma jeszcze zamkniętych zmian.",
+        'btn_shift_view_photo': "📸 Zdjęcie ({name})",
+        'shift_photo_start_caption': "📸 Początek zmiany — {name}\n🛣 {km} km",
+        'shift_photo_end_caption': "📸 Koniec zmiany — {name}\n🛣 {km} km",
+        'shift_photo_not_found': "❌ Zdjęcie nie znalezione.",
+        'btn_shift_report': "📋 Raport zmian",
         'sub_expired': "⚠️ **Your subscription has expired or been suspended.**\nPlease contact the administrator.",
         'owner_panel': "🏢 **Owner Panel: {name}**",
         'manager_panel': "👨‍💼 **Manager Panel: {name}**",
@@ -245,7 +481,7 @@ TEXTS = {
         'role_m_full': "Manager 👨‍💼",
         'invite_welcome': "👋 Welcome!\nYou received an invitation for the role of **{role}** at **{biz_name}**.\n\n✏️ Enter your First and Last Name to join the team:",
         'start_welcome': "🌟 **Welcome to DelivePro!**\n\nThe evolution of your delivery starts here. Click the button below to set up your business.",
-        'biz_already_exists': "⚠️ У вас вже є зареєстрований заклад. Якщо хочете змінити налаштування — відкрийте панель керування.",
+        'biz_already_exists': "⚠️ You already have a registered business. To change settings — open the control panel.",
         'biz_created': "🎉 **Congratulations! Your business '{biz_name}' has been successfully created.**\n📦 **Plan:** {plan} (7-day trial activated)\n\nNow you can proceed to full management 👇",
         'reg_error': "❌ An error occurred during registration.",
         'pay_cash': "Cash",
@@ -278,8 +514,6 @@ TEXTS = {
         'sa_empty': "📭 No businesses yet.",
         'sa_manage': "🚀 SaaS Management:",
         'sa_changed': "Status changed!",
-        
-        # --- КНОПКИ КЛАВІАТУР (НОВЕ) ---
         'btn_open_app': "🚀 Open DelivePro",
         'btn_dashboard': "📊 Dashboard",
         'btn_map': "🗺 Orders Map",
@@ -299,9 +533,89 @@ TEXTS = {
         'order_assign_error': "❌ Error assigning the order.",
         'order_already_assigned': "⚠️ This order has already been assigned to a courier.",
         'expired_no_report': "⚠️ Subscription expired. Please open the Dashboard to pay.",
-        'tracking_link_label': "🔗 *Tracking link for client:*\n`{tracking_link}`"
-    }
-}
+        'tracking_link_label': "🔗 *Tracking link for client:*\n`{tracking_link}`",
+        'order_status_active': "🟢 Active — first come, first serve!",
+        'order_status_active_short': "🟢 Active",
+        'order_status_delivering': "🟡 On the way (Courier: {courier})",
+        'order_status_closed': "🔴 Closed ({time}, {courier} - {pay_icon})",
+        'order_label': "ORDER",
+        'order_label_free': "FREE ORDER",
+        'order_label_new': "NEW ORDER",
+        'order_label_no_courier': "(no courier)",
+        'order_status_lbl': "Status",
+        'order_address_lbl': "Address",
+        'order_details_lbl': "Details",
+        'order_client_lbl': "Client",
+        'order_tel_lbl': "Tel",
+        'order_comment_lbl': "Comment",
+        'order_pay_cash_line': "💵 Cash: {amount} {cur}",
+        'order_pay_terminal_line': "🏧 Terminal: {amount} {cur}",
+        'order_pay_online_line': "💳 Payment: ONLINE (Paid)",
+        'btn_take_order': "✅ Take order",
+        'btn_call': "📞 Call",
+        'btn_close_online': "✅ Close (Online paid)",
+        'btn_close_cash': "💵 Cash — {amount} {cur}",
+        'btn_close_terminal': "🏧 Terminal — {amount} {cur}",
+        'closing_order': "✅ Closing order...",
+        'order_not_found': "❌ Order not found.",
+        'order_format_error': "❌ Callback format error.",
+        'order_already_closed': "✅ Order already closed.",
+        'order_wrong_courier': "⛔️ This order is being handled by another courier.",
+        'courier_not_in_staff': "⛔️ Courier not found in this venue's staff.",
+        'free_order_manager_notify': "📦 <b>NEW ORDER #{short_id}</b> (no courier)\n\n📍 <b>Address:</b> {address}\n👤 <b>Client:</b> {client_name}\n📞 <b>Tel:</b> {phone}\n💰 <b>Amount:</b> {amount} {cur}\n⚠️ Assign a courier via the orders map.",
+        'courier_returns': "🏠 Courier is returning to base.",
+        'courier_free': "✅ Courier is __free__ for work again.",
+        'report_courier_line': "👤 {name}: {count} ord.",
+        'report_online_line': " | 🌐 {count} onl. ({sum})",
+        'report_online_summary': "\n🌐 Online: {count} orders | {sum} {cur} (paid)",
+        'generic_error': "❌ Error: {error}",
+        'ticket_sent': "✅ <b>Ticket sent successfully!</b> Our support team will contact you shortly.",
+        'ticket_admin_msg': "🆘 <b>NEW SUPPORT TICKET</b>\n\n🏢 <b>Business ID:</b> <code>{biz_id}</code>\n👤 <b>From:</b> <a href='tg://user?id={user_id}'>Client (ID: {user_id})</a>\n🏷 <b>Category:</b> {reason}\n📌 <b>Topic:</b> {topic}\n〰️〰️〰️〰️〰️〰️〰️〰️\n💬 <b>Message:</b>\n<i>{message}</i>",
+        'btn_call_regular': "📞 Call",
+        'btn_assign_courier': "🛵 Assign Courier",
+        'pos_order_new': "🔥 <b>NEW ORDER FROM {source}!</b>\n\n👤 <b>Client:</b> {client}\n📞 <b>Phone:</b> {phone}\n📍 <b>Address:</b> {address}\n💰 <b>Amount:</b> {amount} {cur}",
+        'pos_order_comment': "\n💬 <b>Comment:</b> <i>{comment}</i>",
+        'pro_activated': "🎉 <b>Congratulations! Payment successful!</b>\n<b>PRO</b> plan activated. Thank you for your trust! 🚀",
+        'client_default': "Client",
+        # --- COURIER SHIFT ---
+        'btn_start_shift': "🟢 Start Shift",
+        'btn_close_shift': "🔴 End Shift",
+        'shift_already_active': "⚠️ You already have an active shift. Please close it first.",
+        'shift_send_start_photo': "📸 Take a photo of the odometer before starting your shift and send it here.",
+        'shift_send_start_km': "✅ Photo received!\n\nNow enter the current mileage as a number (e.g. <b>12340</b>):",
+        'shift_started': "✅ Shift started!\n\n🛣 Mileage for <b>{name}</b> at shift start: <b>{km} km</b>\n\nGood luck on the road! 🚀",
+        'shift_photo_forwarded': "📸 <b>Odometer photo — shift start</b>\n👤 Courier: <b>{name}</b>\n🛣 Km: <b>{km}</b>",
+        'shift_end_photo_forwarded': "📸 <b>Odometer photo — shift end</b>\n👤 Courier: <b>{name}</b>\n🛣 Km: <b>{km}</b>",
+        'shift_no_active': "⚠️ You have no active shift. Please start a shift first.",
+        'shift_send_end_photo': "📸 Send a photo of the odometer to close your shift.",
+        'shift_send_end_km': "✅ Photo received!\n\nEnter the current mileage as a number:",
+        'shift_km_invalid': "❌ Invalid format. Enter a whole number, e.g. <b>12500</b>",
+        'shift_km_less_than_start': "❌ End mileage cannot be less than start mileage (<b>{start_km} km</b>). Try again.",
+        'shift_report': (
+            "📊 <b>Shift Report — {name}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🛣 Mileage: <b>{km} km</b>\n"
+            "📦 Orders: <b>{orders}</b>\n"
+            "💵 Cash: <b>{cash} {cur}</b>\n"
+            "💳 Terminal: <b>{term} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "🚗 To pay for km: <b>{km} × {rate} = {km_total} {cur}</b>\n"
+            "🏦 To hand to cashier: <b>{cash} − {km_total} = {to_pay} {cur}</b>\n"
+            "➖➖➖➖➖➖➖➖➖\n"
+            "✅ Shift closed. Have a good rest! 🏠"
+        ),
+        'shift_admin_report_header': "📊 <b>SHIFT REPORT — {date}</b>\n➖➖➖➖➖➖➖➖➖\n",
+        'shift_admin_report_line': (
+            "👤 <b>{name}</b>\n"
+            "  🛣 Km: {km} | 📦 Ord: {orders} | 💵 {cash} / 💳 {term} {cur}\n"
+            "  🚗 For km: {km_total} {cur} | 🏦 To cashier: {to_pay} {cur}\n\n"
+        ),
+        'shift_admin_report_empty': "📭 No closed shifts today yet.",
+        'btn_shift_view_photo': "📸 Photo ({name})",
+        'shift_photo_start_caption': "📸 Shift start — {name}\n🛣 {km} km",
+        'shift_photo_end_caption': "📸 Shift end — {name}\n🛣 {km} km",
+        'shift_photo_not_found': "❌ Photo not found.",
+        'btn_shift_report': "📋 Shift Report",
 
 def get_text(lang_code: str, key: str, **kwargs) -> str:
     """Отримує переклад з TEXTS. Якщо мови нема - бере англійську. Дозволяє форматування."""

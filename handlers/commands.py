@@ -20,6 +20,14 @@ router = Router()
 class RegStaff(StatesGroup):
     waiting_for_name = State()
 
+class ShiftOpen(StatesGroup):
+    waiting_photo = State()
+    waiting_km    = State()
+
+class ShiftClose(StatesGroup):
+    waiting_photo = State()
+    waiting_km    = State()
+
 # — ДОПОМІЖНА ФУНКЦІЯ МЕНЮ —
 
 async def show_main_menu(message: types.Message, context: dict):
@@ -32,16 +40,12 @@ async def show_main_menu(message: types.Message, context: dict):
     actual_plan = await db.get_actual_plan(biz_id)
 
     if not biz['is_active'] or actual_plan == "expired":
-        # ✅ ВИПРАВЛЕНО bug #6: раніше тільки власник бачив expired_trial_text.
-        # Менеджер/кур'єр отримували мовчазну відмову (форма відкривалась але не зберігала).
-        # Тепер всі ролі бачать зрозуміле повідомлення.
         if role == "owner":
             text = _(lang, 'expired_trial_text')
             builder = InlineKeyboardBuilder()
             builder.button(text=_(lang, 'btn_open_dashboard'), web_app=types.WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}"))
             await message.answer(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
         else:
-            # Менеджер або кур'єр — повідомляємо що підписка закінчилась у власника
             await message.answer(_(lang, 'expired_staff_text'), parse_mode="Markdown")
         return
 
@@ -53,9 +57,280 @@ async def show_main_menu(message: types.Message, context: dict):
         markup = kb.get_manager_kb(biz_id, message.from_user.id, lang)
     else:  # courier
         text = _(lang, 'courier_panel', name=biz['name'])
-        markup = kb.get_courier_kb(biz_id, message.from_user.id, lang)
+        # Перевіряємо чи є активна зміна — щоб показати правильну кнопку
+        active_shift = await db.get_active_shift(message.from_user.id, biz_id)
+        markup = kb.get_courier_kb(biz_id, message.from_user.id, lang, shift_active=bool(active_shift))
 
     await message.answer(text, reply_markup=markup, parse_mode="Markdown")
+
+# ==========================================
+# — БЛОК: ЗМІНА КУР'ЄРА —
+# ==========================================
+
+start_shift_buttons = ["🟢 Розпочати зміну", "🟢 Начать смену", "🟢 Rozpocznij zmianę", "🟢 Start Shift"]
+close_shift_buttons = ["🔴 Закрити зміну", "🔴 Закрыть смену", "🔴 Zakończ zmianę", "🔴 End Shift"]
+shift_report_buttons = ["📋 Звіт змін", "📋 Отчёт смен", "📋 Raport zmian", "📋 Shift Report"]
+
+# --- Кур'єр натискає "Розпочати зміну" ---
+@router.message(F.text.in_(start_shift_buttons))
+async def cmd_start_shift(message: types.Message, state: FSMContext):
+    lang = message.from_user.language_code
+    ctx = await db.get_user_context_cached(message.from_user.id)
+    if not ctx or ctx['role'] != 'courier':
+        await message.answer(_(lang, 'no_access'))
+        return
+    biz_id = ctx['biz']['id']
+    active = await db.get_active_shift(message.from_user.id, biz_id)
+    if active:
+        await message.answer(_(lang, 'shift_already_active'))
+        return
+    await state.set_state(ShiftOpen.waiting_photo)
+    await state.update_data(biz_id=biz_id)
+    await message.answer(_(lang, 'shift_send_start_photo'))
+
+@router.message(ShiftOpen.waiting_photo, F.photo)
+async def shift_open_got_photo(message: types.Message, state: FSMContext):
+    lang = message.from_user.language_code
+    file_id = message.photo[-1].file_id
+    await state.update_data(start_photo_id=file_id)
+    await state.set_state(ShiftOpen.waiting_km)
+    await message.answer(_(lang, 'shift_send_start_km'), parse_mode="HTML")
+
+@router.message(ShiftOpen.waiting_km, F.text)
+async def shift_open_got_km(message: types.Message, state: FSMContext):
+    lang = message.from_user.language_code
+    if not message.text.strip().isdigit():
+        await message.answer(_(lang, 'shift_km_invalid'), parse_mode="HTML")
+        return
+    km = int(message.text.strip())
+    data = await state.get_data()
+    biz_id = data['biz_id']
+    start_photo_id = data['start_photo_id']
+    user_id = message.from_user.id
+
+    await db.open_shift(user_id, biz_id, km, start_photo_id)
+
+    courier = await db.get_courier(user_id)
+    name = courier['name'] if courier else str(user_id)
+
+    await state.clear()
+    await message.answer(
+        _(lang, 'shift_started', name=name, km=km),
+        parse_mode="HTML"
+    )
+
+    # Пересилаємо фото менеджеру/власнику
+    await _forward_shift_photo(
+        biz_id=biz_id,
+        photo_id=start_photo_id,
+        caption=_(lang, 'shift_photo_forwarded', name=name, km=km),
+        sender_id=user_id
+    )
+
+    # Оновлюємо клавіатуру — тепер кнопка "Закрити зміну"
+    ctx = await db.get_user_context_cached(user_id)
+    markup = kb.get_courier_kb(biz_id, user_id, lang, shift_active=True)
+    await message.answer("✅", reply_markup=markup)
+
+# --- Кур'єр натискає "Закрити зміну" ---
+@router.message(F.text.in_(close_shift_buttons))
+async def cmd_close_shift(message: types.Message, state: FSMContext):
+    lang = message.from_user.language_code
+    ctx = await db.get_user_context_cached(message.from_user.id)
+    if not ctx or ctx['role'] != 'courier':
+        await message.answer(_(lang, 'no_access'))
+        return
+    biz_id = ctx['biz']['id']
+    active = await db.get_active_shift(message.from_user.id, biz_id)
+    if not active:
+        await message.answer(_(lang, 'shift_no_active'))
+        return
+    await state.set_state(ShiftClose.waiting_photo)
+    await state.update_data(biz_id=biz_id, shift_id=active['id'], start_km=active['start_km'])
+    await message.answer(_(lang, 'shift_send_end_photo'))
+
+@router.message(ShiftClose.waiting_photo, F.photo)
+async def shift_close_got_photo(message: types.Message, state: FSMContext):
+    lang = message.from_user.language_code
+    file_id = message.photo[-1].file_id
+    await state.update_data(end_photo_id=file_id)
+    await state.set_state(ShiftClose.waiting_km)
+    await message.answer(_(lang, 'shift_send_end_km'), parse_mode="HTML")
+
+@router.message(ShiftClose.waiting_km, F.text)
+async def shift_close_got_km(message: types.Message, state: FSMContext):
+    lang = message.from_user.language_code
+    if not message.text.strip().isdigit():
+        await message.answer(_(lang, 'shift_km_invalid'), parse_mode="HTML")
+        return
+    end_km = int(message.text.strip())
+    data = await state.get_data()
+    start_km = data['start_km']
+    if end_km < start_km:
+        await message.answer(_(lang, 'shift_km_less_than_start', start_km=start_km), parse_mode="HTML")
+        return
+
+    shift_id = data['shift_id']
+    biz_id = data['biz_id']
+    end_photo_id = data['end_photo_id']
+    user_id = message.from_user.id
+
+    await db.close_shift(shift_id, end_km, end_photo_id)
+
+    courier = await db.get_courier(user_id)
+    name = courier['name'] if courier else str(user_id)
+    biz = await db.get_business_by_id(biz_id)
+    currency = biz.get('currency', '₴') if biz else '₴'
+    km_rate = await db.get_km_rate(biz_id)
+
+    # Беремо зміну щоб знати started_at
+    from database import _run, supabase
+    shift_res = await _run(lambda: supabase.table("shifts").select("started_at").eq("id", shift_id).execute())
+    since_iso = shift_res.data[0]['started_at'] if shift_res.data else None
+
+    orders_count, cash, term = 0, 0.0, 0.0
+    if since_iso:
+        orders_count, cash, term = await db.get_shift_orders_stats(user_id, biz_id, since_iso)
+
+    km_diff = end_km - start_km
+    km_total = round(km_diff * km_rate, 2)
+    to_pay = round(cash - km_total, 2)
+
+    await state.clear()
+    await message.answer(
+        _(lang, 'shift_report',
+          name=name, km=km_diff, orders=orders_count,
+          cash=f"{cash:.2f}", term=f"{term:.2f}", cur=currency,
+          rate=km_rate, km_total=f"{km_total:.2f}", to_pay=f"{to_pay:.2f}"),
+        parse_mode="HTML"
+    )
+
+    # Пересилаємо кінцеве фото
+    await _forward_shift_photo(
+        biz_id=biz_id,
+        photo_id=end_photo_id,
+        caption=_(lang, 'shift_end_photo_forwarded', name=name, km=end_km),
+        sender_id=user_id
+    )
+
+    # Оновлюємо клавіатуру — кнопка "Розпочати зміну"
+    markup = kb.get_courier_kb(biz_id, user_id, lang, shift_active=False)
+    await message.answer("✅", reply_markup=markup)
+
+# --- Допоміжна: пересилає фото адміну/менеджеру ---
+async def _forward_shift_photo(biz_id: str, photo_id: str, caption: str, sender_id: int):
+    from bot_setup import bot
+    from database import _run, supabase
+    # Знаходимо власника
+    biz_res = await _run(lambda: supabase.table("businesses").select("owner_id").eq("id", biz_id).execute())
+    recipients = []
+    if biz_res.data:
+        recipients.append(int(biz_res.data[0]['owner_id']))
+    # Менеджери
+    mgr_res = await _run(lambda: supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute())
+    if mgr_res.data:
+        for m in mgr_res.data:
+            uid = int(m['user_id'])
+            if uid != sender_id and uid not in recipients:
+                recipients.append(uid)
+    for uid in recipients:
+        try:
+            await bot.send_photo(uid, photo_id, caption=caption, parse_mode="HTML")
+        except Exception as e:
+            logger.warning(f"[shift_photo] не вдалось надіслати uid={uid}: {e}")
+
+# --- Адмін-звіт змін ---
+@router.message(F.text.in_(shift_report_buttons))
+async def cmd_shift_report(message: types.Message):
+    lang = message.from_user.language_code
+    ctx = await db.get_user_context_cached(message.from_user.id)
+    if not ctx or ctx['role'] not in ('owner', 'manager'):
+        await message.answer(_(lang, 'no_zvit_access'))
+        return
+    biz_id = ctx['biz']['id']
+    biz = ctx['biz']
+    currency = biz.get('currency', '₴')
+    km_rate = await db.get_km_rate(biz_id)
+
+    shifts = await db.get_today_shifts_report(biz_id)
+    closed = [s for s in shifts if s.get('ended_at')]
+
+    if not closed:
+        await message.answer(_(lang, 'shift_admin_report_empty'))
+        return
+
+    # Підтягуємо імена
+    from database import _run, supabase
+    staff_res = await _run(lambda: supabase.table("staff").select("user_id,name").eq("business_id", biz_id).execute())
+    staff_map = {str(s['user_id']): s['name'] for s in (staff_res.data or [])}
+
+    today = datetime.datetime.now(BUSINESS_TZ).strftime("%d.%m.%Y")
+    text = _(lang, 'shift_admin_report_header', date=today)
+
+    builder = InlineKeyboardBuilder()
+
+    for s in closed:
+        c_id = str(s['courier_id'])
+        name = staff_map.get(c_id, f"id:{c_id}")
+        km_diff = (s.get('end_km') or 0) - (s.get('start_km') or 0)
+        orders_count, cash, term = 0, 0.0, 0.0
+        if s.get('started_at'):
+            orders_count, cash, term = await db.get_shift_orders_stats(int(c_id), biz_id, s['started_at'])
+        km_total = round(km_diff * km_rate, 2)
+        to_pay = round(cash - km_total, 2)
+
+        text += _(lang, 'shift_admin_report_line',
+                  name=name, km=km_diff, orders=orders_count,
+                  cash=f"{cash:.2f}", term=f"{term:.2f}", cur=currency,
+                  km_total=f"{km_total:.2f}", to_pay=f"{to_pay:.2f}")
+
+        # Кнопки для перегляду фото
+        shift_id_short = str(s['id'])[:8]
+        if s.get('start_photo_id'):
+            builder.button(text=f"📸 {name} — початок", callback_data=f"shiftphoto:start:{s['id']}")
+        if s.get('end_photo_id'):
+            builder.button(text=f"📸 {name} — кінець", callback_data=f"shiftphoto:end:{s['id']}")
+
+    builder.adjust(1)
+    await message.answer(text, parse_mode="HTML", reply_markup=builder.as_markup())
+
+# --- Callback: перегляд фото зміни ---
+@router.callback_query(F.data.startswith("shiftphoto:"))
+async def cb_shift_photo(callback: types.CallbackQuery):
+    lang = callback.from_user.language_code
+    ctx = await db.get_user_context_cached(callback.from_user.id)
+    if not ctx or ctx['role'] not in ('owner', 'manager'):
+        await callback.answer(_(lang, 'no_access'), show_alert=True)
+        return
+    parts = callback.data.split(":")
+    photo_type = parts[1]  # start / end
+    shift_id = parts[2]
+
+    from database import _run, supabase
+    res = await _run(lambda: supabase.table("shifts").select("*").eq("id", shift_id).execute())
+    if not res.data:
+        await callback.answer(_(lang, 'shift_photo_not_found'), show_alert=True)
+        return
+    shift = res.data[0]
+
+    staff_res = await _run(lambda: supabase.table("staff").select("name").eq("user_id", shift['courier_id']).execute())
+    name = staff_res.data[0]['name'] if staff_res.data else str(shift['courier_id'])
+
+    if photo_type == "start":
+        photo_id = shift.get('start_photo_id')
+        km = shift.get('start_km', '?')
+        caption = _(lang, 'shift_photo_start_caption', name=name, km=km)
+    else:
+        photo_id = shift.get('end_photo_id')
+        km = shift.get('end_km', '?')
+        caption = _(lang, 'shift_photo_end_caption', name=name, km=km)
+
+    if not photo_id:
+        await callback.answer(_(lang, 'shift_photo_not_found'), show_alert=True)
+        return
+
+    await callback.message.answer_photo(photo_id, caption=caption)
+    await callback.answer()
 
 # ==========================================
 # — БЛОК: ГЕНЕРАЦІЯ ЗВІТУ —
@@ -148,14 +423,13 @@ async def cmd_generate_report(message: types.Message):
     text = _(lang, 'zvit_title', time=now_time)
 
     for c_id, stats in report_data.items():
-        line = f"👤 {stats['name']}: {stats['count']} зам."
+        line = _(lang, 'report_courier_line', name=stats['name'], count=stats['count'])
         if stats['cash'] > 0:
             line += f" | 💵 {stats['cash']:.2f}"
         if stats['term'] > 0:
             line += f" | 🏧 {stats['term']:.2f}"
         if stats.get('online', 0) > 0:
-            # ✅ ВИПРАВЛЕНО bug #10: показуємо суму онлайн-замовлень
-            line += f" | 🌐 {stats['online']} онл. ({stats.get('online_sum', 0.0):.2f})"
+            line += _(lang, 'report_online_line', count=stats['online'], sum=f"{stats.get('online_sum', 0.0):.2f}")
         text += line + "\n"
 
     text += "➖ ➖ ➖ ➖ ➖\n"
@@ -163,7 +437,7 @@ async def cmd_generate_report(message: types.Message):
     text += "\n"
     text += _(lang, 'zvit_term', term=f"{total_term:.2f}", cur=currency)
     if total_online > 0:
-        text += f"\n🌐 Онлайн: {total_online} замовлень | {total_online_sum:.2f} {currency} (сплачено)"
+        text += _(lang, 'report_online_summary', count=total_online, sum=f"{total_online_sum:.2f}", cur=currency)
 
     await message.answer(text)
 

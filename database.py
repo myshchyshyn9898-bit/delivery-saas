@@ -329,3 +329,93 @@ def invalidate_user_cache(user_id: int):
     реєстрації бізнесу або додавання персоналу.
     """
     _context_cache.pop(user_id, None)
+
+# ==========================================
+# ФУНКЦІЇ ДЛЯ ЗМІН КУР'ЄРІВ (SHIFTS)
+# ==========================================
+
+async def get_active_shift(courier_id: int, biz_id: str):
+    """Повертає активну зміну кур'єра або None."""
+    res = await _run(
+        lambda: supabase.table("shifts")
+            .select("*")
+            .eq("courier_id", courier_id)
+            .eq("business_id", biz_id)
+            .is_("ended_at", "null")
+            .execute()
+    )
+    return res.data[0] if res.data else None
+
+async def open_shift(courier_id: int, biz_id: str, start_km: int, start_photo_id: str):
+    """Відкриває нову зміну."""
+    data = {
+        "courier_id": courier_id,
+        "business_id": biz_id,
+        "start_km": start_km,
+        "start_photo_id": start_photo_id,
+        "started_at": datetime.datetime.now(timezone.utc).isoformat(),
+    }
+    res = await _run(lambda: supabase.table("shifts").insert(data).execute())
+    return res.data[0] if res.data else None
+
+async def close_shift(shift_id: str, end_km: int, end_photo_id: str):
+    """Закриває зміну — записує кінцевий км і час."""
+    data = {
+        "end_km": end_km,
+        "end_photo_id": end_photo_id,
+        "ended_at": datetime.datetime.now(timezone.utc).isoformat(),
+    }
+    await _run(lambda: supabase.table("shifts").update(data).eq("id", shift_id).execute())
+
+async def get_shift_orders_stats(courier_id: int, biz_id: str, since_iso: str):
+    """Повертає кількість замовлень, готівку, термінал за зміну."""
+    res = await _run(
+        lambda: supabase.table("orders")
+            .select("amount, pay_type")
+            .eq("courier_id", courier_id)
+            .eq("business_id", biz_id)
+            .eq("status", "completed")
+            .gte("completed_at", since_iso)
+            .execute()
+    )
+    orders = res.data or []
+    count = len(orders)
+    cash = sum(float(o["amount"]) for o in orders if o.get("pay_type") == "cash")
+    term = sum(float(o["amount"]) for o in orders if o.get("pay_type") == "terminal")
+    return count, cash, term
+
+async def get_km_rate(biz_id: str) -> float:
+    """Повертає ціну за км з налаштувань бізнесу."""
+    res = await _run(
+        lambda: supabase.table("businesses").select("km_rate").eq("id", biz_id).execute()
+    )
+    if res.data and res.data[0].get("km_rate"):
+        return float(res.data[0]["km_rate"])
+    return 0.0
+
+async def get_today_shifts_report(biz_id: str):
+    """Повертає всі закриті зміни за сьогодні для адмін-звіту."""
+    import zoneinfo as _zi
+    from config import BUSINESS_TZ
+    biz_tz = BUSINESS_TZ
+    try:
+        tz_res = await _run(
+            lambda: supabase.table("businesses").select("timezone").eq("id", biz_id).execute()
+        )
+        if tz_res.data and tz_res.data[0].get("timezone"):
+            biz_tz = _zi.ZoneInfo(tz_res.data[0]["timezone"])
+    except Exception:
+        pass
+
+    now_local = datetime.datetime.now(biz_tz)
+    start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_day = start_local.astimezone(timezone.utc).isoformat()
+
+    res = await _run(
+        lambda: supabase.table("shifts")
+            .select("*")
+            .eq("business_id", biz_id)
+            .gte("started_at", start_of_day)
+            .execute()
+    )
+    return res.data or []
