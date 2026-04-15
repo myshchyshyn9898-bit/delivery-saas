@@ -29,7 +29,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import database as db
 from bot_setup import bot
-from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY
+from config import WHOP_WEBHOOK_SECRET, SUPABASE_URL, SUPABASE_KEY, MAPBOX_TOKEN
 from keyboards import generate_token
 from aiogram.types import FSInputFile
 from texts import get_text as _
