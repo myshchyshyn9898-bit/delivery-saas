@@ -44,6 +44,7 @@ async function initSupabase() {
             return;
         }
         const cfg = await res.json();
+        if (cfg.mapbox_token) { window.MAPBOX_TOKEN = cfg.mapbox_token; }
         if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
             // Збираємо заголовки для RLS-політик
             let globalHeaders = {};
@@ -75,7 +76,7 @@ let currentFilter = 'today';
 
 // Змінні для карт та графіків
 let bizLat = null; let bizLon = null; let bizRadius = 5; 
-let settingsMap = null; let settingsCircle = null; let settingsMarker = null; let revenueChart = null;
+let revenueChart = null; // settingsMap тепер window.settingsMap (Mapbox GL)
 
 // Генератор випадкових токенів
 function generateUUID() {
@@ -140,15 +141,50 @@ function openBizSettingsMenu() {
 function closeBizSettingsMenu() { document.getElementById('biz-settings-modal').classList.remove('active'); document.body.style.overflow = ''; }
 
 function initSettingsMap(lat, lon, r) {
-    if(!settingsMap) { settingsMap = L.map('settings-map-container', {zoomControl: false}).setView([lat, lon], 13); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(settingsMap); } 
-    else { settingsMap.setView([lat, lon], 13); }
-    if(settingsMarker) settingsMap.removeLayer(settingsMarker);
-    if(settingsCircle) settingsMap.removeLayer(settingsCircle);
-    const bizIcon = L.divIcon({ html: '<div style="color: #FF5A5F; font-size: 24px; filter: drop-shadow(0px 3px 3px rgba(0,0,0,0.3));"><i class="fa-solid fa-store"></i></div>', className: '', iconSize: [24, 24], iconAnchor: [12, 24] });
-    settingsMarker = L.marker([lat, lon], {icon: bizIcon}).addTo(settingsMap);
-    settingsCircle = L.circle([lat, lon], { color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.15, weight: 2, dashArray: '5, 5', radius: r * 1000 }).addTo(settingsMap);
-    settingsMap.fitBounds(settingsCircle.getBounds(), { padding: [20, 20] });
-    setTimeout(() => settingsMap.invalidateSize(), 200);
+    if (window.settingsMap) { window.settingsMap.remove(); window.settingsMap = null; }
+
+    mapboxgl.accessToken = window.MAPBOX_TOKEN || '';
+    window.settingsMap = new mapboxgl.Map({
+        container: 'settings-map-container',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [lon, lat],
+        zoom: 12,
+        interactive: false,
+        attributionControl: false
+    });
+
+    window.settingsMap.on('load', () => {
+        const steps = 64;
+        const radiusM = (r || 5) * 1000;
+        const coords = [];
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * 2 * Math.PI;
+            const dx = (radiusM / 111320) * Math.cos(angle);
+            const dy = (radiusM / (111320 * Math.cos(lat * Math.PI / 180))) * Math.sin(angle);
+            coords.push([lon + dy, lat + dx]);
+        }
+        window.settingsMap.addSource('delivery-zone', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } }
+        });
+        window.settingsMap.addLayer({
+            id: 'delivery-fill', type: 'fill', source: 'delivery-zone',
+            paint: { 'fill-color': '#FF5A5F', 'fill-opacity': 0.12 }
+        });
+        window.settingsMap.addLayer({
+            id: 'delivery-border', type: 'line', source: 'delivery-zone',
+            paint: { 'line-color': '#FF5A5F', 'line-width': 2, 'line-dasharray': [3, 2] }
+        });
+        const el = document.createElement('div');
+        el.innerHTML = '<i class="fa-solid fa-store" style="color:#FF5A5F;font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35));"></i>';
+        el.style.cssText = 'display:flex;align-items:center;justify-content:center;';
+        new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([lon, lat]).addTo(window.settingsMap);
+        const kmToDeg = (r || 5) / 111.32;
+        window.settingsMap.fitBounds(
+            [[lon - kmToDeg * 1.4, lat - kmToDeg], [lon + kmToDeg * 1.4, lat + kmToDeg]],
+            { padding: 24, duration: 0 }
+        );
+    });
 }
 
 function updateSettingsMap() {
@@ -792,14 +828,96 @@ async function loadDashboardData() {
 
         if (currentPlanIsPro) {
             setTimeout(() => {
+                // ── Mapbox heatmap ──────────────────────────────────────────
+                const MAPBOX_TOKEN = window.MAPBOX_TOKEN || '';
+
                 let centerLat = bizLat || 50.04132, centerLon = bizLon || 21.99901;
-                if (!bizLat && heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
-                if (window.dashboardMap) { window.dashboardMap.remove(); }
-                window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
-                setTimeout(() => { window.dashboardMap.invalidateSize(); }, 100);
-                L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '' }).addTo(window.dashboardMap);
-                if(bizLat && bizLon) L.circle([bizLat, bizLon], {color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.05, weight: 1.5, radius: bizRadius * 1000, dashArray: '6, 6'}).addTo(window.dashboardMap);
-                if (heatData.length > 0) L.heatLayer(heatData, { radius: 30, blur: 22, maxZoom: 15, minOpacity: 0.4, gradient: {0.0: 'rgba(255,90,95,0)', 0.3: 'rgba(255,154,100,0.6)', 0.6: 'rgba(255,90,95,0.85)', 1.0: 'rgba(200,20,30,1)'} }).addTo(window.dashboardMap); 
+                if (!bizLat && heatData.length > 0) {
+                    centerLat = heatData.reduce((s, p) => s + p[0], 0) / heatData.length;
+                    centerLon = heatData.reduce((s, p) => s + p[1], 0) / heatData.length;
+                }
+
+                // Знищуємо попередню карту якщо є
+                if (window.dashboardMap) {
+                    window.dashboardMap.remove();
+                    window.dashboardMap = null;
+                }
+
+                mapboxgl.accessToken = MAPBOX_TOKEN;
+                window.dashboardMap = new mapboxgl.Map({
+                    container: 'heatmap',
+                    style: 'mapbox://styles/mapbox/dark-v11',
+                    center: [centerLon, centerLat],
+                    zoom: 11.5,
+                    interactive: false,   // як у Leaflet — без драгу/зуму
+                    attributionControl: false
+                });
+
+                window.dashboardMap.on('load', () => {
+                    // GeoJSON з точками замовлень
+                    const geojson = {
+                        type: 'FeatureCollection',
+                        features: heatData.map(p => ({
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: [p[1], p[0]] },
+                            properties: { weight: p[2] || 1 }
+                        }))
+                    };
+
+                    window.dashboardMap.addSource('orders-heat', {
+                        type: 'geojson',
+                        data: geojson
+                    });
+
+                    // Heatmap layer — градієнт від coral до deep red
+                    window.dashboardMap.addLayer({
+                        id: 'orders-heat-layer',
+                        type: 'heatmap',
+                        source: 'orders-heat',
+                        maxzoom: 17,
+                        paint: {
+                            'heatmap-weight': ['interpolate', ['linear'], ['get', 'weight'], 0, 0, 1, 1],
+                            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 15, 3],
+                            'heatmap-color': [
+                                'interpolate', ['linear'], ['heatmap-density'],
+                                0,    'rgba(0,0,0,0)',
+                                0.15, 'rgba(255,90,95,0.25)',
+                                0.35, 'rgba(255,130,80,0.55)',
+                                0.6,  'rgba(255,75,70,0.80)',
+                                0.85, 'rgba(220,30,40,0.92)',
+                                1,    'rgba(180,0,20,1)'
+                            ],
+                            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 8, 18, 15, 45],
+                            'heatmap-opacity': 0.88
+                        }
+                    });
+
+                    // Коло радіусу доставки
+                    if (bizLat && bizLon) {
+                        window.dashboardMap.addSource('delivery-zone', {
+                            type: 'geojson',
+                            data: { type: 'Feature', geometry: { type: 'Point', coordinates: [bizLon, bizLat] }, properties: {} }
+                        });
+                        window.dashboardMap.addLayer({
+                            id: 'delivery-zone-layer',
+                            type: 'circle',
+                            source: 'delivery-zone',
+                            paint: {
+                                'circle-radius': {
+                                    stops: [
+                                        [0, 0],
+                                        [20, (bizRadius || 3) * 1000 / 0.075]
+                                    ],
+                                    base: 2
+                                },
+                                'circle-color': 'rgba(255,90,95,0.06)',
+                                'circle-stroke-color': 'rgba(255,90,95,0.5)',
+                                'circle-stroke-width': 1.5
+                            }
+                        });
+                    }
+                });
+                // ────────────────────────────────────────────────────────────
             }, 500);
         }
     } catch (error) { console.error("DB Error:", error); }

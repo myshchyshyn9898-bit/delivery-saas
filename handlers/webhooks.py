@@ -899,7 +899,7 @@ async def config_handler(request: web.Request) -> web.Response:
     Ніколи не повертає service_role ключ.
     """
     return web.json_response(
-        {"supabase_url": SUPABASE_URL or "", "supabase_key": SUPABASE_KEY or ""},
+        {"supabase_url": SUPABASE_URL or "", "supabase_key": SUPABASE_KEY or "", "mapbox_token": MAPBOX_TOKEN or ""},
         headers=CORS_HEADERS,
     )
 
