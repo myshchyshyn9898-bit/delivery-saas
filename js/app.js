@@ -79,8 +79,14 @@ let settingsMap = null; let settingsCircle = null; let settingsMarker = null; le
 
 // Генератор випадкових токенів
 function generateUUID() {
+    // Використовуємо crypto.randomUUID() якщо доступний (безпечніший)
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    // Fallback з crypto.getRandomValues
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        var r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+        var v = c === 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
 }
@@ -180,8 +186,18 @@ async function saveBizSettings(btn) {
 }
 
 // 🔴 СПОВІЩЕННЯ TOAST 🔴
-function showToast() {
+function showToast(title, desc) {
     const toast = document.getElementById('ios-toast');
+
+    // ✅ ВИПРАВЛЕНО: якщо передано текст — підміняємо вміст тосту
+    // Якщо без аргументів — показує дефолтне "підписка закінчується" з HTML
+    if (title) {
+        const titleEl = toast.querySelector('.ios-toast-title');
+        const descEl  = toast.querySelector('.ios-toast-desc');
+        if (titleEl) titleEl.innerText = title;
+        if (descEl)  descEl.innerText  = desc || '';
+    }
+
     toast.classList.add('show');
     setTimeout(() => hideToast(), 6000);
 }
@@ -224,9 +240,12 @@ function renderSubscriptionUI(biz) {
     statusCard.className = 'status-card-dynamic';
     let daysLeft = Math.ceil((expireDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
     
-    // Сповіщення якщо лишився 1 день
+    // ✅ ВИПРАВЛЕНО: передаємо явний текст щоб не плутати з toast після збереження токена
     if (daysLeft <= 1 && daysLeft >= 0 && dbPlan !== 'expired') {
-        setTimeout(() => showToast(), 1500);
+        setTimeout(() => showToast(
+            "⚠️ Підписка скоро закінчується",
+            `Залишилось ${Math.max(0, daysLeft)} дн. Відкрийте керування підпискою.`
+        ), 1500);
     }
 
     if (dbPlan === 'trial') {
@@ -347,13 +366,26 @@ async function resetInviteToken() {
     } catch(e) { alert(t('alert_err') + e.message); }
 }
 
-async function removeStaff(staffRowId, staffName) {
+async function removeStaff(staffRowId, staffName, staffUserId) {
     if (!confirm(`${t('confirm_del')} "${staffName}"?`)) return;
     if (!supabaseClient) return;
     try {
         const { error } = await supabaseClient.from('staff').delete().eq('id', staffRowId).eq('business_id', bizId);
         if (error) throw error;
-        loadDashboardData(); 
+
+        // ✅ ВИПРАВЛЕНО bug #2: скидаємо кеш бота одразу після видалення персоналу,
+        // щоб видалений кур'єр не бачив активне меню ще 60 секунд
+        if (staffUserId && authToken) {
+            try {
+                await fetch(`${RAILWAY_DOMAIN}/api/invalidate_cache`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify({ user_id: staffUserId })
+                });
+            } catch (e) { console.warn('Cache invalidation failed (non-critical):', e); }
+        }
+
+        loadDashboardData();
     } catch (err) { alert(t('alert_err') + (err.message || '')); }
 }
 
@@ -639,7 +671,7 @@ async function loadDashboardData() {
                     <div class="team-card">
                         <div class="team-avatar" style="background: transparent; border: 1px solid rgba(0,0,0,0.05);">${avatar}</div>
                         <div class="team-info"><div class="team-name">${safeName}</div><div class="team-role ${roleClass}">${roleName}</div></div>
-                        <button class="btn-delete-staff" onclick="removeStaff('${person.id}', '${safeName.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can"></i></button>
+                        <button class="btn-delete-staff" onclick="removeStaff('${person.id}', '${safeName.replace(/'/g, "\\'")}', '${person.user_id}')"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
                 `;
             });
@@ -764,9 +796,10 @@ async function loadDashboardData() {
                 if (!bizLat && heatData.length > 0) { centerLat = heatData.reduce((sum, p) => sum + p[0], 0) / heatData.length; centerLon = heatData.reduce((sum, p) => sum + p[1], 0) / heatData.length; }
                 if (window.dashboardMap) { window.dashboardMap.remove(); }
                 window.dashboardMap = L.map('heatmap', { zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false }).setView([centerLat, centerLon], 12);
-                L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png').addTo(window.dashboardMap);
-                if(bizLat && bizLon) L.circle([bizLat, bizLon], {color: '#FF5A5F', fillOpacity: 0.1, weight: 2, radius: bizRadius * 1000, dashArray: '5, 5'}).addTo(window.dashboardMap);
-                if (heatData.length > 0) L.heatLayer(heatData, { radius: 20, blur: 15, maxZoom: 14, gradient: {0.4: '#a855f7', 0.6: 'cyan', 0.7: 'lime', 0.8: 'yellow', 1.0: '#ff3b30'} }).addTo(window.dashboardMap); 
+                setTimeout(() => { window.dashboardMap.invalidateSize(); }, 100);
+                L.tileLayer('https://cartodb-basemaps-a.global.ssl.fastly.net/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '' }).addTo(window.dashboardMap);
+                if(bizLat && bizLon) L.circle([bizLat, bizLon], {color: '#FF5A5F', fillColor: '#FF5A5F', fillOpacity: 0.05, weight: 1.5, radius: bizRadius * 1000, dashArray: '6, 6'}).addTo(window.dashboardMap);
+                if (heatData.length > 0) L.heatLayer(heatData, { radius: 30, blur: 22, maxZoom: 15, minOpacity: 0.4, gradient: {0.0: 'rgba(255,90,95,0)', 0.3: 'rgba(255,154,100,0.6)', 0.6: 'rgba(255,90,95,0.85)', 1.0: 'rgba(200,20,30,1)'} }).addTo(window.dashboardMap); 
             }, 500);
         }
     } catch (error) { console.error("DB Error:", error); }

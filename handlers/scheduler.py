@@ -30,6 +30,13 @@ async def check_late_orders():
             if order.get("is_late_notified"):
                 continue
 
+            # ✅ ВИПРАВЛЕНО bug #3: pending замовлення без кур'єра в dispatcher-режимі
+            # не є запізненням — їх ще не призначили. Алерт тільки якщо:
+            # - статус delivering (кур'єр вже їде), або
+            # - статус pending АЛЕ є courier_id (uber-режим: кур'єр не взяв)
+            if order["status"] == "pending" and not order.get("courier_id"):
+                continue  # ще не призначено — пропускаємо
+
             created_at = datetime.datetime.fromisoformat(order["created_at"].replace("Z", "+00:00"))
             est_time   = order.get("est_time", 30)
             deadline   = created_at + datetime.timedelta(minutes=est_time + 5)
@@ -65,12 +72,15 @@ async def check_late_orders():
 
             late_mins = int((now - created_at).total_seconds() / 60) - est_time
 
+            # Екрануємо спецсимволи Markdown у даних від користувача
+            def _md(s): return str(s).replace('_', r'\_').replace('*', r'\*').replace('`', r'\`').replace('[', r'\[')
+
             msg = (
                 f"🚨 **ЗАПІЗНЕННЯ ЗАМОВЛЕННЯ!**\n\n"
                 f"📦 Замовлення `#{short_id}`\n"
-                f"📍 Адреса: {order.get('address', '—')}\n"
-                f"📞 Тел: {order.get('client_phone', '—')}\n"
-                f"🛵 Кур'єр: {c_name}\n\n"
+                f"📍 Адреса: {_md(order.get('address', '—'))}\n"
+                f"📞 Тел: {_md(order.get('client_phone', '—'))}\n"
+                f"🛵 Кур'єр: {_md(c_name)}\n\n"
                 f"⚠️ Запізнення вже на **{late_mins} хв**!"
             )
 

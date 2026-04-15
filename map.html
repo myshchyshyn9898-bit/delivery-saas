@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
+        <meta name="server-url" content="https://delivery-saas-production-3fe6.up.railway.app">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Карта Замовлень | DeliPro</title>
@@ -496,7 +497,9 @@
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Обробка...';
                 try {
-                    var result = await supabase.from('orders').update({ courier_id: cId }).eq('id', selectedOrder.id);
+                    var result = await supabase.from('orders')
+                        .update({ courier_id: cId, status: 'delivering' })
+                        .eq('id', selectedOrder.id);
                     if (result.error) throw result.error;
                     tg.sendData(JSON.stringify({ action: 'assign_order', order_id: selectedOrder.id, courier_id: cId }));
                     tg.showAlert('Замовлення призначено!');

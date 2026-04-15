@@ -101,9 +101,13 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
 
     if not c_lat: return None 
 
-    biz_address = biz.get('street') if biz else None
-    b_lat, b_lon = 50.04132, 21.99901 
-    
+    # Збираємо повну адресу бізнесу для точного геокодингу
+    b_lat, b_lon = 50.04132, 21.99901
+    biz_address = None
+    if biz:
+        parts = [p for p in [biz.get('street'), biz.get('city'), biz.get('country')] if p]
+        biz_address = ', '.join(parts) if parts else None
+
     if biz_address:
         encoded_biz = urllib.parse.quote(biz_address)
         biz_url = f"https://nominatim.openstreetmap.org/search?q={encoded_biz}&format=json&limit=1"

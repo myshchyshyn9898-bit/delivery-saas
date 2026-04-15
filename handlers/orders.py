@@ -43,7 +43,8 @@ def _build_call_url(phone: str, biz: dict = None) -> tuple:
         return "🚖 Uber Call", call_url
     else:
         # Звичайний номер
-        call_url = f"{base}/call.html?code={urllib.parse.quote(phone)}"
+        safe_phone = phone or ""
+        call_url = f"{base}/call.html?code={urllib.parse.quote(safe_phone)}"
         return "📞 Подзвонити", call_url
 
 
@@ -171,30 +172,38 @@ async def _send_uber_group_message(bot: Bot, group_id, biz, order_id, short_id,
     kb = _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency, state="pending")
 
     sent = None
+    # ✅ ВИПРАВЛЕНО bug #5: map_filename тепер завжди видаляється через try/finally,
+    # навіть якщо send_photo кидає виняток — файли більше не накопичуються на диску.
+    map_filename = await get_route_map_file(biz, address, short_id)
     try:
-        # Спробуємо надіслати з картою
-        map_filename = await get_route_map_file(biz, address, short_id)
         if map_filename and os.path.exists(map_filename):
             photo = FSInputFile(map_filename)
-            sent = await bot.send_photo(
-                chat_id=group_id, photo=photo,
-                caption=text, reply_markup=kb, parse_mode="HTML"
-            )
-            os.remove(map_filename)
+            try:
+                sent = await bot.send_photo(
+                    chat_id=group_id, photo=photo,
+                    caption=text, reply_markup=kb, parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"[uber] Помилка send_photo в групу {group_id}: {e}")
+                sent = await bot.send_message(
+                    chat_id=group_id, text=text,
+                    reply_markup=kb, parse_mode="HTML"
+                )
         else:
-            sent = await bot.send_message(
-                chat_id=group_id, text=text,
-                reply_markup=kb, parse_mode="HTML"
-            )
-    except Exception as e:
-        logger.error(f"[uber] Помилка надсилання в групу {group_id}: {e}")
-        try:
-            sent = await bot.send_message(
-                chat_id=group_id, text=text,
-                reply_markup=kb, parse_mode="HTML"
-            )
-        except Exception as e2:
-            logger.error(f"[uber] Критична помилка надсилання в групу: {e2}")
+            try:
+                sent = await bot.send_message(
+                    chat_id=group_id, text=text,
+                    reply_markup=kb, parse_mode="HTML"
+                )
+            except Exception as e:
+                logger.error(f"[uber] Критична помилка надсилання в групу: {e}")
+    finally:
+        # Видаляємо тимчасовий файл карти в будь-якому випадку
+        if map_filename and os.path.exists(map_filename):
+            try:
+                os.remove(map_filename)
+            except OSError as e:
+                logger.warning(f"[uber] Не вдалось видалити map файл {map_filename}: {e}")
 
     # Зберігаємо message_id в БД щоб потім оновлювати повідомлення
     if sent:
@@ -224,8 +233,17 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
     # ── РЕЄСТРАЦІЯ БІЗНЕСУ ──────────────────────────────────────────────────
     if data.get("action") == "register_business":
         try:
+            # Перевіряємо чи вже є бізнес у цього власника
+            existing_biz = await db.get_business_by_owner(user_id)
+            if existing_biz:
+                db.invalidate_user_cache(user_id)
+                context = await db.get_user_context_cached(user_id)
+                import keyboards as kb
+                await message.answer(_(lang, 'biz_already_exists'), reply_markup=kb.get_owner_kb(existing_biz['id'], user_id, lang), parse_mode="Markdown")
+                return
             await db.register_new_business(user_id, data)
-            context = await db.get_user_context(user_id)
+            db.invalidate_user_cache(user_id)
+            context = await db.get_user_context_cached(user_id)
             biz = context['biz']
             import keyboards as kb
             await message.answer(
@@ -241,6 +259,14 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
     elif data.get("action") == "new_order":
         try:
             biz_id = data['biz_id']
+
+            # ✅ БЕЗПЕКА: перевіряємо що відправник є частиною цього бізнесу
+            ctx = await db.get_user_context_cached(user_id)
+            if not ctx or ctx['role'] not in ('owner', 'manager') or str(ctx['biz']['id']) != str(biz_id):
+                logger.warning(f"[new_order] Несанкціонований доступ: user={user_id} biz={biz_id}")
+                await message.answer(_(lang, 'no_access'))
+                return
+
             actual_plan = await db.get_actual_plan(biz_id)
             if actual_plan == "expired":
                 await message.answer(_(lang, 'expired_no_orders'))
@@ -303,6 +329,30 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 else:
                     logger.warning(f"Uber mode, але courier_group_id не задано для biz_id={biz_id}")
 
+            # ── DISPATCHER MODE + UNASSIGNED: повідомляємо менеджерів вручну призначити ──
+            elif original_courier_id == "unassigned" and delivery_mode == 'dispatcher':
+                managers_res = await db._run(
+                    lambda: db.supabase.table('staff').select('user_id')
+                        .eq('business_id', biz_id).eq('role', 'manager').execute()
+                )
+                recipients = [int(m['user_id']) for m in managers_res.data] if managers_res.data else []
+                if not recipients and biz.get('owner_id'):
+                    recipients = [int(biz['owner_id'])]
+                import html as _hfree
+                free_text = (
+                    f"📦 <b>НОВЕ ЗАМОВЛЕННЯ #{short_id}</b> (без кур'єра)\n\n"
+                    f"📍 <b>Адреса:</b> {_hfree.escape(address)}\n"
+                    f"👤 <b>Клієнт:</b> {_hfree.escape(client_name)}\n"
+                    f"📞 <b>Тел:</b> {_hfree.escape(phone_clean or '—')}\n"
+                    f"💰 <b>Сума:</b> {amount} {currency}\n"
+                    f"⚠️ Призначте кур'єра через карту замовлень."
+                )
+                for uid in recipients:
+                    try:
+                        await bot.send_message(chat_id=uid, text=free_text, parse_mode='HTML')
+                    except Exception as e:
+                        logger.error(f'Помилка нотифікації менеджера {uid}: {e}')
+
             # ── DISPATCHER MODE ──────────────────────────────────────────────
             elif original_courier_id != "unassigned":
                 import html as _hd
@@ -334,20 +384,27 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 builder.adjust(1)
 
                 if is_pro:
+                    # ✅ ВИПРАВЛЕНО bug #5: try/finally гарантує видалення map файлу
                     map_filename = await get_route_map_file(biz, address, short_id)
-                    if map_filename and os.path.exists(map_filename):
-                        photo = FSInputFile(map_filename)
-                        await bot.send_photo(
-                            chat_id=data['courier_id'], photo=photo,
-                            caption=courier_text, reply_markup=builder.as_markup(),
-                            parse_mode="HTML"
-                        )
-                        os.remove(map_filename)
-                    else:
-                        await bot.send_message(
-                            chat_id=data['courier_id'], text=courier_text,
-                            reply_markup=builder.as_markup(), parse_mode="HTML"
-                        )
+                    try:
+                        if map_filename and os.path.exists(map_filename):
+                            photo = FSInputFile(map_filename)
+                            await bot.send_photo(
+                                chat_id=data['courier_id'], photo=photo,
+                                caption=courier_text, reply_markup=builder.as_markup(),
+                                parse_mode="HTML"
+                            )
+                        else:
+                            await bot.send_message(
+                                chat_id=data['courier_id'], text=courier_text,
+                                reply_markup=builder.as_markup(), parse_mode="HTML"
+                            )
+                    finally:
+                        if map_filename and os.path.exists(map_filename):
+                            try:
+                                os.remove(map_filename)
+                            except OSError as e:
+                                logger.warning(f"[dispatcher] Не вдалось видалити map файл: {e}")
                 else:
                     await bot.send_message(
                         chat_id=data['courier_id'], text=courier_text,
@@ -376,7 +433,40 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 return
             order_db = res.data[0]
 
+            # ✅ БЕЗПЕКА: перевіряємо що відправник є owner/manager саме цього бізнесу
+            ctx = await db.get_user_context_cached(user_id)
+            if not ctx or ctx['role'] not in ('owner', 'manager') or str(ctx['biz']['id']) != str(order_db['business_id']):
+                logger.warning(f"[assign_order] Несанкціонований доступ: user={user_id} order={order_id}")
+                await message.answer(_(lang, 'no_access'))
+                return
+
+            # Перевіряємо що замовлення ще не призначено (немає кур'єра і статус pending)
+            if order_db.get('status') not in ('pending', None) or order_db.get('courier_id'):
+                await message.answer(_(lang, 'order_already_assigned'))
+                return
+
+            # ✅ ВИПРАВЛЕНО bug #7: перевіряємо що courier_id існує в staff цього бізнесу
             biz_id = order_db['business_id']
+            courier_check = await db._run(
+                lambda: db.supabase.table('staff')
+                    .select('user_id, role')
+                    .eq('user_id', courier_id)
+                    .eq('business_id', biz_id)
+                    .execute()
+            )
+            if not courier_check.data:
+                logger.warning(f"[assign_order] courier_id={courier_id} не в staff biz={biz_id}")
+                await message.answer("⛔️ Кур'єра не знайдено в персоналі цього закладу.")
+                return
+
+            # Оновлюємо статус і кур'єра в БД
+            await db._run(
+                lambda: db.supabase.table('orders')
+                    .update({'courier_id': courier_id, 'status': 'delivering'})
+                    .eq('id', order_id)
+                    .execute()
+            )
+
             short_id = str(order_id)[:6].upper()
             biz = await db.get_business_by_id(biz_id)
             currency = biz.get('currency', 'zł')
@@ -419,20 +509,27 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             builder.adjust(1)
 
             if is_pro:
+                # ✅ ВИПРАВЛЕНО bug #5: try/finally гарантує видалення map файлу
                 map_filename = await get_route_map_file(biz, address, short_id)
-                if map_filename and os.path.exists(map_filename):
-                    photo = FSInputFile(map_filename)
-                    await bot.send_photo(
-                        chat_id=courier_id, photo=photo,
-                        caption=courier_text, reply_markup=builder.as_markup(),
-                        parse_mode="HTML"
-                    )
-                    os.remove(map_filename)
-                else:
-                    await bot.send_message(
-                        chat_id=courier_id, text=courier_text,
-                        reply_markup=builder.as_markup(), parse_mode="HTML"
-                    )
+                try:
+                    if map_filename and os.path.exists(map_filename):
+                        photo = FSInputFile(map_filename)
+                        await bot.send_photo(
+                            chat_id=courier_id, photo=photo,
+                            caption=courier_text, reply_markup=builder.as_markup(),
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await bot.send_message(
+                            chat_id=courier_id, text=courier_text,
+                            reply_markup=builder.as_markup(), parse_mode="HTML"
+                        )
+                finally:
+                    if map_filename and os.path.exists(map_filename):
+                        try:
+                            os.remove(map_filename)
+                        except OSError as e:
+                            logger.warning(f"[assign_order] Не вдалось видалити map файл: {e}")
             else:
                 await bot.send_message(
                     chat_id=courier_id, text=courier_text,
@@ -449,7 +546,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
     elif data.get("action") == "broadcast":
         if user_id not in SUPER_ADMIN_IDS:
             return
-        msg_text = data.get("text")
+        msg_text = data.get("text", "")
+        # Екрануємо спецсимволи Markdown щоб не зламати форматування
+        import re as _re
+        msg_text_safe = _re.sub(r'([_*`\[])', r'\\\1', msg_text)
         businesses = await db.get_all_businesses()
         owner_ids = set([int(b['owner_id']) for b in businesses if b.get('owner_id')])
         if not owner_ids:
@@ -458,9 +558,9 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
         sent_count = 0
         for oid in owner_ids:
             try:
-                await bot.send_message(chat_id=oid, text=_('uk', 'broadcast_msg', text=msg_text), parse_mode="Markdown")
+                await bot.send_message(chat_id=oid, text=_('uk', 'broadcast_msg', text=msg_text_safe), parse_mode="Markdown")
                 sent_count += 1
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.1)  # ✅ ВИПРАВЛЕНО: 10 msg/sec щоб не впертись в Telegram rate limit
             except Exception as e:
                 logger.error(f"Помилка розсилки користувачу {oid}: {e}")
         await message.answer(_(lang, 'broadcast_done', sent=sent_count, total=len(owner_ids)))
@@ -468,15 +568,20 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
     # ── ТІКЕТ ПІДТРИМКИ ──────────────────────────────────────────────────────
     elif data.get("action") == "support_ticket":
         try:
+            import html as _esc
             biz_id = data.get("biz_id", "?")
+            # ✅ ВИПРАВЛЕНО: екрануємо всі поля від юзера перед вставкою в HTML
+            reason  = _esc.escape(str(data.get('reason',  '?')))
+            topic   = _esc.escape(str(data.get('topic',   '?')))
+            msg_txt = _esc.escape(str(data.get('message', '?')))
             admin_msg = (
                 f"🆘 <b>НОВИЙ ТІКЕТ ПІДТРИМКИ</b>\n\n"
                 f"🏢 <b>Бізнес ID:</b> <code>{biz_id}</code>\n"
                 f"👤 <b>Від:</b> <a href='tg://user?id={user_id}'>Клієнт (ID: {user_id})</a>\n"
-                f"🏷 <b>Категорія:</b> {data.get('reason', '?')}\n"
-                f"📌 <b>Тема:</b> {data.get('topic', '?')}\n"
+                f"🏷 <b>Категорія:</b> {reason}\n"
+                f"📌 <b>Тема:</b> {topic}\n"
                 f"〰️〰️〰️〰️〰️〰️〰️〰️\n"
-                f"💬 <b>Повідомлення:</b>\n<i>{data.get('message', '?')}</i>"
+                f"💬 <b>Повідомлення:</b>\n<i>{msg_txt}</i>"
             )
             for admin_id in SUPER_ADMIN_IDS:
                 try:
@@ -493,93 +598,21 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
 # ===========================================================================
 # DISPATCHER MODE: кнопка "Завершити замовлення" (особисте повідомлення)
+# ✅ ВИПРАВЛЕНО: finish_order_ більше не генерується ніде в коді.
+# Цей обробник залишений як запасний alias → перенаправляє на dispatcher_close_cash_
+# щоб не «загубити» старі повідомлення якщо вони ще є у кур'єрів.
 # ===========================================================================
 
 @router.callback_query(F.data.startswith("finish_order_"))
 async def finish_order_handler(callback: types.CallbackQuery, bot: Bot):
+    """
+    Застарілий callback — редіректить на dispatcher_close_cash_.
+    Нові повідомлення використовують dispatcher_close_{pay_type}_{order_id}.
+    """
     order_id = callback.data.replace("finish_order_", "")
-    lang = callback.from_user.language_code
-    try:
-        res = await db._run(lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute())
-        await db.update_order_status(order_id, "completed")
-
-        # Оновлюємо статус — будуємо з нуля в новому стилі
-        import html as _hf
-        import datetime as _dtf
-
-        if res.data:
-            ord_info   = res.data[0]
-            courier_fn = callback.from_user.full_name
-            time_str_f = _dtf.datetime.now().strftime("%H:%M")
-            pay_tp     = ord_info.get("pay_type", "cash")
-            pay_icon_f = "💵" if pay_tp == "cash" else ("🏧" if pay_tp == "terminal" else "✅")
-            biz_fn     = await db.get_business_by_id(ord_info["business_id"])
-            cur_fn     = biz_fn.get("currency", "zł") if biz_fn else "zł"
-            short_fn   = str(ord_info["id"])[:6].upper()
-
-            status_fn  = f"🔴 Закрито ({time_str_f}, {_hf.escape(courier_fn)} - {pay_icon_f})"
-
-            new_msg = _build_order_text(
-                short_id=short_fn,
-                address=_hf.escape(ord_info.get("address", "—")),
-                details_text=_hf.escape(ord_info.get("details", "") or ""),
-                client_name=_hf.escape(ord_info.get("client_name", "") or ""),
-                phone=_hf.escape(ord_info.get("client_phone", "—") or "—"),
-                pay_type=pay_tp,
-                amount=ord_info.get("amount", "0"),
-                currency=cur_fn,
-                comment=_hf.escape(ord_info.get("comment", "") or ""),
-                status_line=status_fn
-            )
-        else:
-            new_msg = "✅ Замовлення закрито."
-
-        if len(new_msg) > 1024:
-            new_msg = new_msg[:1020] + "..."
-
-        try:
-            if callback.message.caption is not None:
-                await callback.message.edit_caption(caption=new_msg, reply_markup=None, parse_mode="HTML")
-            else:
-                await callback.message.edit_text(text=new_msg, reply_markup=None, parse_mode="HTML")
-        except Exception as e:
-            logger.error(f"[finish_order] edit failed: {e}")
-
-        await callback.answer(_(lang, 'finish_success'))
-
-        # Нотифікація менеджерів / власника
-        if res.data:
-            order_info = res.data[0]
-            biz_id = order_info['business_id']
-            short_id = str(order_info['id'])[:6].upper()
-            biz = await db.get_business_by_id(biz_id)
-            currency = biz.get('currency', 'zł') if biz else 'zł'
-
-            # Екрануємо спецсимволи Markdown в імені кур'єра
-            _safe_cname = callback.from_user.full_name.translate(str.maketrans({'_': r'\_', '*': r'\*', '`': r'\`'}))
-            notify_text = _(lang, 'finish_notify',
-                            short_id=short_id,
-                            amount=order_info['amount'],
-                            cur=currency,
-                            courier_name=_safe_cname)
-
-            managers_res = await db._run(
-                lambda: db.supabase.table("staff").select("user_id")
-                    .eq("business_id", biz_id).eq("role", "manager").execute()
-            )
-            notify_ids = [int(m['user_id']) for m in managers_res.data] if managers_res.data else []
-            if not notify_ids and biz and biz.get('owner_id'):
-                notify_ids = [int(biz['owner_id'])]
-
-            for uid in notify_ids:
-                try:
-                    await bot.send_message(chat_id=uid, text=notify_text, parse_mode="Markdown")
-                except Exception as e:
-                    logger.error(f"Помилка нотифікації {uid}: {e}")
-
-    except Exception as e:
-        logger.error(f"Помилка закриття замовлення {order_id}: {e}")
-        await callback.answer(_(lang, 'finish_err'), show_alert=True)
+    # Перенаправляємо як натискання кнопки «Готівка» (найпоширеніший варіант)
+    callback.data = f"dispatcher_close_cash_{order_id}"
+    await dispatcher_close_handler(callback, bot)
 
 
 # ===========================================================================
@@ -634,25 +667,29 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
             )
             return
 
-        # 5. Атомарне захоплення
-        await db._run(
+        # 5. Атомарне захоплення: UPDATE тільки якщо статус ще 'pending'
+        # Supabase повертає оновлені рядки — якщо список порожній, хтось встиг раніше
+        take_res = await db._run(
             lambda: db.supabase.table("orders")
                 .update({"status": "delivering", "courier_id": taker_id})
                 .eq("id", order_id)
-                .eq("status", "pending")
+                .eq("status", "pending")   # ← умовний UPDATE (pseudo-atomic)
                 .execute()
         )
 
-        # 6. Перевірка що саме ми захопили
-        verify = await db._run(
-            lambda: db.supabase.table("orders")
-                .select("courier_id")
-                .eq("id", order_id)
-                .execute()
-        )
-        if not verify.data or str(verify.data[0].get("courier_id")) != str(taker_id):
-            await callback.message.answer("⚡️ Хтось був швидшим!")
-            return
+        # ✅ ВИПРАВЛЕНО race condition: перевіряємо по courier_id що саме ми захопили.
+        # Якщо take_res.data порожній — UPDATE не відпрацював (інший кур'єр встиг першим).
+        # Додатково читаємо свіжий стан щоб не покладатись на порожній список від supabase-py.
+        if not take_res.data:
+            verify = await db._run(
+                lambda: db.supabase.table("orders")
+                    .select("courier_id, status")
+                    .eq("id", order_id)
+                    .execute()
+            )
+            if not verify.data or str(verify.data[0].get("courier_id")) != str(taker_id):
+                await callback.message.answer("⚡️ Хтось був швидшим!")
+                return
 
         # 6. Будуємо текст З НУЛЯ — стиль як в старому боті
         import html as _h
@@ -699,7 +736,11 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
             builder.button(text=f"💵 Готівка — {amount} {currency}", callback_data=f"uber_close_cash_{order_id}")
             builder.button(text=f"🏧 Термінал — {amount} {currency}", callback_data=f"uber_close_terminal_{order_id}")
 
-        builder.adjust(2, 2, 1) if pay_type != "online" and raw_phone else builder.adjust(1)
+        if pay_type == "online":
+            builder.adjust(2, 1) if raw_phone else builder.adjust(1)
+        else:
+            # Маршрут+Телефон в першому рядку, Готівка+Термінал в другому
+            builder.adjust(2, 2) if raw_phone else builder.adjust(1, 2)
 
         # 8. Оновлюємо повідомлення
         if callback.message.caption is not None:
@@ -755,6 +796,11 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
             await callback.message.answer("✅ Замовлення вже закрите.")
             return
 
+        # ✅ ВИПРАВЛЕНО: блокуємо і якщо courier_id є None (замовлення без кур'єра не можна закрити кнопкою)
+        if not order.get("courier_id") or str(order["courier_id"]) != str(callback.from_user.id):
+            await callback.message.answer("⛔️ Ви не є кур'єром цього замовлення.")
+            return
+
         # Закриваємо в БД з реальним типом оплати який натиснув кур'єр
         await db.update_order_status(order_id, "completed", actual_pay_type=pay_type_closed)
 
@@ -771,7 +817,9 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
 
         # Будуємо фінальний текст — стиль старого боту
         import datetime as _dt2
-        time_str2    = _dt2.datetime.now().strftime("%H:%M")
+        from config import BUSINESS_TZ
+        # ✅ ВИПРАВЛЕНО: час з timezone бізнесу
+        time_str2    = _dt2.datetime.now(BUSINESS_TZ).strftime("%H:%M")
         pay_icon_d   = "💵" if pay_type == "cash" else ("🏧" if pay_type == "terminal" else "✅")
         status_line2 = f"🔴 Закрито ({time_str2}, {safe_courier} - {pay_icon_d})"
 
@@ -858,7 +906,7 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
         order = res.data[0]
 
         # 3. Перевірка що закриває той хто взяв
-        if str(order.get("courier_id")) != str(callback.from_user.id):
+        if not order.get("courier_id") or str(order["courier_id"]) != str(callback.from_user.id):
             await callback.message.answer("⛔️ Це замовлення веде інший кур'єр.")
             return
 
@@ -886,7 +934,9 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
 
         # 5. Будуємо фінальний текст — стиль старого боту
         import datetime as _dt
-        time_str    = _dt.datetime.now().strftime("%H:%M")
+        from config import BUSINESS_TZ
+        # ✅ ВИПРАВЛЕНО: час з timezone бізнесу
+        time_str    = _dt.datetime.now(BUSINESS_TZ).strftime("%H:%M")
         pay_icon_cl = "💵" if pay_type == "cash" else ("🏧" if pay_type == "terminal" else "✅")
         status_line = f"🔴 Закрито ({time_str}, {safe_courier} - {pay_icon_cl})"
 

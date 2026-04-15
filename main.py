@@ -21,9 +21,11 @@ dp.include_router(commands.router)
 dp.include_router(orders.router)
 dp.include_router(admin.router)
 
-# ✅ ВИПРАВЛЕНО: Rate limiting — 1 повідомлення/сек, 0.5 сек для кнопок
-dp.message.middleware(ThrottlingMiddleware(rate_limit=1.0))
-dp.callback_query.middleware(ThrottlingMiddleware(rate_limit=0.5))
+# ✅ ВИПРАВЛЕНО: один екземпляр ThrottlingMiddleware на user_id —
+# throttling працює між повідомленнями і кнопками разом, а не окремо.
+_throttle = ThrottlingMiddleware(rate_limit=0.5)
+dp.message.middleware(_throttle)
+dp.callback_query.middleware(_throttle)
 
 # ==========================================
 # ГОЛОВНИЙ ЗАПУСК
@@ -42,7 +44,7 @@ async def main():
 
     try:
         logger.info("🤖 Бот починає polling...")
-        await dp.start_polling(bot)
+        await dp.start_polling(bot, drop_pending_updates=True)
     finally:
         # Graceful shutdown
         scheduler.shutdown(wait=False)

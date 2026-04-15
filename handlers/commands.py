@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from config import SUPER_ADMIN_IDS, BASE_URL
+from config import SUPER_ADMIN_IDS, BASE_URL, BUSINESS_TZ
 import database as db
 import keyboards as kb
 from texts import get_text as _
@@ -32,10 +32,17 @@ async def show_main_menu(message: types.Message, context: dict):
     actual_plan = await db.get_actual_plan(biz_id)
 
     if not biz['is_active'] or actual_plan == "expired":
-        text = _(lang, 'expired_trial_text')
-        builder = InlineKeyboardBuilder()
-        builder.button(text=_(lang, 'btn_open_dashboard'), web_app=types.WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}"))
-        await message.answer(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+        # ✅ ВИПРАВЛЕНО bug #6: раніше тільки власник бачив expired_trial_text.
+        # Менеджер/кур'єр отримували мовчазну відмову (форма відкривалась але не зберігала).
+        # Тепер всі ролі бачать зрозуміле повідомлення.
+        if role == "owner":
+            text = _(lang, 'expired_trial_text')
+            builder = InlineKeyboardBuilder()
+            builder.button(text=_(lang, 'btn_open_dashboard'), web_app=types.WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}"))
+            await message.answer(text, reply_markup=builder.as_markup(), parse_mode="Markdown")
+        else:
+            # Менеджер або кур'єр — повідомляємо що підписка закінчилась у власника
+            await message.answer(_(lang, 'expired_staff_text'), parse_mode="Markdown")
         return
 
     if role == "owner":
@@ -56,10 +63,68 @@ async def show_main_menu(message: types.Message, context: dict):
 
 report_buttons = ["📊 Зробити звіт", "📊 Сделать отчет", "📊 Zrób raport", "📊 Make Report", "/zvit"]
 
+# Всі переклади кнопок "Налаштування" та "Персонал"
+settings_buttons = [
+    "⚙️ Налаштування бізнесу", "⚙️ Настройки бизнеса",
+    "⚙️ Ustawienia firmy",     "⚙️ Business Settings",
+]
+staff_buttons = [
+    "👥 Персонал", "👥 Personel", "👥 Staff",
+]
+
+# ==========================================
+# — БЛОК: НАЛАШТУВАННЯ БІЗНЕСУ —
+# ==========================================
+
+@router.message(F.text.in_(settings_buttons))
+async def cmd_open_settings(message: types.Message):
+    """✅ ВИПРАВЛЕНО: кнопка 'Налаштування бізнесу' більше не мовчить."""
+    import time as _t
+    from keyboards import generate_token
+    lang = message.from_user.language_code
+    context = await db.get_user_context_cached(message.from_user.id)
+    if not context or context['role'] != 'owner':
+        await message.answer(_(lang, 'no_access'))
+        return
+    biz_id = context['biz']['id']
+    user_id = message.from_user.id
+    token = generate_token(biz_id=biz_id, user_id=user_id)
+    t = int(_t.time())
+    url = f"{BASE_URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}#settings"
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.button(text=_(lang, 'btn_settings'), web_app=types.WebAppInfo(url=url))
+    await message.answer(_(lang, 'btn_settings'), reply_markup=builder.as_markup())
+
+
+# ==========================================
+# — БЛОК: ПЕРСОНАЛ —
+# ==========================================
+
+@router.message(F.text.in_(staff_buttons))
+async def cmd_open_staff(message: types.Message):
+    """✅ ВИПРАВЛЕНО: кнопка 'Персонал' більше не мовчить."""
+    import time as _t
+    from keyboards import generate_token
+    lang = message.from_user.language_code
+    context = await db.get_user_context_cached(message.from_user.id)
+    if not context or context['role'] != 'owner':
+        await message.answer(_(lang, 'no_access'))
+        return
+    biz_id = context['biz']['id']
+    user_id = message.from_user.id
+    token = generate_token(biz_id=biz_id, user_id=user_id)
+    t = int(_t.time())
+    url = f"{BASE_URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}#staff"
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.button(text=_(lang, 'btn_staff'), web_app=types.WebAppInfo(url=url))
+    await message.answer(_(lang, 'btn_staff'), reply_markup=builder.as_markup())
+
 @router.message(F.text.in_(report_buttons))
 async def cmd_generate_report(message: types.Message):
     lang = message.from_user.language_code
-    context = await db.get_user_context(message.from_user.id)
+    context = await db.get_user_context_cached(message.from_user.id)
     if not context or context['role'] not in ['manager', 'owner']:
         await message.answer(_(lang, 'no_zvit_access'))
         return
@@ -72,13 +137,14 @@ async def cmd_generate_report(message: types.Message):
         return
 
     currency = biz.get('currency', 'zł')
-    report_data, total_cash, total_term, total_online = await db.get_daily_report(biz_id)
+    report_data, total_cash, total_term, total_online, total_online_sum = await db.get_daily_report(biz_id)
 
     if not report_data:
         await message.answer(_(lang, 'zvit_empty'))
         return
 
-    now_time = (datetime.datetime.utcnow() + datetime.timedelta(hours=1)).strftime("%H:%M")
+    # ✅ ВИПРАВЛЕНО: враховує DST (UTC+1 зимою, UTC+2 влітку)
+    now_time = datetime.datetime.now(tz=BUSINESS_TZ).strftime("%H:%M")
     text = _(lang, 'zvit_title', time=now_time)
 
     for c_id, stats in report_data.items():
@@ -88,7 +154,8 @@ async def cmd_generate_report(message: types.Message):
         if stats['term'] > 0:
             line += f" | 🏧 {stats['term']:.2f}"
         if stats.get('online', 0) > 0:
-            line += f" | 🌐 {stats['online']} онл."
+            # ✅ ВИПРАВЛЕНО bug #10: показуємо суму онлайн-замовлень
+            line += f" | 🌐 {stats['online']} онл. ({stats.get('online_sum', 0.0):.2f})"
         text += line + "\n"
 
     text += "➖ ➖ ➖ ➖ ➖\n"
@@ -96,7 +163,7 @@ async def cmd_generate_report(message: types.Message):
     text += "\n"
     text += _(lang, 'zvit_term', term=f"{total_term:.2f}", cur=currency)
     if total_online > 0:
-        text += f"\n🌐 Онлайн: {total_online} замовлень (сплачено)"
+        text += f"\n🌐 Онлайн: {total_online} замовлень | {total_online_sum:.2f} {currency} (сплачено)"
 
     await message.answer(text)
 
@@ -128,6 +195,14 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
         token = args[2:]
 
         role = "courier" if prefix == "c_" else "manager"
+
+        # Власник не може стати кур'єром/менеджером
+        existing = await db.get_user_context_cached(user_id)
+        if existing and existing['role'] == 'owner':
+            await message.answer(_(lang, 'dont_understand'))
+            await show_main_menu(message, existing)
+            return
+
         try:
             res = await db._run(lambda: db.supabase.table("businesses").select("*").eq("invite_token", token).execute())
             if not res.data:
@@ -148,7 +223,7 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
         await message.answer(_(lang, 'invite_welcome', role=role_ua, biz_name=biz['name']))
         return
 
-    context = await db.get_user_context(user_id)
+    context = await db.get_user_context_cached(user_id)
     if not context:
         await message.answer(
             _(lang, 'start_welcome'),
@@ -166,8 +241,9 @@ async def process_staff_name(message: types.Message, state: FSMContext):
     data = await state.get_data()
     try:
         await db.create_staff(message.from_user.id, name, data['joining_biz_id'], role=data.get('joining_role', 'courier'))
+        db.invalidate_user_cache(message.from_user.id)  # ✅ ВИПРАВЛЕНО: скидаємо кеш щоб нова роль одразу застосувалась
         await state.clear()
-        context = await db.get_user_context(message.from_user.id)
+        context = await db.get_user_context_cached(message.from_user.id)
         role_label = _(lang, 'role_c') if data.get('joining_role', 'courier') == "courier" else _(lang, 'role_m')
         await message.answer(_(lang, 'staff_added', name=name, role=role_label))
         await show_main_menu(message, context)

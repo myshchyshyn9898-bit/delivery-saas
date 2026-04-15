@@ -135,7 +135,7 @@ async def _notify_managers_new_pos_order(
     currency = biz.get("currency", "zł")
     pay_icon = "💵" if payment == "cash" else ("💳" if payment == "terminal" else "🌐")
 
-    # ── DISPATCHER MODE (стара незмінна логіка) ───────────────────
+    # ── DISPATCHER MODE ───────────────────────────────────────────────────────
     if delivery_mode == 'dispatcher':
         base_url = os.environ.get(
             "BASE_URL",
@@ -144,6 +144,27 @@ async def _notify_managers_new_pos_order(
         form_base_url = f"{base_url}/form.html"
         import html as _ph
         _pe = _ph.escape
+
+        # ✅ ВИПРАВЛЕНО bug #6: зберігаємо POS-замовлення в БД одразу,
+        # щоб воно потрапляло в аналітику навіть якщо менеджер не відкриє форму.
+        pos_order_id = None
+        try:
+            saved = await db.create_new_order({
+                "biz_id":        biz_id,
+                "client_name":   client_name,
+                "client_phone":  phone,
+                "address":       address or "",
+                "amount":        amount,
+                "payment":       payment,
+                "comment":       comment,
+                "courier_id":    None,   # призначається менеджером пізніше
+            })
+            if saved:
+                pos_order_id = saved["id"]
+                logger.info(f"[POS:{source}] Замовлення збережено в БД: {pos_order_id}")
+        except Exception as exc:
+            logger.error(f"[POS:{source}] Не вдалось зберегти в БД: {exc}")
+
         admin_text = (
             f"🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source_label}!</b>\n\n"
             f"👤 <b>Клієнт:</b> {_pe(client_name) if client_name else '—'}\n"
@@ -161,6 +182,9 @@ async def _notify_managers_new_pos_order(
             f"&name={urllib.parse.quote(client_name or '')}" \
             f"&comment={urllib.parse.quote(comment or '')}" \
             f"&payment={urllib.parse.quote(payment)}"
+        # Якщо замовлення збережено — передаємо order_id щоб форма призначила кур'єра до нього
+        if pos_order_id:
+            markup_base_url += f"&order_id={urllib.parse.quote(str(pos_order_id))}"
 
         managers_res = await db._run(
             lambda: db.supabase.table("staff")
@@ -288,6 +312,10 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
                     biz_id, "pro", membership_data.get("id", "")
                 )
                 logger.info(f"[Whop] Підписку PRO активовано для biz={biz_id}")
+                # ✅ ВИПРАВЛЕНО bug #5: скидаємо кеш одразу після активації,
+                # щоб власник не бачив expired_trial_text після оплати
+                if tg_user_id:
+                    db.invalidate_user_cache(int(tg_user_id))
 
                 if tg_user_id:
                     try:
@@ -350,7 +378,8 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
                 logger.warning(f"[Poster] biz={biz_id} — невірний verify hash")
                 return web.Response(status=403, text="Forbidden")
         else:
-            logger.info(f"[Poster] biz={biz_id} — запит без підпису (дозволено для тестів)")
+            logger.warning(f"[Poster] biz={biz_id} — запит без підпису, відхилено")
+            return web.Response(status=403, text="Forbidden: missing signature")
 
         def _decode_body(b: bytes) -> str:
             for enc in ("utf-8", "cp1251", "latin-1"):
@@ -676,7 +705,7 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
 
             comment    = order.get("comment", "")
             raw_amount = order.get("sum") or order.get("total") or order.get("amount", 0)
-            amount = _parse_amount(raw_amount, divisor=100)
+            amount = _parse_amount(raw_amount)  # Syrve повертає суму в звичайних одиницях (не в копійках)
 
             raw_pay = ""
             payments_list = order.get("payments") or []
@@ -718,10 +747,29 @@ async def syrve_webhook_handler(request: web.Request) -> web.Response:
 async def api_new_order_handler(request: web.Request) -> web.Response:
     """POST /api/new_order"""
     try:
+        # JWT верифікація
+        import jwt as _jwt
+        from keyboards import JWT_SECRET
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return web.Response(status=403, text="Missing token")
+        token_str = auth_header[len("Bearer "):].strip()
+        try:
+            payload = _jwt.decode(token_str, JWT_SECRET, algorithms=["HS256"])
+        except _jwt.ExpiredSignatureError:
+            return web.Response(status=403, text="Token expired")
+        except _jwt.InvalidTokenError:
+            return web.Response(status=403, text="Invalid token")
+
         data = await request.json()
         lang = data.get("lang", "uk")
-        
+
         biz_id = data['biz_id']
+
+        # Перевіряємо що token виданий саме для цього biz_id
+        if payload.get("biz_id") and payload["biz_id"] != str(biz_id):
+            return web.Response(status=403, text="Token biz_id mismatch")
+
         actual_plan = await db.get_actual_plan(biz_id)
         if actual_plan == "expired":
             return web.Response(status=403, text="expired")
@@ -810,12 +858,18 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
 
                 if is_pro:
                     map_filename = await get_route_map_file(biz, data['address'], short_id)
-                    if map_filename and os.path.exists(map_filename):
-                        photo = FSInputFile(map_filename)
-                        await bot.send_photo(chat_id=data['courier_id'], photo=photo, caption=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-                        os.remove(map_filename)
-                    else:
-                        await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+                    try:
+                        if map_filename and os.path.exists(map_filename):
+                            photo = FSInputFile(map_filename)
+                            await bot.send_photo(chat_id=data['courier_id'], photo=photo, caption=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+                        else:
+                            await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+                    finally:
+                        if map_filename and os.path.exists(map_filename):
+                            try:
+                                os.remove(map_filename)
+                            except OSError as e:
+                                logger.warning(f"[api_new_order] Не вдалось видалити map файл: {e}")
                 else:
                     await bot.send_message(chat_id=data['courier_id'], text=courier_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
@@ -874,6 +928,45 @@ async def cors_middleware(request: web.Request, handler):
     return response
 
 
+
+
+async def invalidate_cache_handler(request: web.Request) -> web.Response:
+    """POST /api/invalidate_cache — скидає in-memory кеш для юзера після зміни в staff.
+
+    ✅ ВИПРАВЛЕНО bug #2: при видаленні/зміні персоналу через JS-дашборд
+    бот не знав про це і ще 60 сек показував видаленому кур'єру активне меню.
+    Тепер JS викликає цей endpoint після будь-якої зміни в staff.
+
+    Авторизація: Bearer JWT токен (той самий що генерує keyboards.py).
+    """
+    try:
+        import jwt as _jwt
+        from keyboards import JWT_SECRET
+
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return web.Response(status=403, text="Missing token")
+        token_str = auth_header[len("Bearer "):].strip()
+        try:
+            payload = _jwt.decode(token_str, JWT_SECRET, algorithms=["HS256"])
+        except _jwt.ExpiredSignatureError:
+            return web.Response(status=403, text="Token expired")
+        except _jwt.InvalidTokenError:
+            return web.Response(status=403, text="Invalid token")
+
+        data = await request.json()
+        user_id = data.get("user_id")
+        if not user_id:
+            return web.Response(status=400, text="Missing user_id")
+
+        db.invalidate_user_cache(int(user_id))
+        logger.info(f"[cache] Скинуто кеш для user_id={user_id}")
+        return web.json_response({"ok": True}, headers=CORS_HEADERS)
+
+    except Exception as exc:
+        logger.error(f"[cache] Помилка: {exc}")
+        return web.Response(status=500, text="Internal Server Error")
+
 # ---------------------------------------------------------------------------
 # Реєстрація маршрутів та запуск сервера
 # ---------------------------------------------------------------------------
@@ -896,6 +989,7 @@ async def start_webhook_server() -> None:
     app.router.add_post("/webhook/gopos",      gopos_webhook_handler)
     app.router.add_post("/webhook/syrve",      syrve_webhook_handler)
     app.router.add_post("/api/new_order",      api_new_order_handler)
+    app.router.add_post("/api/invalidate_cache", invalidate_cache_handler)
 
     runner = web.AppRunner(app)
     await runner.setup()

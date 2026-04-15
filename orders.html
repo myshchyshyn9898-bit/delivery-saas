@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="uk">
 <head>
+        <meta name="server-url" content="https://delivery-saas-production-3fe6.up.railway.app">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Активні та Архів</title>
@@ -249,6 +250,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const bizId = urlParams.get('biz_id');
         const authToken = urlParams.get('token');
+        const tgId = urlParams.get('tg_id');
         let currencySymbol = "zł";
 
                 // SERVER_URL: автоматично визначається або береться з мета-тегу
@@ -307,12 +309,23 @@
                     staff.forEach(s => { couriersMap[s.user_id] = s.name; });
                 }
 
-                const { data: orders, error: ordersError } = await supabaseClient.from('orders')
+                // Визначаємо роль: кур'єр бачить тільки свої замовлення
+                let ordersQuery = supabaseClient.from('orders')
                     .select('*')
                     .eq('business_id', bizId)
                     .gte('created_at', startDate.toISOString())
                     .order('created_at', { ascending: false })
                     .limit(5000);
+
+                if (tgId) {
+                    const { data: myStaff } = await supabaseClient.from('staff')
+                        .select('role').eq('user_id', tgId).eq('business_id', bizId).single();
+                    if (myStaff && myStaff.role === 'courier') {
+                        ordersQuery = ordersQuery.eq('courier_id', tgId);
+                    }
+                }
+
+                const { data: orders, error: ordersError } = await ordersQuery;
 
                 if (ordersError) throw ordersError;
 
