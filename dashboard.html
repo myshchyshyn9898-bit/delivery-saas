@@ -64,15 +64,32 @@
                 <i class="fa-solid fa-chart-line" style="position: absolute; right: -10px; bottom: -10px; font-size: 100px; opacity: 0.15; transform: rotate(-10deg);"></i>
             </div>
 
-            <div class="metric-card full-width" id="card-heatmap" style="padding: 15px;">
-                <div class="metric-label" style="margin-bottom: 10px;"><i class="fa-solid fa-map-location-dot"></i> <span data-i18n="metric_heat">Теплова карта</span></div>
-                <div id="heatmap" style="height: 160px; width: 100%; border-radius: 12px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.05); z-index: 1;"></div>
-                <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 0 5px;">
-                    <div>
-                        <div class="metric-label" style="margin-bottom: 4px;" data-i18n="metric_avg">Середній чек</div>
-                        <div class="metric-val" id="val-avg-check" style="color: var(--primary);">0.00</div>
+            <div class="metric-card full-width heatmap-card" id="card-heatmap">
+                <!-- Header -->
+                <div class="heatmap-header">
+                    <div class="heatmap-title-wrap">
+                        <div class="heatmap-icon-wrap">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <div>
+                            <div class="heatmap-title" data-i18n="metric_heat">Теплова карта</div>
+                            <div class="heatmap-subtitle">Активність замовлень</div>
+                        </div>
                     </div>
-                    <div class="metric-icon" style="margin: 0; background: rgba(239,68,68,0.1);"><i class="fa-solid fa-fire" style="color: var(--danger);"></i></div>
+                    <div class="heatmap-avg-wrap">
+                        <div class="heatmap-avg-label" data-i18n="metric_avg">Середній чек</div>
+                        <div class="heatmap-avg-val" id="val-avg-check">0.00</div>
+                    </div>
+                </div>
+                <!-- Map -->
+                <div class="heatmap-map-wrap">
+                    <div id="heatmap"></div>
+                    <!-- Gradient legend -->
+                    <div class="heatmap-legend">
+                        <span class="heatmap-legend-label">Низька</span>
+                        <div class="heatmap-legend-bar"></div>
+                        <span class="heatmap-legend-label">Висока</span>
+                    </div>
                 </div>
             </div>
 
