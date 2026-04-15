@@ -884,7 +884,7 @@ if (!bizId) { document.getElementById(‘display-biz-name’).innerText = “DEM
             mapboxgl.accessToken = MAPBOX_TOKEN;
             window.dashboardMap = new mapboxgl.Map({
                 container: 'heatmap',
-                style: 'mapbox://styles/mapbox/dark-v11',
+                style: 'mapbox://styles/mapbox/light-v11',
                 center: [centerLon, centerLat],
                 zoom: 11.5,
                 interactive: false,   // як у Leaflet — без драгу/зуму
