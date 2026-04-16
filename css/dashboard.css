@@ -592,259 +592,176 @@ body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120
 }
 
 /* ===== SALARY TAB ===== */
-
-/* Tab container */
 #tab-salary { overflow-x: hidden; }
+
 #salary-month-tabs {
-    display: flex; gap: 6px; overflow-x: auto;
-    scrollbar-width: none; padding-bottom: 4px; margin-bottom: 16px;
-    -webkit-overflow-scrolling: touch;
+    display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+    padding-bottom: 4px; margin-bottom: 16px; -webkit-overflow-scrolling: touch;
 }
 #salary-month-tabs::-webkit-scrollbar { display: none; }
 
-/* Month tab */
 .salary-month-tab {
     flex: 0 0 auto; padding: 8px 16px; border-radius: 12px;
     font-size: 13px; font-weight: 700; color: var(--text-muted);
     background: var(--surface); border: 1.5px solid #e2e8f0;
-    cursor: pointer; transition: 0.2s; white-space: nowrap;
-    font-family: inherit;
+    cursor: pointer; transition: 0.2s; white-space: nowrap; font-family: inherit;
 }
 .salary-month-tab.active {
-    background: var(--primary); color: #fff;
-    border-color: var(--primary);
+    background: var(--primary); color: #fff; border-color: var(--primary);
     box-shadow: 0 4px 14px rgba(255,90,95,0.28);
 }
 
 /* Schedule button */
 .btn-schedule-open {
-    background: var(--surface); border: 1.5px solid #e2e8f0;
-    border-radius: 16px; padding: 14px 16px;
-    display: flex; align-items: center; gap: 12px;
-    cursor: pointer; transition: 0.2s; width: 100%;
-    box-sizing: border-box;
+    background: var(--surface); border: 1.5px solid #e2e8f0; border-radius: 16px;
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: 0.2s; width: 100%; box-sizing: border-box;
 }
 .btn-schedule-open:active { transform: scale(0.97); background: #f8fafc; }
 .btn-schedule-icon {
     width: 40px; height: 40px; border-radius: 12px;
     background: rgba(255,90,95,0.1); color: var(--primary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 17px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0;
 }
 .btn-schedule-text { flex: 1; min-width: 0; text-align: left; }
 .btn-schedule-title { font-size: 14px; font-weight: 800; color: var(--text-main); }
 .btn-schedule-sub { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-top: 2px; }
 
-/* Salary card */
+/* ── SALARY CARD ── */
 .salary-card {
-    background: var(--surface); border-radius: 20px; padding: 16px;
-    margin-bottom: 10px; border: 1px solid rgba(0,0,0,0.03);
-    box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+    background: #ffffff; border: 1px solid #ebecf0; border-radius: 20px;
+    margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);
     overflow: hidden; box-sizing: border-box;
-    width: 100%;
 }
+.salary-card-paid { border-color: rgba(16,185,129,0.3); background: linear-gradient(135deg,#fff,#f0fdf8); }
 
 /* Card header */
-.salary-card-header {
-    display: flex; align-items: center;
-    gap: 0; margin-bottom: 12px; min-width: 0;
+.card-summary {
+    display: grid; grid-template-columns: auto 1fr auto auto;
+    align-items: center; gap: 12px;
+    padding: 14px 16px; cursor: pointer; transition: 0.15s;
 }
-.salary-header-left {
-    display: flex; align-items: center; flex: 1; min-width: 0; overflow: hidden;
-}
-.salary-avatar {
-    width: 38px; height: 38px; border-radius: 11px;
-    background: rgba(255,90,95,0.1); color: var(--primary);
+.card-summary:active { background: #fafafa; }
+
+.avatar {
+    width: 42px; height: 42px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 900; flex-shrink: 0; margin-right: 10px;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
 }
-.salary-info { min-width: 0; flex: 1; overflow: hidden; }
-.salary-name {
-    font-size: 14px; font-weight: 800; color: var(--text-main);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.salary-role {
-    font-size: 10px; font-weight: 700; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px;
-}
-.salary-header-right { flex-shrink: 0; text-align: right; margin-left: 10px; }
-.salary-amount {
-    font-size: 18px; font-weight: 900; color: var(--text-main);
-    letter-spacing: -0.5px; white-space: nowrap;
-}
-.salary-amount-label {
-    font-size: 9px; font-weight: 700; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.5px;
-}
+.av-courier { background: #ffeced; color: #ff525b; }
+.av-admin   { background: #e0e7ff; color: #4f46e5; }
+.av-sushi   { background: #fef3c7; color: #d97706; }
 
-/* Breakdown chips */
-.salary-breakdown {
-    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px;
-}
-.sal-chip {
-    background: #f1f5f9; border-radius: 7px; padding: 4px 8px;
-    font-size: 10px; font-weight: 700; color: var(--text-muted);
-    white-space: nowrap;
-}
-.sal-chip span { color: var(--text-main); font-weight: 800; }
+.user-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow: hidden; }
+.user-meta .name { font-weight: 700; font-size: 14px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-meta .role { font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
-/* Settings section */
-.salary-details-toggle {
-    width: 100%; background: none; border: none; padding: 8px 0;
-    display: flex; align-items: center; justify-content: space-between;
-    font-size: 12px; font-weight: 700; color: var(--text-muted);
-    cursor: pointer; font-family: inherit; margin-bottom: 2px;
-}
-.salary-details-body {
-    display: none; flex-direction: column; gap: 8px;
-    padding-top: 8px; margin-bottom: 10px;
-}
-.salary-details-body.open { display: flex; }
+.amount-block { text-align: right; flex-shrink: 0; }
+.total-sum { font-size: 16px; font-weight: 800; color: var(--text-main); white-space: nowrap; }
 
-.salary-settings-row {
-    display: flex; align-items: center;
-    gap: 8px; min-width: 0;
+.status-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px;
+    cursor: pointer; transition: 0.2s;
 }
-.salary-settings-row label {
-    font-size: 12px; font-weight: 600; color: var(--text-muted);
-    flex: 1; min-width: 0;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+.status-badge.unpaid { background: #ffebed; color: #eb5757; }
+.status-badge.paid   { background: #e6f6ec; color: #219653; }
+.status-badge:active { transform: scale(0.95); }
+
+.chevron { color: var(--text-muted); transition: transform 0.2s; display: flex; flex-shrink: 0; }
+
+/* Card body */
+.card-body { padding: 16px; border-top: 1px solid #ebecf0; }
+
+/* Settings */
+.settings-block { margin-bottom: 16px; }
+.settings-summary {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff0f2; border: 1px solid #fdd8db; color: #ff525b;
+    padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: 0.2s;
 }
-.salary-settings-right {
-    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-}
-.salary-input {
-    border: 1.5px solid #e2e8f0; border-radius: 10px;
-    padding: 7px 10px; font-size: 13px; font-weight: 800;
-    color: var(--text-main); background: #f8fafc; outline: none;
-    width: 72px; text-align: right; font-family: inherit;
+.settings-summary:active { background: #fdd8db; }
+.sett-arrow { transition: transform 0.2s; }
+
+.settings-content { padding-top: 14px; display: flex; flex-direction: column; gap: 12px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.setting-label { font-size: 13px; font-weight: 600; color: #475569; flex: 1; min-width: 0; }
+.setting-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.setting-input {
+    width: 70px; height: 34px; text-align: right; padding: 0 10px;
+    border: 1px solid #cbd5e1; border-radius: 10px; font-size: 13px; font-weight: 700;
+    color: var(--text-main); font-family: inherit; outline: none; transition: border 0.2s;
     -webkit-appearance: none; box-sizing: border-box;
 }
-.salary-input:focus { border-color: var(--primary); background: #fff; }
+.setting-input:focus { border-color: #ff525b; }
 
 /* Toggle switch */
-.toggle-switch {
-    position: relative; width: 34px; height: 19px; flex-shrink: 0;
-    display: inline-block;
-}
-.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
-.toggle-track {
-    position: absolute; inset: 0; background: #cbd5e1;
-    border-radius: 19px; cursor: pointer; transition: 0.2s;
-}
-.toggle-track::before {
-    content: ''; position: absolute; width: 13px; height: 13px;
-    left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s;
-}
-.toggle-switch input:checked + .toggle-track { background: var(--success); }
-.toggle-switch input:checked + .toggle-track::before { transform: translateX(15px); }
+.switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 22px; cursor: pointer; transition: 0.25s; }
+.slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.25s; }
+.switch input:checked + .slider { background: #219653; }
+.switch input:checked + .slider:before { transform: translateX(16px); }
 
-.btn-salary-save {
+/* Stats grid */
+.stats-grid { display: grid; gap: 8px; margin-bottom: 16px; }
+.stats-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.stats-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.stat-item { background: #f8fafc; border-radius: 10px; padding: 10px; text-align: center; }
+.stat-label { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 3px; }
+.stat-value { font-size: 13px; color: var(--text-main); font-weight: 700; }
+
+/* Ledger */
+.section-heading {
+    font-size: 10px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.ledger { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.ledger-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ledger-desc { color: var(--text-main); font-weight: 600; font-size: 13px; flex: 1; min-width: 0; }
+.ledger-amount { font-weight: 800; font-size: 13px; flex-shrink: 0; }
+.ledger-amount.plus    { color: #219653; }
+.ledger-amount.minus   { color: #eb5757; }
+.ledger-amount.neutral { color: var(--text-muted); }
+
+/* Add action */
+.add-action { display: flex; gap: 8px; margin-bottom: 12px; }
+.input-styled {
+    background: #f8fafc; border: 1px solid transparent; border-radius: 12px;
+    padding: 10px 12px; font-size: 13px; font-family: inherit; font-weight: 500;
+    transition: all 0.2s; outline: none; -webkit-appearance: none; box-sizing: border-box;
+}
+.input-styled:focus { background: #fff; border-color: #ff525b; }
+.in-amount { width: 34%; flex-shrink: 0; }
+.in-desc { flex: 1; min-width: 0; }
+
+/* Card actions */
+.card-actions {
+    display: flex; gap: 10px;
+    padding-top: 14px; border-top: 1px dashed #ebecf0;
+}
+.btn {
+    flex: 1; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 700;
+    cursor: pointer; display: flex; justify-content: center; align-items: center;
+    gap: 6px; border: none; font-family: inherit; transition: 0.2s;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #ff525b; color: white; }
+.btn-primary:hover { background: #e8464e; }
+.btn-add-bonus { background: #f1f5f9; color: var(--text-main); }
+.btn-add-bonus:active { background: #e2e8f0; }
+.btn-save-rates {
     background: var(--text-main); color: white; border: none;
     padding: 10px 16px; border-radius: 11px; font-size: 13px; font-weight: 800;
-    cursor: pointer; transition: 0.2s; display: flex; align-items: center;
-    gap: 6px; font-family: inherit; width: 100%; justify-content: center;
-    margin-top: 4px;
+    cursor: pointer; width: 100%; font-family: inherit; margin-top: 4px;
+    display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
 }
-.btn-salary-save:active { transform: scale(0.97); }
-
-/* Bonus row */
-.bonus-section { margin-bottom: 12px; }
-.bonus-section-label {
-    font-size: 10px; font-weight: 800; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
-}
-.bonus-row {
-    display: flex; gap: 6px; align-items: center; min-width: 0;
-}
-.bonus-input {
-    border: 1.5px solid #e2e8f0; border-radius: 10px;
-    padding: 8px 10px; font-size: 12px; font-weight: 700;
-    background: #f8fafc; outline: none; font-family: inherit;
-    color: var(--text-main); min-width: 0; box-sizing: border-box;
-    -webkit-appearance: none;
-}
-.bonus-input:focus { border-color: var(--primary); background: #fff; }
-.bonus-input-amount { width: 80px; flex-shrink: 0; text-align: right; }
-.bonus-input-comment { flex: 1; }
-.btn-bonus-add {
-    background: var(--primary); color: white; border: none;
-    padding: 8px 12px; border-radius: 10px; font-size: 12px; font-weight: 800;
-    cursor: pointer; white-space: nowrap; transition: 0.2s;
-    font-family: inherit; flex-shrink: 0;
-}
-.btn-bonus-add:active { transform: scale(0.95); }
-.bonus-list-item {
-    font-size: 12px; font-weight: 600; margin-top: 4px; line-height: 1.4;
-}
-
-/* Pay status */
-.salary-card-footer {
-    display: flex; justify-content: flex-end; margin-top: 4px;
-}
-.pay-status-btn {
-    padding: 7px 16px; border-radius: 10px; border: none;
-    font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.2s;
-    font-family: inherit;
-}
-.pay-status-btn:active { transform: scale(0.96); }
-.pay-status-paid { background: rgba(16,185,129,0.12); color: var(--success); }
-.pay-status-unpaid { background: rgba(255,90,95,0.1); color: var(--primary); }
+.btn-save-rates:active { transform: scale(0.97); }
 
 /* Total fund card */
-#salary-total-card {
-    border-radius: 20px; padding: 18px 20px; margin-bottom: 20px;
-    overflow: hidden; box-sizing: border-box;
-}
+#salary-total-card { border-radius: 20px; padding: 18px 20px; margin-bottom: 20px; overflow: hidden; box-sizing: border-box; }
 
 /* Bottom nav 4 items */
 .bottom-nav .nav-item span { font-size: 9px; letter-spacing: 0; }
-
-/* ── Paid card ── */
-.salary-card-paid {
-    border: 1.5px solid rgba(16,185,129,0.25);
-    background: linear-gradient(135deg, #fff, #f0fdf8);
-}
-
-/* ── Settings toggle button ── */
-.salary-details-toggle {
-    width: auto; display: inline-flex; align-items: center; gap: 8px;
-    background: #f8fafc; border: 1.5px solid #e2e8f0;
-    border-radius: 12px; padding: 8px 14px;
-    font-size: 12px; font-weight: 700; color: var(--text-muted);
-    cursor: pointer; font-family: inherit; margin-bottom: 6px;
-    transition: 0.2s;
-}
-.salary-details-toggle:active { transform: scale(0.98); }
-.sal-toggle-icon { font-size: 11px; transition: transform 0.2s; flex-shrink: 0; }
-
-/* ── Bonus chips list ── */
-.bonus-chips-list {
-    display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;
-}
-.bonus-chip-item {
-    display: flex; align-items: center; gap: 4px;
-    border-radius: 10px; padding: 5px 10px;
-    font-size: 11px; font-weight: 700;
-}
-.bonus-chip-pos {
-    background: rgba(16,185,129,0.1); color: var(--success);
-}
-.bonus-chip-neg {
-    background: rgba(239,68,68,0.1); color: var(--danger);
-}
-.bonus-chip-icon { font-size: 12px; }
-.bonus-chip-val { font-weight: 800; }
-.bonus-chip-label {
-    color: inherit; opacity: 0.75; font-weight: 600;
-    max-width: 100px; overflow: hidden;
-    text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ── Chip icons (FA) ── */
-.sal-chip-icon {
-    font-size: 10px; margin-right: 4px; opacity: 0.7;
-}
-.bonus-chip-icon {
-    font-size: 11px; margin-right: 3px;
-}

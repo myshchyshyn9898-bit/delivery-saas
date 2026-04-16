@@ -1070,10 +1070,8 @@ let salaryInitialized = false;
 
 async function initSalaryTab() {
     if (!bizId || !supabaseClient) return;
-    if (salaryInitialized) return; // вже ініціалізовано
-    salaryInitialized = true;
 
-    // Render schedule open button
+    // Кнопка графіку — рендеримо тільки раз
     const schedWrap = document.getElementById('salary-schedule-btn-wrap');
     if (schedWrap && !schedWrap.dataset.rendered) {
         schedWrap.dataset.rendered = '1';
@@ -1162,8 +1160,8 @@ async function switchSalaryMonth(mk) {
 }
 
 async function renderSalaryList() {
-    const list = document.getElementById('salary-list');
-    const totalCard = document.getElementById('salary-total-card');
+    var list = document.getElementById('salary-list');
+    var totalCard = document.getElementById('salary-total-card');
     if (!list) return;
 
     if (!salaryStaff.length) {
@@ -1173,206 +1171,240 @@ async function renderSalaryList() {
 
     list.innerHTML = '<div style="text-align:center;padding:30px 0;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);font-size:22px;"></i></div>';
 
-    const [y, m] = salaryMonthKey.split('-').map(Number);
-    const startDate = new Date(y, m-1, 1).toISOString();
-    const endDate   = new Date(y, m, 1).toISOString();
-    const cur = currencySymbol || 'zł';
+    var parts = salaryMonthKey.split('-');
+    var y = parseInt(parts[0]);
+    var m = parseInt(parts[1]);
+    var startDate = new Date(Date.UTC(y, m-1, 1)).toISOString();
+    var endDate   = new Date(Date.UTC(y, m, 1)).toISOString();
+    var cur = currencySymbol || 'zł';
 
-    let allShifts = [], allOrders = [];
+    var allShifts = [], allOrders = [];
     try {
-        const { data: sh } = await supabaseClient.from('shifts')
+        var shRes = await supabaseClient.from('shifts')
             .select('*').eq('business_id', bizId)
             .gte('started_at', startDate).lt('started_at', endDate);
-        allShifts = sh || [];
+        allShifts = shRes.data || [];
     } catch(e) {}
     try {
-        const { data: ord } = await supabaseClient.from('orders')
+        var ordRes = await supabaseClient.from('orders')
             .select('courier_id')
             .eq('business_id', bizId).eq('status', 'completed')
             .gte('created_at', startDate).lt('created_at', endDate);
-        allOrders = ord || [];
+        allOrders = ordRes.data || [];
     } catch(e) {}
 
-    const shiftsByCourier = {};
-    allShifts.forEach(sh => {
-        const cid = String(sh.courier_id);
+    var shiftsByCourier = {};
+    allShifts.forEach(function(sh) {
+        var cid = String(sh.courier_id);
         if (!shiftsByCourier[cid]) shiftsByCourier[cid] = [];
         shiftsByCourier[cid].push(sh);
     });
-    const ordersByCourier = {};
-    allOrders.forEach(o => {
-        const cid = String(o.courier_id);
+    var ordersByCourier = {};
+    allOrders.forEach(function(o) {
+        var cid = String(o.courier_id);
         ordersByCourier[cid] = (ordersByCourier[cid] || 0) + 1;
     });
 
-    let totalFund = 0;
-    let html = '';
+    var totalFund = 0;
+    var html = '';
 
-    for (const s of salaryStaff) {
-        const cid = String(s.user_id);
-        const sets = salarySettings[cid] || {};
-        const hourlyRate  = parseFloat(sets.hourly_rate) || 0;
-        const kmRate      = sets.km_enabled ? (parseFloat(sets.km_rate) || parseFloat(window._bizData?.km_rate) || 0) : 0;
-        const orderRate   = sets.order_enabled ? (parseFloat(sets.order_rate) || 0) : 0;
-        const bonusList   = salaryBonuses[cid] || [];
-        const bonusTotal  = bonusList.reduce((a, b) => a + (parseFloat(b.amount)||0), 0);
-        const payment     = salaryPayments[cid];
+    for (var si = 0; si < salaryStaff.length; si++) {
+        var s = salaryStaff[si];
+        var cid = String(s.user_id);
+        var sets = salarySettings[cid] || {};
+        var hourlyRate  = parseFloat(sets.hourly_rate) || 0;
+        var kmEnabled   = !!sets.km_enabled;
+        var kmRate      = kmEnabled ? (parseFloat(sets.km_rate) || parseFloat(window._bizData && window._bizData.km_rate) || 0) : 0;
+        var orderEnabled = !!sets.order_enabled;
+        var orderRate   = orderEnabled ? (parseFloat(sets.order_rate) || 0) : 0;
+        var bonusList   = salaryBonuses[cid] || [];
+        var payment     = salaryPayments[cid];
 
-        let totalHours = 0, totalKm = 0, shiftCount = 0;
-        (shiftsByCourier[cid] || []).forEach(sh => {
+        // Hours + km from shifts
+        var totalHours = 0, totalKm = 0, shiftCount = 0;
+        var myShifts = shiftsByCourier[cid] || [];
+        myShifts.forEach(function(sh) {
             shiftCount++;
             if (sh.ended_at) {
                 totalHours += (new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000;
                 if (sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
+            } else {
+                totalHours += (new Date() - new Date(sh.started_at)) / 3600000;
             }
         });
-        const ordersCount = ordersByCourier[cid] || 0;
+        totalHours = Math.round(totalHours * 10) / 10;
+        totalKm = Math.round(totalKm);
+        var ordersCount = ordersByCourier[cid] || 0;
 
-        const rawEarned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
-        const earnedSafe = isNaN(rawEarned) ? 0 : Math.max(0, rawEarned);
+        // Bonus total — аванс автоматично від'ємний
+        var bonusTotal = 0;
+        bonusList.forEach(function(b) {
+            var amt = parseFloat(b.amount) || 0;
+            bonusTotal += amt;
+        });
+
+        // Calculation
+        var baseSalary   = Math.round(totalHours * hourlyRate * 100) / 100;
+        var orderBonus   = Math.round(ordersCount * orderRate * 100) / 100;
+        var kmDeduction  = Math.round(totalKm * kmRate * 100) / 100;
+        var earnedSafe   = baseSalary + orderBonus - kmDeduction + bonusTotal;
+        if (isNaN(earnedSafe)) earnedSafe = 0;
         totalFund += earnedSafe;
 
-        const isPaid = payment?.paid || false;
-        const roleLabel = s.role === 'manager' ? 'Менеджер' : s.role === 'kitchen' ? 'Кухня' : "Кур'єр";
-        const initials = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-        const bodyId = `sal-body-${cid}`;
+        var isPaid = payment && payment.paid;
+        var roleLabel = s.role === 'manager' ? 'Адміністратор' :
+                        s.role === 'kitchen' ? 'Кухня' : "Кур'єр";
+        var roleClass = s.role === 'manager' ? 'av-admin' :
+                        s.role === 'kitchen' ? 'av-sushi' : 'av-courier';
+        var initials = (s.name || '?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+        var bodyId = 'sal-body-' + cid;
+        var settId = 'sal-sett-' + cid;
 
-        // ── Breakdown chips ──
-        let chips = `<div class="sal-chip"><i class="fa-solid fa-clock sal-chip-icon"></i><span>${totalHours.toFixed(1)}г</span> × <span>${hourlyRate} ${cur}</span></div>`;
-        if (sets.order_enabled) {
-            chips += `<div class="sal-chip"><i class="fa-solid fa-box sal-chip-icon"></i><span>${ordersCount}</span> × <span>${orderRate} ${cur}</span></div>`;
-        } else {
-            chips += `<div class="sal-chip"><i class="fa-solid fa-box sal-chip-icon"></i><span>${ordersCount} зам.</span></div>`;
+        // --- Ledger rows ---
+        var ledger = '';
+        if (hourlyRate > 0 || totalHours > 0) {
+            ledger += '<div class="ledger-row"><span class="ledger-desc">Базова ЗП (' + totalHours.toFixed(1) + 'г × ' + hourlyRate + ' ' + cur + ')</span>' +
+                      '<span class="ledger-amount neutral">' + fmtAmt(baseSalary, cur) + '</span></div>';
         }
-        if (sets.km_enabled) {
-            chips += `<div class="sal-chip"><i class="fa-solid fa-road sal-chip-icon"></i><span>${totalKm} км</span> × <span>${kmRate} ${cur}</span></div>`;
+        if (orderEnabled && (orderRate > 0 || ordersCount > 0)) {
+            ledger += '<div class="ledger-row"><span class="ledger-desc">За замовлення (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span>' +
+                      '<span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
         }
-        if (bonusTotal !== 0) {
-            const bonusColor = bonusTotal >= 0 ? '16,185,129' : '239,68,68';
-            const bonusVar   = bonusTotal >= 0 ? 'success' : 'danger';
-            chips += `<div class="sal-chip" style="background:rgba(${bonusColor},0.1);color:var(--${bonusVar});"><i class="${bonusTotal >= 0 ? 'fa-solid fa-gift' : 'fa-solid fa-triangle-exclamation'} sal-chip-icon"></i><span>${bonusTotal >= 0 ? '+' : '-'}${Math.abs(bonusTotal).toFixed(2)} ${cur}</span></div>`;
+        if (kmEnabled && (kmRate > 0 || totalKm > 0)) {
+            ledger += '<div class="ledger-row"><span class="ledger-desc">Пробіг (' + totalKm + ' км × ' + kmRate + ' ' + cur + ')</span>' +
+                      '<span class="ledger-amount minus">−' + kmDeduction.toFixed(2) + ' ' + cur + '</span></div>';
         }
-
-        // ── Bonus list as chips ──
-        let bonusChips = '';
-        if (bonusList.length) {
-            bonusChips = '<div class="bonus-chips-list">' + bonusList.map(b => {
-                const amt = parseFloat(b.amount);
-                const isPos = amt >= 0;
-                const icon = amt >= 0 ? '🎁' : amt === 0 ? '💰' : '⚠️';
-                // detect advance by comment
-                const isAdv = (b.comment || '').toLowerCase().includes('аванс');
-                const faIcon = isAdv
-                    ? 'fa-solid fa-money-bill-wave'
-                    : isPos ? 'fa-solid fa-gift' : 'fa-solid fa-triangle-exclamation';
-                return `<div class="bonus-chip-item ${isPos ? 'bonus-chip-pos' : 'bonus-chip-neg'}">
-                    <i class="${faIcon} bonus-chip-icon"></i>
-                    <span class="bonus-chip-val">${isPos ? '+' : ''}${amt.toFixed(2)} ${cur}</span>
-                    ${b.comment ? `<span class="bonus-chip-label">${b.comment}</span>` : ''}
-                </div>`;
-            }).join('') + '</div>';
+        bonusList.forEach(function(b) {
+            var amt = parseFloat(b.amount) || 0;
+            var cls = amt >= 0 ? 'plus' : 'minus';
+            var desc = b.comment || (amt >= 0 ? 'Премія' : 'Штраф');
+            ledger += '<div class="ledger-row"><span class="ledger-desc">' + esc(desc) + '</span>' +
+                      '<span class="ledger-amount ' + cls + '">' + fmtAmt(amt, cur, true) + '</span></div>';
+        });
+        if (!ledger) {
+            ledger = '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Немає даних за цей місяць</div>';
         }
 
-        // ── Card header style based on paid status ──
-        const cardClass = isPaid ? 'salary-card salary-card-paid' : 'salary-card';
-        const amountLabel = isPaid ? 'Виплачено' : 'До виплати';
-        const amountStyle = isPaid ? 'color:var(--success);' : '';
+        // --- Settings rows ---
+        var settHourly = '<div class="setting-row">' +
+            '<span class="setting-label">Погодинна (' + cur + '/год)</span>' +
+            '<div class="setting-controls"><input type="number" class="setting-input" id="hr-' + cid + '" value="' + hourlyRate + '" min="0" step="0.5"></div></div>';
 
-        html += `<div class="${cardClass}" id="sal-card-${cid}">
+        var settOrders = '<div class="setting-row">' +
+            '<span class="setting-label">За замовлення (' + cur + '/шт)</span>' +
+            '<div class="setting-controls">' +
+            '<label class="switch"><input type="checkbox" id="oe-' + cid + '"' + (orderEnabled ? ' checked' : '') + '><span class="slider"></span></label>' +
+            '<input type="number" class="setting-input" id="or-' + cid + '" value="' + orderRate + '" min="0" step="0.1"></div></div>';
 
-            <div class="salary-card-header">
-                <div class="salary-header-left">
-                    <div class="salary-avatar" style="${isPaid ? 'background:rgba(16,185,129,0.12);color:var(--success);' : ''}">${initials}</div>
-                    <div class="salary-info">
-                        <div class="salary-name">${s.name}</div>
-                        <div class="salary-role">${roleLabel}</div>
-                    </div>
-                </div>
-                <div class="salary-header-right">
-                    <div class="salary-amount" style="${amountStyle}">${earnedSafe.toFixed(2)} ${cur}</div>
-                    <div class="salary-amount-label" style="${isPaid ? 'color:var(--success);' : ''}">${amountLabel}</div>
-                </div>
-            </div>
+        var settKm = '<div class="setting-row">' +
+            '<span class="setting-label">Вирахувати за км (' + cur + '/км)</span>' +
+            '<div class="setting-controls">' +
+            '<label class="switch"><input type="checkbox" id="ke-' + cid + '"' + (kmEnabled ? ' checked' : '') + '><span class="slider"></span></label>' +
+            '<input type="number" class="setting-input" id="kr-' + cid + '" value="' + kmRate + '" min="0" step="0.1"></div></div>';
 
-            <div class="salary-breakdown">${chips}</div>
+        html += '<div class="salary-card' + (isPaid ? ' salary-card-paid' : '') + '" id="sal-card-' + cid + '">' +
 
-            <button class="salary-details-toggle" onclick="toggleSalaryDetails('${bodyId}', this)">
-                <span>
-                    <i class="fa-solid fa-sliders" style="margin-right:6px;"></i>Ставки та налаштування
-                </span>
-                <i class="fa-solid fa-chevron-right sal-toggle-icon"></i>
-            </button>
-            <div class="salary-details-body" id="${bodyId}">
-                <div class="salary-settings-row">
-                    <label>Погодинна (${cur}/год)</label>
-                    <div class="salary-settings-right">
-                        <input class="salary-input" type="number" min="0" step="0.5" value="${hourlyRate}" id="hr-${cid}">
-                    </div>
-                </div>
-                <div class="salary-settings-row">
-                    <label>За замовлення (${cur}/шт)</label>
-                    <div class="salary-settings-right">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="oe-${cid}" ${sets.order_enabled ? 'checked' : ''}>
-                            <span class="toggle-track"></span>
-                        </label>
-                        <input class="salary-input" type="number" min="0" step="0.1" value="${orderRate}" id="or-${cid}">
-                    </div>
-                </div>
-                <div class="salary-settings-row">
-                    <label>Вирахувати за км (${cur}/км)</label>
-                    <div class="salary-settings-right">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="ke-${cid}" ${sets.km_enabled ? 'checked' : ''}>
-                            <span class="toggle-track"></span>
-                        </label>
-                        <input class="salary-input" type="number" min="0" step="0.1" value="${kmRate}" id="kr-${cid}">
-                    </div>
-                </div>
-                <button class="btn-salary-save" onclick="saveSalarySettings('${cid}')">
-                    <i class="fa-solid fa-floppy-disk"></i> Зберегти ставки
-                </button>
-            </div>
+            // Header
+            '<div class="card-summary" onclick="toggleSalaryCard('' + bodyId + '', this)">' +
+              '<div class="avatar ' + roleClass + '">' + initials + '</div>' +
+              '<div class="user-meta">' +
+                '<span class="name">' + esc(s.name) + '</span>' +
+                '<span class="role">' + roleLabel + '</span>' +
+              '</div>' +
+              '<div class="amount-block">' +
+                '<div class="total-sum">' + fmtAmt(earnedSafe, cur) + '</div>' +
+                '<div class="status-badge ' + (isPaid ? 'paid' : 'unpaid') + '" onclick="event.stopPropagation(); togglePayment('' + cid + '', ' + (isPaid ? 'true' : 'false') + ')">' +
+                  (isPaid
+                    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Виплачено'
+                    : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Не виплачено') +
+                '</div>' +
+              '</div>' +
+              '<div class="chevron" id="chev-' + cid + '"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>' +
+            '</div>' +
 
-            <div class="bonus-section">
-                <div class="bonus-section-label">Премія / Штраф / Аванс</div>
-                ${bonusChips}
-                <div class="bonus-row">
-                    <input class="bonus-input" type="number" step="0.01" id="bon-amt-${cid}" placeholder="Сума (- для штрафу)" style="width:110px;flex-shrink:0;">
-                    <input class="bonus-input" type="text" id="bon-com-${cid}" placeholder="Коментар" style="flex:1;min-width:0;">
-                    <button class="btn-bonus-add" onclick="addBonus('${cid}')">Додати</button>
-                </div>
-            </div>
+            // Body
+            '<div class="card-body" id="' + bodyId + '" style="display:none;">' +
 
-            <div class="salary-card-footer">
-                <button class="pay-status-btn ${isPaid ? 'pay-status-paid' : 'pay-status-unpaid'}"
-                    onclick="togglePayment('${cid}', ${isPaid})">
-                    ${isPaid
-                        ? '<i class="fa-solid fa-check-circle"></i> Виплачено'
-                        : '<i class="fa-solid fa-clock"></i> Не виплачено'}
-                </button>
-            </div>
+              // Settings block
+              '<div class="settings-block">' +
+                '<button class="settings-summary" onclick="toggleSalarySettings('' + settId + '', this)">' +
+                  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>' +
+                  'Ставки та налаштування' +
+                  '<svg class="sett-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
+                '</button>' +
+                '<div class="settings-content" id="' + settId + '" style="display:none;">' +
+                  settHourly + settOrders + settKm +
+                  '<button class="btn btn-save-rates" onclick="saveSalarySettings('' + cid + '')">Зберегти ставки</button>' +
+                '</div>' +
+              '</div>' +
 
-        </div>`;
+              // Stats grid
+              '<div class="stats-grid cols-3">' +
+                '<div class="stat-item"><div class="stat-label">Зміни</div><div class="stat-value">' + shiftCount + ' шт</div></div>' +
+                '<div class="stat-item"><div class="stat-label">Години</div><div class="stat-value">' + totalHours.toFixed(1) + 'г</div></div>' +
+                '<div class="stat-item"><div class="stat-label">Замовлення</div><div class="stat-value">' + ordersCount + ' шт</div></div>' +
+              '</div>' +
+
+              // Ledger
+              '<div class="section-heading">ПРЕМІЯ / ШТРАФ / АВАНС</div>' +
+              '<div class="ledger">' + ledger + '</div>' +
+
+              // Add action
+              '<div class="add-action">' +
+                '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="Сума (-аванс)">' +
+                '<input type="text" class="input-styled in-desc" id="bon-com-' + cid + '" placeholder="Коментар">' +
+              '</div>' +
+              '<div class="card-actions">' +
+                '<button class="btn btn-add-bonus" onclick="addBonus('' + cid + '')"><i class="fa-solid fa-plus"></i> Додати</button>' +
+                '<button class="btn btn-primary" onclick="togglePayment('' + cid + '', ' + (isPaid ? 'true' : 'false') + ')">' +
+                  (isPaid ? '<i class="fa-solid fa-rotate-left"></i> Скасувати виплату' : '<i class="fa-solid fa-check"></i> Виплатити') +
+                '</button>' +
+              '</div>' +
+
+            '</div>' + // card-body
+        '</div>'; // salary-card
     }
 
     list.innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:30px 0;">Даних немає</div>';
 
     if (totalCard) {
         totalCard.style.display = 'block';
-        document.getElementById('salary-total-amount').textContent = `${totalFund.toFixed(2)} ${cur}`;
+        document.getElementById('salary-total-amount').textContent = fmtAmt(totalFund, cur);
     }
 }
 
-function toggleSalaryDetails(bodyId, btn) {
-    const body = document.getElementById(bodyId);
-    if (!body) return;
-    const isOpen = body.classList.toggle('open');
-    const icon = btn.querySelector('.sal-toggle-icon');
-    if (icon) icon.style.transform = isOpen ? 'rotate(90deg)' : '';
-    btn.style.background = isOpen ? 'rgba(255,90,95,0.06)' : '';
-    btn.style.color = isOpen ? 'var(--primary)' : '';
+function fmtAmt(val, cur, withSign) {
+    var n = Math.abs(val);
+    var str = n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ' + cur;
+    if (withSign) return (val >= 0 ? '+' : '−') + str;
+    return (val < 0 ? '−' : '') + str;
 }
+
+function esc(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleSalaryCard(bodyId, headerEl) {
+    var body = document.getElementById(bodyId);
+    if (!body) return;
+    var open = body.style.display === 'none';
+    body.style.display = open ? '' : 'none';
+    var chevId = 'chev-' + bodyId.replace('sal-body-','');
+    var chev = document.getElementById(chevId);
+    if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+    if (headerEl) headerEl.style.borderBottom = open ? '1px solid var(--border-color)' : '';
+}
+
+function toggleSalarySettings(settId, btn) {
+    var sett = document.getElementById(settId);
+    if (!sett) return;
+    var open = sett.style.display === 'none';
+    sett.style.display = open ? '' : 'none';
+    var arrow = btn.querySelector('.sett-arrow');
+    if (arrow) arrow.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+
 
 
 async function saveSalarySettings(cid) {
