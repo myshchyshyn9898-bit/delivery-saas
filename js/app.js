@@ -101,6 +101,7 @@ function switchTab(tabId, el) {
     el.classList.add('active');
     window.scrollTo(0, 0);
     if(tabId === 'home' && window.dashboardMap) { setTimeout(() => window.dashboardMap.invalidateSize(), 100); }
+    if(tabId === 'salary') { initSalaryTab(); }
 }
 
 function setFilter(el, filterType) {
@@ -615,6 +616,7 @@ async function loadDashboardData() {
         else if (currentFilter === 'month') startDate.setDate(startDate.getDate() - 30);
 
         const { data: biz } = await supabaseClient.from('businesses').select('*').eq('id', bizId).single();
+        if (biz) window._bizData = biz; // зберігаємо глобально для salary tab
         
         if (biz) {
             currencySymbol = biz.currency || "zł";
@@ -1051,3 +1053,322 @@ document.addEventListener('click', function(e) { if (e.target !== bizAddrInput &
     await initSupabase();
     setLanguage(currentLang);
 })();
+
+// ============================================================
+// SALARY TAB
+// ============================================================
+
+const MONTH_NAMES_SAL = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
+    'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+
+let salaryMonthKey = '';
+let salaryStaff = [];
+let salarySettings = {};
+let salaryBonuses = {};
+let salaryPayments = {};
+let salaryInitialized = false;
+
+async function initSalaryTab() {
+    if (!bizId || !supabaseClient) return;
+    if (salaryInitialized) return; // вже ініціалізовано
+    salaryInitialized = true;
+
+    // Render schedule open button
+    const schedWrap = document.getElementById('salary-schedule-btn-wrap');
+    if (schedWrap && !schedWrap.dataset.rendered) {
+        schedWrap.dataset.rendered = '1';
+        const t = Math.floor(Date.now()/1000);
+        const token = authToken || '';
+        const tgId = tgUserIdParam || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
+        const url = RAILWAY_DOMAIN + `/schedule.html?biz_id=${bizId}&tg_id=${tgId}&v=${t}&token=${token}`;
+        schedWrap.innerHTML = `
+        <button class="btn-schedule-open" onclick="window.location.href='${url}'">
+            <div class="btn-schedule-icon"><i class="fa-solid fa-calendar-days"></i></div>
+            <div class="btn-schedule-text">
+                <div class="btn-schedule-title">Графік роботи команди</div>
+                <div class="btn-schedule-sub">Перегляд та редагування розкладу</div>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:13px;"></i>
+        </button>`;
+    }
+
+    // Init month
+    const now = new Date();
+    salaryMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+    await loadSalaryData();
+    renderSalaryMonthTabs();
+    await renderSalaryList();
+}
+
+async function loadSalaryData() {
+    // Load staff
+    const { data: staffData } = await supabaseClient.from('staff')
+        .select('*').eq('business_id', bizId);
+    salaryStaff = staffData || [];
+
+    // Load salary settings for all staff
+    try {
+        const { data: sets } = await supabaseClient.from('salary_settings')
+            .select('*').eq('business_id', bizId);
+        salarySettings = {};
+        (sets || []).forEach(s => { salarySettings[String(s.courier_id)] = s; });
+    } catch(e) { salarySettings = {}; }
+
+    // Load bonuses for current month
+    try {
+        const { data: bons } = await supabaseClient.from('salary_bonuses')
+            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey);
+        salaryBonuses = {};
+        (bons || []).forEach(b => {
+            if (!salaryBonuses[String(b.courier_id)]) salaryBonuses[String(b.courier_id)] = [];
+            salaryBonuses[String(b.courier_id)].push(b);
+        });
+    } catch(e) { salaryBonuses = {}; }
+
+    // Load payments status
+    try {
+        const { data: pays } = await supabaseClient.from('salary_payments')
+            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey);
+        salaryPayments = {};
+        (pays || []).forEach(p => { salaryPayments[String(p.courier_id)] = p; });
+    } catch(e) { salaryPayments = {}; }
+}
+
+function renderSalaryMonthTabs() {
+    const wrap = document.getElementById('salary-month-tabs');
+    if (!wrap) return;
+    const now = new Date();
+    const months = [];
+    for (let d = -2; d <= 1; d++) {
+        const dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
+        months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
+    }
+    wrap.innerHTML = months.map(mk => {
+        const [y, m] = mk.split('-');
+        const label = MONTH_NAMES_SAL[parseInt(m)-1] + ' ' + y;
+        return `<div class="salary-month-tab${mk===salaryMonthKey?' active':''}"
+            onclick="switchSalaryMonth('${mk}')">${label}</div>`;
+    }).join('');
+}
+
+async function switchSalaryMonth(mk) {
+    salaryMonthKey = mk;
+    await loadSalaryData();
+    renderSalaryMonthTabs();
+    await renderSalaryList();
+}
+
+async function renderSalaryList() {
+    const list = document.getElementById('salary-list');
+    const totalCard = document.getElementById('salary-total-card');
+    if (!list) return;
+
+    if (!salaryStaff.length) {
+        list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;font-weight:600;padding:30px 0;">Персонал не знайдено</div>';
+        return;
+    }
+
+    list.innerHTML = '<div style="text-align:center;padding:30px 0;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);font-size:24px;"></i></div>';
+
+    const [y, m] = salaryMonthKey.split('-').map(Number);
+    const startDate = new Date(y, m-1, 1).toISOString();
+    const endDate   = new Date(y, m, 1).toISOString();
+    const cur = currencySymbol || 'zł';
+
+    // ✅ BUG 5 FIX: завантажуємо ВСІ shifts і orders за місяць одним запитом
+    let allShifts = [], allOrders = [];
+    try {
+        const { data: sh } = await supabaseClient.from('shifts')
+            .select('*').eq('business_id', bizId)
+            .gte('started_at', startDate).lt('started_at', endDate);
+        allShifts = sh || [];
+    } catch(e) {}
+    try {
+        const { data: ord } = await supabaseClient.from('orders')
+            .select('courier_id')
+            .eq('business_id', bizId).eq('status', 'completed')
+            .gte('created_at', startDate).lt('created_at', endDate);
+        allOrders = ord || [];
+    } catch(e) {}
+
+    // Групуємо по кур'єру
+    const shiftsByCourier = {};
+    allShifts.forEach(sh => {
+        const cid = String(sh.courier_id);
+        if (!shiftsByCourier[cid]) shiftsByCourier[cid] = [];
+        shiftsByCourier[cid].push(sh);
+    });
+    const ordersByCourier = {};
+    allOrders.forEach(o => {
+        const cid = String(o.courier_id);
+        ordersByCourier[cid] = (ordersByCourier[cid] || 0) + 1;
+    });
+
+    let totalFund = 0;
+    let html = '';
+
+    for (const s of salaryStaff) {
+        const cid = String(s.user_id);
+        const sets = salarySettings[cid] || {};
+        const hourlyRate  = parseFloat(sets.hourly_rate) || 0;
+        const kmRate      = sets.km_enabled ? (parseFloat(sets.km_rate) || parseFloat(window._bizData?.km_rate) || 0) : 0;
+        const orderRate   = sets.order_enabled ? (parseFloat(sets.order_rate) || 0) : 0;
+        const bonusList   = salaryBonuses[cid] || [];
+        const bonusTotal  = bonusList.reduce((a, b) => a + (parseFloat(b.amount)||0), 0);
+        const payment     = salaryPayments[cid];
+
+        let totalHours = 0, totalKm = 0, shiftCount = 0;
+        (shiftsByCourier[cid] || []).forEach(sh => {
+            shiftCount++;
+            if (sh.ended_at) {
+                totalHours += (new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000;
+                if (sh.end_km && sh.start_km) totalKm += sh.end_km - sh.start_km;
+            }
+        });
+        const ordersCount = ordersByCourier[cid] || 0;
+
+        const rawEarned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
+        const earnedSafe = isNaN(rawEarned) ? 0 : Math.max(0, rawEarned);
+        totalFund += earnedSafe;
+
+        const isPaid = payment?.paid;
+        const roleLabel = s.role === 'manager' ? 'Менеджер' : s.role === 'kitchen' ? 'Кухня' : "Кур'єр";
+        const initials = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+        html += `
+        <div class="salary-card" id="sal-card-${cid}">
+            <div class="salary-card-header">
+                <div style="display:flex;align-items:center;flex:1;">
+                    <div class="salary-avatar">${initials}</div>
+                    <div>
+                        <div class="salary-name">${s.name}</div>
+                        <div class="salary-role">${roleLabel}</div>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div class="salary-amount">${earnedSafe.toFixed(2)} ${cur}</div>
+                    <div class="salary-amount-label">До виплати</div>
+                </div>
+            </div>
+
+            <div class="salary-breakdown">
+                <div class="sal-chip">⏱ <span>${totalHours.toFixed(1)}г</span> × <span>${hourlyRate} ${cur}</span></div>
+                ${sets.order_enabled ? `<div class="sal-chip">📦 <span>${ordersCount} зам.</span> × <span>${orderRate} ${cur}</span></div>` : `<div class="sal-chip">📦 <span>${ordersCount} зам.</span></div>`}
+                ${sets.km_enabled ? `<div class="sal-chip">🛣 <span>${totalKm} км</span> × <span>${kmRate} ${cur}</span></div>` : ''}
+                ${bonusTotal !== 0 ? `<div class="sal-chip" style="background:rgba(${bonusTotal>=0?'16,185,129':'239,68,68'},0.1);color:var(--${bonusTotal>=0?'success':'danger'});">${bonusTotal>=0?'🎁 +':'⚠️ '}<span>${bonusTotal} ${cur}</span></div>` : ''}
+            </div>
+
+            <details style="margin-bottom:10px;">
+                <summary style="font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;margin-bottom:8px;list-style:none;">
+                    <i class="fa-solid fa-sliders" style="margin-right:4px;"></i> Ставки та налаштування
+                </summary>
+                <div style="padding-top:8px;display:flex;flex-direction:column;gap:6px;">
+                    <div class="salary-settings-row">
+                        <label>Погодинна (${cur}/год)</label>
+                        <input class="salary-input" type="number" min="0" step="0.5" value="${hourlyRate}" id="hr-${cid}">
+                    </div>
+                    <div class="salary-settings-row">
+                        <label>За замовлення (${cur}/шт)</label>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <label class="toggle-switch"><input type="checkbox" id="oe-${cid}" ${sets.order_enabled?'checked':''}><span class="toggle-track"></span></label>
+                            <input class="salary-input" type="number" min="0" step="0.1" value="${orderRate}" id="or-${cid}">
+                        </div>
+                    </div>
+                    <div class="salary-settings-row">
+                        <label>Вирахувати за км (${cur}/км)</label>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <label class="toggle-switch"><input type="checkbox" id="ke-${cid}" ${sets.km_enabled?'checked':''}><span class="toggle-track"></span></label>
+                            <input class="salary-input" type="number" min="0" step="0.1" value="${kmRate}" id="kr-${cid}">
+                        </div>
+                    </div>
+                    <button class="btn-salary-save" onclick="saveSalarySettings('${cid}')">
+                        <i class="fa-solid fa-floppy-disk"></i> Зберегти ставки
+                    </button>
+                </div>
+            </details>
+
+            <div style="margin-bottom:10px;">
+                <div style="font-size:11px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Премія / Штраф</div>
+                <div class="bonus-row">
+                    <input class="bonus-input" type="number" step="0.01" id="bon-amt-${cid}" placeholder="Сума (- для штрафу)">
+                    <input class="bonus-input" type="text" id="bon-com-${cid}" placeholder="Коментар">
+                    <button class="btn-bonus-add" onclick="addBonus('${cid}')">Додати</button>
+                </div>
+                ${bonusList.length ? '<div style="margin-top:6px;">' + bonusList.map(b => `
+                    <div style="font-size:12px;font-weight:600;color:${parseFloat(b.amount)>=0?'var(--success)':'var(--danger)'};margin-top:4px;">
+                        ${parseFloat(b.amount)>=0?'+':''}${b.amount} ${cur}${b.comment ? ' — ' + b.comment : ''}
+                    </div>`).join('') + '</div>' : ''}
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;">
+                <button class="pay-status-btn ${isPaid?'pay-status-paid':'pay-status-unpaid'}"
+                    onclick="togglePayment('${cid}', ${isPaid?true:false})">
+                    ${isPaid ? '<i class="fa-solid fa-check"></i> Виплачено' : '<i class="fa-solid fa-clock"></i> Не виплачено'}
+                </button>
+            </div>
+        </div>`;
+    }
+
+    list.innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:30px 0;">Даних немає</div>';
+
+    if (totalCard) {
+        totalCard.style.display = 'block';
+        document.getElementById('salary-total-amount').textContent = `${totalFund.toFixed(2)} ${cur}`;
+    }
+}
+
+async function saveSalarySettings(cid) {
+    if (!supabaseClient) return;
+    const hourlyRate = parseFloat(document.getElementById(`hr-${cid}`)?.value) || 0;
+    const orderRate  = parseFloat(document.getElementById(`or-${cid}`)?.value) || 0;
+    const kmRate     = parseFloat(document.getElementById(`kr-${cid}`)?.value) || 0;
+    const orderEnabled = document.getElementById(`oe-${cid}`)?.checked || false;
+    const kmEnabled    = document.getElementById(`ke-${cid}`)?.checked || false;
+
+    try {
+        await supabaseClient.from('salary_settings').upsert({
+            business_id: bizId,
+            courier_id: parseInt(cid),
+            hourly_rate: hourlyRate,
+            order_rate: orderRate,
+            km_rate: kmRate,
+            order_enabled: orderEnabled,
+            km_enabled: kmEnabled
+        }, { onConflict: 'business_id,courier_id' });
+        showToast('✅ Ставки збережено', '');
+        await switchSalaryMonth(salaryMonthKey);
+    } catch(e) { showToast('❌ Помилка', e.message); }
+}
+
+async function addBonus(cid) {
+    const amt  = parseFloat(document.getElementById(`bon-amt-${cid}`)?.value);
+    const com  = document.getElementById(`bon-com-${cid}`)?.value?.trim() || '';
+    if (isNaN(amt)) { showToast('❌ Введіть суму', ''); return; }
+    try {
+        await supabaseClient.from('salary_bonuses').insert({
+            business_id: bizId,
+            courier_id: parseInt(cid),
+            month: salaryMonthKey,
+            amount: amt,
+            comment: com
+        });
+        showToast('✅ Премію додано', '');
+        await switchSalaryMonth(salaryMonthKey);
+    } catch(e) { showToast('❌ Помилка', e.message); }
+}
+
+async function togglePayment(cid, currentlyPaid) {
+    const newPaid = !currentlyPaid;
+    try {
+        await supabaseClient.from('salary_payments').upsert({
+            business_id: bizId,
+            courier_id: parseInt(cid),
+            month: salaryMonthKey,
+            paid: newPaid,
+            paid_at: newPaid ? new Date().toISOString() : null
+        }, { onConflict: 'business_id,courier_id,month' });
+        showToast(newPaid ? '✅ Виплату підтверджено' : '↩️ Статус скасовано', '');
+        await switchSalaryMonth(salaryMonthKey);
+    } catch(e) { showToast('❌ Помилка', e.message); }
+}

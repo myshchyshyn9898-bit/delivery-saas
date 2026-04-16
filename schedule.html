@@ -463,34 +463,39 @@ async function loadStaff() {
 }
 
 async function loadSchedule() {
-    const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
-    const fromStr = from.toISOString().slice(0,10);
-    const { data } = await supabase.from('schedule')
-        .select('*').eq('business_id', bizId).gte('date', fromStr);
     scheduleData = {};
-    (data || []).forEach(r => {
-        const mk = r.date.slice(0,7);
-        const day = parseInt(r.date.slice(8,10));
-        if (!scheduleData[mk]) scheduleData[mk] = {};
-        if (!scheduleData[mk][String(r.courier_id)]) scheduleData[mk][String(r.courier_id)] = {};
-        scheduleData[mk][String(r.courier_id)][day] = {
-            id: r.id, start: r.planned_start, end: r.planned_end, planned: true
-        };
-    });
+    try {
+        const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+        const fromStr = from.toISOString().slice(0,10);
+        const { data, error } = await supabase.from('schedule')
+            .select('*').eq('business_id', bizId).gte('date', fromStr);
+        if (error) { console.warn('[schedule] таблиця недоступна:', error.message); return; }
+        (data || []).forEach(r => {
+            const mk = r.date.slice(0,7);
+            const day = parseInt(r.date.slice(8,10));
+            if (!scheduleData[mk]) scheduleData[mk] = {};
+            if (!scheduleData[mk][String(r.courier_id)]) scheduleData[mk][String(r.courier_id)] = {};
+            scheduleData[mk][String(r.courier_id)][day] = {
+                id: r.id, start: r.planned_start, end: r.planned_end, planned: true
+            };
+        });
+    } catch(e) { console.warn('[schedule] loadSchedule error:', e.message); }
 }
 
 async function loadShifts() {
-    // Load last 3 months of shifts
-    const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
-    const { data } = await supabase.from('shifts')
-        .select('*').eq('business_id', bizId)
-        .gte('started_at', from.toISOString());
     shiftsData = {};
-    (data || []).forEach(s => {
-        const cid = String(s.courier_id);
-        if (!shiftsData[cid]) shiftsData[cid] = [];
-        shiftsData[cid].push(s);
-    });
+    try {
+        const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+        const { data, error } = await supabase.from('shifts')
+            .select('*').eq('business_id', bizId)
+            .gte('started_at', from.toISOString());
+        if (error) { console.warn('[schedule] shifts недоступні:', error.message); return; }
+        (data || []).forEach(s => {
+            const cid = String(s.courier_id);
+            if (!shiftsData[cid]) shiftsData[cid] = [];
+            shiftsData[cid].push(s);
+        });
+    } catch(e) { console.warn('[schedule] loadShifts error:', e.message); }
 }
 
 // ── MONTHS ──
@@ -787,7 +792,7 @@ async function saveSchedule() {
 
         toast('✅ Графік збережено');
     } catch(e) {
-        toast('❌ Помилка збереження');
+        toast('❌ Спочатку створіть таблицю schedule в Supabase');
     } finally {
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти';
         btn.disabled = false;
@@ -803,9 +808,13 @@ async function loadEarnings() {
     const endDate   = new Date(y, m, 1).toISOString();
     const cid = userId;
 
-    // Get salary settings
-    const { data: sset } = await supabase.from('salary_settings')
-        .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
+    // Get salary settings (таблиця може ще не існувати)
+    let sset = null;
+    try {
+        const { data: ssetData, error: ssetErr } = await supabase.from('salary_settings')
+            .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
+        if (!ssetErr) sset = ssetData;
+    } catch(e) { console.warn('[schedule] salary_settings недоступна'); }
 
     const hourlyRate = sset?.hourly_rate || 0;
     const kmRate     = sset?.km_enabled ? (sset?.km_rate || bizData?.km_rate || 0) : 0;
@@ -832,11 +841,14 @@ async function loadEarnings() {
         .eq('status', 'completed')
         .gte('created_at', startDate).lt('created_at', endDate);
 
-    // Get bonuses
-    const { data: bonuses } = await supabase.from('salary_bonuses')
-        .select('amount').eq('business_id', bizId).eq('courier_id', cid)
-        .eq('month', activeMonthKey);
-    const bonusTotal = (bonuses || []).reduce((s, b) => s + (b.amount || 0), 0);
+    // Get bonuses (таблиця може ще не існувати)
+    let bonusTotal = 0;
+    try {
+        const { data: bonuses, error: bonErr } = await supabase.from('salary_bonuses')
+            .select('amount').eq('business_id', bizId).eq('courier_id', cid)
+            .eq('month', activeMonthKey);
+        if (!bonErr) bonusTotal = (bonuses || []).reduce((s, b) => s + (b.amount || 0), 0);
+    } catch(e) { console.warn('[schedule] salary_bonuses недоступна'); }
 
     const safeOrders = ordersCount || 0;
     const earned = (totalHours * hourlyRate) + (safeOrders * orderRate) - (totalKm * kmRate) + bonusTotal;
