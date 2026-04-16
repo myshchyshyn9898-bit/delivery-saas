@@ -401,29 +401,29 @@ function toast(msg) {
     _toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2500);
 }
 
-const RAILWAY_DOMAIN = (function() {
-    const meta = document.querySelector('meta[name="server-url"]');
+var RAILWAY_DOMAIN = (function() {
+    var meta = document.querySelector('meta[name="server-url"]');
     if (meta && meta.content) return meta.content.replace(/\/$/, '');
     return 'https://delivery-saas-production-3fe6.up.railway.app';
 })();
-const DAY_NAMES = ['пн','вт','ср','чт','пт','сб','нд'];
-const MONTH_NAMES = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
+var DAY_NAMES = ['пн','вт','ср','чт','пт','сб','нд'];
+var MONTH_NAMES = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
                      'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
-let supabase, tg, bizData, staffList = [];
-let userRole = 'courier', userId, bizId, authToken;
-let scheduleData = {}; // { 'YYYY-MM': { courierId: { day: {start,end,planned,worked} } } }
-let shiftsData = {};   // { courierId: [ {started_at, ended_at, ...} ] }
-let salarySettings = {}; // { courierId: {hourly_rate, ...} }
-let activeMonthKey = '';
-let activeCell = null; // { courierId, day }
-let isAdmin = false;
+var supabase, tg, bizData, staffList = [];
+var userRole = 'courier', userId, bizId, authToken;
+var scheduleData = {}; // { 'YYYY-MM': { courierId: { day: {start,end,planned,worked} } } }
+var shiftsData = {};   // { courierId: [ {started_at, ended_at, ...} ] }
+var salarySettings = {}; // { courierId: {hourly_rate, ...} }
+var activeMonthKey = '';
+var activeCell = null; // { courierId, day }
+var isAdmin = false;
 
 // ── INIT ──
-const urlP = new URLSearchParams(location.search);
+var urlP = new URLSearchParams(location.search);
 bizId     = urlP.get('biz_id');
 authToken = urlP.get('token');
-const tgId = urlP.get('tg_id');
+var tgId = urlP.get('tg_id');
 
 document.addEventListener('DOMContentLoaded', function() {
     // Невеликий delay як в map.html — даємо час Telegram WebApp та CDN завантажитись
@@ -552,20 +552,20 @@ async function fetchConfig() {
 }
 
 async function loadBiz() {
-    const { data, error } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+    var { data, error } = await supabase.from('businesses').select('*').eq('id', bizId).single();
     if (error || !data) throw new Error('Бізнес не знайдено');
     bizData = data;
 }
 
 async function loadStaff() {
-    const { data } = await supabase.from('staff').select('*').eq('business_id', bizId);
+    var { data } = await supabase.from('staff').select('*').eq('business_id', bizId);
     staffList = data || [];
 
     // determine role
     if (String(bizData.owner_id) === String(userId)) {
         userRole = 'owner';
     } else {
-        const me = staffList.find(s => String(s.user_id) === String(userId));
+        var me = staffList.find(s => String(s.user_id) === String(userId));
         userRole = me?.role || 'courier';
     }
     isAdmin = userRole === 'manager' || userRole === 'owner';
@@ -582,14 +582,14 @@ async function loadStaff() {
 async function loadSchedule() {
     scheduleData = {};
     try {
-        const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
-        const fromStr = from.toISOString().slice(0,10);
-        const { data, error } = await supabase.from('schedule')
+        var from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+        var fromStr = from.toISOString().slice(0,10);
+        var { data, error } = await supabase.from('schedule')
             .select('*').eq('business_id', bizId).gte('date', fromStr);
         if (error) { console.warn('[schedule] таблиця недоступна:', error.message); return; }
         (data || []).forEach(r => {
-            const mk = r.date.slice(0,7);
-            const day = parseInt(r.date.slice(8,10));
+            var mk = r.date.slice(0,7);
+            var day = parseInt(r.date.slice(8,10));
             if (!scheduleData[mk]) scheduleData[mk] = {};
             if (!scheduleData[mk][String(r.courier_id)]) scheduleData[mk][String(r.courier_id)] = {};
             scheduleData[mk][String(r.courier_id)][day] = {
@@ -602,13 +602,13 @@ async function loadSchedule() {
 async function loadShifts() {
     shiftsData = {};
     try {
-        const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
-        const { data, error } = await supabase.from('shifts')
+        var from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+        var { data, error } = await supabase.from('shifts')
             .select('*').eq('business_id', bizId)
             .gte('started_at', from.toISOString());
         if (error) { console.warn('[schedule] shifts недоступні:', error.message); return; }
         (data || []).forEach(s => {
-            const cid = String(s.courier_id);
+            var cid = String(s.courier_id);
             if (!shiftsData[cid]) shiftsData[cid] = [];
             shiftsData[cid].push(s);
         });
@@ -617,11 +617,11 @@ async function loadShifts() {
 
 // ── MONTHS ──
 function initMonths() {
-    const now = new Date();
+    var now = new Date();
     // Show prev, current, next month
-    const months = [];
-    for (let d = -1; d <= 2; d++) {
-        const dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
+    var months = [];
+    for (var d = -1; d <= 2; d++) {
+        var dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
         months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
     }
     // Also add any months from scheduleData not in list
@@ -635,19 +635,19 @@ function initMonths() {
 }
 
 function renderMonthTabs() {
-    const wrap = document.getElementById('month-tabs');
+    var wrap = document.getElementById('month-tabs');
     wrap.innerHTML = '';
     window._months.forEach(mk => {
-        const [y, m] = mk.split('-');
-        const label = MONTH_NAMES[parseInt(m)-1] + ' ' + y;
-        const tab = document.createElement('div');
+        var [y, m] = mk.split('-');
+        var label = MONTH_NAMES[parseInt(m)-1] + ' ' + y;
+        var tab = document.createElement('div');
         tab.className = 'm-tab' + (mk === activeMonthKey ? ' active' : '');
         tab.textContent = label;
         tab.onclick = () => { activeMonthKey = mk; renderMonthTabs(); renderAll(); loadEarnings(); };
         wrap.appendChild(tab);
     });
     if (isAdmin) {
-        const add = document.createElement('div');
+        var add = document.createElement('div');
         add.className = 'm-tab-add';
         add.textContent = '+ Місяць';
         add.onclick = addMonth;
@@ -656,7 +656,7 @@ function renderMonthTabs() {
 }
 
 function addMonth() {
-    const input = prompt('Введіть місяць (формат YYYY-MM, напр. 2026-06):');
+    var input = prompt('Введіть місяць (формат YYYY-MM, напр. 2026-06):');
     if (!input || !/^\d{4}-\d{2}$/.test(input)) return;
     if (!window._months.includes(input)) {
         window._months.push(input);
@@ -669,23 +669,23 @@ function addMonth() {
 
 // ── RENDER ──
 function renderAll() {
-    const container = document.getElementById('groups-container');
+    var container = document.getElementById('groups-container');
     container.innerHTML = '';
 
     // Group staff by role
-    const groups = {};
+    var groups = {};
     staffList.forEach(s => {
-        const g = s.role || 'courier';
+        var g = s.role || 'courier';
         if (!groups[g]) groups[g] = [];
         groups[g].push(s);
     });
 
-    const groupLabels = {
+    var groupLabels = {
         courier: "Кур'єри", manager: 'Менеджери', kitchen: 'Кухня', admin: 'Адміни'
     };
 
     Object.entries(groups).forEach(([role, members]) => {
-        const card = buildGroupCard(groupLabels[role] || role, members);
+        var card = buildGroupCard(groupLabels[role] || role, members);
         container.appendChild(card);
     });
 
@@ -695,22 +695,22 @@ function renderAll() {
 }
 
 function buildGroupCard(groupName, members) {
-    const [y, m] = activeMonthKey.split('-').map(Number);
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const today = new Date();
-    const todayDay = (today.getFullYear() === y && today.getMonth()+1 === m) ? today.getDate() : -1;
+    var [y, m] = activeMonthKey.split('-').map(Number);
+    var daysInMonth = new Date(y, m, 0).getDate();
+    var today = new Date();
+    var todayDay = (today.getFullYear() === y && today.getMonth()+1 === m) ? today.getDate() : -1;
 
-    const card = document.createElement('div');
+    var card = document.createElement('div');
     card.className = 'table-card';
 
     // Group header
-    const gh = document.createElement('div');
+    var gh = document.createElement('div');
     gh.className = 'group-header';
     gh.innerHTML = `<div class="group-name" ${isAdmin ? 'contenteditable="true"' : ''}>${groupName}</div>`;
     card.appendChild(gh);
 
     // Table
-    const scroll = document.createElement('div');
+    var scroll = document.createElement('div');
     scroll.className = 'tbl-scroll';
     scroll.addEventListener('click', function(e) {
         var slot = e.target.closest('[data-edit="1"]');
@@ -721,55 +721,55 @@ function buildGroupCard(groupName, members) {
         openSheet(cid, day, name);
     });
 
-    let headDates = '', headDays = '', bodyRows = '';
+    var headDates = '', headDays = '', bodyRows = '';
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dow = new Date(y, m-1, d).getDay(); // 0=Sun
-        const dowIdx = dow === 0 ? 6 : dow - 1;
-        const isToday = d === todayDay;
+    for (var d = 1; d <= daysInMonth; d++) {
+        var dow = new Date(y, m-1, d).getDay(); // 0=Sun
+        var dowIdx = dow === 0 ? 6 : dow - 1;
+        var isToday = d === todayDay;
         headDates += `<th class="col-day-head${isToday?' today':''}"><div class="day-num">${d}</div></th>`;
         headDays  += `<th class="col-day-head${isToday?' today':''}"><div class="day-name">${DAY_NAMES[dowIdx]}</div></th>`;
     }
 
     members.forEach(s => {
-        const cid = String(s.user_id);
-        const monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
+        var cid = String(s.user_id);
+        var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
         // Worked days from shifts
-        const workedDays = {};
+        var workedDays = {};
         (shiftsData[cid] || []).forEach(sh => {
-            const shDate = new Date(sh.started_at);
+            var shDate = new Date(sh.started_at);
             if (shDate.getFullYear() === y && shDate.getMonth()+1 === m) {
-                const d = shDate.getDate();
-                const hrs = sh.ended_at
+                var d = shDate.getDate();
+                var hrs = sh.ended_at
                     ? ((new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000).toFixed(1)
                     : null;
                 workedDays[d] = hrs;
             }
         });
 
-        let cells = '';
-        let shiftCount = 0, hoursTotal = 0;
+        var cells = '';
+        var shiftCount = 0, hoursTotal = 0;
 
-        for (let d = 1; d <= daysInMonth; d++) {
-            const isToday = d === todayDay;
-            const planned = !!monthData[d];
-            const worked  = d in workedDays;
-            const hrs     = workedDays[d];
+        for (var d = 1; d <= daysInMonth; d++) {
+            var isToday = d === todayDay;
+            var planned = !!monthData[d];
+            var worked  = d in workedDays;
+            var hrs     = workedDays[d];
 
             if (planned || worked) shiftCount++;
             if (hrs) hoursTotal += parseFloat(hrs);
 
-            const canEdit = isAdmin;
-            const slotClass = [
+            var canEdit = isAdmin;
+            var slotClass = [
                 'day-slot',
                 planned ? 'planned' : '',
                 worked  ? 'worked'  : ''
             ].filter(Boolean).join(' ');
 
-            const startT = monthData[d]?.start || '';
-            const endT   = monthData[d]?.end   || '';
-            const editAttr = canEdit ? 'data-edit="1"' : '';
+            var startT = monthData[d]?.start || '';
+            var endT   = monthData[d]?.end   || '';
+            var editAttr = canEdit ? 'data-edit="1"' : '';
 
             cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
                 <div class="${slotClass}" ${editAttr} data-cid="${cid}" data-day="${d}" data-name="${s.name.replace(/"/g,'&quot;')}">
@@ -809,7 +809,7 @@ function buildGroupCard(groupName, members) {
     card.appendChild(scroll);
 
     if (isAdmin) {
-        const addBtn = document.createElement('button');
+        var addBtn = document.createElement('button');
         addBtn.className = 'btn-add-emp';
         addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Додати співробітника';
         addBtn.onclick = () => toast('Запросіть через меню "Команда"');
@@ -822,12 +822,12 @@ function buildGroupCard(groupName, members) {
 // ── SHEET ──
 function openSheet(cid, day, name) {
     if (!isAdmin) return;
-    const [y, m] = activeMonthKey.split('-').map(Number);
-    const dow = new Date(y, m-1, day).getDay();
-    const dowIdx = dow === 0 ? 6 : dow - 1;
+    var [y, m] = activeMonthKey.split('-').map(Number);
+    var dow = new Date(y, m-1, day).getDay();
+    var dowIdx = dow === 0 ? 6 : dow - 1;
 
     activeCell = { cid, day };
-    const existing = (scheduleData[activeMonthKey]?.[cid]?.[day]) || {};
+    var existing = (scheduleData[activeMonthKey]?.[cid]?.[day]) || {};
     document.getElementById('sheet-title').textContent = `${name} — ${day} ${DAY_NAMES[dowIdx]}`;
     document.getElementById('time-start').value = (existing.start || '10:00').slice(0,5);
     document.getElementById('time-end').value   = (existing.end   || '22:00').slice(0,5);
@@ -841,7 +841,7 @@ function closeSheet() {
 
 function setPlanned() {
     if (!activeCell) return;
-    const { cid, day } = activeCell;
+    var { cid, day } = activeCell;
     if (!scheduleData[activeMonthKey]) scheduleData[activeMonthKey] = {};
     if (!scheduleData[activeMonthKey][cid]) scheduleData[activeMonthKey][cid] = {};
     scheduleData[activeMonthKey][cid][day] = { planned: true, start: '10:00', end: '22:00' };
@@ -850,7 +850,7 @@ function setPlanned() {
 
 function clearSlot() {
     if (!activeCell) return;
-    const { cid, day } = activeCell;
+    var { cid, day } = activeCell;
     if (scheduleData[activeMonthKey]?.[cid]?.[day]) {
         delete scheduleData[activeMonthKey][cid][day];
     }
@@ -859,9 +859,9 @@ function clearSlot() {
 
 function saveSlot() {
     if (!activeCell) return;
-    const { cid, day } = activeCell;
-    const start = document.getElementById('time-start').value;
-    const end   = document.getElementById('time-end').value;
+    var { cid, day } = activeCell;
+    var start = document.getElementById('time-start').value;
+    var end   = document.getElementById('time-end').value;
     if (!scheduleData[activeMonthKey]) scheduleData[activeMonthKey] = {};
     if (!scheduleData[activeMonthKey][cid]) scheduleData[activeMonthKey][cid] = {};
     scheduleData[activeMonthKey][cid][day] = { planned: true, start, end };
@@ -870,19 +870,19 @@ function saveSlot() {
 
 // ── SAVE TO DB ──
 async function saveSchedule() {
-    const btn = document.querySelector('.btn-fab-primary');
+    var btn = document.querySelector('.btn-fab-primary');
     btn.textContent = 'Збереження...';
     btn.disabled = true;
 
     try {
-        const [y, m] = activeMonthKey.split('-').map(Number);
-        const daysInMonth = new Date(y, m, 0).getDate();
-        const monthData = scheduleData[activeMonthKey] || {};
+        var [y, m] = activeMonthKey.split('-').map(Number);
+        var daysInMonth = new Date(y, m, 0).getDate();
+        var monthData = scheduleData[activeMonthKey] || {};
 
-        const upserts = [];
+        var upserts = [];
         Object.entries(monthData).forEach(([cid, days]) => {
             Object.entries(days).forEach(([day, val]) => {
-                const dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
+                var dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
                 upserts.push({
                     business_id: bizId,
                     courier_id: parseInt(cid),
@@ -899,16 +899,16 @@ async function saveSchedule() {
         }
 
         // Delete cleared slots (those in DB but not in current data)
-        const startDate = `${activeMonthKey}-01`;
-        const endDate   = `${activeMonthKey}-${String(daysInMonth).padStart(2,'0')}`;
-        const { data: existing } = await supabase.from('schedule')
+        var startDate = `${activeMonthKey}-01`;
+        var endDate   = `${activeMonthKey}-${String(daysInMonth).padStart(2,'0')}`;
+        var { data: existing } = await supabase.from('schedule')
             .select('id, courier_id, date')
             .eq('business_id', bizId)
             .gte('date', startDate).lte('date', endDate);
 
-        const toDelete = (existing || []).filter(r => {
-            const cid = String(r.courier_id);
-            const day = parseInt(r.date.slice(8,10));
+        var toDelete = (existing || []).filter(r => {
+            var cid = String(r.courier_id);
+            var day = parseInt(r.date.slice(8,10));
             return !(monthData[cid] && monthData[cid][day]);
         }).map(r => r.id);
 
@@ -931,29 +931,29 @@ async function loadEarnings() {
     if (!userId) return;
 
     try {
-        const [y, m] = activeMonthKey.split('-').map(Number);
+        var [y, m] = activeMonthKey.split('-').map(Number);
         if (!y || !m) return;
 
-        const startDate = new Date(y, m-1, 1).toISOString();
-        const endDate   = new Date(y, m, 1).toISOString();
-        const cid = userId;
+        var startDate = new Date(y, m-1, 1).toISOString();
+        var endDate   = new Date(y, m, 1).toISOString();
+        var cid = userId;
 
         // Salary settings
         var sset = null;
         try {
-            const { data } = await supabase.from('salary_settings')
+            var { data } = await supabase.from('salary_settings')
                 .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
             sset = data;
         } catch(e) {}
 
-        const hourlyRate = sset ? (parseFloat(sset.hourly_rate) || 0) : 0;
-        const kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
-        const orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
+        var hourlyRate = sset ? (parseFloat(sset.hourly_rate) || 0) : 0;
+        var kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
+        var orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
 
         // Shifts
         var totalHours = 0, totalKm = 0, shiftCount = 0;
         try {
-            const { data: myShifts } = await supabase.from('shifts')
+            var { data: myShifts } = await supabase.from('shifts')
                 .select('*').eq('courier_id', cid).eq('business_id', bizId)
                 .gte('started_at', startDate).lt('started_at', endDate);
             (myShifts || []).forEach(function(s) {
@@ -968,7 +968,7 @@ async function loadEarnings() {
         // Orders
         var ordersCount = 0;
         try {
-            const { count } = await supabase.from('orders')
+            var { count } = await supabase.from('orders')
                 .select('*', { count: 'exact', head: true })
                 .eq('courier_id', cid).eq('business_id', bizId)
                 .eq('status', 'completed')
@@ -979,15 +979,15 @@ async function loadEarnings() {
         // Bonuses
         var bonusTotal = 0;
         try {
-            const { data: bonuses } = await supabase.from('salary_bonuses')
+            var { data: bonuses } = await supabase.from('salary_bonuses')
                 .select('amount').eq('business_id', bizId).eq('courier_id', cid)
                 .eq('month', activeMonthKey);
             bonusTotal = (bonuses || []).reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
         } catch(e) {}
 
-        const earned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
-        const earnedSafe = isNaN(earned) ? 0 : Math.max(0, earned);
-        const cur = bizData ? (bizData.currency || 'zł') : 'zł';
+        var earned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
+        var earnedSafe = isNaN(earned) ? 0 : Math.max(0, earned);
+        var cur = bizData ? (bizData.currency || 'zł') : 'zł';
 
         // Update UI safely
         var el;
@@ -1033,20 +1033,20 @@ async function fetchConfig() {
 }
 
 async function loadBiz() {
-    const { data, error } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+    var { data, error } = await supabase.from('businesses').select('*').eq('id', bizId).single();
     if (error || !data) throw new Error('Бізнес не знайдено');
     bizData = data;
 }
 
 async function loadStaff() {
-    const { data } = await supabase.from('staff').select('*').eq('business_id', bizId);
+    var { data } = await supabase.from('staff').select('*').eq('business_id', bizId);
     staffList = data || [];
 
     // determine role
     if (String(bizData.owner_id) === String(userId)) {
         userRole = 'owner';
     } else {
-        const me = staffList.find(s => String(s.user_id) === String(userId));
+        var me = staffList.find(s => String(s.user_id) === String(userId));
         userRole = me?.role || 'courier';
     }
     isAdmin = userRole === 'manager' || userRole === 'owner';
@@ -1063,14 +1063,14 @@ async function loadStaff() {
 async function loadSchedule() {
     scheduleData = {};
     try {
-        const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
-        const fromStr = from.toISOString().slice(0,10);
-        const { data, error } = await supabase.from('schedule')
+        var from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+        var fromStr = from.toISOString().slice(0,10);
+        var { data, error } = await supabase.from('schedule')
             .select('*').eq('business_id', bizId).gte('date', fromStr);
         if (error) { console.warn('[schedule] таблиця недоступна:', error.message); return; }
         (data || []).forEach(r => {
-            const mk = r.date.slice(0,7);
-            const day = parseInt(r.date.slice(8,10));
+            var mk = r.date.slice(0,7);
+            var day = parseInt(r.date.slice(8,10));
             if (!scheduleData[mk]) scheduleData[mk] = {};
             if (!scheduleData[mk][String(r.courier_id)]) scheduleData[mk][String(r.courier_id)] = {};
             scheduleData[mk][String(r.courier_id)][day] = {
@@ -1083,13 +1083,13 @@ async function loadSchedule() {
 async function loadShifts() {
     shiftsData = {};
     try {
-        const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
-        const { data, error } = await supabase.from('shifts')
+        var from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+        var { data, error } = await supabase.from('shifts')
             .select('*').eq('business_id', bizId)
             .gte('started_at', from.toISOString());
         if (error) { console.warn('[schedule] shifts недоступні:', error.message); return; }
         (data || []).forEach(s => {
-            const cid = String(s.courier_id);
+            var cid = String(s.courier_id);
             if (!shiftsData[cid]) shiftsData[cid] = [];
             shiftsData[cid].push(s);
         });
@@ -1098,11 +1098,11 @@ async function loadShifts() {
 
 // ── MONTHS ──
 function initMonths() {
-    const now = new Date();
+    var now = new Date();
     // Show prev, current, next month
-    const months = [];
-    for (let d = -1; d <= 2; d++) {
-        const dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
+    var months = [];
+    for (var d = -1; d <= 2; d++) {
+        var dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
         months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
     }
     // Also add any months from scheduleData not in list
@@ -1116,19 +1116,19 @@ function initMonths() {
 }
 
 function renderMonthTabs() {
-    const wrap = document.getElementById('month-tabs');
+    var wrap = document.getElementById('month-tabs');
     wrap.innerHTML = '';
     window._months.forEach(mk => {
-        const [y, m] = mk.split('-');
-        const label = MONTH_NAMES[parseInt(m)-1] + ' ' + y;
-        const tab = document.createElement('div');
+        var [y, m] = mk.split('-');
+        var label = MONTH_NAMES[parseInt(m)-1] + ' ' + y;
+        var tab = document.createElement('div');
         tab.className = 'm-tab' + (mk === activeMonthKey ? ' active' : '');
         tab.textContent = label;
         tab.onclick = () => { activeMonthKey = mk; renderMonthTabs(); renderAll(); loadEarnings(); };
         wrap.appendChild(tab);
     });
     if (isAdmin) {
-        const add = document.createElement('div');
+        var add = document.createElement('div');
         add.className = 'm-tab-add';
         add.textContent = '+ Місяць';
         add.onclick = addMonth;
@@ -1137,7 +1137,7 @@ function renderMonthTabs() {
 }
 
 function addMonth() {
-    const input = prompt('Введіть місяць (формат YYYY-MM, напр. 2026-06):');
+    var input = prompt('Введіть місяць (формат YYYY-MM, напр. 2026-06):');
     if (!input || !/^\d{4}-\d{2}$/.test(input)) return;
     if (!window._months.includes(input)) {
         window._months.push(input);
@@ -1150,23 +1150,23 @@ function addMonth() {
 
 // ── RENDER ──
 function renderAll() {
-    const container = document.getElementById('groups-container');
+    var container = document.getElementById('groups-container');
     container.innerHTML = '';
 
     // Group staff by role
-    const groups = {};
+    var groups = {};
     staffList.forEach(s => {
-        const g = s.role || 'courier';
+        var g = s.role || 'courier';
         if (!groups[g]) groups[g] = [];
         groups[g].push(s);
     });
 
-    const groupLabels = {
+    var groupLabels = {
         courier: "Кур'єри", manager: 'Менеджери', kitchen: 'Кухня', admin: 'Адміни'
     };
 
     Object.entries(groups).forEach(([role, members]) => {
-        const card = buildGroupCard(groupLabels[role] || role, members);
+        var card = buildGroupCard(groupLabels[role] || role, members);
         container.appendChild(card);
     });
 
@@ -1176,22 +1176,22 @@ function renderAll() {
 }
 
 function buildGroupCard(groupName, members) {
-    const [y, m] = activeMonthKey.split('-').map(Number);
-    const daysInMonth = new Date(y, m, 0).getDate();
-    const today = new Date();
-    const todayDay = (today.getFullYear() === y && today.getMonth()+1 === m) ? today.getDate() : -1;
+    var [y, m] = activeMonthKey.split('-').map(Number);
+    var daysInMonth = new Date(y, m, 0).getDate();
+    var today = new Date();
+    var todayDay = (today.getFullYear() === y && today.getMonth()+1 === m) ? today.getDate() : -1;
 
-    const card = document.createElement('div');
+    var card = document.createElement('div');
     card.className = 'table-card';
 
     // Group header
-    const gh = document.createElement('div');
+    var gh = document.createElement('div');
     gh.className = 'group-header';
     gh.innerHTML = `<div class="group-name" ${isAdmin ? 'contenteditable="true"' : ''}>${groupName}</div>`;
     card.appendChild(gh);
 
     // Table
-    const scroll = document.createElement('div');
+    var scroll = document.createElement('div');
     scroll.className = 'tbl-scroll';
     scroll.addEventListener('click', function(e) {
         var slot = e.target.closest('[data-edit="1"]');
@@ -1202,55 +1202,55 @@ function buildGroupCard(groupName, members) {
         openSheet(cid, day, name);
     });
 
-    let headDates = '', headDays = '', bodyRows = '';
+    var headDates = '', headDays = '', bodyRows = '';
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dow = new Date(y, m-1, d).getDay(); // 0=Sun
-        const dowIdx = dow === 0 ? 6 : dow - 1;
-        const isToday = d === todayDay;
+    for (var d = 1; d <= daysInMonth; d++) {
+        var dow = new Date(y, m-1, d).getDay(); // 0=Sun
+        var dowIdx = dow === 0 ? 6 : dow - 1;
+        var isToday = d === todayDay;
         headDates += `<th class="col-day-head${isToday?' today':''}"><div class="day-num">${d}</div></th>`;
         headDays  += `<th class="col-day-head${isToday?' today':''}"><div class="day-name">${DAY_NAMES[dowIdx]}</div></th>`;
     }
 
     members.forEach(s => {
-        const cid = String(s.user_id);
-        const monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
+        var cid = String(s.user_id);
+        var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
         // Worked days from shifts
-        const workedDays = {};
+        var workedDays = {};
         (shiftsData[cid] || []).forEach(sh => {
-            const shDate = new Date(sh.started_at);
+            var shDate = new Date(sh.started_at);
             if (shDate.getFullYear() === y && shDate.getMonth()+1 === m) {
-                const d = shDate.getDate();
-                const hrs = sh.ended_at
+                var d = shDate.getDate();
+                var hrs = sh.ended_at
                     ? ((new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000).toFixed(1)
                     : null;
                 workedDays[d] = hrs;
             }
         });
 
-        let cells = '';
-        let shiftCount = 0, hoursTotal = 0;
+        var cells = '';
+        var shiftCount = 0, hoursTotal = 0;
 
-        for (let d = 1; d <= daysInMonth; d++) {
-            const isToday = d === todayDay;
-            const planned = !!monthData[d];
-            const worked  = d in workedDays;
-            const hrs     = workedDays[d];
+        for (var d = 1; d <= daysInMonth; d++) {
+            var isToday = d === todayDay;
+            var planned = !!monthData[d];
+            var worked  = d in workedDays;
+            var hrs     = workedDays[d];
 
             if (planned || worked) shiftCount++;
             if (hrs) hoursTotal += parseFloat(hrs);
 
-            const canEdit = isAdmin;
-            const slotClass = [
+            var canEdit = isAdmin;
+            var slotClass = [
                 'day-slot',
                 planned ? 'planned' : '',
                 worked  ? 'worked'  : ''
             ].filter(Boolean).join(' ');
 
-            const startT = monthData[d]?.start || '';
-            const endT   = monthData[d]?.end   || '';
-            const editAttr = canEdit ? 'data-edit="1"' : '';
+            var startT = monthData[d]?.start || '';
+            var endT   = monthData[d]?.end   || '';
+            var editAttr = canEdit ? 'data-edit="1"' : '';
 
             cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
                 <div class="${slotClass}" ${editAttr} data-cid="${cid}" data-day="${d}" data-name="${s.name.replace(/"/g,'&quot;')}">
@@ -1290,7 +1290,7 @@ function buildGroupCard(groupName, members) {
     card.appendChild(scroll);
 
     if (isAdmin) {
-        const addBtn = document.createElement('button');
+        var addBtn = document.createElement('button');
         addBtn.className = 'btn-add-emp';
         addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Додати співробітника';
         addBtn.onclick = () => toast('Запросіть через меню "Команда"');
@@ -1303,12 +1303,12 @@ function buildGroupCard(groupName, members) {
 // ── SHEET ──
 function openSheet(cid, day, name) {
     if (!isAdmin) return;
-    const [y, m] = activeMonthKey.split('-').map(Number);
-    const dow = new Date(y, m-1, day).getDay();
-    const dowIdx = dow === 0 ? 6 : dow - 1;
+    var [y, m] = activeMonthKey.split('-').map(Number);
+    var dow = new Date(y, m-1, day).getDay();
+    var dowIdx = dow === 0 ? 6 : dow - 1;
 
     activeCell = { cid, day };
-    const existing = (scheduleData[activeMonthKey]?.[cid]?.[day]) || {};
+    var existing = (scheduleData[activeMonthKey]?.[cid]?.[day]) || {};
     document.getElementById('sheet-title').textContent = `${name} — ${day} ${DAY_NAMES[dowIdx]}`;
     document.getElementById('time-start').value = (existing.start || '10:00').slice(0,5);
     document.getElementById('time-end').value   = (existing.end   || '22:00').slice(0,5);
@@ -1322,7 +1322,7 @@ function closeSheet() {
 
 function setPlanned() {
     if (!activeCell) return;
-    const { cid, day } = activeCell;
+    var { cid, day } = activeCell;
     if (!scheduleData[activeMonthKey]) scheduleData[activeMonthKey] = {};
     if (!scheduleData[activeMonthKey][cid]) scheduleData[activeMonthKey][cid] = {};
     scheduleData[activeMonthKey][cid][day] = { planned: true, start: '10:00', end: '22:00' };
@@ -1331,7 +1331,7 @@ function setPlanned() {
 
 function clearSlot() {
     if (!activeCell) return;
-    const { cid, day } = activeCell;
+    var { cid, day } = activeCell;
     if (scheduleData[activeMonthKey]?.[cid]?.[day]) {
         delete scheduleData[activeMonthKey][cid][day];
     }
@@ -1340,9 +1340,9 @@ function clearSlot() {
 
 function saveSlot() {
     if (!activeCell) return;
-    const { cid, day } = activeCell;
-    const start = document.getElementById('time-start').value;
-    const end   = document.getElementById('time-end').value;
+    var { cid, day } = activeCell;
+    var start = document.getElementById('time-start').value;
+    var end   = document.getElementById('time-end').value;
     if (!scheduleData[activeMonthKey]) scheduleData[activeMonthKey] = {};
     if (!scheduleData[activeMonthKey][cid]) scheduleData[activeMonthKey][cid] = {};
     scheduleData[activeMonthKey][cid][day] = { planned: true, start, end };
@@ -1351,19 +1351,19 @@ function saveSlot() {
 
 // ── SAVE TO DB ──
 async function saveSchedule() {
-    const btn = document.querySelector('.btn-fab-primary');
+    var btn = document.querySelector('.btn-fab-primary');
     btn.textContent = 'Збереження...';
     btn.disabled = true;
 
     try {
-        const [y, m] = activeMonthKey.split('-').map(Number);
-        const daysInMonth = new Date(y, m, 0).getDate();
-        const monthData = scheduleData[activeMonthKey] || {};
+        var [y, m] = activeMonthKey.split('-').map(Number);
+        var daysInMonth = new Date(y, m, 0).getDate();
+        var monthData = scheduleData[activeMonthKey] || {};
 
-        const upserts = [];
+        var upserts = [];
         Object.entries(monthData).forEach(([cid, days]) => {
             Object.entries(days).forEach(([day, val]) => {
-                const dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
+                var dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
                 upserts.push({
                     business_id: bizId,
                     courier_id: parseInt(cid),
@@ -1380,16 +1380,16 @@ async function saveSchedule() {
         }
 
         // Delete cleared slots (those in DB but not in current data)
-        const startDate = `${activeMonthKey}-01`;
-        const endDate   = `${activeMonthKey}-${String(daysInMonth).padStart(2,'0')}`;
-        const { data: existing } = await supabase.from('schedule')
+        var startDate = `${activeMonthKey}-01`;
+        var endDate   = `${activeMonthKey}-${String(daysInMonth).padStart(2,'0')}`;
+        var { data: existing } = await supabase.from('schedule')
             .select('id, courier_id, date')
             .eq('business_id', bizId)
             .gte('date', startDate).lte('date', endDate);
 
-        const toDelete = (existing || []).filter(r => {
-            const cid = String(r.courier_id);
-            const day = parseInt(r.date.slice(8,10));
+        var toDelete = (existing || []).filter(r => {
+            var cid = String(r.courier_id);
+            var day = parseInt(r.date.slice(8,10));
             return !(monthData[cid] && monthData[cid][day]);
         }).map(r => r.id);
 
@@ -1412,29 +1412,29 @@ async function loadEarnings() {
     if (!userId) return;
 
     try {
-        const [y, m] = activeMonthKey.split('-').map(Number);
+        var [y, m] = activeMonthKey.split('-').map(Number);
         if (!y || !m) return;
 
-        const startDate = new Date(y, m-1, 1).toISOString();
-        const endDate   = new Date(y, m, 1).toISOString();
-        const cid = userId;
+        var startDate = new Date(y, m-1, 1).toISOString();
+        var endDate   = new Date(y, m, 1).toISOString();
+        var cid = userId;
 
         // Salary settings
         var sset = null;
         try {
-            const { data } = await supabase.from('salary_settings')
+            var { data } = await supabase.from('salary_settings')
                 .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
             sset = data;
         } catch(e) {}
 
-        const hourlyRate = sset ? (parseFloat(sset.hourly_rate) || 0) : 0;
-        const kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
-        const orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
+        var hourlyRate = sset ? (parseFloat(sset.hourly_rate) || 0) : 0;
+        var kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
+        var orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
 
         // Shifts
         var totalHours = 0, totalKm = 0, shiftCount = 0;
         try {
-            const { data: myShifts } = await supabase.from('shifts')
+            var { data: myShifts } = await supabase.from('shifts')
                 .select('*').eq('courier_id', cid).eq('business_id', bizId)
                 .gte('started_at', startDate).lt('started_at', endDate);
             (myShifts || []).forEach(function(s) {
@@ -1449,7 +1449,7 @@ async function loadEarnings() {
         // Orders
         var ordersCount = 0;
         try {
-            const { count } = await supabase.from('orders')
+            var { count } = await supabase.from('orders')
                 .select('*', { count: 'exact', head: true })
                 .eq('courier_id', cid).eq('business_id', bizId)
                 .eq('status', 'completed')
@@ -1460,15 +1460,15 @@ async function loadEarnings() {
         // Bonuses
         var bonusTotal = 0;
         try {
-            const { data: bonuses } = await supabase.from('salary_bonuses')
+            var { data: bonuses } = await supabase.from('salary_bonuses')
                 .select('amount').eq('business_id', bizId).eq('courier_id', cid)
                 .eq('month', activeMonthKey);
             bonusTotal = (bonuses || []).reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
         } catch(e) {}
 
-        const earned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
-        const earnedSafe = isNaN(earned) ? 0 : Math.max(0, earned);
-        const cur = bizData ? (bizData.currency || 'zł') : 'zł';
+        var earned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
+        var earnedSafe = isNaN(earned) ? 0 : Math.max(0, earned);
+        var cur = bizData ? (bizData.currency || 'zł') : 'zł';
 
         // Update UI safely
         var el;
