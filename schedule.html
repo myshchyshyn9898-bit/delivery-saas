@@ -371,7 +371,11 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const RAILWAY_DOMAIN = document.querySelector('meta[name="server-url"]').content;
+const RAILWAY_DOMAIN = (function() {
+    const meta = document.querySelector('meta[name="server-url"]');
+    if (meta && meta.content) return meta.content.replace(/\/$/, '');
+    return 'https://delivery-saas-production-3fe6.up.railway.app';
+})();
 const DAY_NAMES = ['пн','вт','ср','чт','пт','сб','нд'];
 const MONTH_NAMES = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
                      'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
@@ -391,59 +395,78 @@ bizId     = urlP.get('biz_id');
 authToken = urlP.get('token');
 const tgId = urlP.get('tg_id');
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async function() {
     try {
-        tg = window.Telegram?.WebApp;
-        if (tg) { tg.ready(); tg.expand(); }
+        tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
 
-        userId = tgId || tg?.initDataUnsafe?.user?.id;
-        if (!bizId || !authToken) throw new Error('Немає токена доступу');
-        if (!userId) throw new Error('Не вдалось визначити користувача');
+        userId = tgId || (tg.initDataUnsafe && tg.initDataUnsafe.user
+            ? tg.initDataUnsafe.user.id : null);
+
+        // Перевірки — точно як map.html (showError + return, не throw)
+        if (!bizId || !authToken) {
+            showError('Помилка: Немає токена доступу');
+            return;
+        }
+        if (!window.supabase) {
+            showError('Помилка: Supabase SDK не підключена');
+            return;
+        }
+
         setLoad('Підключення до сервера...');
-        const cfg = await fetchConfig();
 
-        setLoad('Ініціалізація бази даних...');
+        // fetchConfig у власному try/catch — як map.html
+        var cfg;
+        try { cfg = await fetchConfig(); }
+        catch (cfgErr) {
+            showError('Помилка підключення до сервера');
+            return;
+        }
+
+        // Завжди з authToken — як map.html (не fallback без токену)
         supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
             global: { headers: { Authorization: 'Bearer ' + authToken } }
         });
 
-        setLoad('Завантаження бізнесу...');
+        setLoad('Завантаження даних...');
         await loadBiz();
-
-        setLoad('Завантаження персоналу...');
         await loadStaff();
-
-        setLoad('Завантаження графіку...');
         await loadSchedule();
-
-        setLoad('Завантаження змін...');
         await loadShifts();
 
-        setLoad('Майже готово...');
         initMonths();
         renderAll();
         await loadEarnings();
 
         hide('loader');
         show('app');
+
     } catch(e) {
-        showError('❌ ' + (e.message || 'Помилка завантаження'));
+        showError('Помилка запуску: ' + (e.message || String(e)));
     }
 });
 
+var _supabaseCfgCache = null;
 async function fetchConfig() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000); // 8 сек таймаут
-    try {
-        const r = await fetch(RAILWAY_DOMAIN + '/config', { signal: controller.signal });
-        clearTimeout(timeout);
-        if (!r.ok) throw new Error('Сервер відповів з помилкою: ' + r.status);
-        return r.json();
-    } catch(e) {
-        clearTimeout(timeout);
-        if (e.name === 'AbortError') throw new Error('Сервер не відповідає (таймаут). Спробуйте пізніше.');
-        throw e;
+    if (!_supabaseCfgCache) {
+        var res;
+        try { res = await fetch(RAILWAY_DOMAIN + '/config'); }
+        catch (e) { throw new Error('Сервер недоступний: ' + e.message); }
+
+        if (!res.ok) throw new Error('Помилка /config: HTTP ' + res.status);
+
+        var cfg;
+        try { cfg = await res.json(); }
+        catch (e) { throw new Error('Невірна відповідь /config'); }
+
+        if (!cfg.supabase_url || !cfg.supabase_key)
+            throw new Error('В /config відсутні supabase_url або supabase_key');
+
+        _supabaseCfgCache = cfg;
     }
+    return _supabaseCfgCache;
 }
 
 async function loadBiz() {

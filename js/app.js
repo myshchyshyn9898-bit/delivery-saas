@@ -1338,9 +1338,9 @@ async function renderSalaryList() {
                 <div class="bonus-section-label">Премія / Штраф / Аванс</div>
                 ${bonusChips}
                 <div class="bonus-row">
-                    <input class="bonus-input bonus-input-amount" type="number" step="0.01" id="bon-amt-${cid}" placeholder="-/+">
-                    <input class="bonus-input bonus-input-comment" type="text" id="bon-com-${cid}" placeholder="Коментар (аванс, бонус...)">
-                    <button class="btn-bonus-add" onclick="addBonus('${cid}')">+</button>
+                    <input class="bonus-input" type="number" step="0.01" id="bon-amt-${cid}" placeholder="Сума (- для штрафу)" style="width:110px;flex-shrink:0;">
+                    <input class="bonus-input" type="text" id="bon-com-${cid}" placeholder="Коментар" style="flex:1;min-width:0;">
+                    <button class="btn-bonus-add" onclick="addBonus('${cid}')">Додати</button>
                 </div>
             </div>
 
