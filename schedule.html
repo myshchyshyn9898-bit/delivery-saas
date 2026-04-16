@@ -462,8 +462,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function initScheduleApp() {
+    var _step = '...';
+    function _alert(msg) {
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.showAlert(msg);
+        }
+        showError(msg);
+    }
+
     try {
-        // 1. Telegram WebApp init
+        // 1. Telegram
+        _step = 'TG init';
+        setLoad('Крок 1: Telegram...');
         if (window.Telegram && window.Telegram.WebApp) {
             tg = window.Telegram.WebApp;
             tg.ready();
@@ -472,70 +482,82 @@ async function initScheduleApp() {
             userId = tgId || (tg.initDataUnsafe && tg.initDataUnsafe.user
                 ? String(tg.initDataUnsafe.user.id) : null);
         } else {
-            // Не в Telegram — для тестування
             userId = tgId || null;
         }
 
-        // 2. Перевірка параметрів
-        if (!bizId || !authToken) {
-            showError('Помилка: Немає токена доступу (bizId=' + bizId + ')');
-            return;
-        }
-        if (!window.supabase) {
-            showError('Помилка: Supabase SDK не завантажилась');
-            return;
-        }
+        // 2. Перевірки
+        _step = 'params check';
+        setLoad('Крок 2: Параметри...');
+        if (!bizId) { _alert('❌ bizId відсутній в URL'); return; }
+        if (!authToken) { _alert('❌ token відсутній в URL'); return; }
+        if (!window.supabase) { _alert('❌ Supabase SDK не завантажилась'); return; }
 
         // 3. Config
-        setLoad('Підключення до сервера...');
+        _step = 'fetchConfig';
+        setLoad('Крок 3: Сервер...');
         var cfg;
         try {
             cfg = await fetchConfig();
         } catch (cfgErr) {
-            showError('Сервер недоступний: ' + cfgErr.message);
+            _alert('❌ /config помилка: ' + cfgErr.message);
             return;
         }
         if (!cfg || !cfg.supabase_url) {
-            showError('Помилка конфігурації сервера');
+            _alert('❌ /config повернув неправильні дані');
             return;
         }
 
-        // 4. Supabase client — завжди з токеном
+        // 4. Supabase
+        _step = 'supabase init';
+        setLoad('Крок 4: БД підключення...');
         supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
             global: { headers: { Authorization: 'Bearer ' + authToken } }
         });
 
-        // 5. Дані — кожен крок з власним повідомленням
-        setLoad('Завантаження бізнесу...');
-        try { await loadBiz(); }
-        catch(e) { showError('Помилка бізнесу: ' + e.message); return; }
+        // 5. Бізнес
+        _step = 'loadBiz';
+        setLoad('Крок 5: Бізнес...');
+        try {
+            await loadBiz();
+        } catch(e) {
+            _alert('❌ Бізнес: ' + e.message + ' (bizId=' + bizId + ')');
+            return;
+        }
 
-        setLoad('Завантаження персоналу...');
-        try { await loadStaff(); }
-        catch(e) { showError('Помилка персоналу: ' + e.message); return; }
+        // 6. Персонал
+        _step = 'loadStaff';
+        setLoad('Крок 6: Персонал...');
+        try {
+            await loadStaff();
+        } catch(e) {
+            _alert('❌ Персонал: ' + e.message);
+            return;
+        }
 
-        setLoad('Завантаження графіку...');
-        await loadSchedule(); // має власний try/catch, не кидає
+        // 7. Графік і зміни
+        _step = 'loadSchedule';
+        setLoad('Крок 7: Графік...');
+        await loadSchedule();
 
-        setLoad('Завантаження змін...');
-        await loadShifts(); // має власний try/catch, не кидає
+        _step = 'loadShifts';
+        setLoad('Крок 8: Зміни...');
+        await loadShifts();
 
-        // 6. Рендер
-        setLoad('Відображення...');
+        // 8. Рендер
+        _step = 'render';
+        setLoad('Крок 9: Відображення...');
         initMonths();
         renderAll();
 
-        // 7. Заробіток — окремо, не блокує показ сторінки
         hide('loader');
         show('app');
 
-        // Завантажуємо заробіток після показу сторінки
         loadEarnings().catch(function(e) {
-            console.warn('[schedule] loadEarnings error:', e.message);
+            console.warn('[schedule] loadEarnings:', e.message);
         });
 
     } catch(e) {
-        showError('Помилка: ' + (e.message || String(e)));
+        _alert('❌ Крок [' + _step + ']: ' + (e.message || String(e)));
     }
 }
 
