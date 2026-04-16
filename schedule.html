@@ -371,6 +371,37 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// --- ФУНКЦІЇ-ПОМІЧНИКИ (окремий блок — завантажуються першими) ---
+function setLoad(msg) {
+    var el = document.getElementById('load-text');
+    if (el) el.textContent = msg;
+}
+function showError(msg) {
+    var el = document.getElementById('load-text');
+    var ic = document.getElementById('load-icon');
+    if (el) el.textContent = msg;
+    if (ic) { ic.className = 'fa-solid fa-circle-exclamation'; ic.style.color = '#FF5A5F'; }
+}
+function show(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = '';
+}
+function hide(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+}
+var _toastTimer;
+function toast(msg) {
+    var el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2500);
+}
+</script>
+
+<script>
 // ── УТИЛІТИ (оголошені першими — доступні завжди) ──
 function setLoad(msg) {
     var el = document.getElementById('load-text');
@@ -690,6 +721,14 @@ function buildGroupCard(groupName, members) {
     // Table
     const scroll = document.createElement('div');
     scroll.className = 'tbl-scroll';
+    scroll.addEventListener('click', function(e) {
+        var slot = e.target.closest('[data-edit="1"]');
+        if (!slot) return;
+        var cid = slot.getAttribute('data-cid');
+        var day = parseInt(slot.getAttribute('data-day'));
+        var name = slot.getAttribute('data-name');
+        openSheet(cid, day, name);
+    });
 
     let headDates = '', headDays = '', bodyRows = '';
 
@@ -739,9 +778,10 @@ function buildGroupCard(groupName, members) {
 
             const startT = monthData[d]?.start || '';
             const endT   = monthData[d]?.end   || '';
+            const editAttr = canEdit ? 'data-edit="1"' : '';
 
             cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
-                <div class="${slotClass}" ${canEdit ? `onclick="openSheet('${cid}',${d},'${s.name}')"` : ''}>
+                <div class="${slotClass}" ${editAttr} data-cid="${cid}" data-day="${d}" data-name="${s.name.replace(/"/g,'&quot;')}">
                     <!-- planned dot -->
                     <svg class="icon-planned" viewBox="0 0 14 14" fill="none" style="position:absolute;">
                         <circle cx="7" cy="7" r="3.5" fill="#3b82f6"/>
@@ -1162,6 +1202,14 @@ function buildGroupCard(groupName, members) {
     // Table
     const scroll = document.createElement('div');
     scroll.className = 'tbl-scroll';
+    scroll.addEventListener('click', function(e) {
+        var slot = e.target.closest('[data-edit="1"]');
+        if (!slot) return;
+        var cid = slot.getAttribute('data-cid');
+        var day = parseInt(slot.getAttribute('data-day'));
+        var name = slot.getAttribute('data-name');
+        openSheet(cid, day, name);
+    });
 
     let headDates = '', headDays = '', bodyRows = '';
 
@@ -1211,9 +1259,10 @@ function buildGroupCard(groupName, members) {
 
             const startT = monthData[d]?.start || '';
             const endT   = monthData[d]?.end   || '';
+            const editAttr = canEdit ? 'data-edit="1"' : '';
 
             cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
-                <div class="${slotClass}" ${canEdit ? `onclick="openSheet('${cid}',${d},'${s.name}')"` : ''}>
+                <div class="${slotClass}" ${editAttr} data-cid="${cid}" data-day="${d}" data-name="${s.name.replace(/"/g,'&quot;')}">
                     <!-- planned dot -->
                     <svg class="icon-planned" viewBox="0 0 14 14" fill="none" style="position:absolute;">
                         <circle cx="7" cy="7" r="3.5" fill="#3b82f6"/>
