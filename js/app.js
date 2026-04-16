@@ -1171,14 +1171,13 @@ async function renderSalaryList() {
         return;
     }
 
-    list.innerHTML = '<div style="text-align:center;padding:30px 0;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);font-size:24px;"></i></div>';
+    list.innerHTML = '<div style="text-align:center;padding:30px 0;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);font-size:22px;"></i></div>';
 
     const [y, m] = salaryMonthKey.split('-').map(Number);
     const startDate = new Date(y, m-1, 1).toISOString();
     const endDate   = new Date(y, m, 1).toISOString();
     const cur = currencySymbol || 'zł';
 
-    // ✅ BUG 5 FIX: завантажуємо ВСІ shifts і orders за місяць одним запитом
     let allShifts = [], allOrders = [];
     try {
         const { data: sh } = await supabaseClient.from('shifts')
@@ -1194,7 +1193,6 @@ async function renderSalaryList() {
         allOrders = ord || [];
     } catch(e) {}
 
-    // Групуємо по кур'єру
     const shiftsByCourier = {};
     allShifts.forEach(sh => {
         const cid = String(sh.courier_id);
@@ -1225,7 +1223,7 @@ async function renderSalaryList() {
             shiftCount++;
             if (sh.ended_at) {
                 totalHours += (new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000;
-                if (sh.end_km && sh.start_km) totalKm += sh.end_km - sh.start_km;
+                if (sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
             }
         });
         const ordersCount = ordersByCourier[cid] || 0;
@@ -1234,81 +1232,127 @@ async function renderSalaryList() {
         const earnedSafe = isNaN(rawEarned) ? 0 : Math.max(0, rawEarned);
         totalFund += earnedSafe;
 
-        const isPaid = payment?.paid;
+        const isPaid = payment?.paid || false;
         const roleLabel = s.role === 'manager' ? 'Менеджер' : s.role === 'kitchen' ? 'Кухня' : "Кур'єр";
         const initials = (s.name || '?').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+        const bodyId = `sal-body-${cid}`;
 
-        html += `
-        <div class="salary-card" id="sal-card-${cid}">
+        // ── Breakdown chips ──
+        let chips = `<div class="sal-chip"><i class="fa-solid fa-clock sal-chip-icon"></i><span>${totalHours.toFixed(1)}г</span> × <span>${hourlyRate} ${cur}</span></div>`;
+        if (sets.order_enabled) {
+            chips += `<div class="sal-chip"><i class="fa-solid fa-box sal-chip-icon"></i><span>${ordersCount}</span> × <span>${orderRate} ${cur}</span></div>`;
+        } else {
+            chips += `<div class="sal-chip"><i class="fa-solid fa-box sal-chip-icon"></i><span>${ordersCount} зам.</span></div>`;
+        }
+        if (sets.km_enabled) {
+            chips += `<div class="sal-chip"><i class="fa-solid fa-road sal-chip-icon"></i><span>${totalKm} км</span> × <span>${kmRate} ${cur}</span></div>`;
+        }
+        if (bonusTotal !== 0) {
+            const bonusColor = bonusTotal >= 0 ? '16,185,129' : '239,68,68';
+            const bonusVar   = bonusTotal >= 0 ? 'success' : 'danger';
+            chips += `<div class="sal-chip" style="background:rgba(${bonusColor},0.1);color:var(--${bonusVar});"><i class="${bonusTotal >= 0 ? 'fa-solid fa-gift' : 'fa-solid fa-triangle-exclamation'} sal-chip-icon"></i><span>${bonusTotal >= 0 ? '+' : '-'}${Math.abs(bonusTotal).toFixed(2)} ${cur}</span></div>`;
+        }
+
+        // ── Bonus list as chips ──
+        let bonusChips = '';
+        if (bonusList.length) {
+            bonusChips = '<div class="bonus-chips-list">' + bonusList.map(b => {
+                const amt = parseFloat(b.amount);
+                const isPos = amt >= 0;
+                const icon = amt >= 0 ? '🎁' : amt === 0 ? '💰' : '⚠️';
+                // detect advance by comment
+                const isAdv = (b.comment || '').toLowerCase().includes('аванс');
+                const faIcon = isAdv
+                    ? 'fa-solid fa-money-bill-wave'
+                    : isPos ? 'fa-solid fa-gift' : 'fa-solid fa-triangle-exclamation';
+                return `<div class="bonus-chip-item ${isPos ? 'bonus-chip-pos' : 'bonus-chip-neg'}">
+                    <i class="${faIcon} bonus-chip-icon"></i>
+                    <span class="bonus-chip-val">${isPos ? '+' : ''}${amt.toFixed(2)} ${cur}</span>
+                    ${b.comment ? `<span class="bonus-chip-label">${b.comment}</span>` : ''}
+                </div>`;
+            }).join('') + '</div>';
+        }
+
+        // ── Card header style based on paid status ──
+        const cardClass = isPaid ? 'salary-card salary-card-paid' : 'salary-card';
+        const amountLabel = isPaid ? 'Виплачено' : 'До виплати';
+        const amountStyle = isPaid ? 'color:var(--success);' : '';
+
+        html += `<div class="${cardClass}" id="sal-card-${cid}">
+
             <div class="salary-card-header">
-                <div style="display:flex;align-items:center;flex:1;">
-                    <div class="salary-avatar">${initials}</div>
-                    <div>
+                <div class="salary-header-left">
+                    <div class="salary-avatar" style="${isPaid ? 'background:rgba(16,185,129,0.12);color:var(--success);' : ''}">${initials}</div>
+                    <div class="salary-info">
                         <div class="salary-name">${s.name}</div>
                         <div class="salary-role">${roleLabel}</div>
                     </div>
                 </div>
-                <div style="text-align:right;">
-                    <div class="salary-amount">${earnedSafe.toFixed(2)} ${cur}</div>
-                    <div class="salary-amount-label">До виплати</div>
+                <div class="salary-header-right">
+                    <div class="salary-amount" style="${amountStyle}">${earnedSafe.toFixed(2)} ${cur}</div>
+                    <div class="salary-amount-label" style="${isPaid ? 'color:var(--success);' : ''}">${amountLabel}</div>
                 </div>
             </div>
 
-            <div class="salary-breakdown">
-                <div class="sal-chip">⏱ <span>${totalHours.toFixed(1)}г</span> × <span>${hourlyRate} ${cur}</span></div>
-                ${sets.order_enabled ? `<div class="sal-chip">📦 <span>${ordersCount} зам.</span> × <span>${orderRate} ${cur}</span></div>` : `<div class="sal-chip">📦 <span>${ordersCount} зам.</span></div>`}
-                ${sets.km_enabled ? `<div class="sal-chip">🛣 <span>${totalKm} км</span> × <span>${kmRate} ${cur}</span></div>` : ''}
-                ${bonusTotal !== 0 ? `<div class="sal-chip" style="background:rgba(${bonusTotal>=0?'16,185,129':'239,68,68'},0.1);color:var(--${bonusTotal>=0?'success':'danger'});">${bonusTotal>=0?'🎁 +':'⚠️ '}<span>${bonusTotal} ${cur}</span></div>` : ''}
-            </div>
+            <div class="salary-breakdown">${chips}</div>
 
-            <details style="margin-bottom:10px;">
-                <summary style="font-size:12px;font-weight:700;color:var(--text-muted);cursor:pointer;margin-bottom:8px;list-style:none;">
-                    <i class="fa-solid fa-sliders" style="margin-right:4px;"></i> Ставки та налаштування
-                </summary>
-                <div style="padding-top:8px;display:flex;flex-direction:column;gap:6px;">
-                    <div class="salary-settings-row">
-                        <label>Погодинна (${cur}/год)</label>
+            <button class="salary-details-toggle" onclick="toggleSalaryDetails('${bodyId}', this)">
+                <span>
+                    <i class="fa-solid fa-sliders" style="margin-right:6px;"></i>Ставки та налаштування
+                </span>
+                <i class="fa-solid fa-chevron-right sal-toggle-icon"></i>
+            </button>
+            <div class="salary-details-body" id="${bodyId}">
+                <div class="salary-settings-row">
+                    <label>Погодинна (${cur}/год)</label>
+                    <div class="salary-settings-right">
                         <input class="salary-input" type="number" min="0" step="0.5" value="${hourlyRate}" id="hr-${cid}">
                     </div>
-                    <div class="salary-settings-row">
-                        <label>За замовлення (${cur}/шт)</label>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <label class="toggle-switch"><input type="checkbox" id="oe-${cid}" ${sets.order_enabled?'checked':''}><span class="toggle-track"></span></label>
-                            <input class="salary-input" type="number" min="0" step="0.1" value="${orderRate}" id="or-${cid}">
-                        </div>
-                    </div>
-                    <div class="salary-settings-row">
-                        <label>Вирахувати за км (${cur}/км)</label>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <label class="toggle-switch"><input type="checkbox" id="ke-${cid}" ${sets.km_enabled?'checked':''}><span class="toggle-track"></span></label>
-                            <input class="salary-input" type="number" min="0" step="0.1" value="${kmRate}" id="kr-${cid}">
-                        </div>
-                    </div>
-                    <button class="btn-salary-save" onclick="saveSalarySettings('${cid}')">
-                        <i class="fa-solid fa-floppy-disk"></i> Зберегти ставки
-                    </button>
                 </div>
-            </details>
-
-            <div style="margin-bottom:10px;">
-                <div style="font-size:11px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Премія / Штраф</div>
-                <div class="bonus-row">
-                    <input class="bonus-input" type="number" step="0.01" id="bon-amt-${cid}" placeholder="Сума (- для штрафу)">
-                    <input class="bonus-input" type="text" id="bon-com-${cid}" placeholder="Коментар">
-                    <button class="btn-bonus-add" onclick="addBonus('${cid}')">Додати</button>
+                <div class="salary-settings-row">
+                    <label>За замовлення (${cur}/шт)</label>
+                    <div class="salary-settings-right">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="oe-${cid}" ${sets.order_enabled ? 'checked' : ''}>
+                            <span class="toggle-track"></span>
+                        </label>
+                        <input class="salary-input" type="number" min="0" step="0.1" value="${orderRate}" id="or-${cid}">
+                    </div>
                 </div>
-                ${bonusList.length ? '<div style="margin-top:6px;">' + bonusList.map(b => `
-                    <div style="font-size:12px;font-weight:600;color:${parseFloat(b.amount)>=0?'var(--success)':'var(--danger)'};margin-top:4px;">
-                        ${parseFloat(b.amount)>=0?'+':''}${b.amount} ${cur}${b.comment ? ' — ' + b.comment : ''}
-                    </div>`).join('') + '</div>' : ''}
-            </div>
-
-            <div style="display:flex;justify-content:flex-end;">
-                <button class="pay-status-btn ${isPaid?'pay-status-paid':'pay-status-unpaid'}"
-                    onclick="togglePayment('${cid}', ${isPaid?true:false})">
-                    ${isPaid ? '<i class="fa-solid fa-check"></i> Виплачено' : '<i class="fa-solid fa-clock"></i> Не виплачено'}
+                <div class="salary-settings-row">
+                    <label>Вирахувати за км (${cur}/км)</label>
+                    <div class="salary-settings-right">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="ke-${cid}" ${sets.km_enabled ? 'checked' : ''}>
+                            <span class="toggle-track"></span>
+                        </label>
+                        <input class="salary-input" type="number" min="0" step="0.1" value="${kmRate}" id="kr-${cid}">
+                    </div>
+                </div>
+                <button class="btn-salary-save" onclick="saveSalarySettings('${cid}')">
+                    <i class="fa-solid fa-floppy-disk"></i> Зберегти ставки
                 </button>
             </div>
+
+            <div class="bonus-section">
+                <div class="bonus-section-label">Премія / Штраф / Аванс</div>
+                ${bonusChips}
+                <div class="bonus-row">
+                    <input class="bonus-input bonus-input-amount" type="number" step="0.01" id="bon-amt-${cid}" placeholder="-/+">
+                    <input class="bonus-input bonus-input-comment" type="text" id="bon-com-${cid}" placeholder="Коментар (аванс, бонус...)">
+                    <button class="btn-bonus-add" onclick="addBonus('${cid}')">+</button>
+                </div>
+            </div>
+
+            <div class="salary-card-footer">
+                <button class="pay-status-btn ${isPaid ? 'pay-status-paid' : 'pay-status-unpaid'}"
+                    onclick="togglePayment('${cid}', ${isPaid})">
+                    ${isPaid
+                        ? '<i class="fa-solid fa-check-circle"></i> Виплачено'
+                        : '<i class="fa-solid fa-clock"></i> Не виплачено'}
+                </button>
+            </div>
+
         </div>`;
     }
 
@@ -1319,6 +1363,17 @@ async function renderSalaryList() {
         document.getElementById('salary-total-amount').textContent = `${totalFund.toFixed(2)} ${cur}`;
     }
 }
+
+function toggleSalaryDetails(bodyId, btn) {
+    const body = document.getElementById(bodyId);
+    if (!body) return;
+    const isOpen = body.classList.toggle('open');
+    const icon = btn.querySelector('.sal-toggle-icon');
+    if (icon) icon.style.transform = isOpen ? 'rotate(90deg)' : '';
+    btn.style.background = isOpen ? 'rgba(255,90,95,0.06)' : '';
+    btn.style.color = isOpen ? 'var(--primary)' : '';
+}
+
 
 async function saveSalarySettings(cid) {
     if (!supabaseClient) return;
