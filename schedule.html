@@ -395,58 +395,88 @@ bizId     = urlP.get('biz_id');
 authToken = urlP.get('token');
 const tgId = urlP.get('tg_id');
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // Невеликий delay як в map.html — даємо час Telegram WebApp та CDN завантажитись
+    setTimeout(initScheduleApp, 100);
+});
+
+async function initScheduleApp() {
     try {
-        tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        // 1. Telegram WebApp init
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+            if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+            userId = tgId || (tg.initDataUnsafe && tg.initDataUnsafe.user
+                ? String(tg.initDataUnsafe.user.id) : null);
+        } else {
+            // Не в Telegram — для тестування
+            userId = tgId || null;
+        }
 
-        userId = tgId || (tg.initDataUnsafe && tg.initDataUnsafe.user
-            ? tg.initDataUnsafe.user.id : null);
-
-        // Перевірки — точно як map.html (showError + return, не throw)
+        // 2. Перевірка параметрів
         if (!bizId || !authToken) {
-            showError('Помилка: Немає токена доступу');
+            showError('Помилка: Немає токена доступу (bizId=' + bizId + ')');
             return;
         }
         if (!window.supabase) {
-            showError('Помилка: Supabase SDK не підключена');
+            showError('Помилка: Supabase SDK не завантажилась');
             return;
         }
 
+        // 3. Config
         setLoad('Підключення до сервера...');
-
-        // fetchConfig у власному try/catch — як map.html
         var cfg;
-        try { cfg = await fetchConfig(); }
-        catch (cfgErr) {
-            showError('Помилка підключення до сервера');
+        try {
+            cfg = await fetchConfig();
+        } catch (cfgErr) {
+            showError('Сервер недоступний: ' + cfgErr.message);
+            return;
+        }
+        if (!cfg || !cfg.supabase_url) {
+            showError('Помилка конфігурації сервера');
             return;
         }
 
-        // Завжди з authToken — як map.html (не fallback без токену)
+        // 4. Supabase client — завжди з токеном
         supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
             global: { headers: { Authorization: 'Bearer ' + authToken } }
         });
 
-        setLoad('Завантаження даних...');
-        await loadBiz();
-        await loadStaff();
-        await loadSchedule();
-        await loadShifts();
+        // 5. Дані — кожен крок з власним повідомленням
+        setLoad('Завантаження бізнесу...');
+        try { await loadBiz(); }
+        catch(e) { showError('Помилка бізнесу: ' + e.message); return; }
 
+        setLoad('Завантаження персоналу...');
+        try { await loadStaff(); }
+        catch(e) { showError('Помилка персоналу: ' + e.message); return; }
+
+        setLoad('Завантаження графіку...');
+        await loadSchedule(); // має власний try/catch, не кидає
+
+        setLoad('Завантаження змін...');
+        await loadShifts(); // має власний try/catch, не кидає
+
+        // 6. Рендер
+        setLoad('Відображення...');
         initMonths();
         renderAll();
-        await loadEarnings();
 
+        // 7. Заробіток — окремо, не блокує показ сторінки
         hide('loader');
         show('app');
 
+        // Завантажуємо заробіток після показу сторінки
+        loadEarnings().catch(function(e) {
+            console.warn('[schedule] loadEarnings error:', e.message);
+        });
+
     } catch(e) {
-        showError('Помилка запуску: ' + (e.message || String(e)));
+        showError('Помилка: ' + (e.message || String(e)));
     }
-});
+}
 
 var _supabaseCfgCache = null;
 async function fetchConfig() {
@@ -837,90 +867,86 @@ async function saveSchedule() {
 // ── EARNINGS ──
 async function loadEarnings() {
     if (userRole === 'owner') return;
+    if (!userId) return;
 
-    const [y, m] = activeMonthKey.split('-').map(Number);
-    const startDate = new Date(y, m-1, 1).toISOString();
-    const endDate   = new Date(y, m, 1).toISOString();
-    const cid = userId;
-
-    // Get salary settings (таблиця може ще не існувати)
-    let sset = null;
     try {
-        const { data: ssetData, error: ssetErr } = await supabase.from('salary_settings')
-            .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
-        if (!ssetErr) sset = ssetData;
-    } catch(e) { console.warn('[schedule] salary_settings недоступна'); }
+        const [y, m] = activeMonthKey.split('-').map(Number);
+        if (!y || !m) return;
 
-    const hourlyRate = sset?.hourly_rate || 0;
-    const kmRate     = sset?.km_enabled ? (sset?.km_rate || bizData?.km_rate || 0) : 0;
-    const orderRate  = sset?.order_enabled ? (sset?.order_rate || 0) : 0;
+        const startDate = new Date(y, m-1, 1).toISOString();
+        const endDate   = new Date(y, m, 1).toISOString();
+        const cid = userId;
 
-    // Get shifts for this month
-    const { data: myShifts } = await supabase.from('shifts')
-        .select('*').eq('courier_id', cid).eq('business_id', bizId)
-        .gte('started_at', startDate).lt('started_at', endDate);
+        // Salary settings
+        var sset = null;
+        try {
+            const { data } = await supabase.from('salary_settings')
+                .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
+            sset = data;
+        } catch(e) {}
 
-    let totalHours = 0, totalKm = 0, shiftCount = 0;
-    (myShifts || []).forEach(s => {
-        shiftCount++;
-        if (s.ended_at) {
-            totalHours += (new Date(s.ended_at) - new Date(s.started_at)) / 3600000;
-            if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
-        }
-    });
+        const hourlyRate = sset ? (parseFloat(sset.hourly_rate) || 0) : 0;
+        const kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
+        const orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
 
-    // Get orders
-    const { count: ordersCount } = await supabase.from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('courier_id', cid).eq('business_id', bizId)
-        .eq('status', 'completed')
-        .gte('created_at', startDate).lt('created_at', endDate);
+        // Shifts
+        var totalHours = 0, totalKm = 0, shiftCount = 0;
+        try {
+            const { data: myShifts } = await supabase.from('shifts')
+                .select('*').eq('courier_id', cid).eq('business_id', bizId)
+                .gte('started_at', startDate).lt('started_at', endDate);
+            (myShifts || []).forEach(function(s) {
+                shiftCount++;
+                if (s.ended_at) {
+                    totalHours += (new Date(s.ended_at) - new Date(s.started_at)) / 3600000;
+                    if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
+                }
+            });
+        } catch(e) {}
 
-    // Get bonuses (таблиця може ще не існувати)
-    let bonusTotal = 0;
-    try {
-        const { data: bonuses, error: bonErr } = await supabase.from('salary_bonuses')
-            .select('amount').eq('business_id', bizId).eq('courier_id', cid)
-            .eq('month', activeMonthKey);
-        if (!bonErr) bonusTotal = (bonuses || []).reduce((s, b) => s + (b.amount || 0), 0);
-    } catch(e) { console.warn('[schedule] salary_bonuses недоступна'); }
+        // Orders
+        var ordersCount = 0;
+        try {
+            const { count } = await supabase.from('orders')
+                .select('*', { count: 'exact', head: true })
+                .eq('courier_id', cid).eq('business_id', bizId)
+                .eq('status', 'completed')
+                .gte('created_at', startDate).lt('created_at', endDate);
+            ordersCount = count || 0;
+        } catch(e) {}
 
-    const safeOrders = ordersCount || 0;
-    const earned = (totalHours * hourlyRate) + (safeOrders * orderRate) - (totalKm * kmRate) + bonusTotal;
-    const earnedSafe = isNaN(earned) ? 0 : earned;
+        // Bonuses
+        var bonusTotal = 0;
+        try {
+            const { data: bonuses } = await supabase.from('salary_bonuses')
+                .select('amount').eq('business_id', bizId).eq('courier_id', cid)
+                .eq('month', activeMonthKey);
+            bonusTotal = (bonuses || []).reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+        } catch(e) {}
 
-    const cur = bizData?.currency || 'zł';
-    document.getElementById('earn-total').innerHTML =
-        `${earnedSafe.toFixed(2)} <span style="font-size:18px;opacity:0.8;">${cur}</span>`;
-    document.getElementById('earn-hours').textContent = totalHours.toFixed(1) + ' год';
-    document.getElementById('earn-shifts-count').textContent = shiftCount + ' змін';
-    document.getElementById('earn-orders').textContent = safeOrders + ' зам.';
-    document.getElementById('earn-currency').textContent = cur;
+        const earned = (totalHours * hourlyRate) + (ordersCount * orderRate) - (totalKm * kmRate) + bonusTotal;
+        const earnedSafe = isNaN(earned) ? 0 : Math.max(0, earned);
+        const cur = bizData ? (bizData.currency || 'zł') : 'zł';
+
+        // Update UI safely
+        var el;
+        el = document.getElementById('earn-total');
+        if (el) el.innerHTML = earnedSafe.toFixed(2) + ' <span style="font-size:18px;opacity:0.8;">' + cur + '</span>';
+        el = document.getElementById('earn-hours');
+        if (el) el.textContent = totalHours.toFixed(1) + ' год';
+        el = document.getElementById('earn-shifts-count');
+        if (el) el.textContent = shiftCount + ' змін';
+        el = document.getElementById('earn-orders');
+        if (el) el.textContent = ordersCount + ' зам.';
+        el = document.getElementById('earn-currency');
+        if (el) el.textContent = cur;
+
+        var earnSection = document.getElementById('earn-section');
+        if (earnSection) earnSection.style.display = '';
+
+    } catch(e) {
+        console.warn('[schedule] loadEarnings error:', e.message);
+    }
 }
 
-// ── ADD GROUP ──
-function addGroup() {
-    toast('Групи формуються автоматично по ролях персоналу');
-}
 
-// ── UTILS ──
-function setLoad(t) { document.getElementById('load-text').textContent = t; }
-function showError(msg) {
-    document.getElementById('load-text').textContent = msg;
-    document.getElementById('load-icon').className = 'fa-solid fa-circle-exclamation';
-    document.getElementById('load-icon').style.color = 'var(--primary)';
-}
-function show(id) { document.getElementById(id).style.display = ''; }
-function hide(id) { document.getElementById(id).style.display = 'none'; }
-
-let _toastTimer;
-function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(_toastTimer);
-    _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
-}
-</script>
-</body>
-</html>
