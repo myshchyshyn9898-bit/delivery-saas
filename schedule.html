@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="server-url" content="https://delivery-saas-production-3fe6.up.railway.app">
+    <title>DeliPro — Графік</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+
+        :root {
+            --bg:        #f3f6f8;
+            --surface:   #ffffff;
+            --primary:   #FF5A5F;
+            --primary-g: rgba(255,90,95,0.12);
+            --success:   #10b981;
+            --success-g: rgba(16,185,129,0.12);
+            --info:      #3b82f6;
+            --text:      #0f172a;
+            --muted:     #64748b;
+            --border:    #f1f5f9;
+            --radius:    20px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body { background: var(--bg); color: var(--text); padding-bottom: 110px; }
+
+        /* ── LOADER ── */
+        #loader { position: fixed; inset: 0; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 14px; z-index: 9999; }
+        .loader-ring { width: 44px; height: 44px; border: 3px solid var(--border);
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loader p { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+        /* ── HEADER ── */
+        .header { background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+            padding: 18px 20px 14px; border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: sticky; top: 0; z-index: 100; }
+        .header-row { display: flex; align-items: center; justify-content: space-between; }
+        .header-title { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+        .header-badge { font-size: 10px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; padding: 4px 10px; border-radius: 8px;
+            background: var(--primary-g); color: var(--primary); }
+
+        /* ── MONTH TABS ── */
+        .month-wrap { padding: 14px 20px 0; }
+        .month-scroll { display: flex; gap: 6px; overflow-x: auto;
+            scrollbar-width: none; padding-bottom: 2px; }
+        .month-scroll::-webkit-scrollbar { display: none; }
+        .m-tab { flex: 0 0 auto; padding: 9px 18px; border-radius: 12px;
+            font-size: 13px; font-weight: 700; color: var(--muted);
+            background: var(--surface); border: 1.5px solid var(--border);
+            cursor: pointer; transition: 0.2s; white-space: nowrap; }
+        .m-tab.active { background: var(--primary); color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 4px 14px rgba(255,90,95,0.3); }
+        .m-tab-add { flex: 0 0 auto; padding: 9px 16px; border-radius: 12px;
+            font-size: 13px; font-weight: 700; color: var(--primary);
+            background: transparent; border: 1.5px dashed var(--primary);
+            cursor: pointer; transition: 0.2s; }
+        .m-tab-add:active { background: var(--primary-g); }
+
+        /* ── TABLE WRAPPER ── */
+        .section-label { font-size: 11px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--muted); padding: 18px 20px 8px; }
+
+        .table-card { background: var(--surface); border-radius: var(--radius);
+            margin: 0 12px 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.03); overflow: hidden; }
+
+        .group-header { display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 18px; border-bottom: 1px solid var(--border); }
+        .group-name { font-size: 15px; font-weight: 800; color: var(--text); outline: none; }
+        .group-name:focus { color: var(--primary); }
+        .btn-del-group { background: none; border: none; color: var(--muted);
+            font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 8px; transition: 0.2s; }
+        .btn-del-group:active { background: rgba(239,68,68,0.1); color: var(--primary); }
+
+        .tbl-scroll { overflow-x: auto; scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent; }
+        .tbl-scroll::-webkit-scrollbar { height: 3px; }
+        .tbl-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+
+        /* sticky name col */
+        .col-name { position: sticky; left: 0; background: var(--surface); z-index: 3;
+            min-width: 110px; max-width: 110px; padding: 10px 12px;
+            font-size: 13px; font-weight: 700; color: var(--text);
+            border-right: 1px solid var(--border); white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis; }
+        .col-name::after { content: ''; position: absolute; top: 0; right: 0;
+            width: 8px; height: 100%;
+            background: linear-gradient(to right, rgba(0,0,0,0.03), transparent); }
+
+        th.col-name { font-size: 10px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--muted); padding: 10px 12px;
+            border-bottom: 1px solid var(--border); }
+
+        .col-day-head { min-width: 38px; max-width: 38px; text-align: center;
+            padding: 6px 2px 0; border-bottom: 1px solid var(--border); }
+        .day-num { font-size: 13px; font-weight: 800; color: var(--text); }
+        .day-name { font-size: 9px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.3px; color: var(--muted); padding-bottom: 6px; }
+
+        /* totals */
+        .col-total-head { min-width: 48px; text-align: center; padding: 6px 4px 0;
+            border-bottom: 1px solid var(--border);
+            border-left: 1px dashed #dbe0e5; }
+        .col-total-head .day-name { color: var(--primary); }
+
+        /* rows */
+        tr.emp-row td { border-bottom: 1px solid var(--border); }
+        tr.emp-row:last-child td { border-bottom: none; }
+
+        /* day cell */
+        .cell-day { min-width: 38px; max-width: 38px; height: 40px;
+            text-align: center; vertical-align: middle; padding: 3px 2px; }
+
+        .day-slot { width: 32px; height: 32px; border-radius: 9px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.18s; position: relative;
+            background: #f4f6f9; }
+        .day-slot:active { transform: scale(0.88); }
+        .day-slot svg { width: 14px; height: 14px; opacity: 0; transition: 0.18s; }
+
+        /* planned by admin — blue dot */
+        .day-slot.planned { background: rgba(59,130,246,0.12); }
+        .day-slot.planned svg.icon-planned { opacity: 1; }
+        .day-slot.planned .slot-hours { display: flex; }
+
+        /* worked by courier — green check */
+        .day-slot.worked { background: var(--success-g); }
+        .day-slot.worked svg.icon-worked { opacity: 1; }
+        .day-slot.worked .slot-hours { display: flex; }
+
+        /* both planned + worked */
+        .day-slot.planned.worked { background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(16,185,129,0.1)); }
+        .day-slot.planned.worked svg.icon-planned { opacity: 0; }
+        .day-slot.planned.worked svg.icon-worked { opacity: 1; }
+
+        .slot-hours { display: none; position: absolute; bottom: -1px; right: -1px;
+            font-size: 8px; font-weight: 900; color: var(--muted);
+            background: var(--surface); border-radius: 4px; padding: 0 2px;
+            line-height: 1.5; }
+
+        .cell-total { min-width: 48px; text-align: center; vertical-align: middle;
+            padding: 3px 4px; border-left: 1px dashed #dbe0e5; }
+        .badge-count { display: inline-flex; align-items: center; justify-content: center;
+            min-width: 30px; padding: 5px 4px; border-radius: 8px;
+            font-size: 11px; font-weight: 800; }
+        .badge-shifts { background: #f1f5f9; color: var(--text); }
+        .badge-hours  { background: var(--primary-g); color: var(--primary); }
+
+        /* today highlight */
+        .col-day-head.today .day-num { color: var(--primary); }
+        .col-day-head.today .day-name { color: var(--primary); }
+        .cell-day.today .day-slot { box-shadow: inset 0 0 0 1.5px rgba(255,90,95,0.35); }
+
+        /* add employee btn */
+        .btn-add-emp { display: flex; align-items: center; gap: 8px;
+            margin: 10px 14px 14px; padding: 10px 14px; border-radius: 12px;
+            background: transparent; border: 1.5px dashed var(--border);
+            color: var(--muted); font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: 0.2s; width: calc(100% - 28px); }
+        .btn-add-emp:active { background: var(--primary-g); border-color: var(--primary); color: var(--primary); }
+
+        /* ── BOTTOM ACTIONS (admin only) ── */
+        .bottom-actions { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 10px; z-index: 200; width: 90%; max-width: 420px; }
+        .btn-fab { flex: 1; padding: 15px; border-radius: 18px; border: none;
+            font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-fab:active { transform: scale(0.96); }
+        .btn-fab-primary { background: var(--primary); color: #fff;
+            box-shadow: 0 8px 24px rgba(255,90,95,0.35); }
+        .btn-fab-secondary { background: var(--surface); color: var(--text);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08); border: 1px solid var(--border); }
+
+        /* ── EARNINGS CARD (non-owner) ── */
+        .earn-section { margin: 0 12px 20px; }
+        .earn-card { background: linear-gradient(135deg, var(--primary), #ff8a76);
+            border-radius: var(--radius); padding: 20px;
+            box-shadow: 0 10px 30px rgba(255,90,95,0.25); color: #fff;
+            position: relative; overflow: hidden; }
+        .earn-card::after { content: ''; position: absolute; right: -20px; bottom: -20px;
+            width: 120px; height: 120px; border-radius: 50%;
+            background: rgba(255,255,255,0.08); }
+        .earn-label { font-size: 11px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; opacity: 0.85; margin-bottom: 8px; }
+        .earn-amount { font-size: 34px; font-weight: 900; letter-spacing: -1px;
+            margin-bottom: 14px; }
+        .earn-breakdown { display: flex; gap: 12px; flex-wrap: wrap; }
+        .earn-item { background: rgba(255,255,255,0.18); border-radius: 10px;
+            padding: 8px 12px; }
+        .earn-item-val { font-size: 14px; font-weight: 800; }
+        .earn-item-lbl { font-size: 10px; font-weight: 700; opacity: 0.8; margin-top: 1px; }
+
+        /* ── BOTTOM SHEET (modal) ── */
+        .overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.7);
+            z-index: 1000; opacity: 0; visibility: hidden;
+            transition: 0.3s; backdrop-filter: blur(4px); }
+        .overlay.show { opacity: 1; visibility: visible; }
+        .sheet { position: absolute; bottom: -100%; left: 0; right: 0;
+            background: var(--surface); border-radius: 28px 28px 0 0;
+            padding: 24px 20px 40px; transition: bottom 0.35s cubic-bezier(0.2,0.8,0.2,1);
+            max-height: 85vh; overflow-y: auto; }
+        .overlay.show .sheet { bottom: 0; }
+        .sheet-handle { width: 44px; height: 4px; background: #cbd5e1;
+            border-radius: 4px; margin: 0 auto 20px; }
+        .sheet-title { font-size: 17px; font-weight: 900; margin-bottom: 18px;
+            color: var(--text); }
+
+        .sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .sheet-btn { padding: 14px; border-radius: 14px; border: none;
+            font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .sheet-btn:active { transform: scale(0.96); }
+        .sheet-btn-plan { background: rgba(59,130,246,0.1); color: var(--info); }
+        .sheet-btn-clear { background: #f1f5f9; color: var(--muted); }
+
+        .time-group { background: #f8fafc; border: 1px solid var(--border);
+            border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: space-between; }
+        .time-group label { font-size: 13px; font-weight: 700; color: var(--muted); }
+        .time-group input { border: none; background: transparent; font-size: 16px;
+            font-weight: 800; color: var(--text); outline: none;
+            text-align: right; font-family: inherit; }
+
+        .btn-save { background: var(--primary); color: #fff; border: none;
+            width: 100%; padding: 16px; border-radius: 16px; font-size: 15px;
+            font-weight: 800; cursor: pointer; margin-top: 10px;
+            box-shadow: 0 8px 24px rgba(255,90,95,0.3); transition: 0.2s; }
+        .btn-save:active { transform: scale(0.97); }
+
+        /* legend */
+        .legend { display: flex; gap: 14px; padding: 10px 20px 14px; }
+        .leg-item { display: flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 700; color: var(--muted); }
+        .leg-dot { width: 20px; height: 20px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center; }
+        .leg-planned { background: rgba(59,130,246,0.12); }
+        .leg-worked  { background: var(--success-g); }
+
+        /* toast */
+        .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-10px);
+            background: var(--text); color: #fff; padding: 10px 18px; border-radius: 12px;
+            font-size: 13px; font-weight: 700; opacity: 0; transition: 0.25s; z-index: 9999;
+            white-space: nowrap; pointer-events: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <div class="loader-ring"></div>
+    <p id="load-text">Завантаження...</p>
+</div>
+
+<div id="app" style="display:none;">
+
+    <div class="header">
+        <div class="header-row">
+            <div class="header-title">Графік команди</div>
+            <span class="header-badge" id="role-badge">Кур'єр</span>
+        </div>
+    </div>
+
+    <!-- Month tabs -->
+    <div class="month-wrap">
+        <div class="month-scroll" id="month-tabs"></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="leg-item">
+            <div class="leg-dot leg-planned">
+                <svg viewBox="0 0 14 14" fill="none" width="12" height="12">
+                    <circle cx="7" cy="7" r="3.5" fill="#3b82f6"/>
+                </svg>
+            </div>
+            Заплановано
+        </div>
+        <div class="leg-item">
+            <div class="leg-dot leg-worked">
+                <svg viewBox="0 0 14 14" fill="none" width="12" height="12">
+                    <path d="M3 7.5L5.5 10L11 4.5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            Відпрацьовано
+        </div>
+    </div>
+
+    <!-- Groups container -->
+    <div id="groups-container"></div>
+
+    <!-- Earnings card (hidden for owner) -->
+    <div class="earn-section" id="earn-section" style="display:none;">
+        <div class="earn-card">
+            <div class="earn-label">Мій заробіток за місяць</div>
+            <div class="earn-amount" id="earn-total">0.00 <span style="font-size:18px;opacity:0.8;" id="earn-currency">zł</span></div>
+            <div class="earn-breakdown">
+                <div class="earn-item">
+                    <div class="earn-item-val" id="earn-hours">0 год</div>
+                    <div class="earn-item-lbl">Відпрацьовано</div>
+                </div>
+                <div class="earn-item">
+                    <div class="earn-item-val" id="earn-shifts-count">0 змін</div>
+                    <div class="earn-item-lbl">Змін</div>
+                </div>
+                <div class="earn-item">
+                    <div class="earn-item-val" id="earn-orders">0 зам.</div>
+                    <div class="earn-item-lbl">Замовлень</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin bottom actions -->
+    <div class="bottom-actions" id="admin-actions" style="display:none;">
+        <button class="btn-fab btn-fab-secondary" onclick="addGroup()">
+            <i class="fa-solid fa-plus"></i> Нова група
+        </button>
+        <button class="btn-fab btn-fab-primary" onclick="saveSchedule()">
+            <i class="fa-solid fa-floppy-disk"></i> Зберегти
+        </button>
+    </div>
+
+</div>
+
+<!-- Modal overlay -->
+<div class="overlay" id="overlay" onclick="closeSheet()">
+    <div class="sheet" onclick="event.stopPropagation()">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title" id="sheet-title">Зміна</div>
+
+        <div class="sheet-actions">
+            <button class="sheet-btn sheet-btn-plan" onclick="setPlanned()">
+                <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+                    <circle cx="8" cy="8" r="4" fill="#3b82f6"/>
+                </svg>
+                Запланувати
+            </button>
+            <button class="sheet-btn sheet-btn-clear" onclick="clearSlot()">
+                <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
+                    <path d="M4 4L12 12M12 4L4 12" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Очистити
+            </button>
+        </div>
+
+        <div class="time-group">
+            <label>Початок</label>
+            <input type="time" id="time-start" value="10:00">
+        </div>
+        <div class="time-group">
+            <label>Кінець</label>
+            <input type="time" id="time-end" value="22:00">
+        </div>
+
+        <button class="btn-save" onclick="saveSlot()">Зберегти години</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const RAILWAY_DOMAIN = document.querySelector('meta[name="server-url"]').content;
+const DAY_NAMES = ['пн','вт','ср','чт','пт','сб','нд'];
+const MONTH_NAMES = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
+                     'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+
+let supabase, tg, bizData, staffList = [];
+let userRole = 'courier', userId, bizId, authToken;
+let scheduleData = {}; // { 'YYYY-MM': { courierId: { day: {start,end,planned,worked} } } }
+let shiftsData = {};   // { courierId: [ {started_at, ended_at, ...} ] }
+let salarySettings = {}; // { courierId: {hourly_rate, ...} }
+let activeMonthKey = '';
+let activeCell = null; // { courierId, day }
+let isAdmin = false;
+
+// ── INIT ──
+const urlP = new URLSearchParams(location.search);
+bizId     = urlP.get('biz_id');
+authToken = urlP.get('token');
+const tgId = urlP.get('tg_id');
+
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        tg = window.Telegram?.WebApp;
+        if (tg) { tg.ready(); tg.expand(); }
+
+        userId = tgId || tg?.initDataUnsafe?.user?.id;
+        if (!bizId || !authToken) throw new Error('Немає токена доступу');
+        if (!userId) throw new Error('Не вдалось визначити користувача');
+        setLoad('Підключення...');
+
+        const cfg = await fetchConfig();
+        supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
+            global: { headers: { Authorization: 'Bearer ' + authToken } }
+        });
+
+        setLoad('Дані бізнесу...');
+        await loadBiz();
+        setLoad('Персонал...');
+        await loadStaff();
+        setLoad('Графік...');
+        await loadSchedule();
+        setLoad('Зміни...');
+        await loadShifts();
+
+        initMonths();
+        renderAll();
+        await loadEarnings();
+
+        hide('loader'); show('app');
+    } catch(e) {
+        document.getElementById('load-text').textContent = '❌ ' + e.message;
+    }
+});
+
+async function fetchConfig() {
+    const r = await fetch(RAILWAY_DOMAIN + '/config');
+    if (!r.ok) throw new Error('Сервер недоступний');
+    return r.json();
+}
+
+async function loadBiz() {
+    const { data, error } = await supabase.from('businesses').select('*').eq('id', bizId).single();
+    if (error || !data) throw new Error('Бізнес не знайдено');
+    bizData = data;
+}
+
+async function loadStaff() {
+    const { data } = await supabase.from('staff').select('*').eq('business_id', bizId);
+    staffList = data || [];
+
+    // determine role
+    if (String(bizData.owner_id) === String(userId)) {
+        userRole = 'owner';
+    } else {
+        const me = staffList.find(s => String(s.user_id) === String(userId));
+        userRole = me?.role || 'courier';
+    }
+    isAdmin = userRole === 'manager' || userRole === 'owner';
+
+    document.getElementById('role-badge').textContent =
+        userRole === 'owner' ? 'Власник' :
+        userRole === 'manager' ? 'Адмін' :
+        userRole === 'kitchen' ? 'Кухня' : "Кур'єр";
+
+    if (isAdmin) show('admin-actions');
+    if (userRole !== 'owner') show('earn-section');
+}
+
+async function loadSchedule() {
+    const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+    const fromStr = from.toISOString().slice(0,10);
+    const { data } = await supabase.from('schedule')
+        .select('*').eq('business_id', bizId).gte('date', fromStr);
+    scheduleData = {};
+    (data || []).forEach(r => {
+        const mk = r.date.slice(0,7);
+        const day = parseInt(r.date.slice(8,10));
+        if (!scheduleData[mk]) scheduleData[mk] = {};
+        if (!scheduleData[mk][String(r.courier_id)]) scheduleData[mk][String(r.courier_id)] = {};
+        scheduleData[mk][String(r.courier_id)][day] = {
+            id: r.id, start: r.planned_start, end: r.planned_end, planned: true
+        };
+    });
+}
+
+async function loadShifts() {
+    // Load last 3 months of shifts
+    const from = new Date(); from.setMonth(from.getMonth() - 2); from.setDate(1);
+    const { data } = await supabase.from('shifts')
+        .select('*').eq('business_id', bizId)
+        .gte('started_at', from.toISOString());
+    shiftsData = {};
+    (data || []).forEach(s => {
+        const cid = String(s.courier_id);
+        if (!shiftsData[cid]) shiftsData[cid] = [];
+        shiftsData[cid].push(s);
+    });
+}
+
+// ── MONTHS ──
+function initMonths() {
+    const now = new Date();
+    // Show prev, current, next month
+    const months = [];
+    for (let d = -1; d <= 2; d++) {
+        const dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
+        months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
+    }
+    // Also add any months from scheduleData not in list
+    Object.keys(scheduleData).forEach(mk => { if (!months.includes(mk)) months.unshift(mk); });
+    months.sort();
+
+    window._months = months;
+    activeMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+    renderMonthTabs();
+}
+
+function renderMonthTabs() {
+    const wrap = document.getElementById('month-tabs');
+    wrap.innerHTML = '';
+    window._months.forEach(mk => {
+        const [y, m] = mk.split('-');
+        const label = MONTH_NAMES[parseInt(m)-1] + ' ' + y;
+        const tab = document.createElement('div');
+        tab.className = 'm-tab' + (mk === activeMonthKey ? ' active' : '');
+        tab.textContent = label;
+        tab.onclick = () => { activeMonthKey = mk; renderMonthTabs(); renderAll(); loadEarnings(); };
+        wrap.appendChild(tab);
+    });
+    if (isAdmin) {
+        const add = document.createElement('div');
+        add.className = 'm-tab-add';
+        add.textContent = '+ Місяць';
+        add.onclick = addMonth;
+        wrap.appendChild(add);
+    }
+}
+
+function addMonth() {
+    const input = prompt('Введіть місяць (формат YYYY-MM, напр. 2026-06):');
+    if (!input || !/^\d{4}-\d{2}$/.test(input)) return;
+    if (!window._months.includes(input)) {
+        window._months.push(input);
+        window._months.sort();
+    }
+    activeMonthKey = input;
+    renderMonthTabs();
+    renderAll();
+}
+
+// ── RENDER ──
+function renderAll() {
+    const container = document.getElementById('groups-container');
+    container.innerHTML = '';
+
+    // Group staff by role
+    const groups = {};
+    staffList.forEach(s => {
+        const g = s.role || 'courier';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(s);
+    });
+
+    const groupLabels = {
+        courier: "Кур'єри", manager: 'Менеджери', kitchen: 'Кухня', admin: 'Адміни'
+    };
+
+    Object.entries(groups).forEach(([role, members]) => {
+        const card = buildGroupCard(groupLabels[role] || role, members);
+        container.appendChild(card);
+    });
+
+    if (isAdmin) {
+        // Add "add group" handled via addGroup()
+    }
+}
+
+function buildGroupCard(groupName, members) {
+    const [y, m] = activeMonthKey.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const today = new Date();
+    const todayDay = (today.getFullYear() === y && today.getMonth()+1 === m) ? today.getDate() : -1;
+
+    const card = document.createElement('div');
+    card.className = 'table-card';
+
+    // Group header
+    const gh = document.createElement('div');
+    gh.className = 'group-header';
+    gh.innerHTML = `<div class="group-name" ${isAdmin ? 'contenteditable="true"' : ''}>${groupName}</div>`;
+    card.appendChild(gh);
+
+    // Table
+    const scroll = document.createElement('div');
+    scroll.className = 'tbl-scroll';
+
+    let headDates = '', headDays = '', bodyRows = '';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dow = new Date(y, m-1, d).getDay(); // 0=Sun
+        const dowIdx = dow === 0 ? 6 : dow - 1;
+        const isToday = d === todayDay;
+        headDates += `<th class="col-day-head${isToday?' today':''}"><div class="day-num">${d}</div></th>`;
+        headDays  += `<th class="col-day-head${isToday?' today':''}"><div class="day-name">${DAY_NAMES[dowIdx]}</div></th>`;
+    }
+
+    members.forEach(s => {
+        const cid = String(s.user_id);
+        const monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
+
+        // Worked days from shifts
+        const workedDays = {};
+        (shiftsData[cid] || []).forEach(sh => {
+            const shDate = new Date(sh.started_at);
+            if (shDate.getFullYear() === y && shDate.getMonth()+1 === m) {
+                const d = shDate.getDate();
+                const hrs = sh.ended_at
+                    ? ((new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000).toFixed(1)
+                    : null;
+                workedDays[d] = hrs;
+            }
+        });
+
+        let cells = '';
+        let shiftCount = 0, hoursTotal = 0;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const isToday = d === todayDay;
+            const planned = !!monthData[d];
+            const worked  = d in workedDays;
+            const hrs     = workedDays[d];
+
+            if (planned || worked) shiftCount++;
+            if (hrs) hoursTotal += parseFloat(hrs);
+
+            const canEdit = isAdmin;
+            const slotClass = [
+                'day-slot',
+                planned ? 'planned' : '',
+                worked  ? 'worked'  : ''
+            ].filter(Boolean).join(' ');
+
+            const startT = monthData[d]?.start || '';
+            const endT   = monthData[d]?.end   || '';
+
+            cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
+                <div class="${slotClass}" ${canEdit ? `onclick="openSheet('${cid}',${d},'${s.name}')"` : ''}>
+                    <!-- planned dot -->
+                    <svg class="icon-planned" viewBox="0 0 14 14" fill="none" style="position:absolute;">
+                        <circle cx="7" cy="7" r="3.5" fill="#3b82f6"/>
+                    </svg>
+                    <!-- worked check -->
+                    <svg class="icon-worked" viewBox="0 0 14 14" fill="none" style="position:absolute;">
+                        <path d="M3 7.5L5.5 10L11 4.5" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    ${startT ? `<span class="slot-hours">${startT.slice(0,5)}</span>` : ''}
+                </div>
+            </td>`;
+        }
+
+        bodyRows += `
+        <tr class="emp-row" data-cid="${cid}">
+            <td class="col-name">${s.name}</td>
+            ${cells}
+            <td class="cell-total"><div class="badge-count badge-shifts">${shiftCount}</div></td>
+            <td class="cell-total"><div class="badge-count badge-hours">${hoursTotal > 0 ? hoursTotal.toFixed(1).replace('.0','') : '0'}</div></td>
+        </tr>`;
+    });
+
+    scroll.innerHTML = `<table>
+        <thead>
+            <tr><th class="col-name" rowspan="2">Працівник</th>${headDates}
+                <th class="col-total-head" rowspan="2"><div class="day-name">Змін</div></th>
+                <th class="col-total-head" rowspan="2"><div class="day-name" style="color:var(--primary)">Год.</div></th>
+            </tr>
+            <tr>${headDays}</tr>
+        </thead>
+        <tbody>${bodyRows}</tbody>
+    </table>`;
+
+    card.appendChild(scroll);
+
+    if (isAdmin) {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'btn-add-emp';
+        addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Додати співробітника';
+        addBtn.onclick = () => toast('Запросіть через меню "Команда"');
+        card.appendChild(addBtn);
+    }
+
+    return card;
+}
+
+// ── SHEET ──
+function openSheet(cid, day, name) {
+    if (!isAdmin) return;
+    const [y, m] = activeMonthKey.split('-').map(Number);
+    const dow = new Date(y, m-1, day).getDay();
+    const dowIdx = dow === 0 ? 6 : dow - 1;
+
+    activeCell = { cid, day };
+    const existing = (scheduleData[activeMonthKey]?.[cid]?.[day]) || {};
+    document.getElementById('sheet-title').textContent = `${name} — ${day} ${DAY_NAMES[dowIdx]}`;
+    document.getElementById('time-start').value = (existing.start || '10:00').slice(0,5);
+    document.getElementById('time-end').value   = (existing.end   || '22:00').slice(0,5);
+    document.getElementById('overlay').classList.add('show');
+}
+
+function closeSheet() {
+    document.getElementById('overlay').classList.remove('show');
+    activeCell = null;
+}
+
+function setPlanned() {
+    if (!activeCell) return;
+    const { cid, day } = activeCell;
+    if (!scheduleData[activeMonthKey]) scheduleData[activeMonthKey] = {};
+    if (!scheduleData[activeMonthKey][cid]) scheduleData[activeMonthKey][cid] = {};
+    scheduleData[activeMonthKey][cid][day] = { planned: true, start: '10:00', end: '22:00' };
+    closeSheet(); renderAll();
+}
+
+function clearSlot() {
+    if (!activeCell) return;
+    const { cid, day } = activeCell;
+    if (scheduleData[activeMonthKey]?.[cid]?.[day]) {
+        delete scheduleData[activeMonthKey][cid][day];
+    }
+    closeSheet(); renderAll();
+}
+
+function saveSlot() {
+    if (!activeCell) return;
+    const { cid, day } = activeCell;
+    const start = document.getElementById('time-start').value;
+    const end   = document.getElementById('time-end').value;
+    if (!scheduleData[activeMonthKey]) scheduleData[activeMonthKey] = {};
+    if (!scheduleData[activeMonthKey][cid]) scheduleData[activeMonthKey][cid] = {};
+    scheduleData[activeMonthKey][cid][day] = { planned: true, start, end };
+    closeSheet(); renderAll();
+}
+
+// ── SAVE TO DB ──
+async function saveSchedule() {
+    const btn = document.querySelector('.btn-fab-primary');
+    btn.textContent = 'Збереження...';
+    btn.disabled = true;
+
+    try {
+        const [y, m] = activeMonthKey.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        const monthData = scheduleData[activeMonthKey] || {};
+
+        const upserts = [];
+        Object.entries(monthData).forEach(([cid, days]) => {
+            Object.entries(days).forEach(([day, val]) => {
+                const dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
+                upserts.push({
+                    business_id: bizId,
+                    courier_id: parseInt(cid),
+                    date: dateStr,
+                    planned_start: val.start || null,
+                    planned_end:   val.end   || null,
+                });
+            });
+        });
+
+        if (upserts.length > 0) {
+            await supabase.from('schedule')
+                .upsert(upserts, { onConflict: 'business_id,courier_id,date' });
+        }
+
+        // Delete cleared slots (those in DB but not in current data)
+        const startDate = `${activeMonthKey}-01`;
+        const endDate   = `${activeMonthKey}-${String(daysInMonth).padStart(2,'0')}`;
+        const { data: existing } = await supabase.from('schedule')
+            .select('id, courier_id, date')
+            .eq('business_id', bizId)
+            .gte('date', startDate).lte('date', endDate);
+
+        const toDelete = (existing || []).filter(r => {
+            const cid = String(r.courier_id);
+            const day = parseInt(r.date.slice(8,10));
+            return !(monthData[cid] && monthData[cid][day]);
+        }).map(r => r.id);
+
+        if (toDelete.length > 0) {
+            await supabase.from('schedule').delete().in('id', toDelete);
+        }
+
+        toast('✅ Графік збережено');
+    } catch(e) {
+        toast('❌ Помилка збереження');
+    } finally {
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти';
+        btn.disabled = false;
+    }
+}
+
+// ── EARNINGS ──
+async function loadEarnings() {
+    if (userRole === 'owner') return;
+
+    const [y, m] = activeMonthKey.split('-').map(Number);
+    const startDate = new Date(y, m-1, 1).toISOString();
+    const endDate   = new Date(y, m, 1).toISOString();
+    const cid = userId;
+
+    // Get salary settings
+    const { data: sset } = await supabase.from('salary_settings')
+        .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle();
+
+    const hourlyRate = sset?.hourly_rate || 0;
+    const kmRate     = sset?.km_enabled ? (sset?.km_rate || bizData?.km_rate || 0) : 0;
+    const orderRate  = sset?.order_enabled ? (sset?.order_rate || 0) : 0;
+
+    // Get shifts for this month
+    const { data: myShifts } = await supabase.from('shifts')
+        .select('*').eq('courier_id', cid).eq('business_id', bizId)
+        .gte('started_at', startDate).lt('started_at', endDate);
+
+    let totalHours = 0, totalKm = 0, shiftCount = 0;
+    (myShifts || []).forEach(s => {
+        shiftCount++;
+        if (s.ended_at) {
+            totalHours += (new Date(s.ended_at) - new Date(s.started_at)) / 3600000;
+            if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
+        }
+    });
+
+    // Get orders
+    const { count: ordersCount } = await supabase.from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('courier_id', cid).eq('business_id', bizId)
+        .eq('status', 'completed')
+        .gte('created_at', startDate).lt('created_at', endDate);
+
+    // Get bonuses
+    const { data: bonuses } = await supabase.from('salary_bonuses')
+        .select('amount').eq('business_id', bizId).eq('courier_id', cid)
+        .eq('month', activeMonthKey);
+    const bonusTotal = (bonuses || []).reduce((s, b) => s + (b.amount || 0), 0);
+
+    const safeOrders = ordersCount || 0;
+    const earned = (totalHours * hourlyRate) + (safeOrders * orderRate) - (totalKm * kmRate) + bonusTotal;
+    const earnedSafe = isNaN(earned) ? 0 : earned;
+
+    const cur = bizData?.currency || 'zł';
+    document.getElementById('earn-total').innerHTML =
+        `${earnedSafe.toFixed(2)} <span style="font-size:18px;opacity:0.8;">${cur}</span>`;
+    document.getElementById('earn-hours').textContent = totalHours.toFixed(1) + ' год';
+    document.getElementById('earn-shifts-count').textContent = shiftCount + ' змін';
+    document.getElementById('earn-orders').textContent = safeOrders + ' зам.';
+    document.getElementById('earn-currency').textContent = cur;
+}
+
+// ── ADD GROUP ──
+function addGroup() {
+    toast('Групи формуються автоматично по ролях персоналу');
+}
+
+// ── UTILS ──
+function setLoad(t) { document.getElementById('load-text').textContent = t; }
+function show(id) { document.getElementById(id).style.display = ''; }
+function hide(id) { document.getElementById(id).style.display = 'none'; }
+
+let _toastTimer;
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
