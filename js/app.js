@@ -1080,7 +1080,9 @@ async function initSalaryTab() {
         const t = Math.floor(Date.now()/1000);
         const token = authToken || '';
         const tgId = tgUserIdParam || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
-        const url = RAILWAY_DOMAIN + `/schedule.html?biz_id=${bizId}&tg_id=${tgId}&v=${t}&token=${token}`;
+        // Беремо базовий URL з поточної сторінки (GitHub Pages)
+        const basePageUrl = window.location.href.replace(/[^/]*$/, '');
+        const url = basePageUrl + `schedule.html?biz_id=${bizId}&tg_id=${tgId}&v=${t}&token=${token}`;
         schedWrap.innerHTML = `
         <button class="btn-schedule-open" onclick="window.location.href='${url}'">
             <div class="btn-schedule-icon"><i class="fa-solid fa-calendar-days"></i></div>
