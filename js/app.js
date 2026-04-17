@@ -1242,18 +1242,11 @@ async function renderSalaryList() {
 
         // Hours + km from shifts
         var totalHours = 0, totalKm = 0, shiftCount = 0;
-        var realHours = 0, plannedHours = 0, hasActual = false;
 
-        // 1. Реальні зміни з боту
+        // Км з реальних змін
         var myShifts = shiftsByCourier[cid] || [];
         myShifts.forEach(function(sh) {
-            shiftCount++;
-            if (sh.ended_at) {
-                realHours += (new Date((sh.ended_at||'').replace(' ','T')) - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
-                if (sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
-            } else {
-                realHours += (new Date() - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
-            }
+            if (sh.ended_at && sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
         });
 
         // 2. Розрахунок ПО ДНЯХ з реальних даних графіку
@@ -1548,4 +1541,3 @@ async function togglePayment(cid, currentlyPaid) {
         showToast(newPaid ? '✅ Виплату підтверджено' : '↩️ Статус скасовано', '');
         await switchSalaryMonth(salaryMonthKey);
     } catch(e) { showToast('❌ Помилка', e.message); }
-}
