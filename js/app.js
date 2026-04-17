@@ -1193,6 +1193,26 @@ async function renderSalaryList() {
         allOrders = ordRes.data || [];
     } catch(e) {}
 
+    // Завантажуємо дані графіку (actual_hours + планові години)
+    var salaryScheduleData = {};
+    try {
+        var schedRes = await supabaseClient.from('schedule')
+            .select('*').eq('business_id', bizId)
+            .gte('date', startDate.slice(0,10))
+            .lt('date', endDate.slice(0,10));
+        (schedRes.data || []).forEach(function(r) {
+            var cid = String(r.courier_id);
+            var day = parseInt(r.date.slice(8,10));
+            if (!salaryScheduleData[cid]) salaryScheduleData[cid] = {};
+            salaryScheduleData[cid][day] = {
+                planned: true,
+                start: r.planned_start,
+                end: r.planned_end,
+                actual_hours: r.actual_hours != null ? parseFloat(r.actual_hours) : null
+            };
+        });
+    } catch(e) {}
+
     var shiftsByCourier = {};
     allShifts.forEach(function(sh) {
         var cid = String(sh.courier_id);
@@ -1236,31 +1256,33 @@ async function renderSalaryList() {
             }
         });
 
-        // 2. actual_hours та планові з scheduleData
-        var schedKey = salaryMonthKey;
-        if (typeof scheduleData !== 'undefined' && scheduleData[schedKey]) {
-            var monthSched = scheduleData[schedKey][cid] || {};
-            Object.keys(monthSched).forEach(function(day) {
-                var slot = monthSched[day];
-                if (!slot || !slot.planned) return;
-                if (slot.actual_hours != null && !isNaN(slot.actual_hours)) {
-                    totalHours += parseFloat(slot.actual_hours);
-                    hasActual = true;
-                    if (shiftCount === 0) shiftCount++;
-                } else if (!hasActual) {
-                    if (slot.start && slot.end) {
-                        var ps = slot.start.split(':');
-                        var pe = slot.end.split(':');
-                        var diff = (parseInt(pe[0])*60+parseInt(pe[1]))-(parseInt(ps[0])*60+parseInt(ps[1]));
-                        if (diff > 0) { plannedHours += diff/60; shiftCount++; }
-                    }
-                }
-            });
-        }
+        // 2. Розрахунок ПО ДНЯХ з реальних даних графіку
+        var parts = salaryMonthKey.split('-');
+        var sy = parseInt(parts[0]), sm = parseInt(parts[1]);
+        var daysInMonth = new Date(sy, sm, 0).getDate();
+        var monthSched = salaryScheduleData[cid] || {};
 
-        // Пріоритет: actual > real > planned
-        if (!hasActual) {
-            totalHours = realHours > 0 ? realHours : plannedHours;
+        for (var dd = 1; dd <= daysInMonth; dd++) {
+            var slot = monthSched[dd];
+            var realDay = realDailyByCourier[cid] ? realDailyByCourier[cid][dd] : null;
+            var dayHours = 0;
+
+            if (slot && slot.actual_hours != null && !isNaN(slot.actual_hours)) {
+                // Пріоритет 1: ручне введення
+                dayHours = slot.actual_hours;
+                if (shiftCount === 0 || !realDay) shiftCount++;
+            } else if (realDay && realDay.hours > 0) {
+                // Пріоритет 2: реальні з боту
+                dayHours = realDay.hours;
+            } else if (slot && slot.planned && slot.start && slot.end) {
+                // Пріоритет 3: планові
+                var ps = slot.start.split(':');
+                var pe = slot.end.split(':');
+                var diff = (parseInt(pe[0])*60+parseInt(pe[1]))-(parseInt(ps[0])*60+parseInt(ps[1]));
+                if (diff < 0) diff += 1440;
+                if (diff > 0) { dayHours = diff/60; shiftCount++; }
+            }
+            totalHours += dayHours;
         }
         totalHours = Math.round(totalHours * 10) / 10;
         totalKm = Math.round(totalKm);
