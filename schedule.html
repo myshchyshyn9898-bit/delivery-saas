@@ -942,6 +942,9 @@ function buildGroupCard(groupName, members, groupRole) {
             var startT = (monthData[d] && monthData[d].start) || '';
             var endT   = (monthData[d] && monthData[d].end)   || '';
             var editAttr = canEdit ? 'data-edit="1"' : '';
+            var slotLabel = (monthData[d] && monthData[d].actual_hours != null)
+                ? '<span class="slot-hours" style="color:var(--primary);">' + monthData[d].actual_hours + 'г</span>'
+                : (startT ? '<span class="slot-hours">' + startT.slice(0,5) + '</span>' : '');
 
             cells += "<td class=\"cell-day" + (isToday?" today":"") + '" data-cid="' + cid + '" data-day="' + d + '">' + "<div class=\"" + slotClass + "\"" + (editAttr ? " " + editAttr : "") + ' data-cid="' + cid + '" data-day="' + d + '" data-name="' + s.name.replace(/"/g,"&quot;") + '">' + "<svg class=\"icon-planned\" viewBox=\"0 0 14 14\" fill=\"none\" style=\"position:absolute;\"><circle cx=\"7\" cy=\"7\" r=\"3.5\" fill=\"#3b82f6\"/></svg>" + "<svg class=\"icon-worked\" viewBox=\"0 0 14 14\" fill=\"none\" style=\"position:absolute;\"><path d=\"M3 7.5L5.5 10L11 4.5\" stroke=\"#10b981\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>" + slotLabel + "</div></td>";
         }
