@@ -413,18 +413,11 @@
 
         <div class="time-group">
             <label>Назва групи</label>
-            <input type="text" id="group-name-input" placeholder="Напр. Кухня, Склад..." style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
+            <input type="text" id="group-name-input" placeholder="Кухня, Склад, Електрики..." style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
         </div>
 
-        <div class="time-group" style="margin-top:8px;">
-            <label>Роль / Посада групи</label>
-            <input type="text" id="group-role" placeholder="Кухня, Склад, Бариста..." style="border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:55%;">
-        </div>
-
-        <p style="font-size:12px;color:var(--muted);margin-top:10px;">Група створюється автоматично коли є хоч один співробітник з цією роллю.</p>
-
-        <button class="btn-save" onclick="addGroupWithStaff()" style="margin-top:16px;">
-            <i class="fa-solid fa-plus"></i> Створити та додати співробітника
+        <button class="btn-save" onclick="createGroup()" style="margin-top:16px;">
+            <i class="fa-solid fa-plus"></i> Створити групу
         </button>
     </div>
 </div>
@@ -661,10 +654,24 @@ function closeGroupSheet() {
     var el = document.getElementById('group-overlay');
     if (el) el.classList.remove('show');
 }
-function addGroupWithStaff() {
-    var groupRole = (document.getElementById('group-role').value || '').trim();
+function createGroup() {
+    var name = (document.getElementById('group-name-input').value || '').trim();
+    if (!name) { toast('Введіть назву групи'); return; }
     closeGroupSheet();
-    openStaffSheet(groupRole);
+    // Якщо вже є така група — просто переходимо до неї
+    // Якщо немає — добавляємо порожню групу в staffList як placeholder
+    var exists = staffList.some(function(s) {
+        return (s.role || '').toLowerCase() === name.toLowerCase();
+    });
+    if (exists) {
+        toast('Група "' + name + '" вже існує');
+        return;
+    }
+    // Добавляємо "пустого" члена як маркер групи — щоб група відобразилась
+    // Він не зберігається в БД — тільки як тимчасовий placeholder
+    staffList.push({ user_id: '__group_' + Date.now(), name: '', role: name, _placeholder: true });
+    renderAll();
+    toast('✅ Група "' + name + '" створена — додайте співробітників');
 }
 function addGroup() { openGroupSheet(); }
 
@@ -896,6 +903,7 @@ function buildGroupCard(groupName, members, groupRole) {
     }
 
     members.forEach(s => {
+        if (s._placeholder) return; // порожня група — пропускаємо
         var cid = String(s.user_id);
         var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
@@ -1482,6 +1490,7 @@ function buildGroupCard(groupName, members, groupRole) {
     }
 
     members.forEach(s => {
+        if (s._placeholder) return; // порожня група — пропускаємо
         var cid = String(s.user_id);
         var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
