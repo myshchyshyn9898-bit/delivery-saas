@@ -21,6 +21,7 @@ async def check_late_orders():
                 .select("*")
                 .in_("status", ["pending", "delivering"])
                 .gte("created_at", since)
+                .limit(500)
                 .execute()
         )
         if not res.data:
@@ -56,6 +57,11 @@ async def check_late_orders():
             biz_id   = order["business_id"]
             short_id = str(oid)[:6].upper()
 
+            # Не надсилаємо алерти для expired бізнесів
+            actual_plan = await db.get_actual_plan(biz_id)
+            if actual_plan == "expired":
+                continue
+
             # Ім'я кур'єра
             c_name = "Не призначено"
             courier_id = order.get("courier_id")
@@ -70,21 +76,27 @@ async def check_late_orders():
                 if c_res.data:
                     c_name = c_res.data[0]["name"]
 
-            late_mins = int((now - created_at).total_seconds() / 60) - est_time
+            late_mins = max(1, int((now - created_at).total_seconds() / 60) - est_time)
 
             # Екрануємо спецсимволи Markdown у даних від користувача
             def _md(s): return str(s).replace('_', r'\_').replace('*', r'\*').replace('`', r'\`').replace('[', r'\[')
 
+            # Беремо мову бізнесу для сповіщення
+            biz_lang_res = await db._run(
+                lambda bid=biz_id: db.supabase.table("businesses").select("lang").eq("id", bid).execute()
+            )
+            biz_lang = (biz_lang_res.data[0].get("lang") or "uk") if biz_lang_res.data else "uk"
+            from texts import get_text as _tl
             msg = (
-                f"🚨 **ЗАПІЗНЕННЯ ЗАМОВЛЕННЯ!**\n\n"
-                f"📦 Замовлення `#{short_id}`\n"
-                f"📍 Адреса: {_md(order.get('address', '—'))}\n"
-                f"📞 Тел: {_md(order.get('client_phone', '—'))}\n"
-                f"🛵 Кур'єр: {_md(c_name)}\n\n"
-                f"⚠️ Запізнення вже на **{late_mins} хв**!"
+                f"🚨 **{_tl(biz_lang, 'late_header')}**\n\n"
+                f"📦 {_tl(biz_lang, 'late_order_lbl')} `#{short_id}`\n"
+                f"📍 {_tl(biz_lang, 'late_addr_lbl')}: {_md(order.get('address', '—'))}\n"
+                f"📞 {_tl(biz_lang, 'late_phone_lbl')}: {_md(order.get('client_phone', '—'))}\n"
+                f"🛵 {_tl(biz_lang, 'late_courier_lbl')}: {_md(c_name)}\n\n"
+                f"⚠️ {_tl(biz_lang, 'late_mins_msg', mins=late_mins)}"
             )
 
-            # Знаходимо менеджерів
+            # Знаходимо менеджерів + власника без зайвого запиту
             managers_res = await db._run(
                 lambda bid=biz_id: db.supabase.table("staff")
                     .select("user_id")
@@ -92,14 +104,18 @@ async def check_late_orders():
                     .eq("role", "manager")
                     .execute()
             )
-
             notify_ids = [int(m["user_id"]) for m in managers_res.data] if managers_res.data else []
 
-            # ✅ ВИПРАВЛЕНО: якщо немає менеджерів — нотифікуємо власника
             if not notify_ids:
-                biz = await db.get_business_by_id(biz_id)
-                if biz and biz.get("owner_id"):
-                    notify_ids = [int(biz["owner_id"])]
+                # Власника беремо напряму без get_business_by_id (уникаємо N+1)
+                biz_res = await db._run(
+                    lambda bid=biz_id: db.supabase.table("businesses")
+                        .select("owner_id")
+                        .eq("id", bid)
+                        .execute()
+                )
+                if biz_res.data and biz_res.data[0].get("owner_id"):
+                    notify_ids = [int(biz_res.data[0]["owner_id"])]
 
             for uid in notify_ids:
                 try:

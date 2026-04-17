@@ -131,6 +131,11 @@ async def _notify_managers_new_pos_order(
     if not biz:
         return
 
+    # Якщо адреса порожня - не можемо відправити замовлення кур'єру
+    if not address or not address.strip():
+        logger.warning(f"[POS:{source}] biz={biz_id} - замовлення без адреси, пропускаємо")
+        return
+
     delivery_mode = biz.get("delivery_mode", "dispatcher")
     currency = biz.get("currency", "zł")
     pay_icon = "💵" if payment == "cash" else ("💳" if payment == "terminal" else "🌐")
@@ -774,7 +779,10 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
         biz_id = data['biz_id']
 
         # Перевіряємо що token виданий саме для цього biz_id
-        if payload.get("biz_id") and payload["biz_id"] != str(biz_id):
+        # service_role токен (is_boss) може отримати доступ до всіх бізнесів
+        token_biz = payload.get("biz_id")
+        is_service = payload.get("role") == "service_role"
+        if token_biz and not is_service and token_biz != str(biz_id):
             return web.Response(status=403, text="Token biz_id mismatch")
 
         actual_plan = await db.get_actual_plan(biz_id)
@@ -810,8 +818,9 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
             address_query = urllib.parse.quote(data['address'])
             route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
 
-            phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', data.get('client_phone', '')))
-            if not phone_clean.startswith('+') and phone_clean:
+            raw_phone = data.get('client_phone') or ''
+            phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', str(raw_phone)))
+            if phone_clean and not phone_clean.startswith('+'):
                 phone_clean = '+' + phone_clean
 
             # ── UBER MODE: Відправка в загальну групу (з картою + кнопками) ──
@@ -834,6 +843,17 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
 
             # ── DISPATCHER MODE: Відправка конкретному кур'єру ──
             elif original_courier_id != "unassigned":
+                # Перевіряємо що courier_id існує в staff цього бізнесу
+                courier_check = await db._run(
+                    lambda: db.supabase.table('staff')
+                        .select('user_id')
+                        .eq('user_id', original_courier_id)
+                        .eq('business_id', biz_id)
+                        .execute()
+                )
+                if not courier_check.data:
+                    logger.warning(f"[api_new_order] courier_id={original_courier_id} не в staff biz={biz_id}")
+                    return web.Response(status=400, text="Courier not in staff")
                 import html as _wh
                 from handlers.orders import _build_order_text, _build_call_url
 

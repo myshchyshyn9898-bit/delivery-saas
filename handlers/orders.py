@@ -231,7 +231,7 @@ async def _send_uber_group_message(bot: Bot, group_id, biz, order_id, short_id,
 async def handle_web_app_data(message: types.Message, bot: Bot):
     data = json.loads(message.web_app_data.data)
     user_id = message.from_user.id
-    lang = message.from_user.language_code
+    lang = message.from_user.language_code or "en"
 
     # ── РЕЄСТРАЦІЯ БІЗНЕСУ ──────────────────────────────────────────────────
     if data.get("action") == "register_business":
@@ -368,21 +368,21 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     amount=amount,
                     currency=currency,
                     comment=_hd.escape(comment),
-                    status_line=_(lang, 'order_status_active_short'),
-                    lang=lang
+                    status_line=_(courier_lang, 'order_status_active_short'),
+                    lang=courier_lang
                 )
 
                 builder = InlineKeyboardBuilder()
                 if is_pro:
-                    builder.button(text=_(lang, 'btn_route'), url=route_url)
+                    builder.button(text=_(courier_lang, 'btn_route'), url=route_url)
                 if phone_clean:
-                    _btn_t, _call_u = _build_call_url(phone_clean, biz, lang=lang)
+                    _btn_t, _call_u = _build_call_url(phone_clean, biz, lang=courier_lang)
                     builder.button(text=_btn_t, url=_call_u)
                 if pay_type == "online":
-                    builder.button(text=_(lang, 'btn_close_online'), callback_data=f"dispatcher_close_online_{order_id}")
+                    builder.button(text=_(courier_lang, 'btn_close_online'), callback_data=f"dispatcher_close_online_{order_id}")
                 else:
-                    builder.button(text=_(lang, 'btn_close_cash', amount=amount, cur=currency), callback_data=f"dispatcher_close_cash_{order_id}")
-                    builder.button(text=_(lang, 'btn_close_terminal', amount=amount, cur=currency), callback_data=f"dispatcher_close_terminal_{order_id}")
+                    builder.button(text=_(courier_lang, 'btn_close_cash', amount=amount, cur=currency), callback_data=f"dispatcher_close_cash_{order_id}")
+                    builder.button(text=_(courier_lang, 'btn_close_terminal', amount=amount, cur=currency), callback_data=f"dispatcher_close_terminal_{order_id}")
                 builder.adjust(1)
 
                 if is_pro:
@@ -482,6 +482,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             address_query = urllib.parse.quote(address)
             route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
 
+            # Беремо мову кур'єра
+            assign_courier_lang = await db.get_courier_lang(int(courier_id), biz_id)
             import html as _ha
             courier_text = _build_order_text(
                 short_id=short_id,
@@ -493,22 +495,22 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 amount=order_db["amount"],
                 currency=currency,
                 comment=_ha.escape(order_db.get("comment", "") or ""),
-                status_line=_(lang, 'order_status_active_short'),
-                lang=lang
+                status_line=_(assign_courier_lang, 'order_status_active_short'),
+                lang=assign_courier_lang
             )
 
             builder = InlineKeyboardBuilder()
             if is_pro:
-                builder.button(text=_(lang, 'btn_route'), url=route_url)
+                builder.button(text=_(assign_courier_lang, 'btn_route'), url=route_url)
             phone_for_call = order_db.get('client_phone', '')
             if phone_for_call:
-                _btn_a, _call_a = _build_call_url(phone_for_call, biz, lang=lang)
+                _btn_a, _call_a = _build_call_url(phone_for_call, biz, lang=assign_courier_lang)
                 builder.button(text=_btn_a, url=_call_a)
             if pay_type == "online":
-                builder.button(text=_(lang, 'btn_close_online'), callback_data=f"dispatcher_close_online_{order_id}")
+                builder.button(text=_(assign_courier_lang, 'btn_close_online'), callback_data=f"dispatcher_close_online_{order_id}")
             else:
-                builder.button(text=_(lang, 'btn_close_cash', amount=order_db['amount'], cur=currency), callback_data=f"dispatcher_close_cash_{order_id}")
-                builder.button(text=_(lang, 'btn_close_terminal', amount=order_db['amount'], cur=currency), callback_data=f"dispatcher_close_terminal_{order_id}")
+                builder.button(text=_(assign_courier_lang, 'btn_close_cash', amount=order_db['amount'], cur=currency), callback_data=f"dispatcher_close_cash_{order_id}")
+                builder.button(text=_(assign_courier_lang, 'btn_close_terminal', amount=order_db['amount'], cur=currency), callback_data=f"dispatcher_close_terminal_{order_id}")
             builder.adjust(1)
 
             if is_pro:
@@ -585,11 +587,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
             # ✅ ВИПРАВЛЕНО: перевіряємо що замовлення ще не взяте
             if order.get("status") != "pending":
-                await message.answer("⚠️ Це замовлення вже взяте іншим кур'єром.")
+                await message.answer(_(lang, "order_taken_by_other"))
                 return
 
             # ✅ ВИПРАВЛЕНО: оновлюємо статус і кур'єра в БД
-            taker_id = message.from_user.id
             upd_res = await db._run(
                 lambda: db.supabase.table("orders")
                     .update({"status": "delivering", "courier_id": taker_id})
@@ -598,7 +599,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                     .execute()
             )
             if not upd_res.data:
-                await message.answer("⚠️ Не вдалось взяти замовлення. Спробуйте ще раз.")
+                await message.answer(_(lang, "order_take_failed"))
                 return
 
             biz_id = order["business_id"]
@@ -656,7 +657,19 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             else:
                 builder.button(text=_(lang, 'btn_close_cash', amount=amount, cur=currency), callback_data=f"uber_close_cash_{order_id}")
                 builder.button(text=_(lang, 'btn_close_terminal', amount=amount, cur=currency), callback_data=f"uber_close_terminal_{order_id}")
-            builder.adjust(2, 2) if raw_phone and pay_type != "online" else builder.adjust(2, 1) if raw_phone else builder.adjust(1)
+            # Розкладаємо кнопки по рядках чітко:
+            # Рядок 1: Маршрут [+ Телефон якщо є]
+            # Рядок 2: Готівка + Термінал АБО Онлайн
+            if raw_phone:
+                if pay_type == "online":
+                    builder.adjust(2, 1)   # маршрут+тел / онлайн
+                else:
+                    builder.adjust(2, 2)   # маршрут+тел / готівка+термінал
+            else:
+                if pay_type == "online":
+                    builder.adjust(1)      # маршрут / онлайн
+                else:
+                    builder.adjust(1, 2)   # маршрут / готівка+термінал
 
             # Відправляємо кур'єру ОСОБИСТЕ повідомлення з кнопками
             try:
@@ -758,7 +771,7 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
     order_id  = callback.data.replace("take_order_", "")
     taker_id  = callback.from_user.id
     taker_name = callback.from_user.full_name
-    lang = callback.from_user.language_code or "en"
+    lang = callback.from_user.language_code or "en" or "en"
 
     try:
         # 2. Свіжі дані з БД
@@ -930,7 +943,7 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
     """
     import html as _html
 
-    lang = callback.from_user.language_code or "en"
+    lang = callback.from_user.language_code or "en" or "en"
 
     try:
         await callback.answer("✅...", show_alert=False)
@@ -955,7 +968,7 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
 
         order = res.data[0]
 
-        if order["status"] == "completed":
+        if order["status"] in ("completed", "cancelled"):
             await callback.message.answer(_(lang, 'order_already_closed'))
             return
 
@@ -1065,7 +1078,7 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
     import html as _html
 
     # 1. Одразу відповідаємо Telegram
-    lang = callback.from_user.language_code or "en"
+    lang = callback.from_user.language_code or "en" or "en"
     try:
         await callback.answer(_(lang, 'closing_order'), show_alert=False)
     except Exception:
@@ -1095,7 +1108,7 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
             await callback.message.answer(_(lang, 'order_wrong_courier'))
             return
 
-        if order["status"] == "completed":
+        if order["status"] in ("completed", "cancelled"):
             await callback.message.answer(_(lang, 'order_already_closed'))
             return
 

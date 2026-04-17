@@ -113,7 +113,13 @@ async def activate_whop_subscription(biz_id: str, plan_name: str, membership_id:
         "subscription_expires_at": next_month.isoformat(),
         "whop_membership_id": membership_id
     }
-    return await _run(lambda: supabase.table("businesses").update(data).eq("id", biz_id).execute())
+    result = await _run(lambda: supabase.table("businesses").update(data).eq("id", biz_id).execute())
+    # Скидаємо кеш власника щоб новий план підтягнувся одразу
+    if result.data:
+        owner_id = result.data[0].get("owner_id")
+        if owner_id:
+            invalidate_user_cache(int(owner_id))
+    return result
 
 # ==========================================
 # ФУНКЦІЇ ДЛЯ КОРИСТУВАЧІВ ТА ПЕРСОНАЛУ
@@ -130,14 +136,25 @@ async def get_user_context(user_id: int):
 
     staff = await _run(lambda: supabase.table("staff").select("*").eq("user_id", user_id).execute())
     if staff.data:
-        s = staff.data[0]
-        biz_info = await _run(lambda: supabase.table("businesses").select("*").eq("id", s["business_id"]).execute())
-        if biz_info.data:
-            return {"role": s["role"], "biz": biz_info.data[0]}
+        # Якщо кур'єр в кількох бізнесах - беремо перший АКТИВНИЙ
+        chosen = None
+        for s in staff.data:
+            biz_info = await _run(lambda bid=s["business_id"]: supabase.table("businesses").select("*").eq("id", bid).execute())
+            if biz_info.data and biz_info.data[0].get("is_active"):
+                chosen = (s, biz_info.data[0])
+                break
+        # Якщо активних немає - беремо перший
+        if not chosen:
+            s = staff.data[0]
+            biz_info = await _run(lambda: supabase.table("businesses").select("*").eq("id", s["business_id"]).execute())
+            if biz_info.data:
+                chosen = (s, biz_info.data[0])
+        if chosen:
+            return {"role": chosen[0]["role"], "biz": chosen[1]}
 
     return None
 
-async def create_staff(user_id: int, name: str, biz_id: str, role: str = 'courier'):
+async def create_staff(user_id: int, name: str, biz_id: str, role: str = 'courier', lang: str = 'en'):
     """Записуємо кур'єра або менеджера в базу.
 
     ✅ ВИПРАВЛЕНО bug #1: раніше upsert on_conflict='user_id' перезаписував весь запис,
@@ -157,17 +174,33 @@ async def create_staff(user_id: int, name: str, biz_id: str, role: str = 'courie
         "user_id": user_id,
         "name": name,
         "business_id": biz_id,
-        "role": role
+        "role": role,
+        "lang": lang
     }
     if existing.data:
         # Запис є — оновлюємо ім'я та роль
         record_id = existing.data[0]["id"]
         return await _run(
-            lambda: supabase.table("staff").update({"name": name, "role": role}).eq("id", record_id).execute()
+            lambda: supabase.table("staff").update({"name": name, "role": role, "lang": lang}).eq("id", record_id).execute()
         )
     else:
         # Нового кур'єра — просто вставляємо
         return await _run(lambda: supabase.table("staff").insert(data).execute())
+
+async def get_courier_lang(user_id: int, biz_id: str = None) -> str:
+    """Повертає мову кур'єра з БД. Fallback на 'en'."""
+    try:
+        query = supabase.table("staff").select("lang").eq("user_id", user_id)
+        if biz_id:
+            query = query.eq("business_id", biz_id)
+        res = await _run(lambda: query.execute())
+        if res.data and res.data[0].get("lang"):
+            lang = res.data[0]["lang"]
+            return lang if lang in ("uk", "ru", "pl", "en") else "en"
+    except Exception:
+        pass
+    return "en"
+
 
 async def get_courier(user_id: int):
     """Отримуємо інфо про конкретного працівника"""
@@ -199,7 +232,7 @@ async def create_new_order(order_data: dict):
         "client_phone": order_data.get('client_phone'),
         "address": order_data.get('address'),
         "details": details,
-        "amount": order_data.get('amount'),
+        "amount": float(order_data.get('amount') or 0),
         "pay_type": order_data.get('payment'),
         "comment": order_data.get('comment'),
         "lat": order_data.get('lat'),
@@ -254,7 +287,7 @@ async def get_daily_report(biz_id: str):
             .select("courier_id, amount, pay_type")
             .eq("business_id", biz_id)
             .eq("status", "completed")
-            .gte("created_at", start_of_day)
+            .gte("completed_at", start_of_day)
             .limit(5000)
             .execute()
     )
@@ -369,6 +402,7 @@ async def close_shift(shift_id: str, end_km: int, end_photo_id: str):
 
 async def get_shift_orders_stats(courier_id: int, biz_id: str, since_iso: str):
     """Повертає кількість замовлень, готівку, термінал за зміну."""
+    # Беремо замовлення за зміну - спочатку по completed_at, потім fallback на created_at
     res = await _run(
         lambda: supabase.table("orders")
             .select("amount, pay_type")
@@ -378,6 +412,17 @@ async def get_shift_orders_stats(courier_id: int, biz_id: str, since_iso: str):
             .gte("completed_at", since_iso)
             .execute()
     )
+    # Fallback: якщо completed_at не заповнено - беремо по created_at
+    if not res.data:
+        res = await _run(
+            lambda: supabase.table("orders")
+                .select("amount, pay_type")
+                .eq("courier_id", courier_id)
+                .eq("business_id", biz_id)
+                .eq("status", "completed")
+                .gte("created_at", since_iso)
+                .execute()
+        )
     orders = res.data or []
     count = len(orders)
     cash = sum(float(o["amount"]) for o in orders if o.get("pay_type") == "cash")
@@ -411,11 +456,30 @@ async def get_today_shifts_report(biz_id: str):
     start_local = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     start_of_day = start_local.astimezone(timezone.utc).isoformat()
 
+    # Беремо зміни де:
+    # - started_at >= початок сьогодні (звичайні зміни)
+    # АБО
+    # - ended_at >= початок сьогодні (нічні зміни що почались вчора)
     res = await _run(
         lambda: supabase.table("shifts")
             .select("*")
             .eq("business_id", biz_id)
-            .gte("started_at", start_of_day)
+            .gte("ended_at", start_of_day)
             .execute()
     )
-    return res.data or []
+    # Також беремо відкриті зміни що почались сьогодні
+    res2 = await _run(
+        lambda: supabase.table("shifts")
+            .select("*")
+            .eq("business_id", biz_id)
+            .gte("started_at", start_of_day)
+            .is_("ended_at", "null")
+            .execute()
+    )
+    # Об'єднуємо без дублікатів по id
+    all_shifts = res.data or []
+    seen_ids = {s['id'] for s in all_shifts}
+    for s in (res2.data or []):
+        if s['id'] not in seen_ids:
+            all_shifts.append(s)
+    return all_shifts

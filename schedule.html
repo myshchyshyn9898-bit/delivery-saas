@@ -260,14 +260,14 @@
 
 <div id="loader">
     <i id="load-icon" class="fa-solid fa-circle-notch fa-spin" style="font-size:36px;color:var(--primary);margin-bottom:14px;"></i>
-    <p id="load-text" style="font-size:14px;font-weight:700;color:var(--muted);margin:0;text-align:center;padding:0 30px;">Завантаження...</p>
+    <p id="load-text" style="font-size:14px;font-weight:700;color:var(--muted);margin:0;text-align:center;padding:0 30px;"><span data-sched-i18n="loading">Завантаження...</span></p>
 </div>
 
 <div id="app" style="display:none;">
 
     <div class="header">
         <div class="header-row">
-            <div class="header-title">Графік команди</div>
+            <div class="header-title"><span data-sched-i18n="title">Графік команди</span></div>
             <span class="header-badge" id="role-badge">Кур'єр</span>
         </div>
     </div>
@@ -303,20 +303,20 @@
     <!-- Earnings card (hidden for owner) -->
     <div class="earn-section" id="earn-section" style="display:none;">
         <div class="earn-card">
-            <div class="earn-label">Мій заробіток за місяць</div>
+            <div class="earn-label"><span data-sched-i18n="earn_title">Мій заробіток за місяць</span></div>
             <div class="earn-amount" id="earn-total">0.00 <span style="font-size:18px;opacity:0.8;" id="earn-currency">zł</span></div>
             <div class="earn-breakdown">
                 <div class="earn-item">
                     <div class="earn-item-val" id="earn-hours">0 год</div>
-                    <div class="earn-item-lbl">Відпрацьовано</div>
+                    <div class="earn-item-lbl"><span data-sched-i18n="worked_lbl">Відпрацьовано</span></div>
                 </div>
                 <div class="earn-item">
                     <div class="earn-item-val" id="earn-shifts-count">0 змін</div>
-                    <div class="earn-item-lbl">Змін</div>
+                    <div class="earn-item-lbl"><span data-sched-i18n="shifts_lbl">Змін</span></div>
                 </div>
                 <div class="earn-item">
                     <div class="earn-item-val" id="earn-orders">0 зам.</div>
-                    <div class="earn-item-lbl">Замовлень</div>
+                    <div class="earn-item-lbl"><span data-sched-i18n="orders_lbl">Замовлень</span></div>
                 </div>
             </div>
         </div>
@@ -338,7 +338,7 @@
 <div class="overlay" id="overlay" onclick="closeSheet()">
     <div class="sheet" onclick="event.stopPropagation()">
         <div class="sheet-handle"></div>
-        <div class="sheet-title" id="sheet-title">Зміна</div>
+        <div class="sheet-title" id="sheet-title"><span data-sched-i18n="shift_lbl">Зміна</span></div>
 
         <div class="sheet-actions">
             <button class="sheet-btn sheet-btn-plan" onclick="setPlanned()">
@@ -360,11 +360,11 @@
             <i class="fa-solid fa-calendar-days" style="margin-right:4px;color:#3b82f6;"></i>Плановий час
         </div>
         <div class="time-group">
-            <label>Початок</label>
+            <label><span data-sched-i18n="lbl_start">Початок</span></label>
             <input type="time" id="time-start" value="10:00">
         </div>
         <div class="time-group" style="margin-top:6px;">
-            <label>Кінець</label>
+            <label><span data-sched-i18n="lbl_end">Кінець</span></label>
             <input type="time" id="time-end" value="22:00">
         </div>
 
@@ -373,7 +373,7 @@
             <i class="fa-solid fa-pen-to-square" style="margin-right:4px;color:var(--primary);"></i>Фактичні години (для ЗП)
         </div>
         <div class="time-group">
-            <label>Годин відпрацьовано</label>
+            <label><span data-sched-i18n="hours_worked">Годин відпрацьовано</span></label>
             <input type="number" id="actual-hours" inputmode="decimal" min="0" max="24" step="0.5" placeholder="авто"
                 style="border:none;background:transparent;font-size:16px;font-weight:800;
                 color:var(--primary);outline:none;text-align:right;font-family:inherit;width:80px;">
@@ -409,10 +409,10 @@
 <div class="overlay" id="group-overlay" onclick="closeGroupSheet()">
     <div class="sheet" onclick="event.stopPropagation()">
         <div class="sheet-handle"></div>
-        <div class="sheet-title">Нова група</div>
+        <div class="sheet-title"><span data-sched-i18n="btn_add_group">Нова група</span></div>
 
         <div class="time-group">
-            <label>Назва групи</label>
+            <label><span data-sched-i18n="lbl_group_name">Назва групи</span></label>
             <input type="text" id="group-name-input" placeholder="Кухня, Склад, Електрики..." style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
         </div>
 
@@ -425,7 +425,364 @@
 
 <div class="toast" id="toast"></div>
 
-<script>
+<script>// --- МОВА ---
+var tgLang = 'en';
+try {
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+        tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en';
+    }
+} catch(e) {}
+var savedLang = (typeof localStorage !== 'undefined') ? localStorage.getItem('appLang') : null;
+var currentLang = savedLang || tgLang;
+if (!['uk','ru','pl','en'].includes(currentLang)) currentLang = 'en';
+
+var SCHED_I18N = {
+    'uk': {
+        jan: 'Січень',
+        feb: 'Лютий',
+        mar: 'Березень',
+        apr: 'Квітень',
+        may: 'Травень',
+        jun: 'Червень',
+        jul: 'Липень',
+        aug: 'Серпень',
+        sep: 'Вересень',
+        oct: 'Жовтень',
+        nov: 'Листопад',
+        dec: 'Грудень',
+        mon: 'пн',
+        tue: 'вт',
+        wed: 'ср',
+        thu: 'чт',
+        fri: 'пт',
+        sat: 'сб',
+        sun: 'нд',
+        title: 'Графік команди',
+        loading: 'Завантаження...',
+        worker: 'Працівник',
+        shifts_col: 'Змін',
+        hours_col: 'Год.',
+        btn_save: 'Зберегти',
+        btn_clear: 'Очистити',
+        btn_plan: 'Запланувати',
+        btn_add_staff: 'Додати співробітника',
+        btn_add_group: 'Нова група',
+        btn_add_month: '+ Місяць',
+        btn_create_group: 'Створити групу',
+        lbl_start: 'Початок',
+        lbl_end: 'Кінець',
+        lbl_actual: 'Фактичні години (для ЗП)',
+        lbl_actual_hint: 'Залиш порожнім — автоматично з боту або планового часу',
+        lbl_planned: 'Плановий час',
+        lbl_group_name: 'Назва групи',
+        add_to_group: 'Додати в групу',
+        btn_add: 'Додати',
+        earn_title: 'Мій заробіток за місяць',
+        earn_shifts: '0 змін',
+        earn_hours: '0 год',
+        earn_orders: '0 зам.',
+        shifts_lbl: 'Змін',
+        hours_worked: 'Годин відпрацьовано',
+        orders_lbl: 'Замовлень',
+        planned_lbl: 'Заплановано',
+        worked_lbl: 'Відпрацьовано',
+        shift_lbl: 'Зміна',
+        role_owner: 'Власник',
+        role_manager: 'Адмін',
+        role_courier: 'Кур\'єр',
+        role_kitchen: 'Кухня',
+        group_prefix: 'Група ',
+        del_month: 'Видалити місяць',
+        ph_name: 'Введіть ім\'я та прізвище',
+        ph_group: SL.ph_group,
+        ph_month: SL.ph_month,
+        saved: SL.saved,
+        slot_saved: SL.slot_saved,
+        group_saved: SL.group_saved,
+        added_prefix: '✅ Додано: ',
+        err_save_name: SL.err_save_name,
+        err_save_slot: SL.err_save_slot,
+        err_no_schedule: SL.err_no_schedule,
+        err_biz_prefix: '❌ Бізнес: ',
+        err_staff_prefix: '❌ Персонал: ',
+        err_step_prefix: '❌ Крок [',
+        step1: 'Крок 1: Telegram...',
+        step3: 'Крок 3: Сервер...',
+        step4: 'Крок 4: БД підключення...',
+        step5: 'Крок 5: Бізнес...',
+        step6: 'Крок 6: Персонал...',
+        step7: 'Крок 7: Графік...',
+        step8: 'Крок 8: Зміни...',
+        step9: 'Крок 9: Відображення...',
+        err_config_bad: 'Невірна відповідь /config',
+        err_config_http: 'Помилка /config: HTTP ',
+        err_server: 'Сервер недоступний: ',
+        saving: SL.saving,
+    },
+    'ru': {
+        jan: 'Январь',
+        feb: 'Февраль',
+        mar: 'Март',
+        apr: 'Апрель',
+        may: 'Май',
+        jun: 'Июнь',
+        jul: 'Июль',
+        aug: 'Август',
+        sep: 'Сентябрь',
+        oct: 'Октябрь',
+        nov: 'Ноябрь',
+        dec: 'Декабрь',
+        mon: 'пн',
+        tue: 'вт',
+        wed: 'ср',
+        thu: 'чт',
+        fri: 'пт',
+        sat: 'сб',
+        sun: 'вс',
+        title: 'График команды',
+        loading: 'Загрузка...',
+        worker: 'Сотрудник',
+        shifts_col: 'Смен',
+        hours_col: 'Час.',
+        btn_save: 'Сохранить',
+        btn_clear: 'Очистить',
+        btn_plan: 'Запланировать',
+        btn_add_staff: 'Добавить сотрудника',
+        btn_add_group: 'Новая группа',
+        btn_add_month: '+ Месяц',
+        btn_create_group: 'Создать группу',
+        lbl_start: 'Начало',
+        lbl_end: 'Конец',
+        lbl_actual: 'Фактические часы (для ЗП)',
+        lbl_actual_hint: 'Оставь пустым — автоматически из бота или планового времени',
+        lbl_planned: 'Плановое время',
+        lbl_group_name: 'Название группы',
+        add_to_group: 'Добавить в группу',
+        btn_add: 'Добавить',
+        earn_title: 'Мой заработок за месяц',
+        earn_shifts: '0 смен',
+        earn_hours: '0 ч',
+        earn_orders: '0 зак.',
+        shifts_lbl: 'Смен',
+        hours_worked: 'Часов отработано',
+        orders_lbl: 'Заказов',
+        planned_lbl: 'Запланировано',
+        worked_lbl: 'Отработано',
+        shift_lbl: 'Смена',
+        role_owner: 'Владелец',
+        role_manager: 'Админ',
+        role_courier: 'Курьер',
+        role_kitchen: 'Кухня',
+        group_prefix: 'Группа ',
+        del_month: 'Удалить месяц',
+        ph_name: 'Введите имя и фамилию',
+        ph_group: 'Введите название группы',
+        ph_month: 'Введите месяц (формат YYYY-MM, напр. 2026-06):',
+        saved: '✅ График сохранён',
+        slot_saved: '✅ Сохранено',
+        group_saved: '✅ Название группы сохранено',
+        added_prefix: '✅ Добавлен: ',
+        err_save_name: '❌ Ошибка сохранения названия',
+        err_save_slot: '❌ Ошибка сохранения: ',
+        err_no_schedule: '❌ Сначала создайте таблицу schedule в Supabase',
+        err_biz_prefix: '❌ Бизнес: ',
+        err_staff_prefix: '❌ Персонал: ',
+        err_step_prefix: '❌ Шаг [',
+        step1: 'Шаг 1: Telegram...',
+        step3: 'Шаг 3: Сервер...',
+        step4: 'Шаг 4: Подключение БД...',
+        step5: 'Шаг 5: Бизнес...',
+        step6: 'Шаг 6: Персонал...',
+        step7: 'Шаг 7: График...',
+        step8: 'Шаг 8: Смены...',
+        step9: 'Шаг 9: Отображение...',
+        err_config_bad: 'Неверный ответ /config',
+        err_config_http: 'Ошибка /config: HTTP ',
+        err_server: 'Сервер недоступен: ',
+        saving: 'Сохранение...',
+    },
+    'pl': {
+        jan: 'Styczeń',
+        feb: 'Luty',
+        mar: 'Marzec',
+        apr: 'Kwiecień',
+        may: 'Maj',
+        jun: 'Czerwiec',
+        jul: 'Lipiec',
+        aug: 'Sierpień',
+        sep: 'Wrzesień',
+        oct: 'Październik',
+        nov: 'Listopad',
+        dec: 'Grudzień',
+        mon: 'pn',
+        tue: 'wt',
+        wed: 'śr',
+        thu: 'cz',
+        fri: 'pt',
+        sat: 'sb',
+        sun: 'nd',
+        title: 'Harmonogram zespołu',
+        loading: 'Ładowanie...',
+        worker: 'Pracownik',
+        shifts_col: 'Zmian',
+        hours_col: 'Godz.',
+        btn_save: 'Zapisz',
+        btn_clear: 'Wyczyść',
+        btn_plan: 'Zaplanuj',
+        btn_add_staff: 'Dodaj pracownika',
+        btn_add_group: 'Nowa grupa',
+        btn_add_month: '+ Miesiąc',
+        btn_create_group: 'Utwórz grupę',
+        lbl_start: 'Początek',
+        lbl_end: 'Koniec',
+        lbl_actual: 'Rzeczywiste godziny (do wynagrodzeń)',
+        lbl_actual_hint: 'Zostaw puste — automatycznie z bota lub planowanego czasu',
+        lbl_planned: 'Planowany czas',
+        lbl_group_name: 'Nazwa grupy',
+        add_to_group: 'Dodaj do grupy',
+        btn_add: 'Dodaj',
+        earn_title: 'Moje zarobki za miesiąc',
+        earn_shifts: '0 zmian',
+        earn_hours: '0 godz',
+        earn_orders: '0 zam.',
+        shifts_lbl: 'Zmian',
+        hours_worked: 'Przepracowanych godzin',
+        orders_lbl: 'Zamówień',
+        planned_lbl: 'Zaplanowano',
+        worked_lbl: 'Przepracowano',
+        shift_lbl: 'Zmiana',
+        role_owner: 'Właściciel',
+        role_manager: 'Admin',
+        role_courier: 'Kurier',
+        role_kitchen: 'Kuchnia',
+        group_prefix: 'Grupa ',
+        del_month: 'Usuń miesiąc',
+        ph_name: 'Wpisz imię i nazwisko',
+        ph_group: 'Wpisz nazwę grupy',
+        ph_month: 'Wpisz miesiąc (format YYYY-MM, np. 2026-06):',
+        saved: '✅ Harmonogram zapisany',
+        slot_saved: '✅ Zapisano',
+        group_saved: '✅ Nazwa grupy zapisana',
+        added_prefix: '✅ Dodano: ',
+        err_save_name: '❌ Błąd zapisu nazwy',
+        err_save_slot: '❌ Błąd zapisu: ',
+        err_no_schedule: '❌ Najpierw utwórz tabelę schedule w Supabase',
+        err_biz_prefix: '❌ Firma: ',
+        err_staff_prefix: '❌ Personel: ',
+        err_step_prefix: '❌ Krok [',
+        step1: 'Krok 1: Telegram...',
+        step3: 'Krok 3: Serwer...',
+        step4: 'Krok 4: Połączenie z BD...',
+        step5: 'Krok 5: Firma...',
+        step6: 'Krok 6: Personel...',
+        step7: 'Krok 7: Harmonogram...',
+        step8: 'Krok 8: Zmiany...',
+        step9: 'Krok 9: Wyświetlanie...',
+        err_config_bad: 'Nieprawidłowa odpowiedź /config',
+        err_config_http: 'Błąd /config: HTTP ',
+        err_server: 'Serwer niedostępny: ',
+        saving: 'Zapisywanie...',
+    },
+    'en': {
+        jan: 'January',
+        feb: 'February',
+        mar: 'March',
+        apr: 'April',
+        may: 'May',
+        jun: 'June',
+        jul: 'July',
+        aug: 'August',
+        sep: 'September',
+        oct: 'October',
+        nov: 'November',
+        dec: 'December',
+        mon: 'Mon',
+        tue: 'Tue',
+        wed: 'Wed',
+        thu: 'Thu',
+        fri: 'Fri',
+        sat: 'Sat',
+        sun: 'Sun',
+        title: 'Team Schedule',
+        loading: 'Loading...',
+        worker: 'Employee',
+        shifts_col: 'Shifts',
+        hours_col: 'Hrs.',
+        btn_save: 'Save',
+        btn_clear: 'Clear',
+        btn_plan: 'Plan',
+        btn_add_staff: 'Add employee',
+        btn_add_group: 'New group',
+        btn_add_month: '+ Month',
+        btn_create_group: 'Create group',
+        lbl_start: 'Start',
+        lbl_end: 'End',
+        lbl_actual: 'Actual hours (for salary)',
+        lbl_actual_hint: 'Leave empty — auto from bot or planned time',
+        lbl_planned: 'Planned time',
+        lbl_group_name: 'Group name',
+        add_to_group: 'Add to group',
+        btn_add: 'Add',
+        earn_title: 'My earnings this month',
+        earn_shifts: '0 shifts',
+        earn_hours: '0 hrs',
+        earn_orders: '0 orders',
+        shifts_lbl: 'Shifts',
+        hours_worked: 'Hours worked',
+        orders_lbl: 'Orders',
+        planned_lbl: 'Planned',
+        worked_lbl: 'Worked',
+        shift_lbl: 'Shift',
+        role_owner: 'Owner',
+        role_manager: 'Admin',
+        role_courier: 'Courier',
+        role_kitchen: 'Kitchen',
+        group_prefix: 'Group ',
+        del_month: 'Delete month',
+        ph_name: 'Enter first and last name',
+        ph_group: 'Enter group name',
+        ph_month: 'Enter month (format YYYY-MM, e.g. 2026-06):',
+        saved: '✅ Schedule saved',
+        slot_saved: '✅ Saved',
+        group_saved: '✅ Group name saved',
+        added_prefix: '✅ Added: ',
+        err_save_name: '❌ Error saving name',
+        err_save_slot: '❌ Save error: ',
+        err_no_schedule: '❌ First create the schedule table in Supabase',
+        err_biz_prefix: '❌ Business: ',
+        err_staff_prefix: '❌ Staff: ',
+        err_step_prefix: '❌ Step [',
+        step1: 'Step 1: Telegram...',
+        step3: 'Step 3: Server...',
+        step4: 'Step 4: DB connection...',
+        step5: 'Step 5: Business...',
+        step6: 'Step 6: Staff...',
+        step7: 'Step 7: Schedule...',
+        step8: 'Step 8: Shifts...',
+        step9: 'Step 9: Rendering...',
+        err_config_bad: 'Invalid /config response',
+        err_config_http: 'Config error: HTTP ',
+        err_server: 'Server unavailable: ',
+        saving: 'Saving...',
+    },
+};
+var SL = SCHED_I18N[currentLang] || SCHED_I18N['en'];
+
+// Reload translations when lang changes
+function reloadScheduleLang() { SL = SCHED_I18N[currentLang] || SCHED_I18N['en']; }
+
+
+
+
+// Apply schedule translations to HTML elements
+function applySchedTranslations() {
+    SL = SCHED_I18N[currentLang] || SCHED_I18N['en'];
+    document.querySelectorAll('[data-sched-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-sched-i18n');
+        if (SL[key]) el.textContent = SL[key];
+    });
+}
+
 
 // --- ФУНКЦІЇ-ПОМІЧНИКИ (окремий блок — завантажуються першими) ---
 function setLoad(msg) {
@@ -461,7 +818,7 @@ var RAILWAY_DOMAIN = (function() {
     if (meta && meta.content) return meta.content.replace(/\/$/, '');
     return 'https://delivery-saas-production-3fe6.up.railway.app';
 })();
-var DAY_NAMES = ['пн','вт','ср','чт','пт','сб','нд'];
+var DAY_NAMES = [SL.mon,SL.tue,SL.wed,SL.thu,SL.fri,SL.sat,SL.sun];
 var MONTH_NAMES = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
                      'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
@@ -482,6 +839,7 @@ var tgId = urlP.get('tg_id');
 
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('load-text').textContent = 'DOM готовий...';
+    applySchedTranslations();
     setTimeout(initScheduleApp, 300);
 });
 
@@ -497,7 +855,7 @@ async function initScheduleApp() {
     try {
         // 1. Telegram
         _step = 'TG init';
-        setLoad('Крок 1: Telegram...');
+        setLoad(SL.step1);
         if (window.Telegram && window.Telegram.WebApp) {
             tg = window.Telegram.WebApp;
             tg.ready();
@@ -518,7 +876,7 @@ async function initScheduleApp() {
 
         // 3. Config
         _step = 'fetchConfig';
-        setLoad('Крок 3: Сервер...');
+        setLoad(SL.step3);
         var cfg;
         try {
             cfg = await fetchConfig();
@@ -533,14 +891,14 @@ async function initScheduleApp() {
 
         // 4. Supabase
         _step = 'supabase init';
-        setLoad('Крок 4: БД підключення...');
+        setLoad(SL.step4);
         supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
             global: { headers: { Authorization: 'Bearer ' + authToken } }
         });
 
         // 5. Бізнес
         _step = 'loadBiz';
-        setLoad('Крок 5: Бізнес...');
+        setLoad(SL.step5);
         try {
             await loadBiz();
         } catch(e) {
@@ -550,7 +908,7 @@ async function initScheduleApp() {
 
         // 6. Персонал
         _step = 'loadStaff';
-        setLoad('Крок 6: Персонал...');
+        setLoad(SL.step6);
         try {
             await loadStaff();
         } catch(e) {
@@ -560,16 +918,16 @@ async function initScheduleApp() {
 
         // 7. Графік і зміни
         _step = 'loadSchedule';
-        setLoad('Крок 7: Графік...');
+        setLoad(SL.step7);
         await loadSchedule();
 
         _step = 'loadShifts';
-        setLoad('Крок 8: Зміни...');
+        setLoad(SL.step8);
         await loadShifts();
 
         // 8. Рендер
         _step = 'render';
-        setLoad('Крок 9: Відображення...');
+        setLoad(SL.step9);
         initMonths();
         renderAll();
 
@@ -675,7 +1033,7 @@ function addGroup() { openGroupSheet(); }
 
 async function loadBiz() {
     var _res = await supabase.from('businesses').select('*').eq('id', bizId).single(); var data = _res.data; var error = _res.error;
-    if (error || !data) throw new Error('Бізнес не знайдено');
+    if (error || !data) throw new Error(SL.err_biz_prefix + ' не знайдено');
     bizData = data;
 }
 
@@ -852,7 +1210,7 @@ function normalizeRole(role) {
 
 function roleLabel(role) {
     var r = normalizeRole(role);
-    if (r === 'courier') return "Кур'єри";
+    if (r === 'courier') return SL.role_courier + 'и';
     if (r === 'manager') return 'Менеджери';
     if (r === 'kitchen') return 'Кухня';
     return role.trim(); // кастомна роль — як є
@@ -995,7 +1353,7 @@ function buildGroupCard(groupName, members, groupRole) {
         bodyRows += "\n<tr class=\"emp-row\" data-cid=\"" + cid + "\">" + "<td class=\"col-name\">" + s.name + "</td>" + cells + "<td class=\"cell-total\"><div class=\"badge-count badge-shifts\">" + shiftCount + "</div></td>" + "<td class=\"cell-total\"><div class=\"badge-count badge-hours\">" + (hoursTotal > 0 ? hoursTotal.toFixed(1).replace(".0","") : "0") + "</div></td>" + "</tr>";
     });
 
-    scroll.innerHTML = "<table><thead>" + "<tr><th class=\"col-name\" rowspan=\"2\">Працівник</th>" + headDates + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\">Змін</div></th>" + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\" style=\"color:var(--primary)\">Год.</div></th>" + "</tr><tr>" + headDays + "</tr>" + "</thead><tbody>" + bodyRows + "</tbody></table>";
+    scroll.innerHTML = "<table><thead>" + "<tr><th class=\"col-name\" rowspan=\"2\">' + SL.worker + '</th>" + headDates + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\">Змін</div></th>" + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\" style=\"color:var(--primary)\">Год.</div></th>" + "</tr><tr>" + headDays + "</tr>" + "</thead><tbody>" + bodyRows + "</tbody></table>";
 
     card.appendChild(scroll);
 

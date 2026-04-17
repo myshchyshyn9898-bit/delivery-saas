@@ -21,7 +21,7 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
     try:
         route_url = f"http://router.project-osrm.org/route/v1/driving/{start_lon},{start_lat};{end_lon},{end_lat}?overview=full&geometries=geojson"
         headers = {'User-Agent': 'DeliveProBot/1.0'}
-        r = requests.get(route_url, headers=headers, timeout=15)
+        r = requests.get(route_url, headers=headers, timeout=8)
         
         if r.status_code != 200: 
             logger.error(f"OSRM помилка: {r.status_code}")
@@ -69,7 +69,7 @@ def generate_route_image_sync(start_lat, start_lon, end_lat, end_lon, filename="
         )
         
         # 5. Завантажуємо картинку
-        img_resp = requests.get(static_url, timeout=15)
+        img_resp = requests.get(static_url, timeout=8)
         if img_resp.status_code == 200:
             with open(filename, 'wb') as f:
                 f.write(img_resp.content)
@@ -99,10 +99,10 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
     except Exception as e:
         logger.error(f"❌ Критична помилка Nominatim: {e}")
 
-    if not c_lat: return None 
+    if c_lat is None: return None 
 
     # Збираємо повну адресу бізнесу для точного геокодингу
-    b_lat, b_lon = 50.04132, 21.99901
+    b_lat, b_lon = None, None
     biz_address = None
     if biz:
         parts = [p for p in [biz.get('street'), biz.get('city'), biz.get('country')] if p]
@@ -121,6 +121,11 @@ async def get_route_map_file(biz: dict, client_address: str, order_id: str):
                             b_lat, b_lon = float(b_data[0]['lat']), float(b_data[0]['lon'])
         except Exception as e:
             logger.error(f"Помилка геокодування адреси бізнесу: {e}")
+
+    # Якщо координати бізнесу не знайдено - не будуємо карту
+    if b_lat is None or b_lon is None:
+        logger.warning(f"[map] Координати бізнесу не знайдено для order={order_id}, карта пропущена")
+        return None
 
     filename = f"map_{order_id}.png"
     result_file = await asyncio.to_thread(generate_route_image_sync, b_lat, b_lon, c_lat, c_lon, filename)

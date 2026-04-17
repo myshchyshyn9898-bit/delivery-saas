@@ -12,6 +12,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800;900&display=swap');
 
 :root { 
+    --border: #e2e8f0;
     --bg-color: #f3f6f8; 
     --text-main: #0f172a; 
     --text-muted: #64748b; 
@@ -120,7 +121,7 @@ body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120
 .btn-main.manager { background: var(--info); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3); }
 
 /* Settings */
-.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
 .setting-row:last-child { border-bottom: none; }
 .set-label { font-size: 14px; font-weight: 700; color: var(--text-muted); }
 .set-val { font-size: 14px; font-weight: 800; }
@@ -686,7 +687,7 @@ body { background: var(--bg-color); color: var(--text-main); padding-bottom: 120
 .sett-arrow { transition: transform 0.2s; }
 
 .settings-content { padding-top: 14px; display: flex; flex-direction: column; gap: 12px; }
-.setting-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+/* .setting-row merged into first definition above */
 .setting-label { font-size: 13px; font-weight: 600; color: #475569; flex: 1; min-width: 0; }
 .setting-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .setting-input {

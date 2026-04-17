@@ -10,19 +10,19 @@
 */
 
 // Безпечне визначення мови користувача з Телеграму
-let tgLang = 'en';
+var tgLang = 'en';
 try { 
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
         tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en'; 
     }
 } catch(e) {}
 
-let savedLang = localStorage.getItem('appLang');
-let currentLang = savedLang || tgLang;
+var savedLang = localStorage.getItem('appLang');
+var currentLang = savedLang || tgLang;
 if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
 
 // СЛОВНИК ПЕРЕКЛАДІВ
-const i18n = {
+var i18n = {
     'uk': {
         tab_today: "Сьогодні", tab_week: "Тиждень", tab_month: "Місяць",
         metric_total: "Загальна каса", metric_heat: "Теплова карта", metric_avg: "Середній чек",
@@ -68,6 +68,28 @@ const i18n = {
         ticket_alert_empty: "📍 Будь ласка, заповніть тему та опис проблеми.",
         ticket_alert_test: "Тікет відправлено (Тестовий режим)!"
     },
+        api_token_lbl: "API Токен (Ключ доступу)",
+        tg_group_id_lbl: "ID Telegram-групи кур'єрів",
+        integrations_lbl: "Інтеграції (POS)",
+        metric_activity: "Активність замовлень",
+        feature_deep: "Глибока аналітика та експорт",
+        feature_schedule: "Графік та зарплати",
+        salary_fund: "Загальний фонд оплати праці",
+        mode_uber_desc: "Замовлення падають у загальну групу, хто з кур'єрів перший натиснув — той і везе.",
+        mode_disp_desc: "Замовлення приходять адміну, який призначає кур'єрів через карту.",
+        nav_salary: "Зарплати",
+        salary_team_title: "Зарплати команди",
+        integrations_cat: "Каталог Інтеграцій",
+        btn_manage_sub: "Керувати підпискою",
+        not_connected: "Не підключено",
+        priority_low: "Низька",
+        priority_high: "Висока",
+        select_plan_lbl: "Оберіть тариф:",
+        delivery_mode_lbl: "Режим роботи доставки",
+        btn_connect: "Підключити",
+        pos_connect_hint: "Підключіть вашу касу для автоматизації доставки.",
+        mode_dispatcher: "👑 Диспетчер (Класика)",
+        mode_uber: "🛵 Вільна каса (Glovo-стиль)",
     'ru': {
         tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
         metric_total: "Общая касса", metric_heat: "Тепловая карта", metric_avg: "Средний чек",
@@ -113,6 +135,28 @@ const i18n = {
         ticket_alert_empty: "📍 Пожалуйста, заполните тему и описание проблемы.",
         ticket_alert_test: "Тикет отправлен (Тестовый режим)!"
     },
+        api_token_lbl: "API Токен (Ключ доступа)",
+        tg_group_id_lbl: "ID Telegram-группы курьеров",
+        integrations_lbl: "Интеграции (POS)",
+        metric_activity: "Активность заказов",
+        feature_deep: "Глубокая аналитика и экспорт",
+        feature_schedule: "График и зарплаты",
+        salary_fund: "Общий фонд оплаты труда",
+        mode_uber_desc: "Заказы падают в общую группу, кто первый нажал — тот и везёт.",
+        mode_disp_desc: "Заказы приходят администратору, который назначает курьеров через карту.",
+        nav_salary: "Зарплаты",
+        salary_team_title: "Зарплаты команды",
+        integrations_cat: "Каталог интеграций",
+        btn_manage_sub: "Управление подпиской",
+        not_connected: "Не подключено",
+        priority_low: "Низкая",
+        priority_high: "Высокая",
+        select_plan_lbl: "Выберите тариф:",
+        delivery_mode_lbl: "Режим работы доставки",
+        btn_connect: "Подключить",
+        pos_connect_hint: "Подключите вашу кассу для автоматизации доставки.",
+        mode_dispatcher: "👑 Диспетчер (Классика)",
+        mode_uber: "🛵 Свободная касса (Glovo-стиль)",
     'pl': {
         tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
         metric_total: "Całkowity utarg", metric_heat: "Mapa cieplna", metric_avg: "Średni paragon",
@@ -158,6 +202,28 @@ const i18n = {
         ticket_alert_empty: "📍 Proszę wypełnić temat i opis problemu.",
         ticket_alert_test: "Zgłoszenie wysłane (Tryb testowy)!"
     },
+        api_token_lbl: "Token API (Klucz dostępu)",
+        tg_group_id_lbl: "ID grupy Telegram kurierów",
+        integrations_lbl: "Integracje (POS)",
+        metric_activity: "Aktywność zamówień",
+        feature_deep: "Głęboka analityka i eksport",
+        feature_schedule: "Harmonogram i wypłaty",
+        salary_fund: "Łączny fundusz płac",
+        mode_uber_desc: "Zamówienia trafiają do grupy, kto pierwszy kliknie — ten dostarcza.",
+        mode_disp_desc: "Zamówienia trafiają do admina, który przypisuje kurierów przez mapę.",
+        nav_salary: "Wypłaty",
+        salary_team_title: "Wypłaty zespołu",
+        integrations_cat: "Katalog integracji",
+        btn_manage_sub: "Zarządzaj subskrypcją",
+        not_connected: "Nie połączono",
+        priority_low: "Niska",
+        priority_high: "Wysoka",
+        select_plan_lbl: "Wybierz plan:",
+        delivery_mode_lbl: "Tryb pracy dostawy",
+        btn_connect: "Połącz",
+        pos_connect_hint: "Połącz swoją kasę, aby zautomatyzować dostawę.",
+        mode_dispatcher: "👑 Dyspozytor (Klasyczny)",
+        mode_uber: "🛵 Wolna kasa (styl Glovo)",
     'en': {
         tab_today: "Today", tab_week: "Week", tab_month: "Month",
         metric_total: "Total Revenue", metric_heat: "Heatmap", metric_avg: "Avg Check",
@@ -201,6 +267,28 @@ const i18n = {
         ticket_label_msg: "Problem Description", ticket_ph_msg: "Describe the situation in detail...",
         ticket_btn_send: "Send Ticket", ticket_btn_sending: "Sending...",
         ticket_alert_empty: "📍 Please fill in the topic and description.",
+        api_token_lbl: "API Token (Access Key)",
+        tg_group_id_lbl: "Telegram Courier Group ID",
+        integrations_lbl: "Integrations (POS)",
+        metric_activity: "Order Activity",
+        feature_deep: "Deep analytics & export",
+        feature_schedule: "Schedule & Salaries",
+        salary_fund: "Total Payroll Fund",
+        mode_uber_desc: "Orders go to a group, whoever clicks first delivers.",
+        mode_disp_desc: "Orders go to admin who assigns couriers via the map.",
+        nav_salary: "Salaries",
+        salary_team_title: "Team Salaries",
+        integrations_cat: "Integration Catalog",
+        btn_manage_sub: "Manage Subscription",
+        not_connected: "Not connected",
+        priority_low: "Low",
+        priority_high: "High",
+        select_plan_lbl: "Select plan:",
+        delivery_mode_lbl: "Delivery Mode",
+        btn_connect: "Connect",
+        pos_connect_hint: "Connect your POS to automate delivery.",
+        mode_dispatcher: "👑 Dispatcher (Classic)",
+        mode_uber: "🛵 Free queue (Glovo-style)",
         ticket_alert_test: "Ticket sent (Test mode)!"
     }
 };
@@ -216,19 +304,19 @@ function setLanguage(lang) {
     
     // Замінюємо текст у всіх елементах, де є атрибут data-i18n
     document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
+        var key = el.getAttribute('data-i18n');
         if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
     });
     // Замінюємо placeholder в інпутах
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-        const key = el.getAttribute('data-i18n-placeholder');
+        var key = el.getAttribute('data-i18n-placeholder');
         if (i18n[lang][key]) el.placeholder = i18n[lang][key];
     });
 
-    // Оновлюємо бейдж плану та перезавантажуємо дані (якщо функція loadDashboardData вже завантажена)
+    // Оновлюємо бейдж плану та перезавантажуємо дані (якщо функція loadDashboard вже завантажена)
     if (typeof bizId !== 'undefined' && bizId) {
         document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('badge_active')})`;
-        if(typeof loadDashboardData === 'function') loadDashboardData(); 
+        if(typeof loadDashboard === 'function') loadDashboard(); 
     }
 }
 
@@ -236,7 +324,7 @@ function setLanguage(lang) {
 function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
 document.addEventListener('click', (e) => { 
     if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) {
-        let menu = document.getElementById('lang-menu');
+        var menu = document.getElementById('lang-menu');
         if(menu) menu.classList.remove('show');
     }
 });

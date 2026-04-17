@@ -38,7 +38,7 @@ let supabaseClient = null;
 
 async function initSupabase() {
     try {
-        const res = await fetch(`${RAILWAY_DOMAIN}/config`);
+        const res = await fetch(RAILWAY_DOMAIN + '/config');
         if (!res.ok) {
             console.error('Config endpoint error:', res.status, res.statusText);
             return;
@@ -56,7 +56,7 @@ async function initSupabase() {
             }
 
             if (authToken) {
-                globalHeaders['Authorization'] = `Bearer ${authToken}`;
+                globalHeaders['Authorization'] = 'Bearer ' + authToken;
             }
 
             supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
@@ -296,7 +296,7 @@ function renderSubscriptionUI(biz) {
         planDesc.innerHTML = `${t('txt_left')} <b style="color: var(--text-main);">${displayDays} ${t('txt_days')}</b>. ${t('txt_avail')} <b>${expireDate.toLocaleDateString('uk-UA')}</b>`;
         
         progressCont.style.display = 'block';
-        setTimeout(() => { document.getElementById('trial-progress-bar').style.width = `${percentUsed}%`; }, 100);
+        setTimeout(() => { document.getElementById('trial-progress-bar').style.width = percentUsed + '%'; }, 100);
         
         plansBlock.style.display = 'block'; basicCard.style.display = 'block'; proCard.style.display = 'block';
         document.getElementById('plan-select-title').innerText = t('title_sel_plan');
@@ -408,6 +408,18 @@ async function removeStaff(staffRowId, staffName, staffUserId) {
     if (!confirm(`${t('confirm_del')} "${staffName}"?`)) return;
     if (!supabaseClient) return;
     try {
+        // Закриваємо активну зміну перед видаленням зі staff
+        if (staffUserId) {
+            try {
+                await supabaseClient.from('shifts')
+                    .update({ ended_at: new Date().toISOString() })
+                    .eq('courier_id', staffUserId)
+                    .eq('business_id', bizId)
+                    .is('ended_at', null);
+            } catch(shiftErr) {
+                console.warn('Не вдалось закрити зміну:', shiftErr);
+            }
+        }
         const { error } = await supabaseClient.from('staff').delete().eq('id', staffRowId).eq('business_id', bizId);
         if (error) throw error;
 
@@ -417,7 +429,7 @@ async function removeStaff(staffRowId, staffName, staffUserId) {
             try {
                 await fetch(`${RAILWAY_DOMAIN}/api/invalidate_cache`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
                     body: JSON.stringify({ user_id: staffUserId })
                 });
             } catch (e) { console.warn('Cache invalidation failed (non-critical):', e); }
@@ -430,25 +442,36 @@ async function removeStaff(staffRowId, staffName, staffUserId) {
 function exportOrdersCSV() {
     if (!currentPlanIsPro) { openSubscriptionMenu(); return; }
     if (globalOrdersForExport.length === 0) { alert(t('err_export')); return; }
-    
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+
+    // Захист від CSV formula injection
+    function csvCell(val) {
+        var s = String(val || '').replace(/"/g, '""');
+        if (s && /^[=+\-@]/.test(s)) s = "'" + s;
+        return '"' + s + '"';
+    }
+
+    var csvContent = "data:text/csv;charset=utf-8,\uFEFF";
     csvContent += "ID,Amount,Type,Status,Created,Completed,CourierID\n";
-    
-    globalOrdersForExport.forEach(o => {
-        let status = o.status === 'completed' ? 'Completed' : 'Active';
-        let payType = o.pay_type;
-        let created = o.created_at ? new Date((o.created_at||'').replace(' ','T')).toLocaleString('uk-UA') : '';
-        let completed = o.completed_at ? new Date((o.completed_at||'').replace(' ','T')).toLocaleString('uk-UA') : '';
-        csvContent += `${o.id},${o.amount},${payType},${status},${created},${completed},${o.courier_id || ''}\n`;
+
+    globalOrdersForExport.forEach(function(o) {
+        var status = o.status === 'completed' ? 'Completed' : 'Active';
+        var payType = o.pay_type || '';
+        var created = o.created_at ? new Date((o.created_at||'').replace(' ','T')).toLocaleString('uk-UA') : '';
+        var completed = o.completed_at ? new Date((o.completed_at||'').replace(' ','T')).toLocaleString('uk-UA') : '';
+        csvContent += csvCell(o.id) + ',' + csvCell(o.amount) + ',' + csvCell(payType) + ',' +
+            csvCell(status) + ',' + csvCell(created) + ',' + csvCell(completed) + ',' +
+            csvCell(o.courier_id || '') + '\n';
     });
-    
+
     var encodedUri = encodeURI(csvContent);
-    var link = document.createElement("a"); link.setAttribute("href", encodedUri); link.setAttribute("download", `Export_${currentFilter}.csv`);
+    var link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "Export_" + currentFilter + ".csv");
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
 }
 
 // Підтримка (Тікети)
-let selectedTicketReason = 'bug';
+var selectedTicketReason = 'bug';
 function openSupportModal() { document.getElementById('support-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
 function closeSupportModal() { document.getElementById('support-modal').classList.remove('active'); document.body.style.overflow = ''; }
 function selectTicketType(element, reason) {
@@ -1058,29 +1081,29 @@ document.addEventListener('click', function(e) { if (e.target !== bizAddrInput &
 // SALARY TAB
 // ============================================================
 
-const MONTH_NAMES_SAL = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
+var MONTH_NAMES_SAL = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
     'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 
-let salaryMonthKey = '';
-let salaryStaff = [];
-let salarySettings = {};
-let salaryBonuses = {};
-let salaryPayments = {};
-let salaryInitialized = false;
+var salaryMonthKey = '';
+var salaryStaff = [];
+var salarySettings = {};
+var salaryBonuses = {};
+var salaryPayments = {};
+var salaryInitialized = false;
 
 async function initSalaryTab() {
     if (!bizId || !supabaseClient) return;
 
     // Кнопка графіку — рендеримо тільки раз
-    const schedWrap = document.getElementById('salary-schedule-btn-wrap');
+    var schedWrap = document.getElementById('salary-schedule-btn-wrap');
     if (schedWrap && !schedWrap.dataset.rendered) {
         schedWrap.dataset.rendered = '1';
-        const t = Math.floor(Date.now()/1000);
-        const token = authToken || '';
-        const tgId = tgUserIdParam || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
+        var t = Math.floor(Date.now()/1000);
+        var token = authToken || '';
+        var tgId = tgUserIdParam || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
         // Беремо базовий URL з поточної сторінки (GitHub Pages)
-        const basePageUrl = window.location.href.replace(/[^/]*$/, '');
-        const url = basePageUrl + `schedule.html?biz_id=${bizId}&tg_id=${tgId}&v=${t}&token=${token}`;
+        var basePageUrl = window.location.href.replace(/[^/]*$/, '');
+        var url = basePageUrl + 'schedule.html?biz_id=' + bizId + '&tg_id=' + tgId + '&v=' + t + '&token=' + token;
         schedWrap.innerHTML = `
         <button class="btn-schedule-open" onclick="window.location.href='${url}'">
             <div class="btn-schedule-icon"><i class="fa-solid fa-calendar-days"></i></div>
@@ -1093,7 +1116,7 @@ async function initSalaryTab() {
     }
 
     // Init month
-    const now = new Date();
+    var now = new Date();
     salaryMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
     await loadSalaryData();
@@ -1103,22 +1126,22 @@ async function initSalaryTab() {
 
 async function loadSalaryData() {
     // Load staff
-    const { data: staffData } = await supabaseClient.from('staff')
-        .select('*').eq('business_id', bizId);
+    var _r = await supabaseClient.from('staff')
+        .select('*').eq('business_id', bizId); var staffData = _r.data;
     salaryStaff = staffData || [];
 
     // Load salary settings for all staff
     try {
-        const { data: sets } = await supabaseClient.from('salary_settings')
-            .select('*').eq('business_id', bizId);
+        var _r = await supabaseClient.from('salary_settings')
+            .select('*').eq('business_id', bizId); var sets = _r.data;
         salarySettings = {};
         (sets || []).forEach(s => { salarySettings[String(s.courier_id)] = s; });
     } catch(e) { salarySettings = {}; }
 
     // Load bonuses for current month
     try {
-        const { data: bons } = await supabaseClient.from('salary_bonuses')
-            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey);
+        var _r = await supabaseClient.from('salary_bonuses')
+            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey); var bons = _r.data;
         salaryBonuses = {};
         (bons || []).forEach(b => {
             if (!salaryBonuses[String(b.courier_id)]) salaryBonuses[String(b.courier_id)] = [];
@@ -1128,25 +1151,25 @@ async function loadSalaryData() {
 
     // Load payments status
     try {
-        const { data: pays } = await supabaseClient.from('salary_payments')
-            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey);
+        var _r = await supabaseClient.from('salary_payments')
+            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey); var pays = _r.data;
         salaryPayments = {};
         (pays || []).forEach(p => { salaryPayments[String(p.courier_id)] = p; });
     } catch(e) { salaryPayments = {}; }
 }
 
 function renderSalaryMonthTabs() {
-    const wrap = document.getElementById('salary-month-tabs');
+    var wrap = document.getElementById('salary-month-tabs');
     if (!wrap) return;
-    const now = new Date();
-    const months = [];
-    for (let d = -2; d <= 1; d++) {
-        const dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
+    var now = new Date();
+    var months = [];
+    for (var d = -2; d <= 1; d++) {
+        var dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
         months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
     }
     wrap.innerHTML = months.map(mk => {
-        const [y, m] = mk.split('-');
-        const label = MONTH_NAMES_SAL[parseInt(m)-1] + ' ' + y;
+        var [y, m] = mk.split('-');
+        var label = MONTH_NAMES_SAL[parseInt(m)-1] + ' ' + y;
         return `<div class="salary-month-tab${mk===salaryMonthKey?' active':''}"
             onclick="switchSalaryMonth('${mk}')">${label}</div>`;
     }).join('');
@@ -1171,13 +1194,15 @@ async function renderSalaryList() {
 
     list.innerHTML = '<div style="text-align:center;padding:30px 0;"><i class="fa-solid fa-circle-notch fa-spin" style="color:var(--primary);font-size:22px;"></i></div>';
 
-    var parts = salaryMonthKey.split('-');
-    var y = parseInt(parts[0]);
-    var m = parseInt(parts[1]);
-    var startDate = new Date(Date.UTC(y, m-1, 1)).toISOString();
-    var endDate   = new Date(Date.UTC(y, m, 1)).toISOString();
+    var mParts = salaryMonthKey.split('-');
+    var mY = parseInt(mParts[0]);
+    var mM = parseInt(mParts[1]);
+    var startDate = new Date(Date.UTC(mY, mM-1, 1)).toISOString();
+    var endDate   = new Date(Date.UTC(mY, mM, 1)).toISOString();
+    var daysInMonth = new Date(mY, mM, 0).getDate();
     var cur = currencySymbol || 'zł';
 
+    // 1. Завантажуємо shifts
     var allShifts = [], allOrders = [];
     try {
         var shRes = await supabaseClient.from('shifts')
@@ -1193,7 +1218,7 @@ async function renderSalaryList() {
         allOrders = ordRes.data || [];
     } catch(e) {}
 
-    // Завантажуємо дані графіку (actual_hours + планові години)
+    // 2. Завантажуємо дані графіку (actual_hours + планові)
     var salaryScheduleData = {};
     try {
         var schedRes = await supabaseClient.from('schedule')
@@ -1213,12 +1238,25 @@ async function renderSalaryList() {
         });
     } catch(e) {}
 
+    // 3. Групуємо shifts по кур'єру і по дню
     var shiftsByCourier = {};
+    var realDailyByCourier = {};
     allShifts.forEach(function(sh) {
         var cid = String(sh.courier_id);
+        // По кур'єру (для km)
         if (!shiftsByCourier[cid]) shiftsByCourier[cid] = [];
         shiftsByCourier[cid].push(sh);
+        // По дню
+        var dd = new Date((sh.started_at||'').replace(' ','T')).getDate();
+        if (!realDailyByCourier[cid]) realDailyByCourier[cid] = {};
+        if (!realDailyByCourier[cid][dd]) realDailyByCourier[cid][dd] = { hours: 0 };
+        if (sh.ended_at) {
+            realDailyByCourier[cid][dd].hours += (new Date((sh.ended_at||'').replace(' ','T')) - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
+        } else {
+            realDailyByCourier[cid][dd].hours += (new Date() - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
+        }
     });
+
     var ordersByCourier = {};
     allOrders.forEach(function(o) {
         var cid = String(o.courier_id);
@@ -1240,137 +1278,104 @@ async function renderSalaryList() {
         var bonusList   = salaryBonuses[cid] || [];
         var payment     = salaryPayments[cid];
 
-        // Hours + km from shifts
-        var totalHours = 0, totalKm = 0, shiftCount = 0;
-
-        // Км з реальних змін
-        var myShifts = shiftsByCourier[cid] || [];
-        myShifts.forEach(function(sh) {
+        // Km з реальних змін
+        var totalKm = 0;
+        (shiftsByCourier[cid] || []).forEach(function(sh) {
             if (sh.ended_at && sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
         });
 
-        // 2. Розрахунок ПО ДНЯХ з реальних даних графіку
-        var parts = salaryMonthKey.split('-');
-        var sy = parseInt(parts[0]), sm = parseInt(parts[1]);
-        var daysInMonth = new Date(sy, sm, 0).getDate();
+        // Години по днях (пріоритет: actual > real > planned)
+        var totalHours = 0;
+        var shiftCount = 0;
         var monthSched = salaryScheduleData[cid] || {};
 
         for (var dd = 1; dd <= daysInMonth; dd++) {
             var slot = monthSched[dd];
             var realDay = realDailyByCourier[cid] ? realDailyByCourier[cid][dd] : null;
             var dayHours = 0;
+            var workedToday = false;
 
             if (slot && slot.actual_hours != null && !isNaN(slot.actual_hours)) {
-                // Пріоритет 1: ручне введення
                 dayHours = slot.actual_hours;
-                if (shiftCount === 0 || !realDay) shiftCount++;
+                workedToday = true;
             } else if (realDay && realDay.hours > 0) {
-                // Пріоритет 2: реальні з боту
                 dayHours = realDay.hours;
+                workedToday = true;
             } else if (slot && slot.planned && slot.start && slot.end) {
-                // Пріоритет 3: планові
                 var ps = slot.start.split(':');
                 var pe = slot.end.split(':');
                 var diff = (parseInt(pe[0])*60+parseInt(pe[1]))-(parseInt(ps[0])*60+parseInt(ps[1]));
                 if (diff < 0) diff += 1440;
-                if (diff > 0) { dayHours = diff/60; shiftCount++; }
+                if (diff > 0) { dayHours = diff/60; workedToday = true; }
             }
             totalHours += dayHours;
+            if (workedToday || (realDay && realDay.hours > 0)) shiftCount++;
         }
         totalHours = Math.round(totalHours * 10) / 10;
         totalKm = Math.round(totalKm);
         var ordersCount = ordersByCourier[cid] || 0;
 
-        // Bonus total — аванс автоматично від'ємний
+        // Бонуси
         var bonusTotal = 0;
         bonusList.forEach(function(b) {
-            var amt = parseFloat(b.amount) || 0;
-            bonusTotal += amt;
+            bonusTotal += parseFloat(b.amount) || 0;
         });
 
-        // Calculation
-        var baseSalary   = Math.round(totalHours * hourlyRate * 100) / 100;
-        var orderBonus   = Math.round(ordersCount * orderRate * 100) / 100;
-        var kmDeduction  = Math.round(totalKm * kmRate * 100) / 100;
-        var earnedSafe   = baseSalary + orderBonus - kmDeduction + bonusTotal;
+        // Розрахунок
+        var baseSalary  = Math.round(totalHours * hourlyRate * 100) / 100;
+        var orderBonus  = Math.round(ordersCount * orderRate * 100) / 100;
+        var kmDeduction = Math.round(totalKm * kmRate * 100) / 100;
+        var earnedSafe  = baseSalary + orderBonus - kmDeduction + bonusTotal;
         if (isNaN(earnedSafe)) earnedSafe = 0;
         totalFund += earnedSafe;
 
         var isPaid = payment && payment.paid;
         var roleLabel = s.role === 'manager' ? 'Адміністратор' :
-                        s.role === 'kitchen' ? 'Кухня' : "Кур'єр";
+                        s.role === 'kitchen'  ? 'Кухня' : "Кур'єр";
         var roleClass = s.role === 'manager' ? 'av-admin' :
-                        s.role === 'kitchen' ? 'av-sushi' : 'av-courier';
+                        s.role === 'kitchen'  ? 'av-sushi' : 'av-courier';
         var initials = (s.name || '?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
         var bodyId = 'sal-body-' + cid;
         var settId = 'sal-sett-' + cid;
 
-        // --- Ledger rows ---
+        // Ledger
         var ledger = '';
         if (hourlyRate > 0 || totalHours > 0) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">Базова ЗП (' + totalHours.toFixed(1) + 'г × ' + hourlyRate + ' ' + cur + ')</span>' +
-                      '<span class="ledger-amount neutral">' + fmtAmt(baseSalary, cur) + '</span></div>';
+            ledger += '<div class="ledger-row"><span class="ledger-desc">Базова ЗП (' + totalHours.toFixed(1) + 'г × ' + hourlyRate + ' ' + cur + ')</span><span class="ledger-amount neutral">' + fmtAmt(baseSalary, cur) + '</span></div>';
         }
         if (orderEnabled && (orderRate > 0 || ordersCount > 0)) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">За замовлення (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span>' +
-                      '<span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
+            ledger += '<div class="ledger-row"><span class="ledger-desc">За замовлення (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
         }
         if (kmEnabled && (kmRate > 0 || totalKm > 0)) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">Пробіг (' + totalKm + ' км × ' + kmRate + ' ' + cur + ')</span>' +
-                      '<span class="ledger-amount minus">-' + kmDeduction.toFixed(2) + ' ' + cur + '</span></div>';
+            ledger += '<div class="ledger-row"><span class="ledger-desc">Пробіг (' + totalKm + ' км × ' + kmRate + ' ' + cur + ')</span><span class="ledger-amount minus">-' + kmDeduction.toFixed(2) + ' ' + cur + '</span></div>';
         }
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
             var cls = amt >= 0 ? 'plus' : 'minus';
             var desc = b.comment || (amt >= 0 ? 'Премія' : 'Штраф');
-            ledger += '<div class="ledger-row"><span class="ledger-desc">' + esc(desc) + '</span>' +
-                      '<span class="ledger-amount ' + cls + '">' + fmtAmt(amt, cur, true) + '</span></div>';
+            ledger += '<div class="ledger-row"><span class="ledger-desc">' + esc(desc) + '</span><span class="ledger-amount ' + cls + '">' + fmtAmt(amt, cur, true) + '</span></div>';
         });
-        if (!ledger) {
-            ledger = '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Немає даних за цей місяць</div>';
-        }
+        if (!ledger) ledger = '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Немає даних за цей місяць</div>';
 
-        // --- Settings rows ---
-        var settHourly = '<div class="setting-row">' +
-            '<span class="setting-label">Погодинна (' + cur + '/год)</span>' +
-            '<div class="setting-controls"><input type="number" class="setting-input" id="hr-' + cid + '" value="' + hourlyRate + '" min="0" step="0.5"></div></div>';
-
-        var settOrders = '<div class="setting-row">' +
-            '<span class="setting-label">За замовлення (' + cur + '/шт)</span>' +
-            '<div class="setting-controls">' +
-            '<label class="switch"><input type="checkbox" id="oe-' + cid + '"' + (orderEnabled ? ' checked' : '') + '><span class="slider"></span></label>' +
-            '<input type="number" class="setting-input" id="or-' + cid + '" value="' + orderRate + '" min="0" step="0.1"></div></div>';
-
-        var settKm = '<div class="setting-row">' +
-            '<span class="setting-label">Вирахувати за км (' + cur + '/км)</span>' +
-            '<div class="setting-controls">' +
-            '<label class="switch"><input type="checkbox" id="ke-' + cid + '"' + (kmEnabled ? ' checked' : '') + '><span class="slider"></span></label>' +
-            '<input type="number" class="setting-input" id="kr-' + cid + '" value="' + kmRate + '" min="0" step="0.1"></div></div>';
+        // Settings rows
+        var settHourly = '<div class="setting-row"><span class="setting-label">Погодинна (' + cur + '/год)</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-' + cid + '" value="' + hourlyRate + '" min="0" step="0.5"></div></div>';
+        var settOrders = '<div class="setting-row"><span class="setting-label">За замовлення (' + cur + '/шт)</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="oe-' + cid + '"' + (orderEnabled ? ' checked' : '') + '><span class="slider"></span></label><input type="number" class="setting-input" id="or-' + cid + '" value="' + orderRate + '" min="0" step="0.1"></div></div>';
+        var settKm = '<div class="setting-row"><span class="setting-label">Вирахувати за км (' + cur + '/км)</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="ke-' + cid + '"' + (kmEnabled ? ' checked' : '') + '><span class="slider"></span></label><input type="number" class="setting-input" id="kr-' + cid + '" value="' + kmRate + '" min="0" step="0.1"></div></div>';
 
         html += '<div class="salary-card' + (isPaid ? ' salary-card-paid' : '') + '" id="sal-card-' + cid + '">' +
-
-            // Header - uses data-bodyid for toggling
             '<div class="card-summary" data-toggle="' + bodyId + '">' +
               '<div class="avatar ' + roleClass + '">' + initials + '</div>' +
-              '<div class="user-meta">' +
-                '<span class="name">' + esc(s.name) + '</span>' +
-                '<span class="role">' + roleLabel + '</span>' +
-              '</div>' +
+              '<div class="user-meta"><span class="name">' + esc(s.name) + '</span><span class="role">' + roleLabel + '</span></div>' +
               '<div class="amount-block">' +
                 '<div class="total-sum">' + fmtAmt(earnedSafe, cur) + '</div>' +
                 '<div class="status-badge ' + (isPaid ? 'paid' : 'unpaid') + '" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
-                  (isPaid
-                    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Виплачено'
-                    : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Не виплачено') +
+                  (isPaid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Виплачено' :
+                            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Не виплачено') +
                 '</div>' +
               '</div>' +
               '<div class="chevron" id="chev-' + cid + '"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>' +
             '</div>' +
-
-            // Body
             '<div class="card-body" id="' + bodyId + '" style="display:none;">' +
-
-              // Settings block
               '<div class="settings-block">' +
                 '<button class="settings-summary" data-settid="' + settId + '">' +
                   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>' +
@@ -1382,19 +1387,13 @@ async function renderSalaryList() {
                   '<button class="btn btn-save-rates" data-savecid="' + cid + '">Зберегти ставки</button>' +
                 '</div>' +
               '</div>' +
-
-              // Stats grid
               '<div class="stats-grid cols-3">' +
                 '<div class="stat-item"><div class="stat-label">Зміни</div><div class="stat-value">' + shiftCount + ' шт</div></div>' +
                 '<div class="stat-item"><div class="stat-label">Години</div><div class="stat-value">' + totalHours.toFixed(1) + 'г</div></div>' +
                 '<div class="stat-item"><div class="stat-label">Замовлення</div><div class="stat-value">' + ordersCount + ' шт</div></div>' +
               '</div>' +
-
-              // Ledger
               '<div class="section-heading">ПРЕМІЯ / ШТРАФ / АВАНС</div>' +
               '<div class="ledger">' + ledger + '</div>' +
-
-              // Add action
               '<div class="add-action">' +
                 '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="Сума (-штраф)">' +
                 '<input type="text" class="input-styled in-desc" id="bon-com-' + cid + '" placeholder="Коментар">' +
@@ -1405,47 +1404,23 @@ async function renderSalaryList() {
                   (isPaid ? '<i class="fa-solid fa-rotate-left"></i> Скасувати виплату' : '<i class="fa-solid fa-check"></i> Виплатити') +
                 '</button>' +
               '</div>' +
-
-            '</div>' + // card-body
-        '</div>'; // salary-card
+            '</div>' +
+        '</div>';
     }
-
 
     list.innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:30px 0;">Даних немає</div>';
 
-    // Event delegation — no inline onclick needed
     list.onclick = function(e) {
-        // Card header toggle
         var header = e.target.closest('[data-toggle]');
-        if (header && !e.target.closest('[data-pay]')) {
-            toggleSalaryCard(header.getAttribute('data-toggle'), header);
-            return;
-        }
-        // Status badge / pay button
+        if (header && !e.target.closest('[data-pay]')) { toggleSalaryCard(header.getAttribute('data-toggle'), header); return; }
         var payEl = e.target.closest('[data-pay]');
-        if (payEl) {
-            e.stopPropagation();
-            togglePayment(payEl.getAttribute('data-pay'), payEl.getAttribute('data-paid') === '1');
-            return;
-        }
-        // Settings toggle
+        if (payEl) { e.stopPropagation(); togglePayment(payEl.getAttribute('data-pay'), payEl.getAttribute('data-paid') === '1'); return; }
         var settBtn = e.target.closest('[data-settid]');
-        if (settBtn) {
-            toggleSalarySettings(settBtn.getAttribute('data-settid'), settBtn);
-            return;
-        }
-        // Save rates
+        if (settBtn) { toggleSalarySettings(settBtn.getAttribute('data-settid'), settBtn); return; }
         var saveBtn = e.target.closest('[data-savecid]');
-        if (saveBtn) {
-            saveSalarySettings(saveBtn.getAttribute('data-savecid'));
-            return;
-        }
-        // Add bonus
+        if (saveBtn) { saveSalarySettings(saveBtn.getAttribute('data-savecid')); return; }
         var bonusBtn = e.target.closest('[data-addbonus]');
-        if (bonusBtn) {
-            addBonus(bonusBtn.getAttribute('data-addbonus'));
-            return;
-        }
+        if (bonusBtn) { addBonus(bonusBtn.getAttribute('data-addbonus')); return; }
     };
 
     if (totalCard) {
@@ -1453,6 +1428,7 @@ async function renderSalaryList() {
         document.getElementById('salary-total-amount').textContent = fmtAmt(totalFund, cur);
     }
 }
+
 
 function fmtAmt(val, cur, withSign) {
     var n = Math.abs(val);
@@ -1490,16 +1466,16 @@ function toggleSalarySettings(settId, btn) {
 
 async function saveSalarySettings(cid) {
     if (!supabaseClient) return;
-    const hourlyRate = parseFloat(document.getElementById(`hr-${cid}`)?.value) || 0;
-    const orderRate  = parseFloat(document.getElementById(`or-${cid}`)?.value) || 0;
-    const kmRate     = parseFloat(document.getElementById(`kr-${cid}`)?.value) || 0;
-    const orderEnabled = document.getElementById(`oe-${cid}`)?.checked || false;
-    const kmEnabled    = document.getElementById(`ke-${cid}`)?.checked || false;
+    var hourlyRate = parseFloat(document.getElementById(`hr-${cid}`)?.value) || 0;
+    var orderRate  = parseFloat(document.getElementById(`or-${cid}`)?.value) || 0;
+    var kmRate     = parseFloat(document.getElementById(`kr-${cid}`)?.value) || 0;
+    var orderEnabled = document.getElementById(`oe-${cid}`)?.checked || false;
+    var kmEnabled    = document.getElementById(`ke-${cid}`)?.checked || false;
 
     try {
         await supabaseClient.from('salary_settings').upsert({
             business_id: bizId,
-            courier_id: parseInt(cid),
+            courier_id: cid,
             hourly_rate: hourlyRate,
             order_rate: orderRate,
             km_rate: kmRate,
@@ -1512,13 +1488,15 @@ async function saveSalarySettings(cid) {
 }
 
 async function addBonus(cid) {
-    const amt  = parseFloat(document.getElementById(`bon-amt-${cid}`)?.value);
-    const com  = document.getElementById(`bon-com-${cid}`)?.value?.trim() || '';
+    var amtEl = document.getElementById('bon-amt-' + cid);
+    var comEl = document.getElementById('bon-com-' + cid);
+    var amt = parseFloat(amtEl ? amtEl.value : '');
+    var com = (comEl && comEl.value) ? comEl.value.trim() : '';
     if (isNaN(amt)) { showToast('❌ Введіть суму', ''); return; }
     try {
         await supabaseClient.from('salary_bonuses').insert({
             business_id: bizId,
-            courier_id: parseInt(cid),
+            courier_id: cid,
             month: salaryMonthKey,
             amount: amt,
             comment: com
@@ -1529,11 +1507,11 @@ async function addBonus(cid) {
 }
 
 async function togglePayment(cid, currentlyPaid) {
-    const newPaid = !currentlyPaid;
+    var newPaid = !currentlyPaid;
     try {
         await supabaseClient.from('salary_payments').upsert({
             business_id: bizId,
-            courier_id: parseInt(cid),
+            courier_id: cid,
             month: salaryMonthKey,
             paid: newPaid,
             paid_at: newPaid ? new Date().toISOString() : null
@@ -1541,3 +1519,4 @@ async function togglePayment(cid, currentlyPaid) {
         showToast(newPaid ? '✅ Виплату підтверджено' : '↩️ Статус скасовано', '');
         await switchSalaryMonth(salaryMonthKey);
     } catch(e) { showToast('❌ Помилка', e.message); }
+}

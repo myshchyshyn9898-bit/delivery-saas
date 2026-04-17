@@ -60,6 +60,7 @@ def get_manager_kb(biz_id, user_id, lang='uk'):
     token = generate_token(biz_id=biz_id, user_id=user_id)
     return ReplyKeyboardMarkup(
         keyboard=[
+            [KeyboardButton(text=_(lang, 'btn_dashboard'), web_app=WebAppInfo(url=f"{BASE_URL}dashboard.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_new_order'), web_app=WebAppInfo(url=f"{BASE_URL}form.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_report')), KeyboardButton(text=_(lang, 'btn_shift_report'))],

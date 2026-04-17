@@ -250,13 +250,13 @@
 
 <div id="loading-screen">
     <i id="load-icon" class="fa-solid fa-circle-notch fa-spin spinner"></i>
-    <div id="load-text" style="font-weight:bold;font-size:16px;">Завантаження карти...</div>
+    <div id="load-text" style="font-weight:bold;font-size:16px;"><span id="map-loading-txt">Завантаження карти...</span></div>
     <div id="error-text" style="color:red;font-size:13px;margin-top:10px;font-weight:bold;white-space:pre-wrap;"></div>
 </div>
 
 <!-- Верхня панель: бейдж ролі + кнопка аналітики -->
 <div id="top-bar">
-    <div id="role-badge">Шукаю доступ...</div>
+    <div id="role-badge"><span id="map-search-txt">Шукаю доступ...</span></div>
     <button id="btn-history"><i class="fa-solid fa-chart-line"></i> Аналітика</button>
 </div>
 
@@ -269,7 +269,7 @@
 
 <!-- Міні-статистика по дню -->
 <div id="history-stats">
-    <div class="stat-chip"><i class="fa-solid fa-box-archive"></i><span id="stat-count">0 замовлень</span></div>
+    <div class="stat-chip"><i class="fa-solid fa-box-archive"></i><span id="stat-count"><span id="map-orders-count">0 замовлень</span></span></div>
     <div class="stat-chip"><i class="fa-solid fa-coins"></i><span id="stat-revenue">0 zł</span></div>
     <div class="stat-chip"><i class="fa-solid fa-clock-rotate-left"></i><span id="stat-avg">~0 хв</span></div>
 </div>
@@ -280,17 +280,17 @@
 <div id="bottom-sheet" class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-        <h3 id="panel-address" class="sheet-title">Адреса</h3>
+        <h3 id="panel-address" class="sheet-title"><span id="map-addr-txt">Адреса</span></h3>
         <div id="panel-badge" class="time-badge">🕒 0 хв</div>
     </div>
 
     <!-- Рядки для активних замовлень -->
     <div id="active-rows">
         <div class="sheet-info-row" id="panel-courier-row" style="display:none;">
-            <i class="fa-solid fa-motorcycle"></i><span id="panel-courier">Кур'єр: -</span>
+            <i class="fa-solid fa-motorcycle"></i><span id="panel-courier"><span id="map-courier-txt">Кур'єр: -</span></span>
         </div>
         <div class="sheet-info-row">
-            <i id="panel-pay-icon" class="fa-solid fa-wallet"></i><strong id="panel-pay">Оплата</strong>
+            <i id="panel-pay-icon" class="fa-solid fa-wallet"></i><strong id="panel-pay"><span id="map-pay-txt">Оплата</span></strong>
         </div>
 
         <div id="admin-actions" style="display:none;">
@@ -338,18 +338,241 @@
             <i id="hist-pay-icon" class="fa-solid fa-wallet"></i><strong id="hist-pay">Оплата</strong>
         </div>
         <div class="sheet-info-row history-row">
-            <i class="fa-solid fa-stopwatch"></i><span id="hist-time">Час доставки: -</span>
+            <i class="fa-solid fa-stopwatch"></i><span id="hist-time"><span id="map-time-txt">Час доставки: -</span></span>
         </div>
         <div class="sheet-info-row history-row" id="hist-comment-row" style="display:none;">
             <i class="fa-solid fa-comment"></i><span id="hist-comment">-</span>
         </div>
     </div>
 
-    <button id="btn-cancel" class="btn-cancel">Сховати</button>
+    <button id="btn-cancel" class="btn-cancel"><span id="map-hide-txt">Сховати</span></button>
 </div>
 
-<script>
-    /* ── УТИЛІТИ ── */
+<script>    /* ── МОВА ── */
+    var tgLang = 'en';
+    try {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            tgLang = window.Telegram.WebApp.initDataUnsafe.user.language_code || 'en';
+        }
+    } catch(e) {}
+    var savedLang = (typeof localStorage !== 'undefined') ? localStorage.getItem('appLang') : null;
+    var currentLang = savedLang || tgLang;
+    if (!['uk','ru','pl','en'].includes(currentLang)) currentLang = 'en';
+
+    var MAP_I18N = {
+    'uk': {
+        title: "Карта Замовлень | DeliPro",
+        loading: "Завантаження карти...",
+        searching: "Шукаю доступ...",
+        analytics: "Аналітика",
+        date_lbl: "Дата:",
+        address_lbl: "Адреса",
+        payment_lbl: "Оплата",
+        courier_lbl: "Кур'єр: -",
+        time_lbl: "Час доставки: -",
+        btn_route: "Побудувати маршрут",
+        btn_assign: "Призначити",
+        btn_take: "🚀 Взяти замовлення",
+        btn_show: "Показати",
+        btn_hide: "Сховати",
+        stat_orders: "0 замовлень",
+        select_courier: "Оберіть кур'єра...",
+        assigned_ok: "Замовлення призначено!",
+        taken_fast: "⚡️ Хтось був швидшим! Замовлення вже забрали.",
+        select_date: "Оберіть дату!",
+        cash_lbl: "Готівка: ",
+        term_lbl: "Термінал: ",
+        online_lbl: "Онлайн",
+        delivering_lbl: "Везе: ",
+        guest: "❓ Гість",
+        role_owner: "👑 Режим Власника",
+        role_manager: "👨‍💼 Режим Менеджера",
+        done_lbl: "Виконано",
+        close_lbl: "Закрити",
+        processing_lbl: "Обробка...",
+        analytics_lbl: "Аналітика",
+        show_lbl: "Показати",
+        err_biz: "Бізнес не знайдено: ",
+        err_config: ML.err_config,
+        err_config_http: ML.err_config_http,
+        err_mapbox: ML.err_mapbox,
+        err_supabase: ML.err_supabase,
+        err_token: ML.err_token,
+        err_server: ML.err_server,
+        err_start: "Помилка запуску",
+        err_init: "Помилка ініціалізації",
+        err_prefix: "Помилка: ",
+        err_start_prefix: "Помилка старту: ",
+        connecting: "Підключення до сервера...",
+        loading_orders: "Завантаження замовлень:",
+        server_down: "Сервер недоступний (",
+    },
+    'ru': {
+        title: "Карта Заказов | DeliPro",
+        loading: "Загрузка карты...",
+        searching: "Ищу доступ...",
+        analytics: "Аналитика",
+        date_lbl: "Дата:",
+        address_lbl: "Адрес",
+        payment_lbl: "Оплата",
+        courier_lbl: "Курьер: -",
+        time_lbl: "Время доставки: -",
+        btn_route: "Построить маршрут",
+        btn_assign: "Назначить",
+        btn_take: "🚀 Взять заказ",
+        btn_show: "Показать",
+        btn_hide: "Скрыть",
+        stat_orders: "0 заказов",
+        select_courier: "Выберите курьера...",
+        assigned_ok: "Заказ назначен!",
+        taken_fast: "⚡️ Кто-то был быстрее! Заказ уже взяли.",
+        select_date: "Выберите дату!",
+        cash_lbl: "Наличные: ",
+        term_lbl: "Терминал: ",
+        online_lbl: "Онлайн",
+        delivering_lbl: "Везёт: ",
+        guest: "❓ Гость",
+        role_owner: "👑 Режим Владельца",
+        role_manager: "👨‍💼 Режим Менеджера",
+        done_lbl: "Выполнено",
+        close_lbl: "Закрыть",
+        processing_lbl: "Обработка...",
+        analytics_lbl: "Аналитика",
+        show_lbl: "Показать",
+        err_biz: "Бизнес не найден: ",
+        err_config: "Неверный ответ /config (не JSON): ",
+        err_config_http: "Ошибка /config: HTTP ",
+        err_mapbox: "Ошибка: Mapbox не загрузился. Проверьте интернет.",
+        err_supabase: "Ошибка: Supabase SDK не подключена",
+        err_token: "Ошибка: Нет токена доступа",
+        err_server: "Ошибка подключения к серверу",
+        err_start: "Ошибка запуска",
+        err_init: "Ошибка инициализации",
+        err_prefix: "Ошибка: ",
+        err_start_prefix: "Ошибка запуска: ",
+        connecting: "Подключение к серверу...",
+        loading_orders: "Загрузка заказов:",
+        server_down: "Сервер недоступен (",
+    },
+    'pl': {
+        title: "Mapa Zamówień | DeliPro",
+        loading: "Ładowanie mapy...",
+        searching: "Szukam dostępu...",
+        analytics: "Analityka",
+        date_lbl: "Data:",
+        address_lbl: "Adres",
+        payment_lbl: "Płatność",
+        courier_lbl: "Kurier: -",
+        time_lbl: "Czas dostawy: -",
+        btn_route: "Pokaż trasę",
+        btn_assign: "Przypisz",
+        btn_take: "🚀 Weź zamówienie",
+        btn_show: "Pokaż",
+        btn_hide: "Ukryj",
+        stat_orders: "0 zamówień",
+        select_courier: "Wybierz kuriera...",
+        assigned_ok: "Zamówienie przypisane!",
+        taken_fast: "⚡️ Ktoś był szybszy! Zamówienie już zostało wzięte.",
+        select_date: "Wybierz datę!",
+        cash_lbl: "Gotówka: ",
+        term_lbl: "Terminal: ",
+        online_lbl: "Online",
+        delivering_lbl: "Jedzie: ",
+        guest: "❓ Gość",
+        role_owner: "👑 Tryb Właściciela",
+        role_manager: "👨‍💼 Tryb Menedżera",
+        done_lbl: "Wykonano",
+        close_lbl: "Zamknij",
+        processing_lbl: "Przetwarzanie...",
+        analytics_lbl: "Analityka",
+        show_lbl: "Pokaż",
+        err_biz: "Firma nie znaleziona: ",
+        err_config: "Nieprawidłowa odpowiedź /config (nie JSON): ",
+        err_config_http: "Błąd /config: HTTP ",
+        err_mapbox: "Błąd: Mapbox nie załadował się. Sprawdź internet.",
+        err_supabase: "Błąd: Supabase SDK nie jest podłączona",
+        err_token: "Błąd: Brak tokenu dostępu",
+        err_server: "Błąd połączenia z serwerem",
+        err_start: "Błąd uruchomienia",
+        err_init: "Błąd inicjalizacji",
+        err_prefix: "Błąd: ",
+        err_start_prefix: "Błąd uruchomienia: ",
+        connecting: "Łączenie z serwerem...",
+        loading_orders: "Ładowanie zamówień:",
+        server_down: "Serwer niedostępny (",
+    },
+    'en': {
+        title: "Orders Map | DeliPro",
+        loading: "Loading map...",
+        searching: "Searching access...",
+        analytics: "Analytics",
+        date_lbl: "Date:",
+        address_lbl: "Address",
+        payment_lbl: "Payment",
+        courier_lbl: "Courier: -",
+        time_lbl: "Delivery time: -",
+        btn_route: "Build route",
+        btn_assign: "Assign",
+        btn_take: "🚀 Take order",
+        btn_show: "Show",
+        btn_hide: "Hide",
+        stat_orders: "0 orders",
+        select_courier: "Select courier...",
+        assigned_ok: "Order assigned!",
+        taken_fast: "⚡️ Someone was faster! Order already taken.",
+        select_date: "Select date!",
+        cash_lbl: "Cash: ",
+        term_lbl: "Terminal: ",
+        online_lbl: "Online",
+        delivering_lbl: "Delivering: ",
+        guest: "❓ Guest",
+        role_owner: "👑 Owner Mode",
+        role_manager: "👨‍💼 Manager Mode",
+        done_lbl: "Done",
+        close_lbl: "Close",
+        processing_lbl: "Processing...",
+        analytics_lbl: "Analytics",
+        show_lbl: "Show",
+        err_biz: "Business not found: ",
+        err_config: "Invalid /config response (not JSON): ",
+        err_config_http: "Config error: HTTP ",
+        err_mapbox: "Error: Mapbox failed to load. Check internet.",
+        err_supabase: "Error: Supabase SDK not connected",
+        err_token: "Error: No access token",
+        err_server: "Server connection error",
+        err_start: "Start error",
+        err_init: "Init error",
+        err_prefix: "Error: ",
+        err_start_prefix: "Start error: ",
+        connecting: "Connecting to server...",
+        loading_orders: "Loading orders:",
+        server_down: "Server unavailable (",
+    },
+};
+
+    var ML = MAP_I18N[currentLang] || MAP_I18N['en'];
+
+    
+    
+    /* Apply map translations */
+    function applyMapTranslations() {
+        ML = MAP_I18N[currentLang] || MAP_I18N['en'];
+        var ids = {
+            'map-loading-txt': ML.loading, 'map-search-txt': ML.searching,
+            'map-analytics-txt': ML.analytics, 'map-addr-txt': ML.address_lbl,
+            'map-pay-txt': ML.payment_lbl, 'map-courier-txt': ML.courier_lbl,
+            'map-time-txt': ML.time_lbl, 'map-route-txt': ML.btn_route,
+            'map-assign-txt': ML.btn_assign, 'map-take-txt': ML.btn_take,
+            'map-show-txt': ML.btn_show, 'map-hide-txt': ML.btn_hide,
+            'map-orders-count': ML.stat_orders, 'map-date-lbl': ML.date_lbl
+        };
+        for (var id in ids) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = ids[id];
+        }
+    }
+
+/* ── УТИЛІТИ ── */
     function logError(text) {
         var el = document.getElementById('error-text');
         if (el) el.innerText += '🚨 ' + text + '\n';
@@ -374,9 +597,9 @@
         if (!_supabaseCfgCache) {
             var res;
             try { res = await fetch(RAILWAY_DOMAIN + '/config'); }
-            catch (e) { throw new Error('Сервер недоступний (' + RAILWAY_DOMAIN + '): ' + e.message); }
+            catch (e) { throw new Error(ML.server_down + RAILWAY_DOMAIN + '): ' + e.message); }
 
-            if (!res.ok) throw new Error('Помилка /config: HTTP ' + res.status + ' ' + res.statusText);
+            if (!res.ok) throw new Error(ML.err_config_http + res.status + ' ' + res.statusText);
 
             var cfg;
             try { cfg = await res.json(); }
@@ -420,10 +643,10 @@
                 return;
             }
 
-            document.getElementById('load-text').innerText = 'Підключення до сервера...';
+            document.getElementById('load-text').innerText = ML.connecting;
             var cfg;
             try { cfg = await getSupabaseCfg(); }
-            catch (cfgErr) { showError('Помилка підключення до сервера'); logError(cfgErr.message); return; }
+            catch (cfgErr) { showError(ML.err_server); logError(cfgErr.message); return; }
 
             supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
                 global: { headers: { Authorization: 'Bearer ' + authToken } }
@@ -452,13 +675,13 @@
                 if (!selectedOrder) return;
                 var btn = document.getElementById('btn-take-order');
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Обробка...';
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + ML.processing_lbl + '';
 
                 try {
                     // 1. Перевіряємо актуальний статус
                     var checkRes = await supabase.from('orders').select('status, courier_id').eq('id', selectedOrder.id).single();
                     if (checkRes.data && checkRes.data.status !== 'pending') {
-                        tg.showAlert('⚡️ Хтось був швидшим! Замовлення вже забрали.');
+                        tg.showAlert(ML.taken_fast);
                         closePanel(); loadOrders();
                         return;
                     }
@@ -474,7 +697,7 @@
                     // 3. Перевіряємо що саме ми захопили
                     var verify = await supabase.from('orders').select('courier_id, status').eq('id', selectedOrder.id).single();
                     if (!verify.data || String(verify.data.courier_id) !== String(userId)) {
-                        tg.showAlert('⚡️ Хтось був швидшим! Замовлення вже забрали.');
+                        tg.showAlert(ML.taken_fast);
                         closePanel(); loadOrders();
                         return;
                     }
@@ -510,9 +733,9 @@
                     loadOrders();
 
                 } catch(e) {
-                    tg.showAlert('Помилка: ' + e.message);
+                    tg.showAlert(ML.err_prefix + e.message);
                     btn.disabled = false;
-                    btn.innerHTML = '🚀 Взяти замовлення';
+                    btn.innerHTML = ML.btn_take;
                 }
             };
 
@@ -528,13 +751,13 @@
                         .eq('id', selectedOrder.id);
                     if (result.error) throw result.error;
                     tg.sendData(JSON.stringify({ action: 'assign_order', order_id: selectedOrder.id, courier_id: cId }));
-                    tg.showAlert('Замовлення призначено!');
+                    tg.showAlert(ML.assigned_ok);
                     closePanel(); loadOrders();
                 } catch (e) {
-                    tg.showAlert('Помилка: ' + e.message);
+                    tg.showAlert(ML.err_prefix + e.message);
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Призначити';
+                    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> ' + ML.btn_assign + '';
                 }
             };
 
@@ -542,15 +765,15 @@
             document.getElementById('btn-history').onclick = toggleHistoryMode;
             document.getElementById('btn-load-history').onclick = function() {
                 var date = document.getElementById('history-date').value;
-                if (!date) return tg.showAlert('Оберіть дату!');
+                if (!date) return tg.showAlert(ML.select_date);
                 loadHistoryOrders(date);
             };
 
             setTimeout(initMapAndData, 100);
 
         } catch (err) {
-            showError('Помилка запуску');
-            logError('Помилка старту: ' + (err.message || String(err)));
+            showError(ML.err_start);
+            logError(ML.err_start_prefix + (err.message || String(err)));
         }
     });
 
@@ -568,14 +791,14 @@
 
         if (isHistoryMode) {
             btn.classList.add('history-active');
-            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Закрити';
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i> ' + ML.close_lbl + '';
             bar.classList.add('visible');
             /* Приховуємо активні маркери, показуємо тільки точки закритих */
             markers.forEach(function(m) { m.getElement().style.display = 'none'; });
             closePanel();
         } else {
             btn.classList.remove('history-active');
-            btn.innerHTML = '<i class="fa-solid fa-chart-line"></i> Аналітика';
+            btn.innerHTML = '<i class="fa-solid fa-chart-line"></i> ' + ML.analytics_lbl + '';
             bar.classList.remove('visible');
             statsEl.classList.remove('visible');
             /* Повертаємо активні маркери */
@@ -589,23 +812,23 @@
     async function initMapAndData() {
         try {
             var bizRes = await supabase.from('businesses').select('*').eq('id', bizId).single();
-            if (bizRes.error) throw new Error('Бізнес не знайдено: ' + bizRes.error.message);
+            if (bizRes.error) throw new Error(ML.err_biz + bizRes.error.message);
             bizData = bizRes.data;
 
             if (bizData && String(bizData.owner_id) === String(userId)) {
                 userRole = 'admin';
-                document.getElementById('role-badge').innerHTML = '👑 <b>Режим Власника</b>';
+                document.getElementById('role-badge').innerHTML = '👑 <b>' + ML.role_owner.replace('👑 ','') + '</b>';
             } else {
                 var staffRes = await supabase.from('staff').select('*').eq('user_id', userId).eq('business_id', bizId).single();
                 var staff = staffRes.data;
                 if (staff && staff.role === 'manager') {
                     userRole = 'admin';
-                    document.getElementById('role-badge').innerHTML = '👨‍💼 <b>Режим Менеджера</b>';
+                    document.getElementById('role-badge').innerHTML = '👨‍💼 <b>' + ML.role_manager.replace('👨‍💼 ','') + '</b>';
                 } else if (staff && staff.role === 'courier') {
                     userRole = 'courier';
                     document.getElementById('role-badge').innerHTML = '🛵 <b>Кур\'єр:</b> ' + staff.name;
                 } else {
-                    document.getElementById('role-badge').innerHTML = '❓ Гість';
+                    document.getElementById('role-badge').innerHTML = ML.guest;
                 }
             }
 
@@ -621,7 +844,7 @@
                 var couriersRes = await supabase.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
                 availableCouriers = couriersRes.data || [];
                 var sel = document.getElementById('courier-select');
-                sel.innerHTML = '<option value="" disabled selected>Оберіть кур\'єра...</option>';
+                sel.innerHTML = '<option value="" disabled selected>' + ML.select_courier + '</option>';
                 availableCouriers.forEach(function(c) {
                     var opt = document.createElement('option');
                     opt.value = c.user_id || c.tg_id;
@@ -652,7 +875,7 @@
                 timerInterval = setInterval(updateAllTimers, 60000);
             });
 
-        } catch (e) { showError('Помилка ініціалізації'); logError(e.message || String(e)); }
+        } catch (e) { showError(ML.err_init); logError(e.message || String(e)); }
     }
 
     /* ── АКТИВНІ ЗАМОВЛЕННЯ ── */
@@ -682,7 +905,7 @@
             }
 
             drawMarkers();
-        } catch (e) { console.error('Завантаження замовлень:', e); }
+        } catch (e) { console.error(ML.loading_orders, e); }
     }
 
     /* ── ТАЙМЕР (захист від таймзон + Safari) ── */
@@ -800,9 +1023,9 @@
             pBadge.innerText = timeText;
         }
 
-        var payStr = 'Онлайн', payIcon = 'fa-globe';
-        if (order.pay_type === 'cash')     { payStr = 'Готівка: '  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
-        if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount + ' zł'; payIcon = 'fa-credit-card'; }
+        var payStr = ML.online_lbl, payIcon = 'fa-globe';
+        if (order.pay_type === 'cash')     { payStr = ML.cash_lbl  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
+        if (order.pay_type === 'terminal') { payStr = ML.term_lbl + order.amount + ' zł'; payIcon = 'fa-credit-card'; }
         document.getElementById('panel-pay').innerText = payStr;
         document.getElementById('panel-pay-icon').className = 'fa-solid ' + payIcon;
 
@@ -853,7 +1076,7 @@
                 // Чужі delivering — показуємо хто везе (без кнопок)
                 if (!isUnassigned && !isMineOrder && courierDisplayName) {
                     document.getElementById('panel-courier-row').style.display = 'flex';
-                    document.getElementById('panel-courier').innerHTML = "Везе: <b>" + courierDisplayName + '</b>';
+                    document.getElementById('panel-courier').innerHTML = ML.delivering_lbl + "<b>" + courierDisplayName + '</b>';
                 }
             } else {
                 // DISPATCHER: кур'єр бачить тільки свої — маршрут
@@ -955,7 +1178,7 @@
             console.error(e);
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Показати';
+            btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> ' + ML.show_lbl + '';
         }
     }
 
@@ -1008,15 +1231,15 @@
         /* Бейдж "Виконано" замість таймера */
         var pBadge = document.getElementById('panel-badge');
         pBadge.className = 'badge-done';
-        pBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Виконано';
+        pBadge.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + ML.done_lbl + '';
 
         /* Кур'єр */
         document.getElementById('hist-courier').innerHTML = "Кур'єр: <b>" + courierName + '</b>';
 
         /* Оплата */
         var payStr = 'Онлайн (сплачено)', payIcon = 'fa-globe';
-        if (order.pay_type === 'cash')     { payStr = 'Готівка: '  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
-        if (order.pay_type === 'terminal') { payStr = 'Термінал: ' + order.amount + ' zł'; payIcon = 'fa-credit-card'; }
+        if (order.pay_type === 'cash')     { payStr = ML.cash_lbl  + order.amount + ' zł'; payIcon = 'fa-money-bill-wave'; }
+        if (order.pay_type === 'terminal') { payStr = ML.term_lbl + order.amount + ' zł'; payIcon = 'fa-credit-card'; }
         document.getElementById('hist-pay').innerText = payStr;
         document.getElementById('hist-pay-icon').className = 'fa-solid ' + payIcon;
 
@@ -1028,7 +1251,7 @@
             var mins  = Math.round((end - start) / 60000);
             timeStr = mins > 0 ? mins + ' хв' : '< 1 хв';
         }
-        document.getElementById('hist-time').innerText = 'Час доставки: ' + timeStr;
+        document.getElementById('hist-time').innerText = ML.time_lbl.replace(': -','') + ': ' + timeStr;
 
         /* Коментар (якщо є) */
         if (order.comment) {

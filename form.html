@@ -249,6 +249,13 @@
                 err_phone: "Будь ласка, введіть коректний номер телефону!", err_req: "Заповніть обов'язкові поля: вулицю, суму та оберіть кур'єра!",
                 load_list: "Завантаження списку...", unassigned_opt: "🟢 Вільне (На карту)"
             },
+                name: "Ім\'я клієнта (напр. Олексій)",
+                comment: "Коментар (необов\'язково)",
+                amount: "Сума замовлення (zł)",
+                phone: "Телефон (+48...)",
+                success: "✅ Замовлення успішно створено!",
+                err_prefix: "❌ Помилка: ",
+                err_network: "❌ Помилка мережі: ",
             'ru': {
                 title_main: "Новый заказ", card_client: "Данные клиента", ph_name: "Имя клиента (напр. Алексей)", ph_phone: "Телефон (+48...)",
                 card_addr: "Адрес доставки", ph_street: "Улица и номер (начните вводить...)", ph_apt: "Квартира", ph_code: "Домофон",
@@ -263,6 +270,13 @@
                 err_phone: "Пожалуйста, введите корректный номер телефона!", err_req: "Заполните обязательные поля: улицу, сумму и выберите курьера!",
                 load_list: "Загрузка списка...", unassigned_opt: "🟢 Свободный (На карту)"
             },
+                name: "Имя клиента (напр. Алексей)",
+                comment: "Комментарий (необязательно)",
+                amount: "Сумма заказа (zł)",
+                phone: "Телефон (+48...)",
+                success: "✅ Заказ успешно создан!",
+                err_prefix: "❌ Ошибка: ",
+                err_network: "❌ Ошибка сети: ",
             'pl': {
                 title_main: "Nowe zamówienie", card_client: "Dane klienta", ph_name: "Imię klienta (np. Jan)", ph_phone: "Telefon (+48...)",
                 card_addr: "Adres dostawy", ph_street: "Ulica i numer (zacznij wpisywać...)", ph_apt: "Mieszkanie", ph_code: "Domofon",
@@ -277,6 +291,13 @@
                 err_phone: "Proszę wprowadzić poprawny numer telefonu!", err_req: "Wypełnij wymagane pola: ulicę, kwotę i wybierz kuriera!",
                 load_list: "Ładowanie listy...", unassigned_opt: "🟢 Wolne (Na mapę)"
             },
+                name: "Imię klienta (np. Aleksander)",
+                comment: "Komentarz (opcjonalnie)",
+                amount: "Kwota zamówienia (zł)",
+                phone: "Telefon (+48...)",
+                success: "✅ Zamówienie utworzone pomyślnie!",
+                err_prefix: "❌ Błąd: ",
+                err_network: "❌ Błąd sieci: ",
             'en': {
                 title_main: "New Order", card_client: "Client Data", ph_name: "Client name (e.g. Alex)", ph_phone: "Phone (+48...)",
                 card_addr: "Delivery Address", ph_street: "Street and number (start typing...)", ph_apt: "Apt", ph_code: "Intercom",
@@ -638,7 +659,7 @@
             }).then(async (res) => {
                 if (res.ok) {
                     if (tg && tg.close) { tg.close(); } 
-                    else { alert("Успішно створено!"); _unlockSubmit(); }
+                    else { alert(t("success")); _unlockSubmit(); }
                 } else {
                     const errText = await res.text();
                     if (tg && tg.showAlert) tg.showAlert("Помилка: " + errText); else alert("Помилка: " + errText);
@@ -738,6 +759,9 @@
             });
 
             document.addEventListener('click', function(e) {
+                success: "✅ Order created successfully!",
+                err_prefix: "❌ Error: ",
+                err_network: "❌ Network error: ",
                 if (e.target !== addrInput && e.target !== addrList) addrList.style.display = 'none';
             });
 

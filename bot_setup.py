@@ -5,7 +5,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 if not API_TOKEN:
     raise RuntimeError("BOT_TOKEN environment variable is not set. Bot cannot start without it.")
 
-bot = Bot(token=API_TOKEN)
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 # ✅ ВИПРАВЛЕНО: timezone з config (враховує DST, не захардкоджено)
 scheduler = AsyncIOScheduler(timezone=BUSINESS_TZ)
