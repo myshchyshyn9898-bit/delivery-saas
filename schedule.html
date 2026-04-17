@@ -689,8 +689,8 @@ async function loadStaff() {
     if (String(bizData.owner_id) === String(userId)) {
         userRole = 'owner';
     } else {
-        var me = staffList.find(s => String(s.user_id) === String(userId));
-        userRole = me?.role || 'courier';
+        var me = staffList.find(function(s) { return String(s.user_id) === String(userId); });
+        userRole = (me && me.role) ? me.role : 'courier';
     }
     isAdmin = userRole === 'manager' || userRole === 'owner';
 
@@ -735,7 +735,7 @@ async function loadShifts() {
             .select('*').eq('business_id', bizId)
             .gte('started_at', from.toISOString());
         if (error) { console.warn('[schedule] shifts недоступні:', error.message); return; }
-        (data || []).forEach(s => {
+        (data || []).forEach(function(s) {
             var cid = String(s.courier_id);
             if (!shiftsData[cid]) shiftsData[cid] = [];
             shiftsData[cid].push(s);
@@ -753,7 +753,7 @@ function initMonths() {
         months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
     }
     // Also add any months from scheduleData not in list
-    Object.keys(scheduleData).forEach(mk => { if (!months.includes(mk)) months.unshift(mk); });
+    Object.keys(scheduleData).forEach(function(mk) { if (!months.includes(mk)) months.unshift(mk); });
     months.sort();
 
     window._months = months;
@@ -902,14 +902,14 @@ function buildGroupCard(groupName, members, groupRole) {
         headDays  += `<th class="col-day-head${isToday?' today':''}"><div class="day-name">${DAY_NAMES[dowIdx]}</div></th>`;
     }
 
-    members.forEach(s => {
+    members.forEach(function(s) {
         if (s._placeholder) return; // порожня група — пропускаємо
         var cid = String(s.user_id);
         var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
         // Worked days from shifts
         var workedDays = {};
-        (shiftsData[cid] || []).forEach(sh => {
+        (shiftsData[cid] || []).forEach(function(sh) {
             var shDate = new Date(sh.started_at);
             if (shDate.getFullYear() === y && shDate.getMonth()+1 === m) {
                 var d = shDate.getDate();
@@ -939,8 +939,8 @@ function buildGroupCard(groupName, members, groupRole) {
                 worked  ? 'worked'  : ''
             ].filter(Boolean).join(' ');
 
-            var startT = monthData[d]?.start || '';
-            var endT   = monthData[d]?.end   || '';
+            var startT = (monthData[d] && monthData[d].start) || '';
+            var endT   = (monthData[d] && monthData[d].end)   || '';
             var editAttr = canEdit ? 'data-edit="1"' : '';
 
             cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
@@ -1030,7 +1030,7 @@ function setPlanned() {
 function clearSlot() {
     if (!activeCell) return;
     var { cid, day } = activeCell;
-    if (scheduleData[activeMonthKey]?.[cid]?.[day]) {
+    if (scheduleData[activeMonthKey] && scheduleData[activeMonthKey][cid] && scheduleData[activeMonthKey][cid][day]) {
         delete scheduleData[activeMonthKey][cid][day];
     }
     closeSheet(); renderAll();
@@ -1069,9 +1069,12 @@ async function saveSchedule() {
         var monthData = scheduleData[activeMonthKey] || {};
 
         var upserts = [];
-        Object.entries(monthData).forEach(([cid, days]) => {
-            Object.entries(days).forEach(([day, val]) => {
-                var dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
+        Object.keys(monthData).forEach(function(cid) {
+            var days = monthData[cid];
+            Object.keys(days).forEach(function(day) {
+                var val = days[day];
+                var dd = String(parseInt(day)).padStart(2,'0');
+                var dateStr = activeMonthKey + '-' + dd;
                 upserts.push({
                     business_id: bizId,
                     courier_id: parseInt(cid),
@@ -1096,11 +1099,11 @@ async function saveSchedule() {
             .eq('business_id', bizId)
             .gte('date', startDate).lte('date', endDate);
 
-        var toDelete = (existing || []).filter(r => {
+        var toDelete = (existing || []).filter(function(r) {
             var cid = String(r.courier_id);
             var day = parseInt(r.date.slice(8,10));
             return !(monthData[cid] && monthData[cid][day]);
-        }).map(r => r.id);
+        }).map(function(r) { return r.id; });
 
         if (toDelete.length > 0) {
             await supabase.from('schedule').delete().in('id', toDelete);
@@ -1276,8 +1279,8 @@ async function loadStaff() {
     if (String(bizData.owner_id) === String(userId)) {
         userRole = 'owner';
     } else {
-        var me = staffList.find(s => String(s.user_id) === String(userId));
-        userRole = me?.role || 'courier';
+        var me = staffList.find(function(s) { return String(s.user_id) === String(userId); });
+        userRole = (me && me.role) ? me.role : 'courier';
     }
     isAdmin = userRole === 'manager' || userRole === 'owner';
 
@@ -1322,7 +1325,7 @@ async function loadShifts() {
             .select('*').eq('business_id', bizId)
             .gte('started_at', from.toISOString());
         if (error) { console.warn('[schedule] shifts недоступні:', error.message); return; }
-        (data || []).forEach(s => {
+        (data || []).forEach(function(s) {
             var cid = String(s.courier_id);
             if (!shiftsData[cid]) shiftsData[cid] = [];
             shiftsData[cid].push(s);
@@ -1340,7 +1343,7 @@ function initMonths() {
         months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
     }
     // Also add any months from scheduleData not in list
-    Object.keys(scheduleData).forEach(mk => { if (!months.includes(mk)) months.unshift(mk); });
+    Object.keys(scheduleData).forEach(function(mk) { if (!months.includes(mk)) months.unshift(mk); });
     months.sort();
 
     window._months = months;
@@ -1489,14 +1492,14 @@ function buildGroupCard(groupName, members, groupRole) {
         headDays  += `<th class="col-day-head${isToday?' today':''}"><div class="day-name">${DAY_NAMES[dowIdx]}</div></th>`;
     }
 
-    members.forEach(s => {
+    members.forEach(function(s) {
         if (s._placeholder) return; // порожня група — пропускаємо
         var cid = String(s.user_id);
         var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
         // Worked days from shifts
         var workedDays = {};
-        (shiftsData[cid] || []).forEach(sh => {
+        (shiftsData[cid] || []).forEach(function(sh) {
             var shDate = new Date(sh.started_at);
             if (shDate.getFullYear() === y && shDate.getMonth()+1 === m) {
                 var d = shDate.getDate();
@@ -1526,8 +1529,8 @@ function buildGroupCard(groupName, members, groupRole) {
                 worked  ? 'worked'  : ''
             ].filter(Boolean).join(' ');
 
-            var startT = monthData[d]?.start || '';
-            var endT   = monthData[d]?.end   || '';
+            var startT = (monthData[d] && monthData[d].start) || '';
+            var endT   = (monthData[d] && monthData[d].end)   || '';
             var editAttr = canEdit ? 'data-edit="1"' : '';
 
             cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
@@ -1617,7 +1620,7 @@ function setPlanned() {
 function clearSlot() {
     if (!activeCell) return;
     var { cid, day } = activeCell;
-    if (scheduleData[activeMonthKey]?.[cid]?.[day]) {
+    if (scheduleData[activeMonthKey] && scheduleData[activeMonthKey][cid] && scheduleData[activeMonthKey][cid][day]) {
         delete scheduleData[activeMonthKey][cid][day];
     }
     closeSheet(); renderAll();
@@ -1656,9 +1659,12 @@ async function saveSchedule() {
         var monthData = scheduleData[activeMonthKey] || {};
 
         var upserts = [];
-        Object.entries(monthData).forEach(([cid, days]) => {
-            Object.entries(days).forEach(([day, val]) => {
-                var dateStr = `${activeMonthKey}-${String(day).padStart(2,'0')}`;
+        Object.keys(monthData).forEach(function(cid) {
+            var days = monthData[cid];
+            Object.keys(days).forEach(function(day) {
+                var val = days[day];
+                var dd = String(parseInt(day)).padStart(2,'0');
+                var dateStr = activeMonthKey + '-' + dd;
                 upserts.push({
                     business_id: bizId,
                     courier_id: parseInt(cid),
@@ -1683,11 +1689,11 @@ async function saveSchedule() {
             .eq('business_id', bizId)
             .gte('date', startDate).lte('date', endDate);
 
-        var toDelete = (existing || []).filter(r => {
+        var toDelete = (existing || []).filter(function(r) {
             var cid = String(r.courier_id);
             var day = parseInt(r.date.slice(8,10));
             return !(monthData[cid] && monthData[cid][day]);
-        }).map(r => r.id);
+        }).map(function(r) { return r.id; });
 
         if (toDelete.length > 0) {
             await supabase.from('schedule').delete().in('id', toDelete);
