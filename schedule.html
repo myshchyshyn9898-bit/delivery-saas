@@ -750,14 +750,14 @@ function initMonths() {
     var months = [];
     for (var d = -1; d <= 2; d++) {
         var dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
-        months.push(`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`);
+        months.push(dt.getFullYear() + "-" + (dt.getMonth()+1 < 10 ? "0" : "") + (dt.getMonth()+1));
     }
     // Also add any months from scheduleData not in list
     Object.keys(scheduleData).forEach(function(mk) { if (!months.includes(mk)) months.unshift(mk); });
     months.sort();
 
     window._months = months;
-    activeMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    activeMonthKey = now.getFullYear() + "-" + (now.getMonth()+1 < 10 ? "0" : "") + (now.getMonth()+1);
 
     renderMonthTabs();
 }
@@ -831,7 +831,7 @@ function addMonth() {
 function normalizeRole(role) {
     if (!role) return 'courier';
     var r = role.toLowerCase().trim();
-    if (r === 'courier' || r === "кур'єр" || r === 'кур'єри' || r === 'кур' || r === 'кур.') return 'courier';
+    if (r === 'courier' || r === "кур'єр" || r === "кур'єри" || r === 'кур' || r === 'кур.') return 'courier';
     if (r === 'manager' || r === 'менеджер' || r === 'менеджери' || r === 'адмін' || r === 'admin') return 'manager';
     if (r === 'kitchen' || r === 'кухня' || r === 'кухар' || r === 'кухарі') return 'kitchen';
     // Для всіх інших — повертаємо як є (без змін), щоб кастомні ролі групувались разом
@@ -877,7 +877,7 @@ function buildGroupCard(groupName, members, groupRole) {
     // Group header
     var gh = document.createElement('div');
     gh.className = 'group-header';
-    gh.innerHTML = `<div class="group-name" ${isAdmin ? 'contenteditable="true"' : ''}>${groupName}</div>`;
+    gh.innerHTML = '<div class="group-name"' + (isAdmin ? ' contenteditable="true"' : '') + '>' + groupName + '</div>';
     card.appendChild(gh);
 
     // Table
@@ -898,8 +898,8 @@ function buildGroupCard(groupName, members, groupRole) {
         var dow = new Date(y, m-1, d).getDay(); // 0=Sun
         var dowIdx = dow === 0 ? 6 : dow - 1;
         var isToday = d === todayDay;
-        headDates += `<th class="col-day-head${isToday?' today':''}"><div class="day-num">${d}</div></th>`;
-        headDays  += `<th class="col-day-head${isToday?' today':''}"><div class="day-name">${DAY_NAMES[dowIdx]}</div></th>`;
+        headDates += '<th class="col-day-head' + (isToday?' today':'') + '"><div class="day-num">' + d + '</div></th>';
+        headDays  += '<th class="col-day-head' + (isToday?' today':'') + '"><div class="day-name">' + DAY_NAMES[dowIdx] + '</div></th>';
     }
 
     members.forEach(function(s) {
@@ -910,7 +910,7 @@ function buildGroupCard(groupName, members, groupRole) {
         // Worked days from shifts
         var workedDays = {};
         (shiftsData[cid] || []).forEach(function(sh) {
-            var shDate = new Date(sh.started_at);
+            var shDate = new Date((sh.started_at || '').replace(' ', 'T'));
             if (shDate.getFullYear() === y && shDate.getMonth()+1 === m) {
                 var d = shDate.getDate();
                 var hrs = sh.ended_at
@@ -943,42 +943,13 @@ function buildGroupCard(groupName, members, groupRole) {
             var endT   = (monthData[d] && monthData[d].end)   || '';
             var editAttr = canEdit ? 'data-edit="1"' : '';
 
-            cells += `<td class="cell-day${isToday?' today':''}" data-cid="${cid}" data-day="${d}">
-                <div class="${slotClass}" ${editAttr} data-cid="${cid}" data-day="${d}" data-name="${s.name.replace(/"/g,'&quot;')}">
-                    <!-- planned dot -->
-                    <svg class="icon-planned" viewBox="0 0 14 14" fill="none" style="position:absolute;">
-                        <circle cx="7" cy="7" r="3.5" fill="#3b82f6"/>
-                    </svg>
-                    <!-- worked check -->
-                    <svg class="icon-worked" viewBox="0 0 14 14" fill="none" style="position:absolute;">
-                        <path d="M3 7.5L5.5 10L11 4.5" stroke="#10b981" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    ${monthData[d] && monthData[d].actual_hours != null
-                        ? '<span class="slot-hours" style="color:var(--primary);">' + monthData[d].actual_hours + 'г</span>'
-                        : (startT ? '<span class="slot-hours">' + startT.slice(0,5) + '</span>' : '')}
-                </div>
-            </td>`;
+            cells += "<td class=\"cell-day" + (isToday?" today":"") + '" data-cid="' + cid + '" data-day="' + d + '">' + "<div class=\"" + slotClass + "\"" + (editAttr ? " " + editAttr : "") + ' data-cid="' + cid + '" data-day="' + d + '" data-name="' + s.name.replace(/"/g,"&quot;") + '">' + "<svg class=\"icon-planned\" viewBox=\"0 0 14 14\" fill=\"none\" style=\"position:absolute;\"><circle cx=\"7\" cy=\"7\" r=\"3.5\" fill=\"#3b82f6\"/></svg>" + "<svg class=\"icon-worked\" viewBox=\"0 0 14 14\" fill=\"none\" style=\"position:absolute;\"><path d=\"M3 7.5L5.5 10L11 4.5\" stroke=\"#10b981\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>" + slotLabel + "</div></td>";
         }
 
-        bodyRows += `
-        <tr class="emp-row" data-cid="${cid}">
-            <td class="col-name">${s.name}</td>
-            ${cells}
-            <td class="cell-total"><div class="badge-count badge-shifts">${shiftCount}</div></td>
-            <td class="cell-total"><div class="badge-count badge-hours">${hoursTotal > 0 ? hoursTotal.toFixed(1).replace('.0','') : '0'}</div></td>
-        </tr>`;
+        bodyRows += "\n<tr class=\"emp-row\" data-cid=\"" + cid + "\">" + "<td class=\"col-name\">" + s.name + "</td>" + cells + "<td class=\"cell-total\"><div class=\"badge-count badge-shifts\">" + shiftCount + "</div></td>" + "<td class=\"cell-total\"><div class=\"badge-count badge-hours\">" + (hoursTotal > 0 ? hoursTotal.toFixed(1).replace(".0","") : "0") + "</div></td>" + "</tr>";
     });
 
-    scroll.innerHTML = `<table>
-        <thead>
-            <tr><th class="col-name" rowspan="2">Працівник</th>${headDates}
-                <th class="col-total-head" rowspan="2"><div class="day-name">Змін</div></th>
-                <th class="col-total-head" rowspan="2"><div class="day-name" style="color:var(--primary)">Год.</div></th>
-            </tr>
-            <tr>${headDays}</tr>
-        </thead>
-        <tbody>${bodyRows}</tbody>
-    </table>`;
+    scroll.innerHTML = "<table><thead>" + "<tr><th class=\"col-name\" rowspan=\"2\">Працівник</th>" + headDates + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\">Змін</div></th>" + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\" style=\"color:var(--primary)\">Год.</div></th>" + "</tr><tr>" + headDays + "</tr>" + "</thead><tbody>" + bodyRows + "</tbody></table>";
 
     card.appendChild(scroll);
 
@@ -1092,8 +1063,8 @@ async function saveSchedule() {
         }
 
         // Delete cleared slots (those in DB but not in current data)
-        var startDate = `${activeMonthKey}-01`;
-        var endDate   = `${activeMonthKey}-${String(daysInMonth).padStart(2,'0')}`;
+        var startDate = activeMonthKey + "-01";
+        var endDate   = activeMonthKey + "-" + (daysInMonth < 10 ? "0" : "") + daysInMonth;
         var _res = await supabase.from('schedule')
             .select('id, courier_id, date')
             .eq('business_id', bizId)
@@ -1155,10 +1126,10 @@ async function loadEarnings() {
             (myShifts || []).forEach(function(s) {
                 shiftCount++;
                 if (s.ended_at) {
-                    realHours += (new Date(s.ended_at) - new Date(s.started_at)) / 3600000;
+                    realHours += (new Date((s.ended_at || '').replace(' ', 'T')) - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
                     if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
                 } else {
-                    realHours += (new Date() - new Date(s.started_at)) / 3600000;
+                    realHours += (new Date() - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
                 }
             });
         } catch(e) {}
