@@ -1222,16 +1222,46 @@ async function renderSalaryList() {
 
         // Hours + km from shifts
         var totalHours = 0, totalKm = 0, shiftCount = 0;
+        var realHours = 0, plannedHours = 0, hasActual = false;
+
+        // 1. Реальні зміни з боту
         var myShifts = shiftsByCourier[cid] || [];
         myShifts.forEach(function(sh) {
             shiftCount++;
             if (sh.ended_at) {
-                totalHours += (new Date((sh.ended_at||'').replace(' ','T')) - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
+                realHours += (new Date((sh.ended_at||'').replace(' ','T')) - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
                 if (sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
             } else {
-                totalHours += (new Date() - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
+                realHours += (new Date() - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
             }
         });
+
+        // 2. actual_hours та планові з scheduleData
+        var schedKey = salaryMonthKey;
+        if (typeof scheduleData !== 'undefined' && scheduleData[schedKey]) {
+            var monthSched = scheduleData[schedKey][cid] || {};
+            Object.keys(monthSched).forEach(function(day) {
+                var slot = monthSched[day];
+                if (!slot || !slot.planned) return;
+                if (slot.actual_hours != null && !isNaN(slot.actual_hours)) {
+                    totalHours += parseFloat(slot.actual_hours);
+                    hasActual = true;
+                    if (shiftCount === 0) shiftCount++;
+                } else if (!hasActual) {
+                    if (slot.start && slot.end) {
+                        var ps = slot.start.split(':');
+                        var pe = slot.end.split(':');
+                        var diff = (parseInt(pe[0])*60+parseInt(pe[1]))-(parseInt(ps[0])*60+parseInt(ps[1]));
+                        if (diff > 0) { plannedHours += diff/60; shiftCount++; }
+                    }
+                }
+            });
+        }
+
+        // Пріоритет: actual > real > planned
+        if (!hasActual) {
+            totalHours = realHours > 0 ? realHours : plannedHours;
+        }
         totalHours = Math.round(totalHours * 10) / 10;
         totalKm = Math.round(totalKm);
         var ordersCount = ordersByCourier[cid] || 0;
