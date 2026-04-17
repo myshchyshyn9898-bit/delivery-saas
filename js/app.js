@@ -1272,7 +1272,7 @@ async function renderSalaryList() {
         }
         if (kmEnabled && (kmRate > 0 || totalKm > 0)) {
             ledger += '<div class="ledger-row"><span class="ledger-desc">Пробіг (' + totalKm + ' км × ' + kmRate + ' ' + cur + ')</span>' +
-                      '<span class="ledger-amount minus">−' + kmDeduction.toFixed(2) + ' ' + cur + '</span></div>';
+                      '<span class="ledger-amount minus">-' + kmDeduction.toFixed(2) + ' ' + cur + '</span></div>';
         }
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
@@ -1304,8 +1304,8 @@ async function renderSalaryList() {
 
         html += '<div class="salary-card' + (isPaid ? ' salary-card-paid' : '') + '" id="sal-card-' + cid + '">' +
 
-            // Header
-            '<div class="card-summary" onclick="toggleSalaryCard('' + bodyId + '', this)">' +
+            // Header - uses data-bodyid for toggling
+            '<div class="card-summary" data-toggle="' + bodyId + '">' +
               '<div class="avatar ' + roleClass + '">' + initials + '</div>' +
               '<div class="user-meta">' +
                 '<span class="name">' + esc(s.name) + '</span>' +
@@ -1313,7 +1313,7 @@ async function renderSalaryList() {
               '</div>' +
               '<div class="amount-block">' +
                 '<div class="total-sum">' + fmtAmt(earnedSafe, cur) + '</div>' +
-                '<div class="status-badge ' + (isPaid ? 'paid' : 'unpaid') + '" onclick="event.stopPropagation(); togglePayment('' + cid + '', ' + (isPaid ? 'true' : 'false') + ')">' +
+                '<div class="status-badge ' + (isPaid ? 'paid' : 'unpaid') + '" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
                   (isPaid
                     ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Виплачено'
                     : '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Не виплачено') +
@@ -1327,14 +1327,14 @@ async function renderSalaryList() {
 
               // Settings block
               '<div class="settings-block">' +
-                '<button class="settings-summary" onclick="toggleSalarySettings('' + settId + '', this)">' +
+                '<button class="settings-summary" data-settid="' + settId + '">' +
                   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>' +
                   'Ставки та налаштування' +
                   '<svg class="sett-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
                 '</button>' +
                 '<div class="settings-content" id="' + settId + '" style="display:none;">' +
                   settHourly + settOrders + settKm +
-                  '<button class="btn btn-save-rates" onclick="saveSalarySettings('' + cid + '')">Зберегти ставки</button>' +
+                  '<button class="btn btn-save-rates" data-savecid="' + cid + '">Зберегти ставки</button>' +
                 '</div>' +
               '</div>' +
 
@@ -1351,12 +1351,12 @@ async function renderSalaryList() {
 
               // Add action
               '<div class="add-action">' +
-                '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="Сума (-аванс)">' +
+                '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="Сума (-штраф)">' +
                 '<input type="text" class="input-styled in-desc" id="bon-com-' + cid + '" placeholder="Коментар">' +
               '</div>' +
               '<div class="card-actions">' +
-                '<button class="btn btn-add-bonus" onclick="addBonus('' + cid + '')"><i class="fa-solid fa-plus"></i> Додати</button>' +
-                '<button class="btn btn-primary" onclick="togglePayment('' + cid + '', ' + (isPaid ? 'true' : 'false') + ')">' +
+                '<button class="btn btn-add-bonus" data-addbonus="' + cid + '"><i class="fa-solid fa-plus"></i> Додати</button>' +
+                '<button class="btn btn-primary" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
                   (isPaid ? '<i class="fa-solid fa-rotate-left"></i> Скасувати виплату' : '<i class="fa-solid fa-check"></i> Виплатити') +
                 '</button>' +
               '</div>' +
@@ -1365,7 +1365,43 @@ async function renderSalaryList() {
         '</div>'; // salary-card
     }
 
+
     list.innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:30px 0;">Даних немає</div>';
+
+    // Event delegation — no inline onclick needed
+    list.onclick = function(e) {
+        // Card header toggle
+        var header = e.target.closest('[data-toggle]');
+        if (header && !e.target.closest('[data-pay]')) {
+            toggleSalaryCard(header.getAttribute('data-toggle'), header);
+            return;
+        }
+        // Status badge / pay button
+        var payEl = e.target.closest('[data-pay]');
+        if (payEl) {
+            e.stopPropagation();
+            togglePayment(payEl.getAttribute('data-pay'), payEl.getAttribute('data-paid') === '1');
+            return;
+        }
+        // Settings toggle
+        var settBtn = e.target.closest('[data-settid]');
+        if (settBtn) {
+            toggleSalarySettings(settBtn.getAttribute('data-settid'), settBtn);
+            return;
+        }
+        // Save rates
+        var saveBtn = e.target.closest('[data-savecid]');
+        if (saveBtn) {
+            saveSalarySettings(saveBtn.getAttribute('data-savecid'));
+            return;
+        }
+        // Add bonus
+        var bonusBtn = e.target.closest('[data-addbonus]');
+        if (bonusBtn) {
+            addBonus(bonusBtn.getAttribute('data-addbonus'));
+            return;
+        }
+    };
 
     if (totalCard) {
         totalCard.style.display = 'block';
@@ -1376,8 +1412,8 @@ async function renderSalaryList() {
 function fmtAmt(val, cur, withSign) {
     var n = Math.abs(val);
     var str = n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ' + cur;
-    if (withSign) return (val >= 0 ? '+' : '−') + str;
-    return (val < 0 ? '−' : '') + str;
+    if (withSign) return (val >= 0 ? '+' : '-') + str;
+    return (val < 0 ? '-' : '') + str;
 }
 
 function esc(str) {
