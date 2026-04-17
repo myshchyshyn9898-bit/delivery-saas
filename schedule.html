@@ -481,8 +481,8 @@ authToken = urlP.get('token');
 var tgId = urlP.get('tg_id');
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Невеликий delay як в map.html — даємо час Telegram WebApp та CDN завантажитись
-    setTimeout(initScheduleApp, 100);
+    document.getElementById('load-text').textContent = 'DOM готовий...';
+    setTimeout(initScheduleApp, 300);
 });
 
 async function initScheduleApp() {
@@ -511,7 +511,7 @@ async function initScheduleApp() {
 
         // 2. Перевірки
         _step = 'params check';
-        setLoad('Крок 2: Параметри...');
+        setLoad('bizId=' + (bizId||'немає') + ' token=' + (authToken?'є':'немає'));
         if (!bizId) { _alert('❌ bizId відсутній в URL'); return; }
         if (!authToken) { _alert('❌ token відсутній в URL'); return; }
         if (!window.supabase) { _alert('❌ Supabase SDK не завантажилась'); return; }
