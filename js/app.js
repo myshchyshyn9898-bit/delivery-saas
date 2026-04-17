@@ -437,8 +437,8 @@ function exportOrdersCSV() {
     globalOrdersForExport.forEach(o => {
         let status = o.status === 'completed' ? 'Completed' : 'Active';
         let payType = o.pay_type;
-        let created = o.created_at ? new Date(o.created_at).toLocaleString('uk-UA') : '';
-        let completed = o.completed_at ? new Date(o.completed_at).toLocaleString('uk-UA') : '';
+        let created = o.created_at ? new Date((o.created_at||'').replace(' ','T')).toLocaleString('uk-UA') : '';
+        let completed = o.completed_at ? new Date((o.completed_at||'').replace(' ','T')).toLocaleString('uk-UA') : '';
         csvContent += `${o.id},${o.amount},${payType},${status},${created},${completed},${o.courier_id || ''}\n`;
     });
     
@@ -738,11 +738,11 @@ async function loadDashboardData() {
                     
                     let diffMs = 0;
                     if (o.completed_at && o.created_at) { 
-                        diffMs = new Date(o.completed_at) - new Date(o.created_at); 
+                        diffMs = new Date((o.completed_at||'').replace(' ','T')) - new Date((o.created_at||'').replace(' ','T')); 
                         if (diffMs > 0) { totalDeliveryMinutes += (diffMs / 1000 / 60); ordersWithTimeCount++; if(diffMs > 45 * 60 * 1000) lateCount++; } 
                     }
                     
-                    let d = new Date(o.created_at);
+                    let d = new Date((o.created_at||'').replace(' ','T'));
                     let sortKey, displayLabel;
 
                     if (currentFilter === 'today') {
@@ -812,7 +812,7 @@ async function loadDashboardData() {
                 let iconBg = isCompleted ? 'style="color: #34C759; background: rgba(52, 199, 89, 0.1);"' : 'style="color: #FFB020; background: rgba(255, 176, 32, 0.1);"';
                 let statusText = isCompleted ? `<span style="color: #34C759;">${t('status_done')}</span>` : `<span style="color: #FFB020;">${t('status_proc')}</span>`;
                 let shortId = o.id.toString().substring(0, 5).toUpperCase();
-                let timeStr = new Date(o.created_at).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+                let timeStr = new Date((o.created_at||'').replace(' ','T')).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
 
                 feedBox.innerHTML += `
                     <div class="activity-item">
@@ -1226,10 +1226,10 @@ async function renderSalaryList() {
         myShifts.forEach(function(sh) {
             shiftCount++;
             if (sh.ended_at) {
-                totalHours += (new Date(sh.ended_at) - new Date(sh.started_at)) / 3600000;
+                totalHours += (new Date((sh.ended_at||'').replace(' ','T')) - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
                 if (sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
             } else {
-                totalHours += (new Date() - new Date(sh.started_at)) / 3600000;
+                totalHours += (new Date() - new Date((sh.started_at||'').replace(' ','T'))) / 3600000;
             }
         });
         totalHours = Math.round(totalHours * 10) / 10;
