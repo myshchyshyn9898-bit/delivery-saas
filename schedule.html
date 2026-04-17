@@ -77,7 +77,7 @@
         .group-header { display: flex; align-items: center; justify-content: space-between;
             padding: 14px 18px; border-bottom: 1px solid var(--border); }
         .group-name { font-size: 15px; font-weight: 800; color: var(--text); outline: none; }
-        .group-name:focus { color: var(--primary); }
+        .group-name:focus { color: var(--primary); border-bottom: 1.5px solid var(--primary); }
         .btn-del-group { background: none; border: none; color: var(--muted);
             font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 8px; transition: 0.2s; }
         .btn-del-group:active { background: rgba(239,68,68,0.1); color: var(--primary); }
@@ -374,7 +374,7 @@
         </div>
         <div class="time-group">
             <label>Годин відпрацьовано</label>
-            <input type="number" id="actual-hours" min="0" max="24" step="0.5" placeholder="авто"
+            <input type="number" id="actual-hours" inputmode="decimal" min="0" max="24" step="0.5" placeholder="авто"
                 style="border:none;background:transparent;font-size:16px;font-weight:800;
                 color:var(--primary);outline:none;text-align:right;font-family:inherit;width:80px;">
         </div>
@@ -657,21 +657,19 @@ function closeGroupSheet() {
 function createGroup() {
     var name = (document.getElementById('group-name-input').value || '').trim();
     if (!name) { toast('Введіть назву групи'); return; }
-    closeGroupSheet();
-    // Якщо вже є така група — просто переходимо до неї
-    // Якщо немає — добавляємо порожню групу в staffList як placeholder
+    // Перевіряємо чи не існує вже така група
     var exists = staffList.some(function(s) {
         return (s.role || '').toLowerCase() === name.toLowerCase();
     });
     if (exists) {
+        closeGroupSheet();
         toast('Група "' + name + '" вже існує');
         return;
     }
-    // Добавляємо "пустого" члена як маркер групи — щоб група відобразилась
-    // Він не зберігається в БД — тільки як тимчасовий placeholder
-    staffList.push({ user_id: '__group_' + Date.now(), name: '', role: name, _placeholder: true });
-    renderAll();
-    toast('✅ Група "' + name + '" створена — додайте співробітників');
+    closeGroupSheet();
+    // Одразу відкриваємо форму додавання першого співробітника
+    // Група збережеться в БД тільки коли є хоч один реальний член
+    openStaffSheet(name);
 }
 function addGroup() { openGroupSheet(); }
 
@@ -776,7 +774,21 @@ function renderMonthTabs() {
 
         var labelSpan = document.createElement('span');
         labelSpan.textContent = label;
-        labelSpan.onclick = function() { activeMonthKey = mk; renderMonthTabs(); renderAll(); loadEarnings(); };
+        labelSpan.onclick = function() {
+            var prevMonth = activeMonthKey;
+            // Автозбереження поточного місяця перед переключенням
+            if (prevMonth !== mk && scheduleData[prevMonth]) {
+                saveScheduleForMonth(prevMonth);
+            }
+            activeMonthKey = mk;
+            renderMonthTabs();
+            if (!shiftsCache[mk]) {
+                loadShiftsForMonth(mk).then(function() { renderAll(); });
+            } else {
+                renderAll();
+            }
+            loadEarnings();
+        };
         tab.appendChild(labelSpan);
 
         // × кнопка видалення (тільки для адміна, не для активного місяця)
@@ -877,7 +889,38 @@ function buildGroupCard(groupName, members, groupRole) {
     // Group header
     var gh = document.createElement('div');
     gh.className = 'group-header';
-    gh.innerHTML = '<div class="group-name"' + (isAdmin ? ' contenteditable="true"' : '') + '>' + groupName + '</div>';
+    var groupRoleKey = groupRole || '';
+    gh.innerHTML = '<div class="group-name"' + (isAdmin ? ' contenteditable="true" data-role="' + groupRoleKey + '"' : '') + '>' + groupName + '</div>';
+    if (isAdmin) {
+        var nameDiv = gh.querySelector('.group-name');
+        nameDiv.onblur = function() {
+            var newName = (nameDiv.textContent || '').trim();
+            var oldRole = nameDiv.getAttribute('data-role');
+            if (!newName || newName === groupName) return;
+            // Оновлюємо role у всіх членів групи в БД
+            supabase.from('staff')
+                .update({ role: newName })
+                .eq('business_id', bizId)
+                .eq('role', oldRole)
+                .then(function(res) {
+                    if (res.error) {
+                        toast('❌ Помилка збереження назви');
+                        nameDiv.textContent = groupName; // повертаємо стару назву
+                    } else {
+                        // Оновлюємо локальний staffList
+                        staffList.forEach(function(s) {
+                            if (s.role === oldRole) s.role = newName;
+                        });
+                        nameDiv.setAttribute('data-role', newName);
+                        toast('✅ Назву групи збережено');
+                    }
+                });
+        };
+        // Enter = зберегти (blur)
+        nameDiv.onkeydown = function(e) {
+            if (e.keyCode === 13) { e.preventDefault(); nameDiv.blur(); }
+        };
+    }
     card.appendChild(gh);
 
     // Table
@@ -1029,9 +1072,61 @@ function saveSlot() {
     };
     closeSheet();
     renderAll();
+
+    // Автозбереження одного слоту в БД
+    var dd = String(parseInt(day)).padStart(2, '0');
+    var dateStr = activeMonthKey + '-' + dd;
+    supabase.from('schedule').upsert({
+        business_id: bizId,
+        courier_id: cid,
+        date: dateStr,
+        planned_start: start || null,
+        planned_end: end || null,
+        actual_hours: actualHours
+    }, { onConflict: 'business_id,courier_id,date' }).then(function(res) {
+        if (res.error) {
+            toast('❌ Помилка збереження: ' + res.error.message);
+        } else {
+            toast('✅ Збережено');
+        }
+    });
 }
 
 // ── SAVE TO DB ──
+// Тихе збереження конкретного місяця (без UI feedback)
+async function saveScheduleForMonth(monthKey) {
+    try {
+        var parts = monthKey.split('-');
+        var y = parseInt(parts[0]), m = parseInt(parts[1]);
+        var daysInMonth = new Date(y, m, 0).getDate();
+        var monthData = scheduleData[monthKey] || {};
+        var upserts = [];
+
+        Object.keys(monthData).forEach(function(cid) {
+            var days = monthData[cid];
+            Object.keys(days).forEach(function(day) {
+                var val = days[day];
+                var dd = String(parseInt(day)).padStart(2, '0');
+                upserts.push({
+                    business_id: bizId,
+                    courier_id: cid,
+                    date: monthKey + '-' + dd,
+                    planned_start: val.start || null,
+                    planned_end:   val.end   || null,
+                    actual_hours:  val.actual_hours != null ? val.actual_hours : null
+                });
+            });
+        });
+
+        if (upserts.length > 0) {
+            await supabase.from('schedule')
+                .upsert(upserts, { onConflict: 'business_id,courier_id,date' });
+        }
+    } catch(e) {
+        console.warn('[schedule] auto-save error:', e.message);
+    }
+}
+
 async function saveSchedule() {
     var btn = document.querySelector('.btn-fab-primary');
     btn.textContent = 'Збереження...';
@@ -1051,7 +1146,7 @@ async function saveSchedule() {
                 var dateStr = activeMonthKey + '-' + dd;
                 upserts.push({
                     business_id: bizId,
-                    courier_id: parseInt(cid),
+                    courier_id: cid,
                     date: dateStr,
                     planned_start: val.start || null,
                     planned_end:   val.end   || null,
@@ -1117,58 +1212,58 @@ async function loadEarnings() {
         var kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
         var orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
 
-        // Shifts — пріоритет: actual_hours > реальні зміни > планові
+        // Розрахунок ПО ДНЯХ (Gemini fix)
         var totalHours = 0, totalKm = 0, shiftCount = 0;
-        var realHours = 0, plannedHours = 0;
 
-        // 1. Реальні зміни з боту
+        // 1. Збираємо реальні години з боту по днях
+        var realDaily = {};
         try {
             var _res = await supabase.from('shifts')
                 .select('*').eq('courier_id', cid).eq('business_id', bizId)
-                .gte('started_at', startDate).lt('started_at', endDate); var myShifts = _res.data;
+                .gte('started_at', startDate).lt('started_at', endDate);
+            var myShifts = _res.data;
             (myShifts || []).forEach(function(s) {
-                shiftCount++;
+                var dd = new Date((s.started_at || '').replace(' ', 'T')).getDate();
+                if (!realDaily[dd]) realDaily[dd] = { hours: 0, km: 0, shifts: 0 };
+                realDaily[dd].shifts++;
                 if (s.ended_at) {
-                    realHours += (new Date((s.ended_at || '').replace(' ', 'T')) - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
+                    realDaily[dd].hours += (new Date((s.ended_at || '').replace(' ', 'T')) - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
                     if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
                 } else {
-                    realHours += (new Date() - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
+                    realDaily[dd].hours += (new Date() - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
                 }
             });
         } catch(e) {}
 
-        // 2. Перевіряємо actual_hours та планові з графіку
+        // 2. Рахуємо по кожному дню окремо
         var monthSched = (scheduleData[activeMonthKey] || {})[String(cid)] || {};
-        var hasActual = false;
-        Object.keys(monthSched).forEach(function(day) {
-            var slot = monthSched[day];
-            if (!slot || !slot.planned) return;
-            // actual_hours — вручну введені (найвищий пріоритет)
-            if (slot.actual_hours != null && !isNaN(slot.actual_hours)) {
-                totalHours += parseFloat(slot.actual_hours);
-                hasActual = true;
-                if (shiftCount === 0) shiftCount++;
-            } else if (!hasActual) {
-                // Планові години (якщо немає actual)
-                if (slot.start && slot.end) {
-                    var ps = slot.start.split(':');
-                    var pe = slot.end.split(':');
-                    var diff = (parseInt(pe[0])*60 + parseInt(pe[1])) - (parseInt(ps[0])*60 + parseInt(ps[1]));
-                    if (diff > 0) {
-                        plannedHours += diff / 60;
-                        shiftCount++;
-                    }
-                }
-            }
-        });
+        var daysInMonth = new Date(y, m, 0).getDate();
 
-        // Фінальний вибір: actual > real > planned
-        if (!hasActual) {
-            if (realHours > 0) {
-                totalHours = realHours;
-            } else {
-                totalHours = plannedHours;
+        for (var dd = 1; dd <= daysInMonth; dd++) {
+            var slot = monthSched[dd];
+            var realDay = realDaily[dd];
+            var dayHours = 0;
+            var workedToday = false;
+
+            if (slot && slot.actual_hours != null && !isNaN(slot.actual_hours)) {
+                // Найвищий пріоритет: ручне введення
+                dayHours = parseFloat(slot.actual_hours);
+                workedToday = true;
+            } else if (realDay && realDay.hours > 0) {
+                // Середній: реальні години з боту
+                dayHours = realDay.hours;
+                workedToday = true;
+            } else if (slot && slot.planned && slot.start && slot.end) {
+                // Найнижчий: планові години
+                var ps = slot.start.split(':');
+                var pe = slot.end.split(':');
+                var diff = (parseInt(pe[0])*60 + parseInt(pe[1])) - (parseInt(ps[0])*60 + parseInt(ps[1]));
+                if (diff < 0) diff += 24 * 60; // нічна зміна через північ
+                if (diff > 0) { dayHours = diff / 60; workedToday = true; }
             }
+
+            totalHours += dayHours;
+            if (workedToday || (realDay && realDay.shifts > 0)) shiftCount++;
         }
         totalHours = Math.round(totalHours * 10) / 10;
 
