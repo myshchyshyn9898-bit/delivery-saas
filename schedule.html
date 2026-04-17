@@ -392,16 +392,11 @@
 <div class="overlay" id="staff-overlay" onclick="closeStaffSheet()">
     <div class="sheet" onclick="event.stopPropagation()">
         <div class="sheet-handle"></div>
-        <div class="sheet-title">Додати співробітника</div>
+        <div class="sheet-title">Додати в групу <span id="staff-sheet-group" style="color:var(--primary);"></span></div>
 
         <div class="time-group">
             <label>Ім'я та Прізвище</label>
             <input type="text" id="staff-name" placeholder="Напр. Іван Петров" style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
-        </div>
-
-        <div class="time-group" style="margin-top:8px;">
-            <label>Роль / Посада</label>
-            <input type="text" id="staff-role" placeholder="Кур'єр, Кухня, Електрик..." style="border:none;background:transparent;font-size:14px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:55%;">
         </div>
 
         <button class="btn-save" onclick="addStaffDirect()" style="margin-top:16px;">
@@ -619,14 +614,17 @@ async function fetchConfig() {
 }
 
 // ── ADD STAFF / GROUP ──
-function openStaffSheet(prefillRole) {
+function openStaffSheet(groupRole) {
     var el = document.getElementById('staff-overlay');
-    if (el) {
-        document.getElementById('staff-name').value = '';
-        document.getElementById('staff-role').value = prefillRole || '';
-        el.classList.add('show');
-        setTimeout(function() { document.getElementById('staff-name').focus(); }, 400);
-    }
+    if (!el) return;
+    document.getElementById('staff-name').value = '';
+    // Зберігаємо роль групи в data атрибуті — юзер її не бачить
+    el.setAttribute('data-group-role', groupRole || 'courier');
+    // Показуємо назву групи в заголовку
+    var roleDisplay = document.getElementById('staff-sheet-group');
+    if (roleDisplay) roleDisplay.textContent = groupRole || '';
+    el.classList.add('show');
+    setTimeout(function() { document.getElementById('staff-name').focus(); }, 400);
 }
 function closeStaffSheet() {
     var el = document.getElementById('staff-overlay');
@@ -635,8 +633,9 @@ function closeStaffSheet() {
 
 async function addStaffDirect() {
     var name = (document.getElementById('staff-name').value || '').trim();
-    var role = document.getElementById('staff-role').value || 'courier';
-    if (!name) { toast('Введіть імʼя'); return; }
+    if (!name) { toast("Введіть ім'я"); return; }
+    var overlay = document.getElementById('staff-overlay');
+    var role = (overlay && overlay.getAttribute('data-group-role')) || 'courier';
     try {
         var { error } = await supabase.from('staff').insert({
             user_id: Date.now(),
@@ -821,33 +820,45 @@ function addMonth() {
 }
 
 // ── RENDER ──
+// Нормалізація ролі: "Кур'єр", "Кур'єри", "courier" → "courier"
+function normalizeRole(role) {
+    if (!role) return 'courier';
+    var r = role.toLowerCase().trim();
+    if (r === 'courier' || r === "кур'єр" || r === 'кур'єри' || r === 'кур' || r === 'кур.') return 'courier';
+    if (r === 'manager' || r === 'менеджер' || r === 'менеджери' || r === 'адмін' || r === 'admin') return 'manager';
+    if (r === 'kitchen' || r === 'кухня' || r === 'кухар' || r === 'кухарі') return 'kitchen';
+    // Для всіх інших — повертаємо як є (без змін), щоб кастомні ролі групувались разом
+    return role.trim();
+}
+
+function roleLabel(role) {
+    var r = normalizeRole(role);
+    if (r === 'courier') return "Кур'єри";
+    if (r === 'manager') return 'Менеджери';
+    if (r === 'kitchen') return 'Кухня';
+    return role.trim(); // кастомна роль — як є
+}
+
 function renderAll() {
     var container = document.getElementById('groups-container');
     container.innerHTML = '';
 
-    // Group staff by role
+    // Групуємо по нормалізованій ролі
     var groups = {};
-    staffList.forEach(s => {
-        var g = s.role || 'courier';
-        if (!groups[g]) groups[g] = [];
+    var groupOrder = [];
+    staffList.forEach(function(s) {
+        var g = normalizeRole(s.role);
+        if (!groups[g]) { groups[g] = []; groupOrder.push(g); }
         groups[g].push(s);
     });
 
-    var groupLabels = {
-        courier: "Кур'єри", manager: 'Менеджери', kitchen: 'Кухня', admin: 'Адміни'
-    };
-
-    Object.entries(groups).forEach(([role, members]) => {
-        var card = buildGroupCard(groupLabels[role] || role, members);
+    groupOrder.forEach(function(role) {
+        var card = buildGroupCard(roleLabel(role), groups[role], role);
         container.appendChild(card);
     });
-
-    if (isAdmin) {
-        // Add "add group" handled via addGroup()
-    }
 }
 
-function buildGroupCard(groupName, members) {
+function buildGroupCard(groupName, members, groupRole) {
     var [y, m] = activeMonthKey.split('-').map(Number);
     var daysInMonth = new Date(y, m, 0).getDate();
     var today = new Date();
@@ -967,7 +978,7 @@ function buildGroupCard(groupName, members) {
         var addBtn = document.createElement('button');
         addBtn.className = 'btn-add-emp';
         addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Додати співробітника';
-        addBtn.onclick = function() { openStaffSheet(); };
+        addBtn.onclick = function() { openStaffSheet(groupRole || (members[0] && members[0].role) || 'courier'); };
         card.appendChild(addBtn);
     }
 
@@ -1395,33 +1406,45 @@ function addMonth() {
 }
 
 // ── RENDER ──
+// Нормалізація ролі: "Кур'єр", "Кур'єри", "courier" → "courier"
+function normalizeRole(role) {
+    if (!role) return 'courier';
+    var r = role.toLowerCase().trim();
+    if (r === 'courier' || r === "кур'єр" || r === 'кур'єри' || r === 'кур' || r === 'кур.') return 'courier';
+    if (r === 'manager' || r === 'менеджер' || r === 'менеджери' || r === 'адмін' || r === 'admin') return 'manager';
+    if (r === 'kitchen' || r === 'кухня' || r === 'кухар' || r === 'кухарі') return 'kitchen';
+    // Для всіх інших — повертаємо як є (без змін), щоб кастомні ролі групувались разом
+    return role.trim();
+}
+
+function roleLabel(role) {
+    var r = normalizeRole(role);
+    if (r === 'courier') return "Кур'єри";
+    if (r === 'manager') return 'Менеджери';
+    if (r === 'kitchen') return 'Кухня';
+    return role.trim(); // кастомна роль — як є
+}
+
 function renderAll() {
     var container = document.getElementById('groups-container');
     container.innerHTML = '';
 
-    // Group staff by role
+    // Групуємо по нормалізованій ролі
     var groups = {};
-    staffList.forEach(s => {
-        var g = s.role || 'courier';
-        if (!groups[g]) groups[g] = [];
+    var groupOrder = [];
+    staffList.forEach(function(s) {
+        var g = normalizeRole(s.role);
+        if (!groups[g]) { groups[g] = []; groupOrder.push(g); }
         groups[g].push(s);
     });
 
-    var groupLabels = {
-        courier: "Кур'єри", manager: 'Менеджери', kitchen: 'Кухня', admin: 'Адміни'
-    };
-
-    Object.entries(groups).forEach(([role, members]) => {
-        var card = buildGroupCard(groupLabels[role] || role, members);
+    groupOrder.forEach(function(role) {
+        var card = buildGroupCard(roleLabel(role), groups[role], role);
         container.appendChild(card);
     });
-
-    if (isAdmin) {
-        // Add "add group" handled via addGroup()
-    }
 }
 
-function buildGroupCard(groupName, members) {
+function buildGroupCard(groupName, members, groupRole) {
     var [y, m] = activeMonthKey.split('-').map(Number);
     var daysInMonth = new Date(y, m, 0).getDate();
     var today = new Date();
@@ -1541,7 +1564,7 @@ function buildGroupCard(groupName, members) {
         var addBtn = document.createElement('button');
         addBtn.className = 'btn-add-emp';
         addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Додати співробітника';
-        addBtn.onclick = function() { openStaffSheet(); };
+        addBtn.onclick = function() { openStaffSheet(groupRole || (members[0] && members[0].role) || 'courier'); };
         card.appendChild(addBtn);
     }
 
