@@ -88,3 +88,32 @@ async def manage_biz(callback: types.CallbackQuery):
         )
     builder.adjust(1)
     await callback.message.edit_text(_(lang, 'sa_manage'), reply_markup=builder.as_markup())
+
+@router.callback_query(lambda c: c.data and c.data.startswith("fix_sub_"))
+async def fix_subscription(callback: types.CallbackQuery):
+    """Суперадмін: примусово скидає підписку на trial і очищає кеш."""
+    if callback.from_user.id not in SUPER_ADMIN_IDS:
+        await callback.answer("❌ Доступ заборонено", show_alert=True)
+        return
+    biz_id = callback.data.replace("fix_sub_", "")
+    import datetime
+    from datetime import timezone, timedelta
+    trial_end = (datetime.datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+    try:
+        await db._run(
+            lambda: db.supabase.table("businesses")
+                .update({
+                    "plan": "trial",
+                    "is_active": True,
+                    "subscription_expires_at": trial_end
+                })
+                .eq("id", biz_id)
+                .execute()
+        )
+        # Знаходимо власника і скидаємо кеш
+        biz = await db.get_business_by_id(biz_id)
+        if biz and biz.get("owner_id"):
+            db.invalidate_user_cache(int(biz["owner_id"]))
+        await callback.answer("✅ Підписку відновлено на 7 днів, кеш скинуто!", show_alert=True)
+    except Exception as e:
+        await callback.answer(f"❌ Помилка: {e}", show_alert=True)
