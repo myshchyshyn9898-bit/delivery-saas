@@ -401,6 +401,14 @@
                 menu.classList.remove('show');
             }
         });
-    </script>
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+    initTracking();
+});
+</script>
 </body>
 </html>

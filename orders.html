@@ -207,7 +207,7 @@
                 pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
                 apt: "Apt:", code: "Code:", unknown_c: "Unknown courier",
                 empty_active: "No active orders", empty_closed: "No closed orders for the selected period",
-                err_biz: "Business ID is missing!", err_supa: "Supabase failed to load. Check your internet."
+                err_biz: "Business ID is missing!", err_supa: "Supabase failed to load. Check your internet.",
                 err_supabase: "Supabase failed to load. Check your internet.",
                 err_exec: "🚨 Execution error: ",
                 err_filter: "❌ Filter error: ",
@@ -494,6 +494,14 @@
                 alert(t('err_prefix') + e.message);
             }
         }
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+    loadArchiveData();
+});
 </script>
 </body>
 </html>

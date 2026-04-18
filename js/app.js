@@ -1071,10 +1071,17 @@ bizAddrInput.addEventListener('input', function() {
 
 document.addEventListener('click', function(e) { if (e.target !== bizAddrInput && !bizAddrList.contains(e.target)) bizAddrList.style.display = 'none'; });
 
+
+// Alias для сумісності (i18n.js викликає loadDashboard)
+function loadDashboard() { return loadDashboardData(); }
+
 // 🏁 ЗАПУСК ДОДАТКУ
 (async () => {
     await initSupabase();
     setLanguage(currentLang);
+    if (bizId && supabaseClient) {
+        await loadDashboardData();
+    }
 })();
 
 // ============================================================

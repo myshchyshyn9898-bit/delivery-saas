@@ -393,12 +393,12 @@
         analytics_lbl: "Аналітика",
         show_lbl: "Показати",
         err_biz: "Бізнес не знайдено: ",
-        err_config: ML.err_config,
-        err_config_http: ML.err_config_http,
-        err_mapbox: ML.err_mapbox,
-        err_supabase: ML.err_supabase,
-        err_token: ML.err_token,
-        err_server: ML.err_server,
+        err_config: "Невірна відповідь /config (не JSON): ",
+        err_config_http: "Помилка /config: HTTP ",
+        err_mapbox: "Помилка: Mapbox не завантажився. Перевірте інтернет.",
+        err_supabase: "Помилка: Supabase SDK не підключена",
+        err_token: "Помилка: Немає токена доступу",
+        err_server: "Помилка підключення до сервера",
         err_start: "Помилка запуску",
         err_init: "Помилка ініціалізації",
         err_prefix: "Помилка: ",
@@ -630,9 +630,12 @@
     /* ── СТАРТ ── */
     document.addEventListener('DOMContentLoaded', async function() {
         try {
-            tg = window.Telegram.WebApp;
-            tg.ready(); tg.expand();
-            if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+            if (window.Telegram && window.Telegram.WebApp) {
+                tg = window.Telegram.WebApp;
+                tg.ready(); tg.expand();
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                applyMapTranslations();
+            }
 
             userId = tgId || (tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null);
 

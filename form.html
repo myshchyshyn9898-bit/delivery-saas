@@ -289,7 +289,7 @@
                 search_load: "Szukamy adresu...", search_empty: "Nie znaleziono adresu lub jest poza strefą dostawy ({r} km).", search_err: "Błąd wyszukiwania",
                 country_def: "Polska", km: "km", err_addr: "📍 Proszę zacząć wpisywać adres i koniecznie WYBRAĆ go z listy rozwijanej!",
                 err_phone: "Proszę wprowadzić poprawny numer telefonu!", err_req: "Wypełnij wymagane pola: ulicę, kwotę i wybierz kuriera!",
-                load_list: "Ładowanie listy...", unassigned_opt: "🟢 Wolne (Na mapę)"
+                load_list: "Ładowanie listy...", unassigned_opt: "🟢 Wolne (Na mapę)", success: "✅ Zamówienie utworzone pomyślnie!", err_prefix: "❌ Błąd: ", err_network: "❌ Błąd sieci: "
             },
                 name: "Imię klienta (np. Aleksander)",
                 comment: "Komentarz (opcjonalnie)",
@@ -310,7 +310,7 @@
                 search_load: "Searching address...", search_empty: "Address not found or out of delivery zone ({r} km).", search_err: "Search error",
                 country_def: "Poland", km: "km", err_addr: "📍 Please start typing the address and make sure to SELECT it from the list!",
                 err_phone: "Please enter a valid phone number!", err_req: "Fill in the required fields: street, amount, and select a courier!",
-                load_list: "Loading list...", unassigned_opt: "🟢 Unassigned (To map)"
+                load_list: "Loading list...", unassigned_opt: "🟢 Unassigned (To map)", success: "✅ Order created successfully!", err_prefix: "❌ Error: ", err_network: "❌ Network error: "
             }
         };
 
@@ -759,9 +759,6 @@
             });
 
             document.addEventListener('click', function(e) {
-                success: "✅ Order created successfully!",
-                err_prefix: "❌ Error: ",
-                err_network: "❌ Network error: ",
                 if (e.target !== addrInput && e.target !== addrList) addrList.style.display = 'none';
             });
 
