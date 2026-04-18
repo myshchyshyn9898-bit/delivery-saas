@@ -302,11 +302,25 @@ function setLanguage(lang) {
     localStorage.setItem('appLang', lang); 
     document.getElementById('current-lang-display').innerText = lang.toUpperCase();
     
-    // Замінюємо текст у всіх елементах, де є атрибут data-i18n
-    document.querySelectorAll('[data-i18n]').forEach(el => {
+    // Замінюємо текст, зберігаючи іконки (FontAwesome) всередині елементів
+    document.querySelectorAll('[datai18n]').forEach(el => {
         var key = el.getAttribute('data-i18n');
-        if (i18n[lang][key]) el.innerHTML = i18n[lang][key];
+        var translation = i18n[lang][key];
+        if (translation) {
+            // Шукаємо, чи є всередині елемента іконка <i>
+            const icon = el.querySelector('i');
+            if (icon) {
+                // Якщо є іконка, зберігаємо її і додаємо перекладений текст поруч
+                el.innerHTML = ''; // Очищаємо вміст
+                el.appendChild(icon); // Повертаємо іконку на місце
+                el.appendChild(document.createTextNode(' ' + translation)); 
+            } else {
+                // Якщо іконки немає, просто міняємо текст
+                el.textContent = translation;
+            }
+        }
     });
+
     // Замінюємо placeholder в інпутах
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         var key = el.getAttribute('data-i18n-placeholder');
