@@ -78,6 +78,8 @@ def get_courier_kb(biz_id, user_id, lang='uk', shift_active=False):
     return ReplyKeyboardMarkup(
         keyboard=[
             [shift_btn],
+            # ✅ FIX: кнопка "Мої замовлення" — кур'єр може знайти активні замовлення після перезапуску
+            [KeyboardButton(text=_(lang, 'btn_my_active_orders', default="📦 Мої замовлення"))],
             [KeyboardButton(text=_(lang, 'btn_map'), web_app=WebAppInfo(url=f"{BASE_URL}map.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_my_deliveries'), web_app=WebAppInfo(url=f"{BASE_URL}orders.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))],
             [KeyboardButton(text=_(lang, 'btn_schedule'), web_app=WebAppInfo(url=f"{BASE_URL}schedule.html?biz_id={biz_id}&tg_id={user_id}&v={t}&token={token}"))]

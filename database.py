@@ -104,17 +104,46 @@ async def get_actual_plan(biz_id: str) -> str:
 
     return plan
 
-async def activate_whop_subscription(biz_id: str, plan_name: str, membership_id: str):
-    """Функція для Webhook: активує підписку після успішної оплати на Whop."""
+async def activate_whop_subscription(biz_id: str, plan_name: str, membership_id: str, expires_at_iso: str = None):
+    """Функція для Webhook: активує підписку після успішної оплати на Whop.
+
+    expires_at_iso — дата закінчення з Whop payload (renewal_period_end або expires_at).
+    Якщо не передано — fallback на +30 днів (для зворотної сумісності).
+    """
     now = datetime.datetime.now(timezone.utc)
-    next_month = now + timedelta(days=30)
+    if expires_at_iso:
+        try:
+            # Whop може повертати Unix timestamp (int) або ISO рядок
+            if str(expires_at_iso).isdigit():
+                sub_end = datetime.datetime.fromtimestamp(int(expires_at_iso), tz=timezone.utc)
+            else:
+                sub_end = datetime.datetime.fromisoformat(str(expires_at_iso).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            sub_end = now + timedelta(days=30)
+    else:
+        sub_end = now + timedelta(days=30)
+
     data = {
         "plan": plan_name,
-        "subscription_expires_at": next_month.isoformat(),
+        "subscription_expires_at": sub_end.isoformat(),
         "whop_membership_id": membership_id
     }
     result = await _run(lambda: supabase.table("businesses").update(data).eq("id", biz_id).execute())
     # Скидаємо кеш власника щоб новий план підтягнувся одразу
+    if result.data:
+        owner_id = result.data[0].get("owner_id")
+        if owner_id:
+            invalidate_user_cache(int(owner_id))
+    return result
+
+
+async def deactivate_whop_subscription(biz_id: str):
+    """Деактивує підписку при скасуванні в Whop (membership.went_inactive / membership.expired)."""
+    data = {
+        "plan": "expired",
+        "subscription_expires_at": datetime.datetime.now(timezone.utc).isoformat(),
+    }
+    result = await _run(lambda: supabase.table("businesses").update(data).eq("id", biz_id).execute())
     if result.data:
         owner_id = result.data[0].get("owner_id")
         if owner_id:
@@ -362,6 +391,22 @@ def invalidate_user_cache(user_id: int):
     реєстрації бізнесу або додавання персоналу.
     """
     _context_cache.pop(user_id, None)
+
+def invalidate_biz_cache(biz_id: str):
+    """
+    Скидає кеш для ВСІХ користувачів цього бізнесу.
+    Викликати після зміни delivery_mode, валюти або інших бізнес-налаштувань —
+    щоб бот одразу бачив новий режим, а не чекав 60с.
+    """
+    to_remove = [
+        uid for uid, (ts, ctx) in list(_context_cache.items())
+        if ctx and ctx.get('biz', {}).get('id') == str(biz_id)
+    ]
+    for uid in to_remove:
+        _context_cache.pop(uid, None)
+    if to_remove:
+        import logging as _lg
+        _lg.getLogger(__name__).info(f"[cache] Скинуто biz кеш для {len(to_remove)} юзерів (biz={biz_id})")
 
 # ==========================================
 # ФУНКЦІЇ ДЛЯ ЗМІН КУР'ЄРІВ (SHIFTS)

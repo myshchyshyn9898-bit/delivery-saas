@@ -27,6 +27,9 @@ async def check_late_orders():
         if not res.data:
             return
 
+        # ✅ FIX: кешуємо плани по biz_id — один запит на бізнес, а не на кожне замовлення
+        _plans_cache: dict = {}
+
         for order in res.data:
             if order.get("is_late_notified"):
                 continue
@@ -57,9 +60,10 @@ async def check_late_orders():
             biz_id   = order["business_id"]
             short_id = str(oid)[:6].upper()
 
-            # Не надсилаємо алерти для expired бізнесів
-            actual_plan = await db.get_actual_plan(biz_id)
-            if actual_plan == "expired":
+            # ✅ FIX N+1: план береться з кешу, а не окремим запитом
+            if biz_id not in _plans_cache:
+                _plans_cache[biz_id] = await db.get_actual_plan(biz_id)
+            if _plans_cache[biz_id] == "expired":
                 continue
 
             # Ім'я кур'єра

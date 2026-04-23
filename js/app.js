@@ -202,6 +202,13 @@ async function saveBizSettings(btn) {
     const newDeliveryMode = window.DeliveryMode ? window.DeliveryMode.get() : 'dispatcher';
     const newGroupId = (document.getElementById('courier_group_id')?.value || '').trim();
     const newKmRate = parseFloat(document.getElementById('input-km-rate')?.value) || 0;
+
+    // ✅ FIX 2: валідація — uber без group ID не зберігаємо
+    if (newDeliveryMode === 'uber' && !newGroupId) {
+        alert('⚠️ Для режиму "Вільна каса" потрібно вказати ID Telegram-групи кур'єрів.');
+        document.getElementById('courier_group_id')?.focus();
+        return;
+    }
     
     const oldHtml = btn.innerHTML;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`; btn.disabled = true;
@@ -216,6 +223,17 @@ async function saveBizSettings(btn) {
 
         const { error } = await supabaseClient.from('businesses').update(updatePayload).eq('id', bizId);
         if (error) throw error;
+
+        // ✅ FIX 3: скидаємо кеш бота після зміни режиму доставки
+        if (authToken) {
+            try {
+                await fetch(`${RAILWAY_DOMAIN}/api/invalidate_cache`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ user_id: tgUserIdParam || 0, biz_id: bizId })
+                });
+            } catch(e) { console.warn('Cache invalidation after mode change:', e); }
+        }
         
         alert(t('alert_save'));
         closeBizSettingsMenu(); loadDashboardData(); 
@@ -959,68 +977,56 @@ async function loadDashboardData() {
 // ════════════════════════════════════════
 
 (function initDeliveryModeSelector() {
-  const cards = document.querySelectorAll('.mode-card');
-  const uberField = document.getElementById('uber-group-field');
-  const groupInput = document.getElementById('courier_group_id');
+  var uberField  = document.getElementById('uber-group-field');
+  var groupInput = document.getElementById('courier_group_id');
+  if (!uberField) return;
 
-  if (!cards.length || !uberField) return;
+  var _savedGroupId = '';
+  var _currentMode  = 'dispatcher';
 
-  function updateModeUI() {
-    let selectedValue = null;
+  window.dmSelect = function(mode) {
+    _currentMode = mode;
+    var isUber = mode === 'uber';
 
-    cards.forEach(card => {
-      const radio = card.querySelector('input[type="radio"]');
-      if (radio.checked) {
-        card.classList.add('is-selected');
-        selectedValue = radio.value;
-      } else {
-        card.classList.remove('is-selected');
-      }
-    });
+    // Перемикач-таблетка
+    var btnD = document.getElementById('dm-btn-dispatcher');
+    var btnU = document.getElementById('dm-btn-uber');
+    if (btnD) btnD.className = 'dm-toggle-btn' + (isUber ? '' : ' dm-toggle-btn--active');
+    if (btnU) btnU.className = 'dm-toggle-btn' + (isUber ? ' dm-toggle-btn--active' : '');
 
-    // Показуємо/ховаємо поле group_id
-    if (selectedValue === 'uber') {
+    // Картки
+    var cardD = document.getElementById('dm-card-dispatcher');
+    var cardU = document.getElementById('dm-card-uber');
+    if (cardD) { cardD.style.display = isUber ? 'none' : 'block'; }
+    if (cardU) { cardU.style.display = isUber ? 'block' : 'none'; }
+
+    // Поле group_id
+    if (isUber) {
       uberField.classList.add('is-visible');
-      if (groupInput) groupInput.required = true;
-    } else {
-      uberField.classList.remove('is-visible');
       if (groupInput) {
-        groupInput.required = false;
-        groupInput.value = '';
+        groupInput.required = true;
+        if (!groupInput.value && _savedGroupId) groupInput.value = _savedGroupId;
       }
+    } else {
+      if (groupInput && groupInput.value) _savedGroupId = groupInput.value;
+      uberField.classList.remove('is-visible');
+      if (groupInput) { groupInput.required = false; groupInput.value = ''; }
     }
-  }
 
-  // Слухаємо зміни на картках
-  cards.forEach(card => {
-    card.addEventListener('click', () => {
-      const radio = card.querySelector('input[type="radio"]');
-      radio.checked = true;
-      updateModeUI();
-    });
-  });
-
-  // Ініціалізація при завантаженні
-  updateModeUI();
-
-  // Публічний метод: дозволяє встановити режим програмно (з бекенду/API)
-  window.DeliveryMode = {
-    set: function(mode) {
-      cards.forEach(card => {
-        const radio = card.querySelector('input[type="radio"]');
-        if (radio.value === mode) radio.checked = true;
-      });
-      updateModeUI();
-    },
-    get: function() {
-      let val = 'dispatcher';
-      cards.forEach(card => {
-        const radio = card.querySelector('input[type="radio"]');
-        if (radio.checked) val = radio.value;
-      });
-      return val;
-    }
+    // Синхронізуємо hidden radio (для saveBizSettings)
+    var radioD = document.getElementById('mode-dispatcher');
+    var radioU = document.getElementById('mode-uber');
+    if (radioD) radioD.checked = !isUber;
+    if (radioU) radioU.checked = isUber;
   };
+
+  window.DeliveryMode = {
+    set: function(mode) { window.dmSelect(mode); },
+    get: function() { return _currentMode; }
+  };
+
+  // Ініціалізація
+  window.dmSelect('dispatcher');
 })();
 
 // Автозаповнення адреси

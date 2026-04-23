@@ -273,15 +273,35 @@ async def cmd_shift_report(message: types.Message):
 
     shifts = await db.get_today_shifts_report(biz_id)
     closed = [s for s in shifts if s.get('ended_at')]
+    active = [s for s in shifts if not s.get('ended_at')]
 
-    if not closed:
+    if not closed and not active:
         await message.answer(_(lang, 'shift_admin_report_empty'))
         return
 
-    # Підтягуємо імена
+    # ✅ FIX: підтягуємо імена + замовлення одним запитом замість N+1
     from database import _run, supabase
+    import datetime as _dt2
+    from config import BUSINESS_TZ as _BTZ2
     staff_res = await _run(lambda: supabase.table("staff").select("user_id,name").eq("business_id", biz_id).execute())
     staff_map = {str(s['user_id']): s['name'] for s in (staff_res.data or [])}
+
+    # Один запит на всі замовлення за сьогодні
+    _now_local = _dt2.datetime.now(_BTZ2)
+    _day_start = _now_local.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(_dt2.timezone.utc).isoformat()
+    orders_res = await _run(lambda: supabase.table("orders")
+        .select("courier_id,amount,pay_type,status")
+        .eq("business_id", biz_id).eq("status", "completed")
+        .gte("completed_at", _day_start).execute())
+    # Групуємо по кур'єру
+    _orders_by = {}
+    for o in (orders_res.data or []):
+        cid = str(o['courier_id'])
+        if cid not in _orders_by:
+            _orders_by[cid] = {'count': 0, 'cash': 0.0, 'term': 0.0}
+        _orders_by[cid]['count'] += 1
+        if o.get('pay_type') == 'cash': _orders_by[cid]['cash'] += float(o.get('amount') or 0)
+        elif o.get('pay_type') == 'terminal': _orders_by[cid]['term'] += float(o.get('amount') or 0)
 
     today = datetime.datetime.now(BUSINESS_TZ).strftime("%d.%m.%Y")
     text = _(lang, 'shift_admin_report_header', date=today)
@@ -292,9 +312,8 @@ async def cmd_shift_report(message: types.Message):
         c_id = str(s['courier_id'])
         name = staff_map.get(c_id, f"id:{c_id}")
         km_diff = (s.get('end_km') or 0) - (s.get('start_km') or 0)
-        orders_count, cash, term = 0, 0.0, 0.0
-        if s.get('started_at'):
-            orders_count, cash, term = await db.get_shift_orders_stats(int(c_id), biz_id, s['started_at'])
+        od = _orders_by.get(c_id, {'count': 0, 'cash': 0.0, 'term': 0.0})
+        orders_count, cash, term = od['count'], od['cash'], od['term']
         km_total = round(km_diff * km_rate, 2)
         to_pay = round(cash - km_total, 2)
 
@@ -303,12 +322,31 @@ async def cmd_shift_report(message: types.Message):
                   cash=f"{cash:.2f}", term=f"{term:.2f}", cur=currency,
                   km_total=f"{km_total:.2f}", to_pay=f"{to_pay:.2f}")
 
-        # Кнопки для перегляду фото
-        shift_id_short = str(s['id'])[:8]
         if s.get('start_photo_id'):
             builder.button(text=f"📸 {name} — початок", callback_data=f"shiftphoto:start:{s['id']}")
         if s.get('end_photo_id'):
             builder.button(text=f"📸 {name} — кінець", callback_data=f"shiftphoto:end:{s['id']}")
+
+    # ✅ FIX: показуємо активні зміни окремо
+    if active:
+        text += f"
+🟢 <b>Зараз на зміні:</b>
+"
+        for s in active:
+            c_id = str(s['courier_id'])
+            name = staff_map.get(c_id, f"id:{c_id}")
+            started = s.get('started_at', '')
+            start_time = ''
+            if started:
+                try:
+                    import datetime as _dt3
+                    t = _dt3.datetime.fromisoformat(started.replace('Z', '+00:00')).astimezone(BUSINESS_TZ)
+                    start_time = t.strftime('%H:%M')
+                except Exception:
+                    pass
+            od = _orders_by.get(c_id, {'count': 0, 'cash': 0.0, 'term': 0.0})
+            text += f"  🛵 <b>{name}</b> з {start_time} · {od['count']} зам. · 💵 {od['cash']:.2f} {currency}
+"
 
     builder.adjust(1)
     await message.answer(text, parse_mode="HTML", reply_markup=builder.as_markup())
@@ -535,7 +573,11 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
 
 @router.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
-    name, lang = message.text, message.from_user.language_code
+    name, lang = (message.text or "").strip(), message.from_user.language_code
+    # ✅ FIX: валідація імені — мін 2, макс 50 символів, не команда
+    if len(name) < 2 or len(name) > 50 or name.startswith("/"):
+        await message.answer(_(lang, 'name_invalid') if 'name_invalid' in str(_(lang, 'name_invalid')) else "⚠️ Введіть ім'я: від 2 до 50 символів.")
+        return
     data = await state.get_data()
     biz_id = data['joining_biz_id']
     user_id = message.from_user.id
@@ -580,5 +622,15 @@ async def process_staff_name(message: types.Message, state: FSMContext):
         except Exception as e:
             logger.error(f"Помилка показу меню після реєстрації: {e}")
     else:
-        # context ще не з'явився в БД — просимо натиснути /start
-        await message.answer(_(lang, "start_menu_hint"))
+        # ✅ FIX: retry через 0.7с замість загадкового "натисніть /start"
+        import asyncio as _aio
+        await _aio.sleep(0.7)
+        db.invalidate_user_cache(message.from_user.id)
+        context = await db.get_user_context_cached(message.from_user.id)
+        if context:
+            try:
+                await show_main_menu(message, context)
+            except Exception as e:
+                logger.error(f"Помилка показу меню (retry): {e}")
+        else:
+            await message.answer(_(lang, "start_menu_hint"))

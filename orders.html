@@ -419,10 +419,14 @@
                                     </div>
                                     <div class="order-price">${parseFloat(order.amount).toFixed(2)} ${currencySymbol}</div>
                                 </div>
-                                ${order.status !== 'completed' && String(order.courier_id) === String(tgId) ? `
+                                ${order.status !== 'completed' && order.status !== 'cancelled' && String(order.courier_id) === String(tgId) ? `
                                 <div style="display:flex;gap:8px;margin-top:10px;">
                                     <button onclick="closeOrderFromList('${order.id}','cash','${order.amount}',this)" style="flex:1;padding:10px;background:#34C759;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">💵 ${t('pay_cash')}</button>
                                     <button onclick="closeOrderFromList('${order.id}','terminal','${order.amount}',this)" style="flex:1;padding:10px;background:#4A6CF7;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">🏧 ${t('pay_term')}</button>
+                                </div>` : ''}
+                                ${order.status !== 'completed' && order.status !== 'cancelled' && (userRole === 'owner' || userRole === 'manager') ? `
+                                <div style="margin-top:8px;">
+                                    <button onclick="cancelOrderFromList('${order.id}',this)" style="width:100%;padding:9px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;">✕ Скасувати замовлення</button>
                                 </div>` : ''}
                             </div>
                         `;
@@ -464,6 +468,15 @@
         // ЗАПУСКАЄМО
         setLanguage(currentLang);
         loadArchiveData();
+        async function cancelOrderFromList(orderId, btn) {
+            if (!confirm('Скасувати це замовлення?')) return;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            try {
+                var res = await supabaseClient.from('orders').update({ status: 'cancelled' }).eq('id', orderId).in('status', ['pending', 'delivering']);
+                if (res.error) throw res.error;
+                await loadOrdersData();
+            } catch(e) { alert('Помилка: ' + e.message); btn.disabled = false; btn.innerHTML = '✕ Скасувати замовлення'; }
+        }
         async function closeOrderFromList(orderId, payType, amount, btn) {
             if (!confirm(t('status_pending') + ' → ' + (payType === 'cash' ? t('pay_cash') : t('pay_term')) + '?')) return;
             btn.disabled = true;

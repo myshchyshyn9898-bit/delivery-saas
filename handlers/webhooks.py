@@ -309,6 +309,7 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
         event_type = data.get("event_type", "")
         logger.info(f"[Whop] event={event_type}")
 
+        # ── Активація підписки ──────────────────────────────────────────
         if event_type == "membership.went_active":
             membership_data = data.get("data", {})
             custom_fields   = membership_data.get("custom_fields") or {}
@@ -316,18 +317,22 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
             tg_user_id      = custom_fields.get("tg_user_id")
 
             if biz_id:
-                await db.activate_whop_subscription(
-                    biz_id, "pro", membership_data.get("id", "")
+                # ✅ FIX: читаємо реальну дату закінчення з Whop payload
+                expires_at = (
+                    membership_data.get("renewal_period_end")
+                    or membership_data.get("expires_at")
+                    or membership_data.get("expiration_date")
+                    or None
                 )
-                logger.info(f"[Whop] Підписку PRO активовано для biz={biz_id}")
-                # ✅ ВИПРАВЛЕНО bug #5: скидаємо кеш одразу після активації,
-                # щоб власник не бачив expired_trial_text після оплати
+                await db.activate_whop_subscription(
+                    biz_id, "pro", membership_data.get("id", ""),
+                    expires_at_iso=expires_at
+                )
+                logger.info(f"[Whop] PRO активовано для biz={biz_id}, expires={expires_at or '+30d'}")
                 if tg_user_id:
                     db.invalidate_user_cache(int(tg_user_id))
-
                 if tg_user_id:
                     try:
-                        # Беремо мову власника з БД або fallback на en
                         owner_lang = "en"
                         try:
                             biz_for_lang = await db.get_business_by_id(biz_id)
@@ -340,9 +345,47 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
                             parse_mode="HTML",
                         )
                     except Exception as exc:
-                        logger.error(f"[Whop] Помилка відправки користувачу {tg_user_id}: {exc}")
+                        logger.error(f"[Whop] Помилка відправки {tg_user_id}: {exc}")
             else:
-                logger.warning("[Whop] membership.went_active без biz_id у custom_fields")
+                logger.warning("[Whop] membership.went_active без biz_id")
+
+        # ── Скасування / деактивація підписки ───────────────────────────
+        elif event_type in ("membership.went_inactive", "membership.expired", "membership.canceled"):
+            membership_data = data.get("data", {})
+            custom_fields   = membership_data.get("custom_fields") or {}
+            biz_id          = custom_fields.get("biz_id")
+            tg_user_id      = custom_fields.get("tg_user_id")
+
+            if biz_id:
+                await db.deactivate_whop_subscription(biz_id)
+                logger.info(f"[Whop] Підписку деактивовано для biz={biz_id} (event={event_type})")
+                if tg_user_id:
+                    db.invalidate_user_cache(int(tg_user_id))
+                if tg_user_id:
+                    try:
+                        owner_lang = "en"
+                        try:
+                            biz_for_lang = await db.get_business_by_id(biz_id)
+                            owner_lang = (biz_for_lang or {}).get("lang", "en")
+                        except Exception:
+                            pass
+                        # Надсилаємо власнику повідомлення про закінчення підписки
+                        cancel_text = _(owner_lang, 'subscription_expired') if True else (
+                            "⚠️ Ваша підписка DeliPro скасована. "
+                            "Для поновлення перейдіть до налаштувань."
+                        )
+                        await bot.send_message(
+                            chat_id=int(tg_user_id),
+                            text=cancel_text,
+                            parse_mode="HTML",
+                        )
+                    except Exception as exc:
+                        logger.error(f"[Whop] Помилка сповіщення про скасування {tg_user_id}: {exc}")
+            else:
+                logger.warning(f"[Whop] {event_type} без biz_id у custom_fields")
+
+        else:
+            logger.info(f"[Whop] Ігноруємо event={event_type}")
 
         return web.Response(text="OK")
 
@@ -983,13 +1026,22 @@ async def invalidate_cache_handler(request: web.Request) -> web.Response:
         except _jwt.InvalidTokenError:
             return web.Response(status=403, text="Invalid token")
 
-        data = await request.json()
+        data    = await request.json()
         user_id = data.get("user_id")
-        if not user_id:
-            return web.Response(status=400, text="Missing user_id")
+        biz_id  = data.get("biz_id")
 
-        db.invalidate_user_cache(int(user_id))
-        logger.info(f"[cache] Скинуто кеш для user_id={user_id}")
+        if not user_id and not biz_id:
+            return web.Response(status=400, text="Missing user_id or biz_id")
+
+        if user_id:
+            db.invalidate_user_cache(int(user_id))
+            logger.info(f"[cache] Скинуто user кеш: user_id={user_id}")
+
+        # ✅ FIX: скидаємо кеш по biz_id — потрібно після зміни delivery_mode
+        if biz_id:
+            db.invalidate_biz_cache(str(biz_id))
+            logger.info(f"[cache] Скинуто biz кеш: biz_id={biz_id}")
+
         return web.json_response({"ok": True}, headers=CORS_HEADERS)
 
     except Exception as exc:
@@ -1003,8 +1055,8 @@ async def invalidate_cache_handler(request: web.Request) -> web.Response:
 async def api_take_order_handler(request: web.Request) -> web.Response:
     """
     POST /api/take_order
-    Викликається з map.html замість tg.sendData() — щоб WebApp НЕ закривався.
-    Оновлює групове повідомлення та надсилає кур'єру особисте з кнопками.
+    Викликається з map.html — WebApp НЕ закривається.
+    Делегує всю логіку в handlers.orders._process_take_order.
 
     Body JSON: { order_id, courier_id, courier_name, lang }
     Auth: Bearer JWT
@@ -1023,121 +1075,31 @@ async def api_take_order_handler(request: web.Request) -> web.Response:
         except (_jwt.ExpiredSignatureError, _jwt.InvalidTokenError) as e:
             return web.json_response({"ok": False, "error": str(e)}, status=403, headers=CORS_HEADERS)
 
-        data       = await request.json()
-        order_id   = data.get("order_id")
-        courier_id = data.get("courier_id")
+        data         = await request.json()
+        order_id     = data.get("order_id")
+        courier_id   = data.get("courier_id")
         courier_name = data.get("courier_name", "Кур'єр")
-        lang       = data.get("lang", "en")
+        lang         = data.get("lang", "en")
 
         if not order_id or not courier_id:
             return web.json_response({"ok": False, "error": "Missing order_id or courier_id"}, status=400, headers=CORS_HEADERS)
 
-        # Перевіряємо що JWT належить саме цьому courier_id
         if str(payload.get("user_id", "")) != str(courier_id):
             return web.json_response({"ok": False, "error": "Token user_id mismatch"}, status=403, headers=CORS_HEADERS)
 
-        # Читаємо замовлення
-        res = await db._run(
-            lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
-        )
-        if not res.data:
-            return web.json_response({"ok": False, "error": "Order not found"}, status=404, headers=CORS_HEADERS)
-        order = res.data[0]
-
-        # Перевірка статусу — має бути delivering (вже оновлено Supabase-клієнтом на карті)
-        # Але також перевіряємо що саме цей кур'єр захопив
-        if str(order.get("courier_id", "")) != str(courier_id):
-            return web.json_response({"ok": False, "error": "Order taken by another courier"}, status=409, headers=CORS_HEADERS)
-
-        biz_id   = order["business_id"]
-        biz      = await db.get_business_by_id(biz_id)
-        if not biz:
-            return web.json_response({"ok": False, "error": "Business not found"}, status=404, headers=CORS_HEADERS)
-
-        currency  = biz.get("currency", "zł")
-        group_id  = biz.get("courier_group_id")
-        short_id  = str(order_id)[:6].upper()
-        pay_type  = order.get("pay_type", "cash")
-        amount    = order.get("amount", "0")
-
-        import html as _he
-        safe_name    = _he.escape(courier_name)
-        safe_address = _he.escape(order.get("address", "—"))
-        safe_details = _he.escape(order.get("details", "") or "")
-        safe_client  = _he.escape(order.get("client_name", "") or "")
-        safe_phone   = _he.escape(order.get("client_phone", "—") or "—")
-        safe_comment = _he.escape(order.get("comment", "") or "")
-
-        status_line  = _(lang, "order_status_delivering", courier=safe_name)
-        updated_text = _build_order_text(
-            short_id=short_id,
-            address=safe_address,
-            details_text=safe_details,
-            client_name=safe_client,
-            phone=safe_phone,
-            pay_type=pay_type,
-            amount=amount,
-            currency=currency,
-            comment=safe_comment,
-            status_line=status_line,
-            lang=lang
+        # ✅ Делегуємо в спільне ядро.
+        # already_captured=True — map.html вже зробив UPDATE в Supabase перед цим викликом,
+        # тому пропускаємо повторне захоплення і йдемо одразу до оновлення групи і розсилки.
+        from handlers.orders import _process_take_order
+        result = await _process_take_order(
+            bot, order_id, int(courier_id), courier_name, lang,
+            already_captured=True
         )
 
-        # Кнопки для кур'єра
-        raw_phone = order.get("client_phone", "") or ""
-        route_url = f"https://www.google.com/maps/dir/?api=1&destination={urllib.parse.quote(order.get('address', ''))}"
-        builder   = InlineKeyboardBuilder()
-        builder.button(text=_(lang, "btn_route"), url=route_url)
-        if raw_phone:
-            _bt, _cu = _build_call_url(raw_phone, biz, lang=lang)
-            builder.button(text=_bt, url=_cu)
-        if pay_type == "online":
-            builder.button(text=_(lang, "btn_close_online"), callback_data=f"uber_close_online_{order_id}")
-        else:
-            builder.button(text=_(lang, "btn_close_cash", amount=amount, cur=currency), callback_data=f"uber_close_cash_{order_id}")
-            builder.button(text=_(lang, "btn_close_terminal", amount=amount, cur=currency), callback_data=f"uber_close_terminal_{order_id}")
-        if raw_phone and pay_type != "online":
-            builder.adjust(2, 2)
-        elif raw_phone:
-            builder.adjust(2, 1)
-        else:
-            builder.adjust(1)
-
-        markup = builder.as_markup()
-
-        # 1. Надсилаємо кур'єру ОСОБИСТЕ повідомлення з кнопками
-        try:
-            await bot.send_message(
-                chat_id=int(courier_id),
-                text=updated_text,
-                reply_markup=markup,
-                parse_mode="HTML"
-            )
-        except Exception as ep:
-            logger.warning(f"[api_take_order] Не вдалось надіслати особисте кур'єру {courier_id}: {ep}")
-
-        # 2. Оновлюємо повідомлення в ГРУПІ — змінюємо текст і ПРИБИРАЄМО кнопки
-        #    (щоб інші кур'єри не могли натиснути "Взяти замовлення")
-        if group_id:
-            group_msg_id = order.get("group_message_id")
-            if group_msg_id:
-                # Кнопки для групи — без кнопок закриття (тільки маршрут для інформації)
-                group_builder = InlineKeyboardBuilder()
-                group_builder.button(text=_(lang, "btn_route"), url=route_url)
-                group_markup = group_builder.as_markup()
-                try:
-                    await bot.edit_message_caption(
-                        chat_id=group_id, message_id=group_msg_id,
-                        caption=updated_text, reply_markup=group_markup, parse_mode="HTML"
-                    )
-                except Exception:
-                    try:
-                        await bot.edit_message_text(
-                            chat_id=group_id, message_id=group_msg_id,
-                            text=updated_text, reply_markup=group_markup, parse_mode="HTML"
-                        )
-                    except Exception as eg:
-                        logger.warning(f"[api_take_order] Не вдалось оновити group msg: {eg}")
+        if not result["ok"]:
+            err = result["error"]
+            status = 409 if err == "order_already_assigned" else (404 if "not_found" in err else 403)
+            return web.json_response({"ok": False, "error": err}, status=status, headers=CORS_HEADERS)
 
         db.invalidate_user_cache(int(courier_id))
         logger.info(f"[api_take_order] Замовлення {order_id} взяв кур'єр {courier_id}")

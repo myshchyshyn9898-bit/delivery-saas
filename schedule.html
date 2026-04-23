@@ -398,6 +398,11 @@
             <label>Ім'я та Прізвище</label>
             <input type="text" id="staff-name" placeholder="Напр. Іван Петров" style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
         </div>
+        <div class="time-group" style="margin-top:6px;">
+            <label>Telegram ID <span style="font-size:10px;color:var(--muted);font-weight:600;">(необов'язково)</span></label>
+            <input type="number" id="staff-tg-id" placeholder="123456789" inputmode="numeric" style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-weight:600;padding:0 2px;margin-top:4px;">Якщо вказати TG ID — кур'єр побачить свій заробіток в застосунку</div>
 
         <button class="btn-save" onclick="addStaffDirect()" style="margin-top:16px;">
             <i class="fa-solid fa-user-plus"></i> Додати
@@ -969,6 +974,7 @@ function openStaffSheet(groupRole) {
     var el = document.getElementById('staff-overlay');
     if (!el) return;
     document.getElementById('staff-name').value = '';
+    var tgField = document.getElementById('staff-tg-id'); if (tgField) tgField.value = '';
     // Зберігаємо роль групи в data атрибуті — юзер її не бачить
     el.setAttribute('data-group-role', groupRole || 'courier');
     // Показуємо назву групи в заголовку
@@ -987,13 +993,12 @@ async function addStaffDirect() {
     if (!name) { toast("Введіть ім'я"); return; }
     var overlay = document.getElementById('staff-overlay');
     var role = (overlay && overlay.getAttribute('data-group-role')) || 'courier';
+    var tgIdRaw = (document.getElementById('staff-tg-id').value || '').trim();
+    var staffUserId = tgIdRaw ? parseInt(tgIdRaw) : null;
     try {
-        var _res = await supabase.from('staff').insert({
-            user_id: Date.now(),
-            name: name,
-            business_id: bizId,
-            role: role
-        }); var error = _res.error;
+        var payload = { name: name, business_id: bizId, role: role };
+        if (staffUserId) payload.user_id = staffUserId;
+        var _res = await supabase.from('staff').insert(payload); var error = _res.error;
         if (error) throw error;
         toast('✅ Додано: ' + name);
         closeStaffSheet();
@@ -1136,15 +1141,11 @@ function renderMonthTabs() {
             var prevMonth = activeMonthKey;
             // Автозбереження поточного місяця перед переключенням
             if (prevMonth !== mk && scheduleData[prevMonth]) {
-                saveScheduleForMonth(prevMonth);
+                saveScheduleForMonth(prevMonth).catch(function(e) { console.warn('[schedule] auto-save:', e.message); });
             }
             activeMonthKey = mk;
             renderMonthTabs();
-            if (!shiftsCache[mk]) {
-                loadShiftsForMonth(mk).then(function() { renderAll(); });
-            } else {
-                renderAll();
-            }
+            loadShifts().then(function() { renderAll(); });
             loadEarnings();
         };
         tab.appendChild(labelSpan);
@@ -1331,7 +1332,12 @@ function buildGroupCard(groupName, members, groupRole) {
             var hrs     = workedDays[d];
 
             if (planned || worked) shiftCount++;
-            if (hrs) hoursTotal += parseFloat(hrs);
+            // Пріоритет: actual_hours > bot shift > (ignored in grid)
+            if (monthData[d] && monthData[d].actual_hours != null && !isNaN(monthData[d].actual_hours)) {
+                hoursTotal += parseFloat(monthData[d].actual_hours);
+            } else if (hrs) {
+                hoursTotal += parseFloat(hrs);
+            }
 
             var canEdit = isAdmin;
             var slotClass = [
@@ -1353,7 +1359,7 @@ function buildGroupCard(groupName, members, groupRole) {
         bodyRows += "\n<tr class=\"emp-row\" data-cid=\"" + cid + "\">" + "<td class=\"col-name\">" + s.name + "</td>" + cells + "<td class=\"cell-total\"><div class=\"badge-count badge-shifts\">" + shiftCount + "</div></td>" + "<td class=\"cell-total\"><div class=\"badge-count badge-hours\">" + (hoursTotal > 0 ? hoursTotal.toFixed(1).replace(".0","") : "0") + "</div></td>" + "</tr>";
     });
 
-    scroll.innerHTML = "<table><thead>" + "<tr><th class=\"col-name\" rowspan=\"2\">' + SL.worker + '</th>" + headDates + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\">Змін</div></th>" + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\" style=\"color:var(--primary)\">Год.</div></th>" + "</tr><tr>" + headDays + "</tr>" + "</thead><tbody>" + bodyRows + "</tbody></table>";
+    scroll.innerHTML = "<table><thead>" + "<tr><th class=\"col-name\" rowspan=\"2\">" + SL.worker + "</th>" + headDates + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\">Змін</div></th>" + "<th class=\"col-total-head\" rowspan=\"2\"><div class=\"day-name\" style=\"color:var(--primary)\">Год.</div></th>" + "</tr><tr>" + headDays + "</tr>" + "</thead><tbody>" + bodyRows + "</tbody></table>";
 
     card.appendChild(scroll);
 
@@ -1588,7 +1594,9 @@ async function loadEarnings() {
                     realDaily[dd].hours += (new Date((s.ended_at || '').replace(' ', 'T')) - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
                     if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
                 } else {
-                    realDaily[dd].hours += (new Date() - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
+                    // Незакрита зміна: рахуємо до "зараз", але не більше 24 год
+                    var openHrs = (new Date() - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
+                    realDaily[dd].hours += Math.min(openHrs, 24);
                 }
             });
         } catch(e) {}
