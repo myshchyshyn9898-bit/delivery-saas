@@ -329,9 +329,7 @@ async def cmd_shift_report(message: types.Message):
 
     # ✅ FIX: показуємо активні зміни окремо
     if active:
-        text += f"
-🟢 <b>Зараз на зміні:</b>
-"
+        text += "\n🟢 <b>Зараз на зміні:</b>\n"
         for s in active:
             c_id = str(s['courier_id'])
             name = staff_map.get(c_id, f"id:{c_id}")
@@ -345,8 +343,7 @@ async def cmd_shift_report(message: types.Message):
                 except Exception:
                     pass
             od = _orders_by.get(c_id, {'count': 0, 'cash': 0.0, 'term': 0.0})
-            text += f"  🛵 <b>{name}</b> з {start_time} · {od['count']} зам. · 💵 {od['cash']:.2f} {currency}
-"
+            text += f"  🛵 <b>{name}</b> з {start_time} · {od['count']} зам. · 💵 {od['cash']:.2f} {currency}\n"
 
     builder.adjust(1)
     await message.answer(text, parse_mode="HTML", reply_markup=builder.as_markup())
