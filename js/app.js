@@ -19,7 +19,7 @@ let connectedIntegrations = {};
 const RAILWAY_DOMAIN = (function() {
     const meta = document.querySelector('meta[name="server-url"]');
     if (meta && meta.content) return meta.content.replace(/\/$/, '');
-    return "https://delivery-saas-production-3fe6.up.railway.app";
+    return "https://web-production-df704.up.railway.app";
 })();
 let currentInviteToken = ''; 
 
