@@ -1145,8 +1145,7 @@ function loadDashboard() { return loadDashboardData(); }
 // SALARY TAB
 // ============================================================
 
-var MONTH_NAMES_SAL = [t('month_jan'),t('month_feb'),t('month_mar'),t('month_apr'),t('month_may'),t('month_jun'),
-    t('month_jul'),t('month_aug'),t('month_sep'),t('month_oct'),t('month_nov'),t('month_dec')];
+function getMonthNames() { return [t('month_jan'),t('month_feb'),t('month_mar'),t('month_apr'),t('month_may'),t('month_jun'),t('month_jul'),t('month_aug'),t('month_sep'),t('month_oct'),t('month_nov'),t('month_dec')]; }
 
 var salaryMonthKey = '';
 var salaryStaff = [];
@@ -1172,8 +1171,8 @@ async function initSalaryTab() {
         <button class="btn-schedule-open" onclick="window.location.href='${url}'">
             <div class="btn-schedule-icon"><i class="fa-solid fa-calendar-days"></i></div>
             <div class="btn-schedule-text">
-                <div class="btn-schedule-title">Графік роботи команди</div>
-                <div class="btn-schedule-sub">Перегляд та редагування розкладу</div>
+                <div class="btn-schedule-title">' + t('sched_btn_title') + '</div>
+                <div class="btn-schedule-sub">' + t('sched_btn_sub') + '</div>
             </div>
             <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:13px;"></i>
         </button>`;
@@ -1236,7 +1235,7 @@ function renderSalaryMonthTabs() {
     }
     wrap.innerHTML = months.map(mk => {
         var [y, m] = mk.split('-');
-        var label = MONTH_NAMES_SAL[parseInt(m)-1] + ' ' + y;
+        var label = getMonthNames()[parseInt(m)-1] + ' ' + y;
         return `<div class="salary-month-tab${mk===salaryMonthKey?' active':''}"
             onclick="switchSalaryMonth('${mk}')">${label}</div>`;
     }).join('');
@@ -1397,8 +1396,7 @@ async function renderSalaryList() {
         totalFund += earnedSafe;
 
         var isPaid = payment && payment.paid;
-        var roleLabel = s.role === 'manager' ? 'Адміністратор' :
-                        s.role === 'kitchen'  ? 'Кухня' : "Кур'єр";
+        var roleLabel = s.role === 'manager' ? t('sal_admin') : s.role === 'kitchen' ? t('sal_kitchen') : t('sal_courier_lbl');
         var roleClass = s.role === 'manager' ? 'av-admin' :
                         s.role === 'kitchen'  ? 'av-sushi' : 'av-courier';
         var initials = (s.name || '?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
@@ -1422,7 +1420,7 @@ async function renderSalaryList() {
             var desc = b.comment || (amt >= 0 ? 'Премія' : 'Штраф');
             ledger += '<div class="ledger-row"><span class="ledger-desc">' + esc(desc) + '</span><span class="ledger-amount ' + cls + '">' + fmtAmt(amt, cur, true) + '</span></div>';
         });
-        if (!ledger) ledger = '<div style="font-size:12px;color:var(--text-muted);font-weight:600;">Немає даних за цей місяць</div>';
+        if (!ledger) ledger = `<div style="font-size:12px;color:var(--text-muted);font-weight:600;">${t('sal_no_month_data')}</div>`;
 
         // Settings rows
         var settHourly = '<div class="setting-row"><span class="setting-label">Погодинна (' + cur + '/год)</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-' + cid + '" value="' + hourlyRate + '" min="0" step="0.5"></div></div>';
@@ -1437,7 +1435,7 @@ async function renderSalaryList() {
                 '<div class="total-sum">' + fmtAmt(earnedSafe, cur) + '</div>' +
                 '<div class="status-badge ' + (isPaid ? 'paid' : 'unpaid') + '" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
                   (isPaid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Виплачено' :
-                            '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Не виплачено') +
+                            t('sal_unpaid') + '</span>') +
                 '</div>' +
               '</div>' +
               '<div class="chevron" id="chev-' + cid + '"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></div>' +
@@ -1446,29 +1444,29 @@ async function renderSalaryList() {
               '<div class="settings-block">' +
                 '<button class="settings-summary" data-settid="' + settId + '">' +
                   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>' +
-                  'Ставки та налаштування' +
+                  t('sal_settings_title') +
                   '<svg class="sett-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
                 '</button>' +
                 '<div class="settings-content" id="' + settId + '" style="display:none;">' +
                   settHourly + settOrders + settKm +
-                  '<button class="btn btn-save-rates" data-savecid="' + cid + '">Зберегти ставки</button>' +
+                  '<button class="btn btn-save-rates" data-savecid="' + cid + '">' + t('sal_save_rates') + '</button>' +
                 '</div>' +
               '</div>' +
               '<div class="stats-grid cols-3">' +
-                '<div class="stat-item"><div class="stat-label">Зміни</div><div class="stat-value">' + shiftCount + ' шт</div></div>' +
-                '<div class="stat-item"><div class="stat-label">Години</div><div class="stat-value">' + totalHours.toFixed(1) + 'г</div></div>' +
-                '<div class="stat-item"><div class="stat-label">Замовлення</div><div class="stat-value">' + ordersCount + ' шт</div></div>' +
+                `<div class="stat-item"><div class="stat-label">${t('sal_shifts')}</div><div class="stat-value">${shiftCount} ${t('sal_per_item').replace('/','')}</div></div>` +
+                `<div class="stat-item"><div class="stat-label">${t('sal_hours')}</div><div class="stat-value">${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','')}</div></div>` +
+                `<div class="stat-item"><div class="stat-label">${t('sal_orders_col')}</div><div class="stat-value">${ordersCount} ${t('sal_per_item').replace('/','')}</div></div>` +
               '</div>' +
-              '<div class="section-heading">ПРЕМІЯ / ШТРАФ / АВАНС</div>' +
+              `<div class="section-heading">${t('sal_bonus_fine_adv')}</div>` +
               '<div class="ledger">' + ledger + '</div>' +
               '<div class="add-action">' +
-                '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="Сума (-штраф)">' +
-                '<input type="text" class="input-styled in-desc" id="bon-com-' + cid + '" placeholder="Коментар">' +
+                '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="' + t('sal_amount') + '">' +
+                '<input type="text" class="input-styled in-desc" id="bon-com-' + cid + '" placeholder="' + t('sal_comment') + '">' +
               '</div>' +
               '<div class="card-actions">' +
-                '<button class="btn btn-add-bonus" data-addbonus="' + cid + '"><i class="fa-solid fa-plus"></i> Додати</button>' +
+                '<button class="btn btn-add-bonus" data-addbonus="' + cid + '"><i class="fa-solid fa-plus"></i> ' + t('sal_add') + '</button>' +
                 '<button class="btn btn-primary" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
-                  (isPaid ? '<i class="fa-solid fa-rotate-left"></i> Скасувати виплату' : '<i class="fa-solid fa-check"></i> Виплатити') +
+                  (isPaid ? `<i class="fa-solid fa-rotate-left"></i> ${t('sal_cancel_pay')}` : `<i class="fa-solid fa-check"></i> ${t('sal_pay')}`) +
                 '</button>' +
               '</div>' +
             '</div>' +
