@@ -1413,13 +1413,13 @@ async function renderSalaryList() {
         // Ledger
         var ledger = '';
         if (hourlyRate > 0 || totalHours > 0) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">Базова ЗП (' + totalHours.toFixed(1) + 'г × ' + hourlyRate + ' ' + cur + ')</span><span class="ledger-amount neutral">' + fmtAmt(baseSalary, cur) + '</span></div>';
+            ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_base')} (${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','').trim()} × ${hourlyRate} ${cur})</span><span class="ledger-amount neutral">${fmtAmt(baseSalary, cur)}</span></div>`;
         }
         if (orderEnabled && (orderRate > 0 || ordersCount > 0)) {
             ledger += '<div class="ledger-row"><span class="ledger-desc">За замовлення (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
         }
         if (kmEnabled && (kmRate > 0 || totalKm > 0)) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">Пробіг (' + totalKm + ' км × ' + kmRate + ' ' + cur + ')</span><span class="ledger-amount minus">-' + kmDeduction.toFixed(2) + ' ' + cur + '</span></div>';
+            ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_mileage')} (${totalKm} ${t('sal_per_km').replace('/','').trim()} × ${kmRate} ${cur})</span><span class="ledger-amount minus">-${kmDeduction.toFixed(2)} ${cur}</span></div>`;
         }
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
