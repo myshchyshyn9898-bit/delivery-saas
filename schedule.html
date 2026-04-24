@@ -905,7 +905,8 @@ async function initScheduleApp() {
         _step = 'supabase init';
         setLoad(SL.step4);
         supabase = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
-            global: { headers: { Authorization: 'Bearer ' + authToken } }
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+            global: { headers: authToken ? { Authorization: 'Bearer ' + authToken } : {} }
         });
 
         // 5. Бізнес
