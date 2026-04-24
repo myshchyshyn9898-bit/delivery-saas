@@ -231,7 +231,7 @@ async def _send_uber_group_message(bot: Bot, group_id, biz, order_id, short_id,
 async def handle_web_app_data(message: types.Message, bot: Bot):
     data = json.loads(message.web_app_data.data)
     user_id = message.from_user.id
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
 
     # ── РЕЄСТРАЦІЯ БІЗНЕСУ ──────────────────────────────────────────────────
     if data.get("action") == "register_business":
@@ -623,7 +623,7 @@ async def _get_my_active_orders_text(lang: str) -> str:
 @router.message(F.text.in_(["📦 Мої замовлення", "📦 Мои заказы", "📦 Moje zamówienia", "📦 My Orders"]))
 async def cmd_my_active_orders(message: types.Message, bot: Bot):
     """Кур'єр отримує свої активні delivering замовлення з кнопками."""
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     ctx = await db.get_user_context_cached(message.from_user.id)
     if not ctx or ctx["role"] not in ("courier", "manager", "owner"):
         await message.answer(_(lang, "no_access"))
