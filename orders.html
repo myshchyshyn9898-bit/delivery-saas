@@ -157,6 +157,7 @@
                 err_supabase: "❌ Supabase не завантажилась. Перевірте інтернет.",
                 err_exec: "🚨 Помилка: ", err_filter: "❌ Помилка фільтра: ", err_prefix: "❌ Помилка: ",
                 close_cash: "💵 Готівка", close_term: "🏧 Термінал",
+                err_tabs: "Помилка вкладок: ", err_cancelled: "❌ Скасовано", err_server: "⏳ Сервер не відповідає. Оновіть сторінку.",
             },
             'ru': {
                 title_main: "Заказы", earned: "Заработано за период",
@@ -170,6 +171,7 @@
                 err_supabase: "❌ Supabase не загрузилась.", err_exec: "🚨 Ошибка: ",
                 err_filter: "❌ Ошибка фильтра: ", err_prefix: "❌ Ошибка: ",
                 close_cash: "💵 Наличные", close_term: "🏧 Терминал",
+                err_tabs: "Ошибка вкладок: ", err_cancelled: "❌ Отменено", err_server: "⏳ Сервер не отвечает. Обновите страницу.",
             },
             'pl': {
                 title_main: "Zamówienia", earned: "Zarobiono w okresie",
@@ -183,6 +185,7 @@
                 err_supabase: "Supabase nie załadował się.", err_exec: "🚨 Błąd: ",
                 err_filter: "❌ Błąd filtra: ", err_prefix: "❌ Błąd: ",
                 close_cash: "💵 Gotówka", close_term: "🏧 Terminal",
+                err_tabs: "Błąd zakładek: ", err_cancelled: "❌ Anulowano", err_server: "⏳ Serwer nie odpowiada. Odśwież stronę.",
             },
             'en': {
                 title_main: "Orders", earned: "Earned in period",
@@ -196,6 +199,7 @@
                 err_supabase: "Supabase failed to load.", err_exec: "🚨 Error: ",
                 err_filter: "❌ Filter error: ", err_prefix: "❌ Error: ",
                 close_cash: "💵 Cash", close_term: "🏧 Terminal",
+                err_tabs: "Tab error: ", err_cancelled: "❌ Cancelled", err_server: "⏳ Server not responding. Reload the page.",
             }
         };
 
@@ -234,7 +238,7 @@
                 document.getElementById('tab-' + tabId).classList.add('active');
                 element.classList.add('active');
             } catch(e) {
-                alert("Помилка вкладок: " + e);
+                alert(t("err_tabs") + e);
             }
         }
 
@@ -254,7 +258,7 @@
                 
                 loadArchiveData();
             } catch(e) {
-                alert("Помилка фільтра: " + e);
+                alert(t("err_filter") + e);
             }
         }
 
@@ -282,7 +286,7 @@
                     _supabaseCfgCache = await r.json();
                 } catch(e) {
                     clearTimeout(tid);
-                    throw e.name === 'AbortError' ? new Error('⏳ Сервер не відповідає. Оновіть сторінку.') : e;
+                    throw e.name === 'AbortError' ? new Error(t('err_server')) : e;
                 }
             }
             return _supabaseCfgCache;
@@ -383,7 +387,7 @@
                         let statusBadge = order.status === 'completed'
                             ? `<div class="badge badge-completed">${t('status_done')}</div>`
                             : order.status === 'cancelled'
-                            ? `<div class="badge" style="background:rgba(239,68,68,.1);color:#ef4444;">❌ Скасовано</div>`
+                            ? `<div class="badge" style="background:rgba(239,68,68,.1);color:#ef4444;">${t("err_cancelled")}</div>`
                             : `<div class="badge badge-pending">${t('status_pending')}</div>`;
 
                         const cardHtml = `
