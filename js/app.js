@@ -242,7 +242,7 @@ async function saveBizSettings(btn) {
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`; btn.disabled = true;
     
     try {
-        let updatePayload = { name: newName, currency: newCurr, delivery_mode: newDeliveryMode, km_rate: newKmRate };
+        let updatePayload = { name: newName, currency: newCurr, delivery_mode: newDeliveryMode, km_rate: newKmRate, lang: currentLang };
         if (newRadius !== "") updatePayload.radius_km = parseFloat(newRadius);
         if (newAddress !== "") updatePayload.street = newAddress; 
         if (bizLat !== null && bizLon !== null) { updatePayload.lat = bizLat; updatePayload.lng = bizLon; }
