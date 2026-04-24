@@ -171,6 +171,10 @@ TEXTS = {
         'late_phone_lbl': "Тел",
         'late_courier_lbl': "Кур\'єр",
         'late_mins_msg': "Запізнення вже на {mins} хв!",
+            'shift_on_duty': "🟢 <b>Зараз на зміні:</b>",
+        'btn_photo_start': "📸 {name} — початок",
+        'btn_photo_end': "📸 {name} — кінець",
+        'courier_since': "з {time} · {orders} зам.",
     },
     'ru': {
         'sub_expired': "⚠️ **Ваша подписка закончилась или приостановлена.**\nПожалуйста, обратитесь к администратору.",
@@ -342,7 +346,11 @@ TEXTS = {
         'late_phone_lbl': "Тел",
         'late_courier_lbl': "Курьер",
         'late_mins_msg': "Опоздание уже на {mins} мин!",
-        }, 'pl': {
+                'shift_on_duty': "🟢 <b>Сейчас на смене:</b>",
+        'btn_photo_start': "📸 {name} — начало",
+        'btn_photo_end': "📸 {name} — конец",
+        'courier_since': "с {time} · {orders} зак.",
+    }, 'pl': {
         'sub_expired': "⚠️ **Twoja subskrypcja wygasła lub została zawieszona.**\nProszę skontaktować się z administratorem.",
         'owner_panel': "🏢 **Panel właściciela: {name}**",
         'manager_panel': "👨‍💼 **Panel menedżera: {name}**",
@@ -512,7 +520,11 @@ TEXTS = {
         'late_phone_lbl': "Tel",
         'late_courier_lbl': "Kurier",
         'late_mins_msg': "Spóźnienie już o {mins} min!",
-        }, 'en': {
+                'shift_on_duty': "🟢 <b>Teraz na zmianie:</b>",
+        'btn_photo_start': "📸 {name} — początek",
+        'btn_photo_end': "📸 {name} — koniec",
+        'courier_since': "od {time} · {orders} zam.",
+    }, 'en': {
         'sub_expired': "⚠️ **Your subscription has expired or been suspended.**\nPlease contact the administrator.",
         'owner_panel': "🏢 **Owner Panel: {name}**",
         'manager_panel': "👨‍💼 **Manager Panel: {name}**",
@@ -683,10 +695,16 @@ TEXTS = {
         'late_courier_lbl': "Courier",
         'late_mins_msg': "Already {mins} min late!",
    }
-}
+        'shift_on_duty': "🟢 <b>Currently on shift:</b>",
+        'btn_photo_start': "📸 {name} — start",
+        'btn_photo_end': "📸 {name} — end",
+        'courier_since': "since {time} · {orders} ord.",
+    }
 def get_text(lang_code: str, key: str, **kwargs) -> str:
     """Отримує переклад з TEXTS. Якщо мови нема - бере англійську. Дозволяє форматування."""
-    lang = lang_code if lang_code in TEXTS else 'en'
+    # Normalize: 'uk-UA' -> 'uk', 'pl-PL' -> 'pl', 'en-US' -> 'en'
+    code = (lang_code or 'en').split('-')[0].lower()
+    lang = code if code in TEXTS else 'en'
     text = TEXTS[lang].get(key, TEXTS['en'].get(key, key))
     if kwargs:
         return text.format(**kwargs)

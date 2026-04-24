@@ -20,11 +20,11 @@ def generate_token(biz_id=None, user_id=None, is_boss=False):
     
     # 🔒 ДОДАНО: Прив'язуємо токен до конкретного користувача (захист від крадіжки URL)
     if user_id:
-        # ✅ FIX: Supabase вимагає UUID у полі sub — генеруємо детермінований UUID з Telegram ID
-        # uuid5 дає один і той самий UUID для одного tg_id завжди
+        # ✅ Supabase вимагає UUID у полі sub
         _NS = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
         payload["sub"] = str(uuid.uuid5(_NS, str(user_id)))
-        payload["tg_id"] = str(user_id)  # зберігаємо оригінальний Telegram ID окремо
+        payload["tg_id"] = str(user_id)
+        payload["tg_id"] = str(user_id)
 
     if is_boss:
         payload["role"] = "service_role" # Токен Бога для Супер-Адміна
