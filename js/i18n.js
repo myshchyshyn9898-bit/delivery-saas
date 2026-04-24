@@ -550,7 +550,7 @@ function setLanguage(lang) {
     // Оновлюємо бейдж плану та перезавантажуємо дані (якщо функція loadDashboard вже завантажена)
     if (typeof bizId !== 'undefined' && bizId) {
         document.getElementById('set-plan-status').innerText = `${currentPlanIsPro ? 'PRO' : 'BASIC'} (${t('badge_active')})`;
-        if(typeof loadDashboard === 'function') loadDashboard(); 
+        if(typeof loadDashboard === 'function' && window._dashboardReady) loadDashboard(); 
     }
 }
 

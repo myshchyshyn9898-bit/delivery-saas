@@ -672,12 +672,17 @@ async function savePosIntegration() {
 }
 
 // 🚀 ОСНОВНА ФУНКЦІЯ: ЗАВАНТАЖЕННЯ ДАНИХ З БАЗИ 🚀
+var _dashboardLoading = false;
+
 async function loadDashboardData() {
+    // ✅ Prevent multiple simultaneous calls
+    if (_dashboardLoading) { console.log('DEBUG: loadDashboardData skipped - already loading'); return; }
+    _dashboardLoading = true;
     try {
         if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
-        if (!bizId) { document.getElementById('display-biz-name').innerText = "DEMO MODE"; return; }
+        if (!bizId) { document.getElementById('display-biz-name').innerText = "DEMO MODE"; _dashboardLoading = false; return; }
 
-        if (!supabaseClient) { console.error('DEBUG: supabaseClient is null'); return; }
+        if (!supabaseClient) { console.error('DEBUG: supabaseClient is null'); _dashboardLoading = false; return; }
 
         console.log('DEBUG: Starting DB fetch. bizId=' + bizId + ' authToken=' + (authToken ? authToken.slice(0,20)+'...' : 'MISSING'));
 
@@ -1009,10 +1014,11 @@ async function loadDashboardData() {
         }
     } catch (error) {
         console.error("DB Error:", error);
-        // ✅ FIX: показуємо помилку замість вічного спінера
         _showInitError(t('err_load_data') + (error?.message || error));
         const staffBox = document.getElementById('staff-list');
         if (staffBox) staffBox.innerHTML = '';
+    } finally {
+        _dashboardLoading = false;
     }
 }
 
