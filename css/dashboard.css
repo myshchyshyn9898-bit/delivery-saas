@@ -274,7 +274,8 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 18px; margin-right: 13px; flex-shrink: 0;
 }
-.team-name { font-size: 15px; font-weight: 700; color: var(--text-main); }
+.team-info { flex: 1; min-width: 0; }
+.team-name { font-size: 15px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .team-role {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
   padding: 3px 8px; border-radius: 6px;
