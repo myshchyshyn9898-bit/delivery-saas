@@ -53,32 +53,21 @@ async function initSupabase() {
         const cfg = await res.json();
         if (cfg.mapbox_token) { window.MAPBOX_TOKEN = cfg.mapbox_token; }
         if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
-            // ✅ FIX: x-tg-user-id залишаємо у global.headers, але Authorization НЕ передаємо тут —
-            //         Supabase JS v2 ігнорує Authorization з global.headers і перезаписує своїм anon-ключем.
             const tgId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-            supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
-                auth: {
-                    persistSession: false,     // не зберігати сесію в localStorage
-                    autoRefreshToken: false,   // не оновлювати токен автоматично
-                    detectSessionInUrl: false  // не читати токен з URL
-                },
-                global: {
-                    headers: tgId ? { 'x-tg-user-id': String(tgId) } : {}
-                }
-            });
 
-            // ✅ FIX: Правильний спосіб передати JWT в Supabase JS v2 — через setSession.
-            //         Тільки так SDK буде використовувати наш токен (а не anon-ключ) у всіх запитах.
-            if (authToken) {
-                const { error: sessionErr } = await supabaseClient.auth.setSession({
-                    access_token: authToken,
-                    refresh_token: authToken  // dummy — autoRefreshToken: false, тому не використовується
-                });
-                if (sessionErr) {
-                    console.warn('JWT сесія не встановлена:', sessionErr.message);
-                    // Продовжуємо як anon — якщо RLS дозволяє
-                }
-            }
+            // ✅ ФІНАЛЬНИЙ FIX: не використовуємо auth.setSession() —
+            //   він перевіряє auth.users (Telegram-юзерів там немає → помилка).
+            //   JWT передаємо через global.headers напряму до PostgREST.
+            //   PostgREST перевіряє тільки підпис і role — auth.users НЕ перевіряє.
+            //   Без активної сесії (persistSession:false) SDK не замінює наш Authorization.
+            const globalHeaders = {};
+            if (tgId)      globalHeaders['x-tg-user-id']  = String(tgId);
+            if (authToken) globalHeaders['Authorization'] = 'Bearer ' + authToken;
+
+            supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
+                auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+                global: { headers: globalHeaders }
+            });
         } else {
             _showInitError('Помилка конфігурації. Зверніться до підтримки.');
         }
