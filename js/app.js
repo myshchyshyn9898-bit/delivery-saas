@@ -47,7 +47,7 @@ async function initSupabase() {
 
         if (!res.ok) {
             console.error('Config error:', res.status);
-            _showInitError('Сервер недоступний (' + res.status + '). Спробуйте пізніше.');
+            _showInitError(t('err_server_unavail') + ' (' + res.status + ')');
             return;
         }
         const cfg = await res.json();
@@ -69,14 +69,14 @@ async function initSupabase() {
                 global: { headers: globalHeaders }
             });
         } else {
-            _showInitError('Помилка конфігурації. Зверніться до підтримки.');
+            _showInitError(t('err_config'));
         }
     } catch(e) {
         clearTimeout(timeoutId);
         if (e.name === 'AbortError') {
-            _showInitError('⏳ Сервер не відповідає (холодний старт). Зачекайте 15 секунд і поновіть.');
+            _showInitError(t('err_cold_start'));
         } else {
-            _showInitError('Помилка з\u2019єднання: ' + e.message);
+            _showInitError(t('err_connection') + e.message);
         }
         console.error('initSupabase:', e);
     }
@@ -92,7 +92,7 @@ function _showInitError(msg) {
     if (recent) recent.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--text-muted);font-size:13px;font-weight:600;">'
         + '<i class="fa-solid fa-triangle-exclamation" style="font-size:28px;color:var(--warning);display:block;margin-bottom:12px;"></i>'
         + msg
-        + '<br><br><button onclick="location.reload()" style="margin-top:8px;padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;">🔄 Спробувати знову</button>'
+        + `<br><br><button onclick="location.reload()" style="margin-top:8px;padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;">${t("btn_retry")}</button>`
         + '</div>';
 }
 
@@ -233,7 +233,7 @@ async function saveBizSettings(btn) {
 
     // ✅ FIX 2: валідація — uber без group ID не зберігаємо
     if (newDeliveryMode === 'uber' && !newGroupId) {
-        alert("⚠️ Для режиму \"Вільна каса\" потрібно вказати ID Telegram-групи кур'єрів.");
+        alert(t('err_uber_no_group'));
         document.getElementById('courier_group_id')?.focus();
         return;
     }
@@ -327,8 +327,8 @@ function renderSubscriptionUI(biz) {
     // ✅ ВИПРАВЛЕНО: передаємо явний текст щоб не плутати з toast після збереження токена
     if (daysLeft <= 1 && daysLeft >= 0 && dbPlan !== 'expired') {
         setTimeout(() => showToast(
-            "⚠️ Підписка скоро закінчується",
-            `Залишилось ${Math.max(0, daysLeft)} дн. Відкрийте керування підпискою.`
+            t('toast_sub_ending'),
+            String(Math.max(0, daysLeft)) + ' ' + t('txt_days') + '. ' + t('txt_avail')
         ), 1500);
     }
 
@@ -403,7 +403,7 @@ function actionPayWhop() {
     let tgUserId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
 
     if (!tgUserId) {
-        alert(t('err_no_tg_id') || "Помилка: не вдалося визначити ваш Telegram ID. Спробуйте відкрити через Telegram.");
+        alert(t('err_no_tg_id_full'));
         return;
     }
 
@@ -593,7 +593,7 @@ function openConnectModal(name, id, color, letter, desc) {
 
         if (connectedIntegrations[id]) {
             const webhookUrl = `${RAILWAY_DOMAIN}/webhook/${cfg.webhookPath || id}?biz_id=${bizId}`;
-            document.getElementById('connect-title').innerText = `${cfg.name || name} ✅ Підключено`;
+            document.getElementById('connect-title').innerText = `${cfg.name || name} ✅ ${t("pos_connected_lbl")}`;
             document.getElementById('connect-desc').innerHTML = `
                 <div style="text-align:left; background:rgba(16,185,129,0.05); padding:12px; border-radius:12px; margin-bottom:12px; border:1px dashed #10b981;">
                     <b style="color:#10b981; font-size:12px; display:block; margin-bottom:6px;">✅ Токен збережено. Залишилось налаштувати Webhook:</b>
@@ -604,18 +604,18 @@ function openConnectModal(name, id, color, letter, desc) {
                         <li>Збережіть — готово! 🎉</li>
                     </ol>
                 </div>
-                <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700; cursor:pointer;" onclick="navigator.clipboard.writeText('${webhookUrl}'); showToast('Скопійовано!', 'Вставте посилання в налаштування каси.');">${webhookUrl}<br><span style="color:#94a3b8; font-weight:400; font-size:10px;">натисніть щоб скопіювати</span></code>
+                <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700; cursor:pointer;" onclick="navigator.clipboard.writeText('${webhookUrl}'); showToast(t('pos_copied'), t('pos_paste_hint'));">${webhookUrl}<br><span style="color:#94a3b8; font-weight:400; font-size:10px;">натисніть щоб скопіювати</span></code>
             `;
             document.getElementById('input-pos-token').style.display = 'none';
-            btn.innerHTML = `<i class="fa-solid fa-copy"></i> Скопіювати посилання`;
+            btn.innerHTML = `<i class="fa-solid fa-copy"></i> ${t("pos_copy_link")}`;
             btn.onclick = function() {
                 navigator.clipboard.writeText(webhookUrl);
-                showToast("Скопійовано!", "Вставте посилання в налаштування каси.");
+                showToast(t('pos_copied'), t('pos_paste_hint'));
                 closeConnectModal();
             };
         } else {
             const hint = cfg.tokenHint || desc;
-            document.getElementById('connect-title').innerText = `Підключити ${cfg.name || name}`;
+            document.getElementById('connect-title').innerText = t('pos_connecting') + ' ' + (cfg.name || name);
             document.getElementById('connect-desc').innerHTML = `
                 <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--text-muted); line-height:1.6; text-align:left;">
                     <b style="color:var(--text-main);">Де знайти токен?</b><br>${hint}
@@ -624,7 +624,7 @@ function openConnectModal(name, id, color, letter, desc) {
             tokenInput.style.display = 'block';
             tokenInput.placeholder = `${cfg.tokenLabel || 'API Токен'}...`;
             tokenInput.value = '';
-            btn.innerHTML = `<i class="fa-solid fa-link"></i> Підключити`;
+            btn.innerHTML = `<i class="fa-solid fa-link"></i> ${t("pos_connecting")}`;
             btn.onclick = savePosIntegration;
         }
 
@@ -637,12 +637,12 @@ function closeConnectModal() { document.getElementById('pos-connect-modal').clas
 
 async function savePosIntegration() {
     const token = document.getElementById('input-pos-token').value.trim();
-    if (!token) { alert("📍 Будь ласка, введіть токен."); return; }
+    if (!token) { alert(t('pos_enter_token')); return; }
 
     const cfg = POS_CONFIG[currentPosSystem] || {};
     const btn = document.getElementById('btn-save-pos');
     const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Збереження...';
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t("pos_saving")}`;
     btn.disabled = true;
 
     try {
@@ -655,14 +655,14 @@ async function savePosIntegration() {
         connectedIntegrations[currentPosSystem] = true;
         const statusEl = document.getElementById(`status-${currentPosSystem}`);
         if (statusEl) {
-            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+            statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${t("pos_connected_lbl")}`;
             statusEl.classList.add('active');
             statusEl.parentElement.parentElement.classList.add('connected');
         }
 
         const savedColor = btn.style.background;
         openConnectModal(cfg.name || currentPosSystem, currentPosSystem, savedColor, currentPosSystem[0].toUpperCase(), '');
-        showToast("✅ Токен збережено!", "Тепер скопіюйте Webhook URL і вставте в касу.");
+        showToast(t('pos_token_saved'), t('pos_token_hint'));
     } catch (err) {
         alert("❌ Помилка: " + err.message);
         btn.innerHTML = originalHtml;
@@ -692,7 +692,7 @@ async function loadDashboardData() {
         
         // ✅ FIX: якщо бізнес не знайдено — показуємо помилку замість вічного спінера
         if (!biz) {
-            _showInitError('Заклад не знайдено. Перевірте посилання або зверніться до підтримки.');
+            _showInitError(t('err_no_biz'));
             return;
         }
         
@@ -744,7 +744,7 @@ async function loadDashboardData() {
                 const statusEl = document.getElementById(`status-${id}`);
                 if (tokenVal && statusEl) {
                     connectedIntegrations[id] = true;
-                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> Підключено`;
+                    statusEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${t("pos_connected_lbl")}`;
                     statusEl.classList.add('active');
                     statusEl.parentElement.parentElement.classList.add('connected');
                 }
@@ -769,7 +769,7 @@ async function loadDashboardData() {
         }
 
         const staffBox = document.getElementById('staff-list');
-        staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;"><i class="fa-solid fa-spinner fa-spin"></i> Оновлення...</div>`;
+        staffBox.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 10px;"><i class="fa-solid fa-spinner fa-spin"></i> ${t('pos_updating')}</div>`;
         
         const { data: staff } = await supabaseClient.from('staff').select('*').eq('business_id', bizId);
         let staffMap = {}; currentCouriersCount = 0; currentManagersCount = 0;
@@ -1010,7 +1010,7 @@ async function loadDashboardData() {
     } catch (error) {
         console.error("DB Error:", error);
         // ✅ FIX: показуємо помилку замість вічного спінера
-        _showInitError('Помилка завантаження даних: ' + (error?.message || error));
+        _showInitError(t('err_load_data') + (error?.message || error));
         const staffBox = document.getElementById('staff-list');
         if (staffBox) staffBox.innerHTML = '';
     }
@@ -1135,7 +1135,7 @@ function loadDashboard() { return loadDashboardData(); }
         window._dashboardReady = true; // ✅ FIX: прапор для setLanguage — не перезавантажувати під час init
     } else if (!bizId) {
         // ✅ FIX: bizId відсутній — відкрито не через Telegram бота
-        _showInitError('Відкрийте дашборд через бота DeliPro.');
+        _showInitError(t('err_open_bot'));
     } else if (!supabaseClient) {
         // initSupabase вже показав помилку, нічого не робимо
     }
@@ -1145,8 +1145,8 @@ function loadDashboard() { return loadDashboardData(); }
 // SALARY TAB
 // ============================================================
 
-var MONTH_NAMES_SAL = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
-    'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+var MONTH_NAMES_SAL = [t('month_jan'),t('month_feb'),t('month_mar'),t('month_apr'),t('month_may'),t('month_jun'),
+    t('month_jul'),t('month_aug'),t('month_sep'),t('month_oct'),t('month_nov'),t('month_dec')];
 
 var salaryMonthKey = '';
 var salaryStaff = [];
@@ -1255,7 +1255,7 @@ async function renderSalaryList() {
     if (!list) return;
 
     if (!salaryStaff.length) {
-        list.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:13px;font-weight:600;padding:30px 0;">Персонал не знайдено</div>';
+        list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:13px;font-weight:600;padding:30px 0;">${t("sal_no_staff")}</div>`;
         return;
     }
 
@@ -1475,7 +1475,7 @@ async function renderSalaryList() {
         '</div>';
     }
 
-    list.innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:30px 0;">Даних немає</div>';
+    list.innerHTML = html || `<div style="text-align:center;color:var(--text-muted);padding:30px 0;">${t("sal_no_data")}</div>`;
 
     list.onclick = function(e) {
         var header = e.target.closest('[data-toggle]');
