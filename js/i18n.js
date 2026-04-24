@@ -119,7 +119,16 @@ var i18n = {
         month_jan: 'Січень', month_feb: 'Лютий', month_mar: 'Березень',
         month_apr: 'Квітень', month_may: 'Травень', month_jun: 'Червень',
         month_jul: 'Липень', month_aug: 'Серпень', month_sep: 'Вересень',
-        month_oct: 'Жовтень', month_nov: 'Листопад', month_dec: 'Грудень'
+        month_oct: 'Жовтень', month_nov: 'Листопад', month_dec: 'Грудень',
+        title_sched_sal: 'Графік та зарплати',
+        title_salary_team: 'Зарплати команди',
+        tg_group_hint: 'Додайте бота в групу → надішліть будь-яке повідомлення → скопіюйте ID. Починається з',
+        title_sched_sal: 'График и зарплаты',
+        title_salary_team: 'Зарплаты команды',
+        tg_group_hint: 'Добавьте бота в группу → отправьте любое сообщение → скопируйте ID. Начинается с',
+        title_sched_sal: 'Harmonogram i wynagrodzenia',
+        title_salary_team: 'Wynagrodzenia zespołu',
+        tg_group_hint: 'Dodaj bota do grupy → wyślij dowolną wiadomość → skopiuj ID. Zaczyna się od'
     },
         api_token_lbl: "API Токен (Ключ доступу)",
         tg_group_id_lbl: "ID Telegram-групи кур'єрів",
@@ -496,12 +505,16 @@ var i18n = {
         month_jan: 'January', month_feb: 'February', month_mar: 'March',
         month_apr: 'April', month_may: 'May', month_jun: 'June',
         month_jul: 'July', month_aug: 'August', month_sep: 'September',
-        month_oct: 'October', month_nov: 'November', month_dec: 'December'
+        month_oct: 'October', month_nov: 'November', month_dec: 'December',
+        title_sched_sal: 'Schedule & salaries',
+        title_salary_team: 'Team salaries',
+        tg_group_hint: 'Add the bot to the group → send any message → copy the ID. Starts with'
     }
 };
 
 // Функція-помічник, яка дістає переклад по ключу
 function t(key) { return i18n[currentLang][key] || key; }
+window.t = t; // expose globally to avoid local variable shadowing
 
 // Функція зміни мови користувачем
 function setLanguage(lang) {

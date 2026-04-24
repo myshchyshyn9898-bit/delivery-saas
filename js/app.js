@@ -1167,12 +1167,13 @@ async function initSalaryTab() {
         // Беремо базовий URL з поточної сторінки (GitHub Pages)
         var basePageUrl = window.location.href.replace(/[^/]*$/, '');
         var url = basePageUrl + 'schedule.html?biz_id=' + bizId + '&tg_id=' + tgId + '&v=' + t + '&token=' + token;
+        var _tt = window.t || function(k){return k;}; // avoid shadowing by var t
         schedWrap.innerHTML = `
         <button class="btn-schedule-open" onclick="window.location.href='${url}'">
             <div class="btn-schedule-icon"><i class="fa-solid fa-calendar-days"></i></div>
             <div class="btn-schedule-text">
-                <div class="btn-schedule-title">' + t('sched_btn_title') + '</div>
-                <div class="btn-schedule-sub">' + t('sched_btn_sub') + '</div>
+                <div class="btn-schedule-title">${_tt('sched_btn_title')}</div>
+                <div class="btn-schedule-sub">${_tt('sched_btn_sub')}</div>
             </div>
             <i class="fa-solid fa-chevron-right" style="color:var(--primary);font-size:13px;"></i>
         </button>`;
@@ -1423,9 +1424,9 @@ async function renderSalaryList() {
         if (!ledger) ledger = `<div style="font-size:12px;color:var(--text-muted);font-weight:600;">${t('sal_no_month_data')}</div>`;
 
         // Settings rows
-        var settHourly = '<div class="setting-row"><span class="setting-label">Погодинна (' + cur + '/год)</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-' + cid + '" value="' + hourlyRate + '" min="0" step="0.5"></div></div>';
-        var settOrders = '<div class="setting-row"><span class="setting-label">За замовлення (' + cur + '/шт)</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="oe-' + cid + '"' + (orderEnabled ? ' checked' : '') + '><span class="slider"></span></label><input type="number" class="setting-input" id="or-' + cid + '" value="' + orderRate + '" min="0" step="0.1"></div></div>';
-        var settKm = '<div class="setting-row"><span class="setting-label">Вирахувати за км (' + cur + '/км)</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="ke-' + cid + '"' + (kmEnabled ? ' checked' : '') + '><span class="slider"></span></label><input type="number" class="setting-input" id="kr-' + cid + '" value="' + kmRate + '" min="0" step="0.1"></div></div>';
+        var settHourly = `<div class="setting-row"><span class="setting-label">${t('sal_hourly')} (${cur}${t('sal_per_hour')})</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-${cid}" value="${hourlyRate}" min="0" step="0.5"></div></div>`;
+        var settOrders = `<div class="setting-row"><span class="setting-label">${t('sal_per_order')} (${cur}${t('sal_per_item')})</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="oe-${cid}"${orderEnabled ? ' checked' : ''}><span class="slider"></span></label><input type="number" class="setting-input" id="or-${cid}" value="${orderRate}" min="0" step="0.1"></div></div>`;
+        var settKm = `<div class="setting-row"><span class="setting-label">${t('sal_km_deduct')} (${cur}${t('sal_per_km')})</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="ke-${cid}"${kmEnabled ? ' checked' : ''}><span class="slider"></span></label><input type="number" class="setting-input" id="kr-${cid}" value="${kmRate}" min="0" step="0.1"></div></div>`;
 
         html += '<div class="salary-card' + (isPaid ? ' salary-card-paid' : '') + '" id="sal-card-' + cid + '">' +
             '<div class="card-summary" data-toggle="' + bodyId + '">' +
