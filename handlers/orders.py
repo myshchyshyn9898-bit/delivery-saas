@@ -694,7 +694,7 @@ async def cmd_my_active_orders(message: types.Message, bot: Bot):
 
 @router.callback_query(F.data.startswith("cancel_order_"))
 async def cancel_order_handler(callback: types.CallbackQuery, bot: Bot):
-    lang     = callback.from_user.language_code or "en"
+    lang     = (callback.from_user.language_code or "en").split("-")[0].lower()
     order_id = callback.data.replace("cancel_order_", "")
 
     ctx = await db.get_user_context_cached(callback.from_user.id)
@@ -989,7 +989,7 @@ async def take_order_handler(callback: types.CallbackQuery, bot: Bot):
     order_id   = callback.data.replace("take_order_", "")
     taker_id   = callback.from_user.id
     taker_name = callback.from_user.full_name
-    lang       = callback.from_user.language_code or "en"
+    lang       = (callback.from_user.language_code or "en").split("-")[0].lower()
 
     result = await _process_take_order(bot, order_id, taker_id, taker_name, lang)
 
@@ -1026,7 +1026,7 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
     """
     import html as _html
 
-    lang = callback.from_user.language_code or "en" or "en"
+    lang = (callback.from_user.language_code or "en").split("-")[0].lower()
 
     try:
         await callback.answer("✅...", show_alert=False)
@@ -1161,7 +1161,7 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
     import html as _html
 
     # 1. Одразу відповідаємо Telegram
-    lang = callback.from_user.language_code or "en" or "en"
+    lang = (callback.from_user.language_code or "en").split("-")[0].lower()
     try:
         await callback.answer(_(lang, 'closing_order'), show_alert=False)
     except Exception:

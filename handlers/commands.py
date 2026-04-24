@@ -353,7 +353,7 @@ async def cmd_shift_report(message: types.Message):
 # --- Callback: перегляд фото зміни ---
 @router.callback_query(F.data.startswith("shiftphoto:"))
 async def cb_shift_photo(callback: types.CallbackQuery):
-    lang = callback.from_user.language_code or "en"
+    lang = (callback.from_user.language_code or "en").split("-")[0].lower()
     ctx = await db.get_user_context_cached(callback.from_user.id)
     if not ctx or ctx['role'] not in ('owner', 'manager'):
         await callback.answer(_(lang, 'no_access'), show_alert=True)
@@ -572,7 +572,8 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
 
 @router.message(RegStaff.waiting_for_name)
 async def process_staff_name(message: types.Message, state: FSMContext):
-    name, lang = (message.text or "").strip(), message.from_user.language_code
+    name = (message.text or "").strip()
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     # ✅ FIX: валідація імені — мін 2, макс 50 символів, не команда
     if len(name) < 2 or len(name) > 50 or name.startswith("/"):
         await message.answer(_(lang, 'name_invalid') if 'name_invalid' in str(_(lang, 'name_invalid')) else "⚠️ Введіть ім'я: від 2 до 50 символів.")
