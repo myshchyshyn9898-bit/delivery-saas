@@ -53,13 +53,32 @@ async function initSupabase() {
         const cfg = await res.json();
         if (cfg.mapbox_token) { window.MAPBOX_TOKEN = cfg.mapbox_token; }
         if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
-            let globalHeaders = {};
+            // ✅ FIX: x-tg-user-id залишаємо у global.headers, але Authorization НЕ передаємо тут —
+            //         Supabase JS v2 ігнорує Authorization з global.headers і перезаписує своїм anon-ключем.
             const tgId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-            if (tgId) globalHeaders['x-tg-user-id'] = String(tgId);
-            if (authToken) globalHeaders['Authorization'] = 'Bearer ' + authToken;
             supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
-                global: { headers: globalHeaders }
+                auth: {
+                    persistSession: false,     // не зберігати сесію в localStorage
+                    autoRefreshToken: false,   // не оновлювати токен автоматично
+                    detectSessionInUrl: false  // не читати токен з URL
+                },
+                global: {
+                    headers: tgId ? { 'x-tg-user-id': String(tgId) } : {}
+                }
             });
+
+            // ✅ FIX: Правильний спосіб передати JWT в Supabase JS v2 — через setSession.
+            //         Тільки так SDK буде використовувати наш токен (а не anon-ключ) у всіх запитах.
+            if (authToken) {
+                const { error: sessionErr } = await supabaseClient.auth.setSession({
+                    access_token: authToken,
+                    refresh_token: authToken  // dummy — autoRefreshToken: false, тому не використовується
+                });
+                if (sessionErr) {
+                    console.warn('JWT сесія не встановлена:', sessionErr.message);
+                    // Продовжуємо як anon — якщо RLS дозволяє
+                }
+            }
         } else {
             _showInitError('Помилка конфігурації. Зверніться до підтримки.');
         }
@@ -68,7 +87,7 @@ async function initSupabase() {
         if (e.name === 'AbortError') {
             _showInitError('⏳ Сервер не відповідає (холодний старт). Зачекайте 15 секунд і поновіть.');
         } else {
-            _showInitError('Помилка з'єднання: ' + e.message);
+            _showInitError('Помилка з\u2019єднання: ' + e.message);
         }
         console.error('initSupabase:', e);
     }
@@ -225,7 +244,7 @@ async function saveBizSettings(btn) {
 
     // ✅ FIX 2: валідація — uber без group ID не зберігаємо
     if (newDeliveryMode === 'uber' && !newGroupId) {
-        alert('⚠️ Для режиму "Вільна каса" потрібно вказати ID Telegram-групи кур'єрів.');
+        alert("⚠️ Для режиму \"Вільна каса\" потрібно вказати ID Telegram-групи кур'єрів.");
         document.getElementById('courier_group_id')?.focus();
         return;
     }
@@ -676,8 +695,16 @@ async function loadDashboardData() {
         else if (currentFilter === 'week') startDate.setDate(startDate.getDate() - 7);
         else if (currentFilter === 'month') startDate.setDate(startDate.getDate() - 30);
 
-        const { data: biz } = await supabaseClient.from('businesses').select('*').eq('id', bizId).single();
-        if (biz) window._bizData = biz; // зберігаємо глобально для salary tab
+        const { data: biz, error: bizError } = await supabaseClient.from('businesses').select('*').eq('id', bizId).single();
+        if (bizError) console.warn('Biz query error:', bizError.message, bizError.code);
+        
+        // ✅ FIX: якщо бізнес не знайдено — показуємо помилку замість вічного спінера
+        if (!biz) {
+            _showInitError('Заклад не знайдено. Перевірте посилання або зверніться до підтримки.');
+            return;
+        }
+        
+        window._bizData = biz; // зберігаємо глобально для salary tab
         
         if (biz) {
             currencySymbol = biz.currency || "zł";
@@ -988,7 +1015,13 @@ async function loadDashboardData() {
                 // ────────────────────────────────────────────────────────────
             }, 500);
         }
-    } catch (error) { console.error("DB Error:", error); }
+    } catch (error) {
+        console.error("DB Error:", error);
+        // ✅ FIX: показуємо помилку замість вічного спінера
+        _showInitError('Помилка завантаження даних: ' + (error?.message || error));
+        const staffBox = document.getElementById('staff-list');
+        if (staffBox) staffBox.innerHTML = '';
+    }
 }
 
 // ════════════════════════════════════════
@@ -1107,6 +1140,7 @@ function loadDashboard() { return loadDashboardData(); }
     setLanguage(currentLang);
     if (bizId && supabaseClient) {
         await loadDashboardData();
+        window._dashboardReady = true; // ✅ FIX: прапор для setLanguage — не перезавантажувати під час init
     } else if (!bizId) {
         // ✅ FIX: bizId відсутній — відкрито не через Telegram бота
         _showInitError('Відкрийте дашборд через бота DeliPro.');
