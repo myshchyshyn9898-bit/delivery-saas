@@ -10,14 +10,86 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Mapbox GL JS — heatmap + settings map -->
+    <!-- Mapbox GL CSS — loaded in head so map renders correctly -->
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
+
+    <!-- DEBUG: показує помилки прямо на екрані в Telegram WebApp -->
+    <div id="debug-overlay" style="
+        display:none; position:fixed; top:0; left:0; right:0; bottom:0; 
+        background:rgba(0,0,0,0.92); z-index:99999; 
+        padding:20px; overflow-y:auto; font-family:monospace;
+    ">
+        <div style="color:#ff5a5f;font-size:14px;font-weight:bold;margin-bottom:10px;">🐛 DEBUG LOG</div>
+        <div id="debug-log" style="color:#fff;font-size:11px;line-height:1.6;white-space:pre-wrap;"></div>
+        <button onclick="document.getElementById('debug-overlay').style.display='none'" 
+            style="margin-top:15px;padding:8px 16px;background:#ff5a5f;color:white;border:none;border-radius:8px;font-size:13px;">
+            Закрити
+        </button>
+    </div>
+    <script>
+    // Capture all errors and console output for mobile debugging
+    (function() {
+        var log = [];
+        var dbgEl = null;
+        
+        function getEl() {
+            if (!dbgEl) dbgEl = document.getElementById('debug-log');
+            return dbgEl;
+        }
+        
+        function addLog(type, msg) {
+            var time = new Date().toISOString().slice(11,23);
+            var line = '[' + time + '] ' + type + ': ' + msg + '\n';
+            log.push(line);
+            var el = getEl();
+            if (el) el.textContent = log.join('');
+        }
+        
+        // Override console
+        var _log = console.log.bind(console);
+        var _warn = console.warn.bind(console);
+        var _err = console.error.bind(console);
+        console.log = function() { addLog('LOG', Array.from(arguments).join(' ')); _log.apply(console, arguments); };
+        console.warn = function() { addLog('WARN', Array.from(arguments).join(' ')); _warn.apply(console, arguments); };
+        console.error = function() { addLog('ERR', Array.from(arguments).join(' ')); _err.apply(console, arguments); };
+        
+        // Catch global errors
+        window.onerror = function(msg, src, line, col, err) {
+            addLog('CRASH', msg + ' @ ' + (src||'').split('/').pop() + ':' + line);
+            document.getElementById('debug-overlay').style.display = 'block';
+            return false;
+        };
+        window.onunhandledrejection = function(e) {
+            addLog('PROMISE', e.reason ? (e.reason.message || String(e.reason)) : 'Unknown');
+            document.getElementById('debug-overlay').style.display = 'block';
+        };
+        
+        // Show debug on triple tap of header
+        document.addEventListener('DOMContentLoaded', function() {
+            var taps = 0, timer;
+            var header = document.querySelector('.biz-name') || document.querySelector('.header');
+            if (header) {
+                header.addEventListener('click', function() {
+                    taps++;
+                    clearTimeout(timer);
+                    timer = setTimeout(function() { taps = 0; }, 500);
+                    if (taps >= 3) {
+                        taps = 0;
+                        document.getElementById('debug-overlay').style.display = 'block';
+                    }
+                });
+            }
+        });
+        
+        addLog('INIT', 'Debug loaded. Tap header 3x to open.');
+    })();
+    </script>
+
 
     <div id="ios-toast" class="ios-toast" onclick="hideToast()">
         <div class="ios-toast-icon"><i class="fa-solid fa-bell"></i></div>
@@ -558,6 +630,8 @@
         </div>
     </div>
 
+    <!-- Mapbox GL JS moved here — не блокує рендер сторінки -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
     <script src="js/i18n.js"></script>
     <script src="js/app.js"></script>
 </body>
