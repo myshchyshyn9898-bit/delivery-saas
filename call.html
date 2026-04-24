@@ -4,7 +4,7 @@
     <meta name="server-url" content="https://web-production-df704.up.railway.app">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Дзвінок</title>
+    <title>Call</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: sans-serif; background: #f4f4f8; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; color: #333; overflow: hidden; }
@@ -24,49 +24,69 @@
         <div class="icon-wrapper">
             <i class="fa-solid fa-phone-volume"></i>
         </div>
-        <h3 id="call-title">Дзвінок клієнту</h3>
+        <h3 id="call-title"></h3>
         <p class="subtitle" id="call-subtitle">
-            <i class="fa-solid fa-circle-notch fa-spin"></i> Відкриття дзвінка...
         </p>
         <p class="hint" id="call-hint"></p>
         <div id="call-badge"></div>
     </div>
 
 <script>
+    // i18n
+    var _lang = localStorage.getItem('appLang') || (navigator.language || 'en').split('-')[0];
+    if (!['uk','ru','pl','en'].includes(_lang)) _lang = 'en';
+    var _i18n = {
+        uk: { title_call: "Дзвінок клієнту", title_uber: "Uber Call", title_err: "Помилка",
+              sub_loading: "Відкриття дзвінка...", sub_uber: "Дзвінок через Uber диспетчера",
+              sub_no_code: "Номер не передано.",
+              hint_uber: "Телефон наберить Uber → введе ваш код → з'єднає з клієнтом",
+              hint_call: "Зараз телефон відкриє набір номера", code_lbl: "Код: " },
+        ru: { title_call: "Звонок клиенту", title_uber: "Uber Call", title_err: "Ошибка",
+              sub_loading: "Открытие звонка...", sub_uber: "Звонок через Uber диспетчера",
+              sub_no_code: "Номер не передан.",
+              hint_uber: "Телефон наберёт Uber → введёт ваш код → соединит с клиентом",
+              hint_call: "Сейчас телефон откроет набор номера", code_lbl: "Код: " },
+        pl: { title_call: "Połączenie z klientem", title_uber: "Uber Call", title_err: "Błąd",
+              sub_loading: "Otwieranie połączenia...", sub_uber: "Połączenie przez dyspozytora Uber",
+              sub_no_code: "Numer nie został przekazany.",
+              hint_uber: "Telefon zadzwoni do Ubera → wpisz kod → połączy z klientem",
+              hint_call: "Telefon otworzy teraz wybieranie numeru", code_lbl: "Kod: " },
+        en: { title_call: "Call customer", title_uber: "Uber Call", title_err: "Error",
+              sub_loading: "Opening call...", sub_uber: "Calling via Uber dispatcher",
+              sub_no_code: "No number provided.",
+              hint_uber: "Phone will call Uber → enter your code → connects to customer",
+              hint_call: "Phone will open the dialer now", code_lbl: "Code: " }
+    };
+    function _t(k) { return (_i18n[_lang] || _i18n['en'])[k] || k; }
+
 window.onload = function () {
     var params = new URLSearchParams(window.location.search);
     var code = params.get("code");
 
+    // Show loading state
+    document.getElementById('call-subtitle').innerHTML =
+        '<i class="fa-solid fa-circle-notch fa-spin"></i> ' + _t('sub_loading');
+
     if (!code) {
-        document.getElementById('call-title').innerText = "Помилка";
-        document.getElementById('call-subtitle').innerText = "Номер не передано.";
+        document.getElementById('call-title').innerText = _t('title_err');
+        document.getElementById('call-subtitle').innerText = _t('sub_no_code');
         return;
     }
 
     var digitsOnly = code.replace(/\D/g, '');
 
-    // Uber-код: рівно 8 цифр — значить це не реальний номер,
-    // а внутрішній Uber-код. Треба дзвонити на Uber і вводити код.
     if (/^\d{8}$/.test(digitsOnly)) {
-        // Uber dispatcher number — номер Uber служби в твоїй країні.
-        // Польща: 223076593 | Україна: 0800503580
-        // Передається з URL ?dispatcher= або береться дефолтний
         var dispatcher = params.get("dispatcher") || "223076593";
-
-        document.getElementById('call-title').innerText = "Uber Call";
-        document.getElementById('call-subtitle').innerText = "Дзвінок через Uber диспетчера";
-        document.getElementById('call-hint').innerText = "Телефон наберить Uber → введе ваш код → з'єднає з клієнтом";
-        document.getElementById('call-badge').innerHTML = '<span class="badge">Код: ' + digitsOnly + '</span>';
-
-        // tel: + номер Uber + кома (пауза 2с) + код + # (підтвердження)
+        document.getElementById('call-title').innerText = _t('title_uber');
+        document.getElementById('call-subtitle').innerText = _t('sub_uber');
+        document.getElementById('call-hint').innerText = _t('hint_uber');
+        document.getElementById('call-badge').innerHTML =
+            '<span class="badge">' + _t('code_lbl') + digitsOnly + '</span>';
         window.location.href = "tel:" + dispatcher + "," + digitsOnly + "#";
-
     } else {
-        // Звичайний реальний номер — дзвонимо напряму
-        document.getElementById('call-title').innerText = "Дзвінок клієнту";
+        document.getElementById('call-title').innerText = _t('title_call');
         document.getElementById('call-subtitle').innerText = code;
-        document.getElementById('call-hint').innerText = "Зараз телефон відкриє набір номера";
-
+        document.getElementById('call-hint').innerText = _t('hint_call');
         window.location.href = "tel:" + code;
     }
 };
