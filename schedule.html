@@ -829,7 +829,7 @@ function toast(msg) {
 var RAILWAY_DOMAIN = (function() {
     var meta = document.querySelector('meta[name="server-url"]');
     if (meta && meta.content) return meta.content.replace(/\/$/, '');
-    return 'https://delivery-saas-production-3fe6.up.railway.app';
+    return 'https://web-production-df704.up.railway.app';
 })();
 var DAY_NAMES = [SL.mon,SL.tue,SL.wed,SL.thu,SL.fri,SL.sat,SL.sun];
 var MONTH_NAMES = [SL.jan,SL.feb,SL.mar,SL.apr,SL.may,SL.jun,SL.jul,SL.aug,SL.sep,SL.oct,SL.nov,SL.dec];
@@ -961,7 +961,7 @@ async function fetchConfig() {
     if (!_supabaseCfgCache) {
         var res;
         const _sCtrl = new AbortController(); const _sTid = setTimeout(() => _sCtrl.abort(), 8000);
-        try { res = await fetch(RAILWAY_DOMAIN + '/config', { signal: _sCtrl }); clearTimeout(_sTid); }
+        try { res = await fetch(RAILWAY_DOMAIN + '/config', { signal: _sCtrl.signal }); clearTimeout(_sTid); }
         catch (e) { clearTimeout(_sTid); throw new Error(e.name === 'AbortError' ? '⏳ Сервер не відповідає. Оновіть сторінку.' : 'Сервер недоступний: ' + e.message); }
 
         if (!res.ok) throw new Error('Помилка /config: HTTP ' + res.status);
@@ -1047,7 +1047,8 @@ function addGroup() { openGroupSheet(); }
 
 async function loadBiz() {
     var _res = await supabase.from('businesses').select('*').eq('id', bizId).single(); var data = _res.data; var error = _res.error;
-    if (error || !data) throw new Error(SL.err_biz_prefix + ' не знайдено');
+    console.log('[schedule] loadBiz:', data ? 'GOT DATA' : 'NULL', '| error:', error ? error.message + ' (' + error.code + ')' : 'none');
+    if (error || !data) throw new Error((SL.err_biz_prefix || 'Бізнес') + ': ' + (error ? error.message : 'не знайдено') + ' [bizId=' + bizId + ']');
     bizData = data;
 }
 
