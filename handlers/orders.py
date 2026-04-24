@@ -144,6 +144,21 @@ def _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency,
     return builder.as_markup()
 
 
+async def _get_lang(user_id: int, tg_code: str) -> str:
+    """Мова з БД або TG."""
+    tg = (tg_code or 'en').split('-')[0].lower()
+    try:
+        import database as db_
+        ctx = await db_.get_user_context_cached(user_id)
+        if ctx:
+            saved = ctx['biz'].get('lang') if ctx['role'] == 'owner' else ctx.get('staff', {}).get('lang')
+            if saved in ('uk', 'ru', 'pl', 'en'):
+                return saved
+    except Exception:
+        pass
+    return tg if tg in ('uk', 'ru', 'pl', 'en') else 'en'
+
+
 async def _send_uber_group_message(bot: Bot, group_id, biz, order_id, short_id,
                                     address, details_text, client_name, phone,
                                     pay_icon, amount, currency, pay_type_str,
@@ -231,7 +246,7 @@ async def _send_uber_group_message(bot: Bot, group_id, biz, order_id, short_id,
 async def handle_web_app_data(message: types.Message, bot: Bot):
     data = json.loads(message.web_app_data.data)
     user_id = message.from_user.id
-    lang = (message.from_user.language_code or "en").split("-")[0].lower()
+    lang = await _get_lang(message.from_user.id, message.from_user.language_code)
 
     # ── РЕЄСТРАЦІЯ БІЗНЕСУ ──────────────────────────────────────────────────
     if data.get("action") == "register_business":
@@ -623,7 +638,7 @@ async def _get_my_active_orders_text(lang: str) -> str:
 @router.message(F.text.in_(["📦 Мої замовлення", "📦 Мои заказы", "📦 Moje zamówienia", "📦 My Orders"]))
 async def cmd_my_active_orders(message: types.Message, bot: Bot):
     """Кур'єр отримує свої активні delivering замовлення з кнопками."""
-    lang = (message.from_user.language_code or "en").split("-")[0].lower()
+    lang = await _get_lang(message.from_user.id, message.from_user.language_code)
     ctx = await db.get_user_context_cached(message.from_user.id)
     if not ctx or ctx["role"] not in ("courier", "manager", "owner"):
         await message.answer(_(lang, "no_access"))
@@ -1026,7 +1041,7 @@ async def dispatcher_close_handler(callback: types.CallbackQuery, bot: Bot):
     """
     import html as _html
 
-    lang = (callback.from_user.language_code or "en").split("-")[0].lower()
+    lang = await _get_lang(callback.from_user.id, callback.from_user.language_code)
 
     try:
         await callback.answer("✅...", show_alert=False)
@@ -1161,7 +1176,7 @@ async def uber_close_handler(callback: types.CallbackQuery, bot: Bot):
     import html as _html
 
     # 1. Одразу відповідаємо Telegram
-    lang = (callback.from_user.language_code or "en").split("-")[0].lower()
+    lang = await _get_lang(callback.from_user.id, callback.from_user.language_code)
     try:
         await callback.answer(_(lang, 'closing_order'), show_alert=False)
     except Exception:
