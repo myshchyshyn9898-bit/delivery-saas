@@ -131,6 +131,12 @@ async def _notify_managers_new_pos_order(
     if not biz:
         return
 
+    # ✅ Перевіряємо підписку — POS замовлення не проходять якщо підписка expired
+    actual_plan = await db.get_actual_plan(biz_id)
+    if actual_plan == "expired":
+        logger.warning(f"[POS:{source}] biz={biz_id} — підписка expired, замовлення відхилено")
+        return
+
     # Якщо адреса порожня - не можемо відправити замовлення кур'єру
     if not address or not address.strip():
         logger.warning(f"[POS:{source}] biz={biz_id} - замовлення без адреси, пропускаємо")
