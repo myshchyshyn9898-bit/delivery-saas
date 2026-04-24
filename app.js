@@ -244,7 +244,7 @@ async function saveBizSettings(btn) {
 
     // ✅ FIX 2: валідація — uber без group ID не зберігаємо
     if (newDeliveryMode === 'uber' && !newGroupId) {
-        alert('⚠️ Для режиму "Вільна каса" потрібно вказати ID Telegram-групи кур'єрів.');
+        alert("⚠️ Для режиму \"Вільна каса\" потрібно вказати ID Telegram-групи кур'єрів.");
         document.getElementById('courier_group_id')?.focus();
         return;
     }
