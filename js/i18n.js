@@ -24,6 +24,22 @@ if (!['uk', 'ru', 'pl', 'en'].includes(currentLang)) currentLang = 'en';
 // СЛОВНИК ПЕРЕКЛАДІВ
 var i18n = {
     'uk': {
+        
+        mode_d_title: "Адмін розподіляє замовлення",
+        mode_u_title: "Кур'єри самі беруть замовлення",
+        mode_d_desc: "Кожне замовлення ви особисто призначаєте потрібному кур'єру через карту",
+        mode_u_desc: "Замовлення падає в загальну групу — хто перший натиснув, той і везе",
+        mode_classic: "Класика", mode_glovo: "Glovo-стиль",
+        mode_dispatcher_short: "Диспетчер", mode_uber_short: "Вільна каса",
+        flow_order: "Замовлення", flow_admin: "Адмін", flow_assign: "Призначає",
+        flow_courier: "Кур'єр", flow_group: "Група", flow_first: "Перший бере",
+        d_bullet_1: "Повний контроль — ви вирішуєте хто і що везе",
+        d_bullet_2: "Ідеально для невеликих команд і POS-інтеграцій",
+        d_bullet_3: "Кур'єр отримує замовлення тільки від адміна",
+        u_bullet_1: "Автоматично — адмін не витрачає час на розподіл",
+        u_bullet_2: "Потрібна окрема Telegram-група для кур'єрів",
+        u_bullet_3: "Ідеально для великого потоку замовлень",
+        delivery_mode_label: "Режим доставки",
         tab_today: "Сьогодні", tab_week: "Тиждень", tab_month: "Місяць",
         metric_total: "Загальна каса", metric_heat: "Теплова карта", metric_avg: "Середній чек",
         metric_chart: "Динаміка доходу", metric_cash: "Готівка", metric_term: "Термінал",
@@ -91,6 +107,22 @@ var i18n = {
         mode_dispatcher: "👑 Диспетчер (Класика)",
         mode_uber: "🛵 Вільна каса (Glovo-стиль)",
     'ru': {
+        
+        mode_d_title: "Администратор распределяет заказы",
+        mode_u_title: "Курьеры берут заказы сами",
+        mode_d_desc: "Каждый заказ вы лично назначаете нужному курьеру через карту",
+        mode_u_desc: "Заказ падает в группу — кто первым нажал, тот и везёт",
+        mode_classic: "Классика", mode_glovo: "Glovo-стиль",
+        mode_dispatcher_short: "Диспетчер", mode_uber_short: "Свободный рынок",
+        flow_order: "Заказ", flow_admin: "Админ", flow_assign: "Назначает",
+        flow_courier: "Курьер", flow_group: "Группа", flow_first: "Первый берёт",
+        d_bullet_1: "Полный контроль — вы решаете кто и что везёт",
+        d_bullet_2: "Идеально для небольших команд и POS-интеграций",
+        d_bullet_3: "Курьер получает заказы только от администратора",
+        u_bullet_1: "Автоматически — администратор экономит время",
+        u_bullet_2: "Нужна отдельная Telegram-группа для курьеров",
+        u_bullet_3: "Идеально для большого потока заказов",
+        delivery_mode_label: "Режим доставки",
         tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
         metric_total: "Общая касса", metric_heat: "Тепловая карта", metric_avg: "Средний чек",
         metric_chart: "Динамика дохода", metric_cash: "Наличные", metric_term: "Терминал",
@@ -158,6 +190,22 @@ var i18n = {
         mode_dispatcher: "👑 Диспетчер (Классика)",
         mode_uber: "🛵 Свободная касса (Glovo-стиль)",
     'pl': {
+        
+        mode_d_title: "Admin przydziela zamówienia",
+        mode_u_title: "Kurierzy sami przyjmują zamówienia",
+        mode_d_desc: "Każde zamówienie przypisujesz osobiście kurierowi przez mapę",
+        mode_u_desc: "Zamówienie trafia do grupy — kto pierwszy kliknie, ten je wiezie",
+        mode_classic: "Klasyczny", mode_glovo: "Styl Glovo",
+        mode_dispatcher_short: "Dyspozytor", mode_uber_short: "Wolny rynek",
+        flow_order: "Zamówienie", flow_admin: "Admin", flow_assign: "Przydziela",
+        flow_courier: "Kurier", flow_group: "Grupa", flow_first: "Pierwszy bierze",
+        d_bullet_1: "Pełna kontrola — ty decydujesz kto co wiezie",
+        d_bullet_2: "Idealne dla małych zespołów i integracji POS",
+        d_bullet_3: "Kurier otrzymuje zamówienia tylko od admina",
+        u_bullet_1: "Automatycznie — admin nie traci czasu na przydział",
+        u_bullet_2: "Wymaga osobnej grupy Telegram dla kurierów",
+        u_bullet_3: "Idealne dla dużego przepływu zamówień",
+        delivery_mode_label: "Tryb dostawy",
         tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
         metric_total: "Całkowity utarg", metric_heat: "Mapa cieplna", metric_avg: "Średni paragon",
         metric_chart: "Dynamika dochodu", metric_cash: "Gotówka", metric_term: "Terminal",
@@ -225,6 +273,22 @@ var i18n = {
         mode_dispatcher: "👑 Dyspozytor (Klasyczny)",
         mode_uber: "🛵 Wolna kasa (styl Glovo)",
     'en': {
+        
+        mode_d_title: "Admin assigns orders",
+        mode_u_title: "Couriers take orders themselves",
+        mode_d_desc: "Each order is personally assigned to a courier via the map",
+        mode_u_desc: "Order drops in the group — whoever taps first delivers it",
+        mode_classic: "Classic", mode_glovo: "Glovo-style",
+        mode_dispatcher_short: "Dispatcher", mode_uber_short: "Free market",
+        flow_order: "Order", flow_admin: "Admin", flow_assign: "Assigns",
+        flow_courier: "Courier", flow_group: "Group", flow_first: "First takes",
+        d_bullet_1: "Full control — you decide who delivers what",
+        d_bullet_2: "Perfect for small teams and POS integrations",
+        d_bullet_3: "Courier only gets orders from admin",
+        u_bullet_1: "Automatic — admin saves time on routing",
+        u_bullet_2: "Requires a separate Telegram group for couriers",
+        u_bullet_3: "Perfect for high order volume",
+        delivery_mode_label: "Delivery mode",
         tab_today: "Today", tab_week: "Week", tab_month: "Month",
         metric_total: "Total Revenue", metric_heat: "Heatmap", metric_avg: "Avg Check",
         metric_chart: "Revenue Dynamics", metric_cash: "Cash", metric_term: "Terminal",
@@ -303,7 +367,7 @@ function setLanguage(lang) {
     document.getElementById('current-lang-display').innerText = lang.toUpperCase();
     
     // Замінюємо текст, зберігаючи іконки (FontAwesome) всередині елементів
-    document.querySelectorAll('[datai18n]').forEach(el => {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
         var key = el.getAttribute('data-i18n');
         var translation = i18n[lang][key];
         if (translation) {

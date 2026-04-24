@@ -153,16 +153,11 @@
                 pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
                 apt: "Кв:", code: "Код:", unknown_c: "Невідомий кур'єр",
                 empty_active: "Немає активних замовлень", empty_closed: "За вибраний період немає закритих замовлень",
-                err_biz: "ID бізнесу відсутній!", err_supa: t('err_supabase')
+                err_biz: "ID бізнесу відсутній!", err_supa: "❌ Supabase SDK не підключена.",
+                err_supabase: "❌ Supabase не завантажилась. Перевірте інтернет.",
+                err_exec: "🚨 Помилка: ", err_filter: "❌ Помилка фільтра: ", err_prefix: "❌ Помилка: ",
+                close_cash: "💵 Готівка", close_term: "🏧 Термінал",
             },
-                err_supabase: t('err_supabase'),
-                err_exec: t('err_exec'),
-                err_filter: "❌ Помилка фільтра: ",
-                err_prefix: "❌ Помилка: ",
-                err_biz: "❌ Business ID не знайдено.",
-                err_supa: "❌ Supabase SDK не підключена.",
-                close_cash: "💵 Готівка",
-                close_term: "🏧 Термінал",
             'ru': {
                 title_main: "Заказы", earned: "Заработано за период",
                 tab_today: "Сегодня", tab_week: "Неделя", tab_month: "Месяц",
@@ -171,16 +166,11 @@
                 pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
                 apt: "Кв:", code: "Код:", unknown_c: "Неизвестный курьер",
                 empty_active: "Нет активных заказов", empty_closed: "За выбранный период нет закрытых заказов",
-                err_biz: "ID бизнеса отсутствует!", err_supa: t('err_supabase')
+                err_biz: "ID бизнеса отсутствует!", err_supa: "❌ Supabase SDK не подключена.",
+                err_supabase: "❌ Supabase не загрузилась.", err_exec: "🚨 Ошибка: ",
+                err_filter: "❌ Ошибка фильтра: ", err_prefix: "❌ Ошибка: ",
+                close_cash: "💵 Наличные", close_term: "🏧 Терминал",
             },
-                err_supabase: t('err_supabase'),
-                err_exec: "🚨 Ошибка выполнения: ",
-                err_filter: "❌ Ошибка фильтра: ",
-                err_prefix: "❌ Ошибка: ",
-                err_biz: "❌ Business ID не найден.",
-                err_supa: "❌ Supabase SDK не подключена.",
-                close_cash: "💵 Наличные",
-                close_term: "🏧 Терминал",
             'pl': {
                 title_main: "Zamówienia", earned: "Zarobiono w okresie",
                 tab_today: "Dzisiaj", tab_week: "Tydzień", tab_month: "Miesiąc",
@@ -189,16 +179,11 @@
                 pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
                 apt: "Mieszkanie:", code: "Kod:", unknown_c: "Nieznany kurier",
                 empty_active: "Brak aktywnych zamówień", empty_closed: "Brak zamkniętych zamówień w tym okresie",
-                err_biz: "Brak ID firmy!", err_supa: "Supabase nie załadowane. Sprawdź internet."
+                err_biz: "Brak ID firmy!", err_supa: "❌ Supabase SDK nie jest podłączona.",
+                err_supabase: "Supabase nie załadował się.", err_exec: "🚨 Błąd: ",
+                err_filter: "❌ Błąd filtra: ", err_prefix: "❌ Błąd: ",
+                close_cash: "💵 Gotówka", close_term: "🏧 Terminal",
             },
-                err_supabase: "Supabase nie załadował się. Sprawdź internet.",
-                err_exec: "🚨 Błąd wykonania: ",
-                err_filter: "❌ Błąd filtra: ",
-                err_prefix: "❌ Błąd: ",
-                err_biz: "❌ Nie znaleziono Business ID.",
-                err_supa: "❌ Supabase SDK nie jest podłączona.",
-                close_cash: "💵 Gotówka",
-                close_term: "🏧 Terminal",
             'en': {
                 title_main: "Orders", earned: "Earned in period",
                 tab_today: "Today", tab_week: "Week", tab_month: "Month",
@@ -207,15 +192,10 @@
                 pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
                 apt: "Apt:", code: "Code:", unknown_c: "Unknown courier",
                 empty_active: "No active orders", empty_closed: "No closed orders for the selected period",
-                err_biz: "Business ID is missing!", err_supa: "Supabase failed to load. Check your internet.",
-                err_supabase: "Supabase failed to load. Check your internet.",
-                err_exec: "🚨 Execution error: ",
-                err_filter: "❌ Filter error: ",
-                err_prefix: "❌ Error: ",
-                err_biz: "❌ Business ID not found.",
-                err_supa: "❌ Supabase SDK not connected.",
-                close_cash: "💵 Cash",
-                close_term: "🏧 Terminal",
+                err_biz: "Business ID is missing!", err_supa: "❌ Supabase SDK not connected.",
+                err_supabase: "Supabase failed to load.", err_exec: "🚨 Error: ",
+                err_filter: "❌ Filter error: ", err_prefix: "❌ Error: ",
+                close_cash: "💵 Cash", close_term: "🏧 Terminal",
             }
         };
 
@@ -232,7 +212,7 @@
             });
 
             // Якщо Дашборд уже завантажив дані, перекладаємо списки
-            if (typeof bizId !== 'undefined' && bizId) loadArchiveData();
+            // ✅ FIX: не викликаємо loadArchiveData при зміні мови — вона вже завантажена
         }
 
         function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
@@ -242,11 +222,10 @@
         // ==============================================
         // --- ВАШ ОРИГІНАЛЬНИЙ КОД БЕЗ ЗМІН ЛОГІКИ ---
         // ==============================================
-        window.onerror = function(msg, url, line) {
-            alert("🚨 Помилка JS: " + msg + " (Рядок: " + line + ")");
-        };
+        window.onerror = function(msg, url, line) { console.error('JS Error:', msg, 'line:', line); };
 
         let currentFilter = 'today';
+        let supabaseClient = null; // ✅ FIX: global scope щоб closeOrderFromList мав доступ
 
         function switchTab(tabId, element) {
             try {
@@ -294,8 +273,17 @@
         let _supabaseCfgCache = null;
         async function getSupabaseCfg() {
             if (!_supabaseCfgCache) {
-                const res = await fetch(RAILWAY_DOMAIN + '/config');
-                _supabaseCfgCache = await res.json();
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 8000);
+                try {
+                    const r = await fetch(RAILWAY_DOMAIN + '/config', { signal: ctrl.signal });
+                    clearTimeout(tid);
+                    if (!r.ok) throw new Error('Config ' + r.status);
+                    _supabaseCfgCache = await r.json();
+                } catch(e) {
+                    clearTimeout(tid);
+                    throw e.name === 'AbortError' ? new Error('⏳ Сервер не відповідає. Оновіть сторінку.') : e;
+                }
             }
             return _supabaseCfgCache;
         }
@@ -314,10 +302,10 @@
                 if (!window.supabase) throw new Error(t('err_supa'));
 
                 const cfg = await getSupabaseCfg();
-                let supabaseClient = null;
+                // ✅ FIX: використовуємо глобальний supabaseClient
                 if (authToken) {
                     supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
-                        global: { headers: { Authorization: `Bearer ${authToken}` } }
+                        global: { headers: { Authorization: `Bearer ${authToken}`, 'x-tg-user-id': tgId || '' } }
                     });
                 } else {
                     supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
@@ -392,8 +380,10 @@
                             detailsHtml = '<div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">' + textDetails + '</div>';
                         }
 
-                        let statusBadge = order.status === 'completed' 
-                            ? `<div class="badge badge-completed">${t('status_done')}</div>` 
+                        let statusBadge = order.status === 'completed'
+                            ? `<div class="badge badge-completed">${t('status_done')}</div>`
+                            : order.status === 'cancelled'
+                            ? `<div class="badge" style="background:rgba(239,68,68,.1);color:#ef4444;">❌ Скасовано</div>`
                             : `<div class="badge badge-pending">${t('status_pending')}</div>`;
 
                         const cardHtml = `
@@ -419,24 +409,20 @@
                                     </div>
                                     <div class="order-price">${parseFloat(order.amount).toFixed(2)} ${currencySymbol}</div>
                                 </div>
-                                ${order.status !== 'completed' && order.status !== 'cancelled' && String(order.courier_id) === String(tgId) ? `
+                                ${order.status !== 'completed' && String(order.courier_id) === String(tgId) ? `
                                 <div style="display:flex;gap:8px;margin-top:10px;">
                                     <button onclick="closeOrderFromList('${order.id}','cash','${order.amount}',this)" style="flex:1;padding:10px;background:#34C759;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">💵 ${t('pay_cash')}</button>
                                     <button onclick="closeOrderFromList('${order.id}','terminal','${order.amount}',this)" style="flex:1;padding:10px;background:#4A6CF7;color:#fff;border:none;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;">🏧 ${t('pay_term')}</button>
                                 </div>` : ''}
-                                ${order.status !== 'completed' && order.status !== 'cancelled' && (userRole === 'owner' || userRole === 'manager') ? `
-                                <div style="margin-top:8px;">
-                                    <button onclick="cancelOrderFromList('${order.id}',this)" style="width:100%;padding:9px;background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-weight:700;font-size:12px;cursor:pointer;">✕ Скасувати замовлення</button>
-                                </div>` : ''}
                             </div>
                         `;
 
-                        if (order.status === 'completed') {
-                            closedHtmlString += cardHtml; // Додаємо у змінну, а не на сторінку
-                            totalEarned += parseFloat(order.amount || 0);
+                        if (order.status === 'completed' || order.status === 'cancelled') {
+                            closedHtmlString += cardHtml;
+                            if (order.status === 'completed') totalEarned += parseFloat(order.amount || 0);
                             closedCount++;
-                        } else {
-                            activeHtmlString += cardHtml; // Додаємо у змінну
+                        } else if (order.status === 'pending' || order.status === 'delivering') {
+                            activeHtmlString += cardHtml;
                             activeCount++;
                         }
                     });
@@ -467,16 +453,6 @@
 
         // ЗАПУСКАЄМО
         setLanguage(currentLang);
-        loadArchiveData();
-        async function cancelOrderFromList(orderId, btn) {
-            if (!confirm('Скасувати це замовлення?')) return;
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-            try {
-                var res = await supabaseClient.from('orders').update({ status: 'cancelled' }).eq('id', orderId).in('status', ['pending', 'delivering']);
-                if (res.error) throw res.error;
-                await loadOrdersData();
-            } catch(e) { alert('Помилка: ' + e.message); btn.disabled = false; btn.innerHTML = '✕ Скасувати замовлення'; }
-        }
         async function closeOrderFromList(orderId, payType, amount, btn) {
             if (!confirm(t('status_pending') + ' → ' + (payType === 'cash' ? t('pay_cash') : t('pay_term')) + '?')) return;
             btn.disabled = true;
@@ -500,7 +476,7 @@
                     body: JSON.stringify({ order_id: orderId, pay_type: payType })
                 }).catch(function(){});
                 // Reload
-                await loadOrdersData();
+                await loadArchiveData();
             } catch(e) {
                 btn.disabled = false;
                 btn.innerHTML = t('pay_cash');
@@ -513,6 +489,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
     }
+    setLanguage(currentLang);
     loadArchiveData();
 });
 </script>

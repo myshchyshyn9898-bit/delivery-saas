@@ -310,7 +310,7 @@ async def cmd_shift_report(message: types.Message):
 
     for s in closed:
         c_id = str(s['courier_id'])
-        name = staff_map.get(c_id, f"id:{c_id}")
+        name = staff_map.get(c_id, "id:" + c_id)
         km_diff = (s.get('end_km') or 0) - (s.get('start_km') or 0)
         od = _orders_by.get(c_id, {'count': 0, 'cash': 0.0, 'term': 0.0})
         orders_count, cash, term = od['count'], od['cash'], od['term']
@@ -332,7 +332,7 @@ async def cmd_shift_report(message: types.Message):
         text += "\n🟢 <b>Зараз на зміні:</b>\n"
         for s in active:
             c_id = str(s['courier_id'])
-            name = staff_map.get(c_id, f"id:{c_id}")
+            name = staff_map.get(c_id, "id:" + c_id)
             started = s.get('started_at', '')
             start_time = ''
             if started:
@@ -343,7 +343,7 @@ async def cmd_shift_report(message: types.Message):
                 except Exception:
                     pass
             od = _orders_by.get(c_id, {'count': 0, 'cash': 0.0, 'term': 0.0})
-            text += f"  🛵 <b>{name}</b> з {start_time} · {od['count']} зам. · 💵 {od['cash']:.2f} {currency}\n"
+            text += "  \U0001f6f5 <b>" + name + "</b> з " + start_time + " \u00b7 " + str(od['count']) + " зам. \u00b7 \U0001f4b5 " + f"{od['cash']:.2f}" + " " + currency + "\n"
 
     builder.adjust(1)
     await message.answer(text, parse_mode="HTML", reply_markup=builder.as_markup())

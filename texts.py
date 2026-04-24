@@ -117,6 +117,9 @@ TEXTS = {
         'pos_order_new': "🔥 <b>НОВЕ ЗАМОВЛЕННЯ З {source}!</b>\n\n👤 <b>Клієнт:</b> {client}\n📞 <b>Телефон:</b> {phone}\n📍 <b>Адреса:</b> {address}\n💰 <b>Сума:</b> {amount} {cur}",
         'pos_order_comment': "\n💬 <b>Коментар:</b> <i>{comment}</i>",
         'pro_activated': "🎉 <b>Вітаємо! Оплата успішна!</b>\nТариф <b>PRO</b> активовано. Дякуємо за довіру! 🚀",
+        'subscription_expired': "⚠️ <b>Вашу підписку скасовано.</b>\nДля поновлення відкрийте Дашборд.",
+        'name_invalid': "⚠️ Ім'я має бути від 2 до 50 символів і не починатися з /",
+        'btn_my_active_orders': "📦 Мої замовлення",
         'client_default': "Клієнт",
         # --- ЗМІНА КУР'ЄРА ---
         'btn_start_shift': "🟢 Розпочати зміну",
@@ -285,6 +288,9 @@ TEXTS = {
         'pos_order_new': "🔥 <b>НОВЫЙ ЗАКАЗ С {source}!</b>\n\n👤 <b>Клиент:</b> {client}\n📞 <b>Телефон:</b> {phone}\n📍 <b>Адрес:</b> {address}\n💰 <b>Сумма:</b> {amount} {cur}",
         'pos_order_comment': "\n💬 <b>Комментарий:</b> <i>{comment}</i>",
         'pro_activated': "🎉 <b>Поздравляем! Оплата прошла успешно!</b>\nТариф <b>PRO</b> активирован. Спасибо за доверие! 🚀",
+        'subscription_expired': "⚠️ <b>Ваша подписка отменена.</b>\nДля возобновления откройте Дашборд.",
+        'name_invalid': "⚠️ Имя должно быть от 2 до 50 символов и не начинаться с /",
+        'btn_my_active_orders': "📦 Мои заказы",
         'client_default': "Клиент",
         # --- СМЕНА КУРЬЕРА ---
         'btn_start_shift': "🟢 Начать смену",
@@ -452,6 +458,9 @@ TEXTS = {
         'pos_order_new': "🔥 <b>NOWE ZAMÓWIENIE Z {source}!</b>\n\n👤 <b>Klient:</b> {client}\n📞 <b>Telefon:</b> {phone}\n📍 <b>Adres:</b> {address}\n💰 <b>Kwota:</b> {amount} {cur}",
         'pos_order_comment': "\n💬 <b>Komentarz:</b> <i>{comment}</i>",
         'pro_activated': "🎉 <b>Gratulacje! Płatność zakończona sukcesem!</b>\nPlan <b>PRO</b> aktywowany. Dziękujemy za zaufanie! 🚀",
+        'subscription_expired': "⚠️ <b>Twoja subskrypcja została anulowana.</b>\nAby wznowić, otwórz Dashboard.",
+        'name_invalid': "⚠️ Imię musi mieć od 2 do 50 znaków i nie może zaczynać się od /",
+        'btn_my_active_orders': "📦 Moje zamówienia",
         'client_default': "Klient",
         # --- ZMIANA KURIERA ---
         'btn_start_shift': "🟢 Rozpocznij zmianę",
@@ -619,6 +628,9 @@ TEXTS = {
         'pos_order_new': "🔥 <b>NEW ORDER FROM {source}!</b>\n\n👤 <b>Client:</b> {client}\n📞 <b>Phone:</b> {phone}\n📍 <b>Address:</b> {address}\n💰 <b>Amount:</b> {amount} {cur}",
         'pos_order_comment': "\n💬 <b>Comment:</b> <i>{comment}</i>",
         'pro_activated': "🎉 <b>Congratulations! Payment successful!</b>\n<b>PRO</b> plan activated. Thank you for your trust! 🚀",
+        'subscription_expired': "⚠️ <b>Your subscription has been cancelled.</b>\nOpen the Dashboard to renew.",
+        'name_invalid': "⚠️ Name must be 2–50 characters and cannot start with /",
+        'btn_my_active_orders': "📦 My Orders",
         'client_default': "Client",
         # --- COURIER SHIFT ---
         'btn_start_shift': "🟢 Start Shift",

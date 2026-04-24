@@ -1114,6 +1114,63 @@ async def api_take_order_handler(request: web.Request) -> web.Response:
 # Реєстрація маршрутів та запуск сервера
 # ---------------------------------------------------------------------------
 
+
+async def broadcast_handler(request: web.Request) -> web.Response:
+    """POST /api/broadcast — розсилка всім власникам (тільки для boss)."""
+    # ✅ Inline JWT verification (same pattern as api_take_order_handler)
+    try:
+        from keyboards import JWT_SECRET
+        import jwt as _jwt
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return web.json_response({"ok": False, "error": "Unauthorized"}, status=401, headers=CORS_HEADERS)
+        token_str = auth_header[len("Bearer "):].strip()
+        payload = _jwt.decode(token_str, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        return web.json_response({"ok": False, "error": "Unauthorized"}, status=401, headers=CORS_HEADERS)
+
+    # Перевіряємо що це boss (SUPER_ADMIN)
+    from config import SUPER_ADMIN_IDS
+    uid = payload.get("user_id")
+    if not uid or int(uid) not in SUPER_ADMIN_IDS:
+        return web.json_response({"ok": False, "error": "Forbidden"}, status=403, headers=CORS_HEADERS)
+
+    try:
+        data = await request.json()
+        text = (data.get("text") or "").strip()
+        if not text:
+            return web.json_response({"ok": False, "error": "Empty message"}, status=400, headers=CORS_HEADERS)
+
+        # Беремо всіх власників
+        owners_res = await db._run(
+            lambda: db.supabase.table("businesses").select("owner_id,lang").execute()
+        )
+        owners = owners_res.data or []
+
+        import asyncio as _aio
+        from texts import get_text as _
+        sent, failed = 0, 0
+        for biz in owners:
+            owner_id = biz.get("owner_id")
+            if not owner_id:
+                continue
+            lang = biz.get("lang") or "uk"
+            msg = _(lang, "broadcast_msg", text=text)
+            try:
+                await bot.send_message(chat_id=int(owner_id), text=msg, parse_mode="HTML")
+                sent += 1
+            except Exception:
+                failed += 1
+            await _aio.sleep(0.05)  # ~20 msg/sec щоб не флудити
+
+        logger.info(f"[broadcast] sent={sent} failed={failed}")
+        return web.json_response({"ok": True, "sent": sent, "failed": failed}, headers=CORS_HEADERS)
+
+    except Exception as e:
+        logger.error(f"[broadcast] {e}")
+        return web.json_response({"ok": False, "error": str(e)}, status=500, headers=CORS_HEADERS)
+
+
 async def start_webhook_server() -> None:
     """Створює aiohttp-додаток, реєструє всі маршрути і запускає сервер."""
     app = web.Application(middlewares=[cors_middleware])
@@ -1134,6 +1191,7 @@ async def start_webhook_server() -> None:
     app.router.add_post("/api/new_order",      api_new_order_handler)
     app.router.add_post("/api/take_order",     api_take_order_handler)
     app.router.add_post("/api/invalidate_cache", invalidate_cache_handler)
+    app.router.add_post("/api/broadcast",        broadcast_handler)
 
     runner = web.AppRunner(app)
     await runner.setup()

@@ -296,9 +296,16 @@
         let _supabaseCfgCache = null;
         async function getSupabaseCfg() {
             if (!_supabaseCfgCache) {
-                const res = await fetch(RAILWAY_DOMAIN + '/config');
+                const ctrl = new AbortController();
+                setTimeout(() => ctrl.abort(), 8000);
+                const res = await fetch(RAILWAY_DOMAIN + '/config', { signal: ctrl.signal });
+                if (!res.ok) throw new Error('Config error ' + res.status);
                 _supabaseCfgCache = await res.json();
-                _supabaseCfgCache._dbHeaders = { 'apikey': _supabaseCfgCache.supabase_key, 'Content-Type': 'application/json' };
+                _supabaseCfgCache._dbHeaders = {
+                    'apikey': _supabaseCfgCache.supabase_key,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                };
                 if (authToken) _supabaseCfgCache._dbHeaders['Authorization'] = 'Bearer ' + authToken;
             }
             return _supabaseCfgCache;
@@ -334,11 +341,20 @@
 
         async function loadData() {
             try {
+                // ✅ FIX: перевіряємо що authToken є — без нього boss panel недоступна
+                if (!authToken) {
+                    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#ef4444;font-size:16px;font-weight:700;">⛔️ Доступ заборонено. Відкрийте через бота.</div>';
+                    return;
+                }
                 const cfg = await getSupabaseCfg();
-                let bRes = await fetch(cfg.supabase_url + '/rest/v1/businesses?select=*', { method: 'GET', headers: cfg._dbHeaders });
+                // ✅ FIX: додаємо authToken в заголовки для всіх запитів
+                cfg._dbHeaders['Authorization'] = 'Bearer ' + authToken;
+
+                let bRes = await fetch(cfg.supabase_url + '/rest/v1/businesses?select=*&order=created_at.desc', { method: 'GET', headers: cfg._dbHeaders });
+                if (!bRes.ok) { throw new Error('DB error ' + bRes.status); }
                 globalBusinesses = await bRes.json();
 
-                let oRes = await fetch(cfg.supabase_url + '/rest/v1/orders?select=id,business_id,amount,status,created_at&order=created_at.desc', { method: 'GET', headers: cfg._dbHeaders });
+                let oRes = await fetch(cfg.supabase_url + '/rest/v1/orders?select=id,business_id,amount,status,created_at&order=created_at.desc&limit=500', { method: 'GET', headers: cfg._dbHeaders });
                 globalOrders = await oRes.json();
 
                 renderDashboard();
@@ -499,12 +515,21 @@
 
                 if (matchSearch && matchFilter) {
                     count++;
+                    // Формуємо дату закінчення підписки
+                    let expiresLine = '';
+                    if (biz.subscription_expires_at) {
+                        let expDate = new Date(biz.subscription_expires_at);
+                        let isExpired = expDate < new Date();
+                        let expStr = expDate.toLocaleDateString('uk-UA', {day:'2-digit',month:'2-digit',year:'numeric'});
+                        expiresLine = `<div style="font-size:10px;color:${isExpired ? '#ef4444' : '#94a3b8'};margin-top:2px;">${isExpired ? '⛔' : '📅'} ${expStr}</div>`;
+                    }
                     listHtml += `
                         <div class="biz-card">
                             <div class="biz-header">
                                 <div style="flex: 1; overflow: hidden;">
                                     <div class="biz-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${safeName}</div>
                                     <div class="biz-id" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">ID: ${biz.id}</div>
+                                    ${expiresLine}
                                 </div>
                                 <div class="badge ${badgeClass}">${plan.toUpperCase()}</div>
                             </div>
@@ -629,13 +654,23 @@
             });
         }
 
-        function sendBroadcast() {
+        async function sendBroadcast() {
             const msg = document.getElementById('broadcast-msg').value;
-            if(!msg.trim()) return alert("Напишіть текст!");
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-                window.Telegram.WebApp.sendData(JSON.stringify({ action: "broadcast", text: msg.trim() }));
+            if(!msg.trim()) return alert('Напишіть текст!');
+            if(!confirm('Надіслати повідомлення всім власникам?')) return;
+            try {
+                // ✅ FIX: через Railway API замість sendData (sendData закриває WebApp)
+                const res = await fetch(RAILWAY_DOMAIN + '/api/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ text: msg.trim() })
+                });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
                 document.getElementById('broadcast-msg').value = '';
-            } else alert("Відкрийте через Telegram.");
+                alert('✅ Розсилку запущено!');
+            } catch(e) {
+                alert('❌ Помилка: ' + e.message);
+            }
         }
 
         setTimeout(loadData, 200);

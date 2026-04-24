@@ -7,10 +7,7 @@
     <title>Відстеження замовлення</title>
 
     <script>
-        window.onerror = function(msg, url, line) {
-            alert("🛑 БРАУЗЕР ЗАБЛОКУВАВ СКРИПТ:\n\n" + msg + "\nРядок: " + line);
-            return false;
-        };
+        window.onerror = function(msg, url, line) { console.error("JS:", msg, "line:", line); return false; };
     </script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -166,7 +163,10 @@
         let _supabaseCfgCache = null;
         async function getSupabaseCfg() {
             if (!_supabaseCfgCache) {
-                const res = await fetch(RAILWAY_DOMAIN + '/config');
+                const ctrl = new AbortController();
+                setTimeout(() => ctrl.abort(), 8000);
+                const res = await fetch(RAILWAY_DOMAIN + '/config', { signal: ctrl.signal });
+                if (!res.ok) throw new Error('Config ' + res.status);
                 _supabaseCfgCache = await res.json();
             }
             return _supabaseCfgCache;
@@ -392,23 +392,22 @@
             }
         }
 
-        setTimeout(initTracking, 50);
-
+        // ✅ FIX: один виклик initTracking через DOMContentLoaded
         document.addEventListener('click', function(e) {
             const switcher = document.querySelector('.lang-switcher');
             const menu = document.getElementById('lang-menu');
-            if (!switcher.contains(e.target) && !menu.contains(e.target)) {
+            if (switcher && !switcher.contains(e.target) && !menu.contains(e.target)) {
                 menu.classList.remove('show');
             }
         });
 
-document.addEventListener('DOMContentLoaded', function() {
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
-        window.Telegram.WebApp.expand();
-    }
-    initTracking();
-});
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+            }
+            initTracking();
+        });
 </script>
 </body>
 </html>

@@ -35,9 +35,18 @@ async def get_business_by_owner(owner_id: int):
     return res.data[0] if res.data else None
 
 async def get_business_by_id(biz_id: str):
-    """Отримуємо інфо про бізнес за його UUID"""
+    """Отримуємо інфо про бізнес за його UUID. TTL-кеш 90с (уникаємо N+1)."""
+    if not biz_id:
+        return None
+    import time as _t
+    now = _t.monotonic()
+    cached = _biz_cache.get(biz_id)
+    if cached and now - cached[0] < _BIZ_CACHE_TTL:
+        return cached[1]
     res = await _run(lambda: supabase.table("businesses").select("*").eq("id", biz_id).execute())
-    return res.data[0] if res.data else None
+    val = res.data[0] if res.data else None
+    _biz_cache[biz_id] = (now, val)
+    return val
 
 async def register_new_business(owner_id: int, biz_data: dict):
     """Розширена реєстрація з Web App (з координатами та Тріалом на 7 днів)"""
@@ -368,6 +377,10 @@ from typing import Optional
 _context_cache: dict = {}
 _CACHE_TTL = 60  # секунд
 
+# ── Кеш бізнесів ──────────────────────────────────────────────────────────
+_biz_cache: dict = {}  # biz_id -> (timestamp, data)
+_BIZ_CACHE_TTL = 90   # секунд
+
 async def get_user_context_cached(user_id: int) -> Optional[dict]:
     """
     Кешована версія get_user_context.
@@ -394,7 +407,7 @@ def invalidate_user_cache(user_id: int):
 
 def invalidate_biz_cache(biz_id: str):
     """
-    Скидає кеш для ВСІХ користувачів цього бізнесу.
+    Скидає user-кеш для всіх співробітників бізнесу + biz-кеш.
     Викликати після зміни delivery_mode, валюти або інших бізнес-налаштувань —
     щоб бот одразу бачив новий режим, а не чекав 60с.
     """
@@ -404,6 +417,7 @@ def invalidate_biz_cache(biz_id: str):
     ]
     for uid in to_remove:
         _context_cache.pop(uid, None)
+    _biz_cache.pop(biz_id, None)  # скидаємо і кеш самого бізнесу
     if to_remove:
         import logging as _lg
         _lg.getLogger(__name__).info(f"[cache] Скинуто biz кеш для {len(to_remove)} юзерів (biz={biz_id})")

@@ -952,8 +952,9 @@ var _supabaseCfgCache = null;
 async function fetchConfig() {
     if (!_supabaseCfgCache) {
         var res;
-        try { res = await fetch(RAILWAY_DOMAIN + '/config'); }
-        catch (e) { throw new Error('Сервер недоступний: ' + e.message); }
+        const _sCtrl = new AbortController(); const _sTid = setTimeout(() => _sCtrl.abort(), 8000);
+        try { res = await fetch(RAILWAY_DOMAIN + '/config', { signal: _sCtrl }); clearTimeout(_sTid); }
+        catch (e) { clearTimeout(_sTid); throw new Error(e.name === 'AbortError' ? '⏳ Сервер не відповідає. Оновіть сторінку.' : 'Сервер недоступний: ' + e.message); }
 
         if (!res.ok) throw new Error('Помилка /config: HTTP ' + res.status);
 

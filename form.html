@@ -210,8 +210,9 @@
     </div>
 
     <script>
-        const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
-        mapboxgl.accessToken = MAPBOX_TOKEN;
+        // ✅ FIX: Mapbox токен береться з /config (не хардкодити!)
+        let MAPBOX_TOKEN = '';
+        // mapboxgl.accessToken встановлюється після завантаження конфігу
         let map = null;
         let mapboxMarkers = [];
 
@@ -416,9 +417,14 @@
         let supabaseClient = null;
 
         async function initSupabase() {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
             try {
-                const res = await fetch(RAILWAY_DOMAIN + '/config');
+                const res = await fetch(RAILWAY_DOMAIN + '/config', { signal: ctrl.signal });
+                clearTimeout(tid);
+                if (!res.ok) throw new Error('Config ' + res.status);
                 const cfg = await res.json();
+                if (cfg.mapbox_token) { MAPBOX_TOKEN = cfg.mapbox_token; mapboxgl.accessToken = MAPBOX_TOKEN; }
                 if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
                     if (authToken) {
                         supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
@@ -428,7 +434,13 @@
                         supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
                     }
                 }
-            } catch(e) { console.error('Не вдалося завантажити конфігурацію:', e); }
+            } catch(e) {
+                clearTimeout(tid);
+                const msg = e.name === 'AbortError' ? '⏳ Сервер не відповідає. Оновіть сторінку.' : e.message;
+                const el = document.getElementById('btn-submit');
+                if (el) { el.disabled = true; el.textContent = '❌ ' + msg; }
+                console.error('initSupabase:', e);
+            }
         }
 
         let bizLat = null;

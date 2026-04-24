@@ -584,7 +584,7 @@
     }
 
     /* ── КОНФІГ ── */
-    var MAPBOX_TOKEN   = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
+    var MAPBOX_TOKEN   = ''; // ✅ завантажується з /config
             // SERVER_URL: автоматично визначається або береться з мета-тегу
         var RAILWAY_DOMAIN = (function() {
             const meta = document.querySelector('meta[name="server-url"]');
@@ -596,8 +596,9 @@
     async function getSupabaseCfg() {
         if (!_supabaseCfgCache) {
             var res;
-            try { res = await fetch(RAILWAY_DOMAIN + '/config'); }
-            catch (e) { throw new Error(ML.server_down + RAILWAY_DOMAIN + '): ' + e.message); }
+            const _ctrl = new AbortController(); const _tid = setTimeout(() => _ctrl.abort(), 8000);
+            try { res = await fetch(RAILWAY_DOMAIN + '/config', { signal: _ctrl }); clearTimeout(_tid); }
+            catch (e) { clearTimeout(_tid); throw new Error(e.name === 'AbortError' ? '⏳ Сервер не відповідає. Оновіть сторінку.' : ML.server_down + RAILWAY_DOMAIN + '): ' + e.message); }
 
             if (!res.ok) throw new Error(ML.err_config_http + res.status + ' ' + res.statusText);
 
@@ -609,6 +610,7 @@
                 throw new Error('В /config відсутні supabase_url або supabase_key');
 
             _supabaseCfgCache = cfg;
+            if (cfg && cfg.mapbox_token) { MAPBOX_TOKEN = cfg.mapbox_token; mapboxgl.accessToken = MAPBOX_TOKEN; }
         }
         return _supabaseCfgCache;
     }
@@ -726,6 +728,8 @@
                         });
                     } catch(apiErr) {
                         console.warn('[take_order] API call failed:', apiErr);
+                        // ✅ FIX: замовлення взято локально але бот не отримав нотифікацію
+                        alert('✅ Замовлення взято! Але не вдалось отримати кнопки закриття. Використай команду "📦 Мої замовлення" в боті.');
                         // Не критично — замовлення вже захоплено в Supabase
                     }
 
@@ -857,7 +861,7 @@
             }
 
             if (!window.mapboxgl) { showError('Помилка: Mapbox не завантажився. Перевірте інтернет.'); return; }
-            mapboxgl.accessToken = MAPBOX_TOKEN;
+            // mapboxgl.accessToken встановлюється після завантаження /config
             if (!mapboxgl.supported()) { showError('Ваш телефон не підтримує 3D карти.'); return; }
 
             var bLng = parseFloat(bizData.lng) || 21.99901;

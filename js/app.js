@@ -37,35 +37,55 @@ let selectedDashPlan = 'pro';
 let supabaseClient = null;
 
 async function initSupabase() {
+    // ✅ FIX: таймаут 8с — Railway cold start може тривати довго
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     try {
-        const res = await fetch(RAILWAY_DOMAIN + '/config');
+        const res = await fetch(RAILWAY_DOMAIN + '/config', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (!res.ok) {
-            console.error('Config endpoint error:', res.status, res.statusText);
+            console.error('Config error:', res.status);
+            _showInitError('Сервер недоступний (' + res.status + '). Спробуйте пізніше.');
             return;
         }
         const cfg = await res.json();
         if (cfg.mapbox_token) { window.MAPBOX_TOKEN = cfg.mapbox_token; }
         if (window.supabase && cfg.supabase_url && cfg.supabase_key) {
-            // Збираємо заголовки для RLS-політик
             let globalHeaders = {};
-
-            // tg_id з URL-параметрів або з Telegram WebApp API
             const tgId = tgUserIdParam || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-            if (tgId) {
-                globalHeaders['x-tg-user-id'] = String(tgId);
-            }
-
-            if (authToken) {
-                globalHeaders['Authorization'] = 'Bearer ' + authToken;
-            }
-
+            if (tgId) globalHeaders['x-tg-user-id'] = String(tgId);
+            if (authToken) globalHeaders['Authorization'] = 'Bearer ' + authToken;
             supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key, {
                 global: { headers: globalHeaders }
             });
+        } else {
+            _showInitError('Помилка конфігурації. Зверніться до підтримки.');
         }
     } catch(e) {
-        console.error('Не вдалося завантажити конфігурацію:', e);
+        clearTimeout(timeoutId);
+        if (e.name === 'AbortError') {
+            _showInitError('⏳ Сервер не відповідає (холодний старт). Зачекайте 15 секунд і поновіть.');
+        } else {
+            _showInitError('Помилка з'єднання: ' + e.message);
+        }
+        console.error('initSupabase:', e);
     }
+}
+
+// ✅ FIX: показуємо зрозуміле повідомлення замість вічного спінера
+function _showInitError(msg) {
+    const el = document.getElementById('display-biz-name');
+    if (el) el.innerHTML = '⚠️ ' + msg;
+    const total = document.getElementById('val-total');
+    if (total) total.innerHTML = '—';
+    const recent = document.getElementById('recent-orders-list');
+    if (recent) recent.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--text-muted);font-size:13px;font-weight:600;">'
+        + '<i class="fa-solid fa-triangle-exclamation" style="font-size:28px;color:var(--warning);display:block;margin-bottom:12px;"></i>'
+        + msg
+        + '<br><br><button onclick="location.reload()" style="margin-top:8px;padding:10px 20px;background:var(--primary);color:white;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;">🔄 Спробувати знову</button>'
+        + '</div>';
 }
 
 // Стан дашборду
@@ -1087,6 +1107,11 @@ function loadDashboard() { return loadDashboardData(); }
     setLanguage(currentLang);
     if (bizId && supabaseClient) {
         await loadDashboardData();
+    } else if (!bizId) {
+        // ✅ FIX: bizId відсутній — відкрито не через Telegram бота
+        _showInitError('Відкрийте дашборд через бота DeliPro.');
+    } else if (!supabaseClient) {
+        // initSupabase вже показав помилку, нічого не робимо
     }
 })();
 
@@ -1128,9 +1153,12 @@ async function initSalaryTab() {
         </button>`;
     }
 
-    // Init month
-    var now = new Date();
-    salaryMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    // Init month — тільки при першому відкритті, зберігаємо вибраний місяць
+    if (!salaryInitialized) {
+        var now = new Date();
+        salaryMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        salaryInitialized = true;
+    }
 
     await loadSalaryData();
     renderSalaryMonthTabs();

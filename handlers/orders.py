@@ -613,6 +613,174 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
 
 # ===========================================================================
+# КУР'ЄР: "📦 Мої замовлення" — відновлення кнопок після перезапуску боту
+# ===========================================================================
+
+async def _get_my_active_orders_text(lang: str) -> str:
+    """Повертає текст кнопки з texts.py."""
+    return _(lang, "btn_my_active_orders")
+
+@router.message(F.text.in_(["📦 Мої замовлення", "📦 Мои заказы", "📦 Moje zamówienia", "📦 My Orders"]))
+async def cmd_my_active_orders(message: types.Message, bot: Bot):
+    """Кур'єр отримує свої активні delivering замовлення з кнопками."""
+    lang = message.from_user.language_code or "en"
+    ctx = await db.get_user_context_cached(message.from_user.id)
+    if not ctx or ctx["role"] not in ("courier", "manager", "owner"):
+        await message.answer(_(lang, "no_access"))
+        return
+
+    biz_id  = ctx["biz"]["id"]
+    user_id = message.from_user.id
+
+    res = await db._run(
+        lambda: db.supabase.table("orders")
+            .select("*")
+            .eq("courier_id", user_id)
+            .eq("business_id", biz_id)
+            .eq("status", "delivering")
+            .execute()
+    )
+    orders_list = res.data or []
+
+    if not orders_list:
+        await message.answer("📭 Немає активних замовлень.")
+        return
+
+    biz      = ctx["biz"]
+    currency = biz.get("currency", "zł")
+
+    import html as _hmy
+    import urllib.parse as _ulmy
+
+    for order in orders_list:
+        order_id = order["id"]
+        short_id = str(order_id)[:6].upper()
+        pay_type = order.get("pay_type", "cash")
+        amount   = order.get("amount", "0")
+        address  = _hmy.escape(order.get("address", "—"))
+        details  = _hmy.escape(order.get("details", "") or "")
+        client   = _hmy.escape(order.get("client_name", "") or "")
+        phone    = _hmy.escape(order.get("client_phone", "—") or "—")
+        comment  = _hmy.escape(order.get("comment", "") or "")
+        status_line = _(lang, "order_status_delivering", courier=_hmy.escape(message.from_user.full_name))
+
+        text = _build_order_text(short_id, address, details, client,
+                                  phone, pay_type, amount, currency,
+                                  comment, status_line, lang=lang)
+
+        raw_phone = order.get("client_phone", "") or ""
+        route_url = f"https://www.google.com/maps/dir/?api=1&destination={_ulmy.quote(order.get('address', ''))}"
+        builder   = InlineKeyboardBuilder()
+        builder.button(text=_(lang, "btn_route"), url=route_url)
+        if raw_phone:
+            _btn, _url = _build_call_url(raw_phone, biz, lang=lang)
+            builder.button(text=_btn, url=_url)
+        if pay_type == "online":
+            builder.button(text=_(lang, "btn_close_online"), callback_data=f"uber_close_online_{order_id}")
+        else:
+            builder.button(text=_(lang, "btn_close_cash", amount=amount, cur=currency), callback_data=f"uber_close_cash_{order_id}")
+            builder.button(text=_(lang, "btn_close_terminal", amount=amount, cur=currency), callback_data=f"uber_close_terminal_{order_id}")
+        builder.adjust(1)
+
+        try:
+            await message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        except Exception as e:
+            logger.error(f"[my_orders] {e}")
+
+
+# ===========================================================================
+# СКАСУВАННЯ ЗАМОВЛЕННЯ (адмін/менеджер через callback)
+# ===========================================================================
+
+@router.callback_query(F.data.startswith("cancel_order_"))
+async def cancel_order_handler(callback: types.CallbackQuery, bot: Bot):
+    lang     = callback.from_user.language_code or "en"
+    order_id = callback.data.replace("cancel_order_", "")
+
+    ctx = await db.get_user_context_cached(callback.from_user.id)
+    if not ctx or ctx["role"] not in ("owner", "manager"):
+        await callback.answer(_(lang, "no_access"), show_alert=True)
+        return
+
+    try:
+        await callback.answer("⏳", show_alert=False)
+    except Exception:
+        pass
+
+    res = await db._run(
+        lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
+    )
+    if not res.data:
+        await callback.message.answer(_(lang, "order_not_found"))
+        return
+
+    order = res.data[0]
+    if order["status"] in ("completed", "cancelled"):
+        await callback.message.answer("⚠️ Замовлення вже закрите або скасоване.")
+        return
+
+    await db._run(
+        lambda: db.supabase.table("orders")
+            .update({"status": "cancelled"})
+            .eq("id", order_id)
+            .execute()
+    )
+
+    short_id = str(order_id)[:6].upper()
+    biz = await db.get_business_by_id(order["business_id"])
+    currency = biz.get("currency", "zł") if biz else "zł"
+
+    import html as _hcan
+    cancelled_text = (
+        f"❌ <b>Замовлення #{short_id} скасовано</b>\n"
+        f"📍 {_hcan.escape(order.get('address', '—'))}\n"
+        f"👤 {_hcan.escape(order.get('client_name', '') or '')}\n"
+        f"📞 {_hcan.escape(order.get('client_phone', '—') or '—')}"
+    )
+
+    try:
+        if callback.message.caption is not None:
+            await callback.message.edit_caption(caption=cancelled_text, reply_markup=None, parse_mode="HTML")
+        else:
+            await callback.message.edit_text(text=cancelled_text, reply_markup=None, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(cancelled_text, parse_mode="HTML")
+
+    # Сповіщаємо кур'єра якщо призначений
+    courier_id = order.get("courier_id")
+    if courier_id:
+        try:
+            await bot.send_message(
+                chat_id=int(courier_id),
+                text=f"❌ Замовлення <code>#{short_id}</code> скасовано адміністратором.",
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.warning(f"[cancel_order] courier notify: {e}")
+
+    # Оновлюємо групове повідомлення
+    try:
+        group_msg_id  = order.get("group_message_id")
+        group_chat_id = biz.get("courier_group_id") if biz else None
+        if group_msg_id and group_chat_id and str(callback.message.chat.id) != str(group_chat_id):
+            try:
+                await bot.edit_message_caption(
+                    chat_id=group_chat_id, message_id=group_msg_id,
+                    caption=cancelled_text, reply_markup=None, parse_mode="HTML"
+                )
+            except Exception:
+                try:
+                    await bot.edit_message_text(
+                        chat_id=group_chat_id, message_id=group_msg_id,
+                        text=cancelled_text, reply_markup=None, parse_mode="HTML"
+                    )
+                except Exception as eg:
+                    logger.warning(f"[cancel_order] group: {eg}")
+    except Exception:
+        pass
+
+
+# ===========================================================================
 # DISPATCHER MODE: кнопка "Завершити замовлення" (особисте повідомлення)
 # ✅ ВИПРАВЛЕНО: finish_order_ більше не генерується ніде в коді.
 # Цей обробник залишений як запасний alias → перенаправляє на dispatcher_close_cash_

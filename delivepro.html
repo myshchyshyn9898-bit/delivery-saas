@@ -537,7 +537,7 @@
     .fm-map {
         height: 110px; border-radius: 14px; overflow: hidden;
         background: #e8edf0; position: relative;
-        background-image: url('https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/21.999,50.041,13,0/600x300?access_token=pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg');
+        background: linear-gradient(135deg, #e2e8f0, #cbd5e1); /* mapbox preview — token load via JS */
         background-size: cover; background-position: center;
     }
     .fm-map-store { position: absolute; left: 18%; top: 55%; transform: translate(-50%,-50%); width: 32px; height: 32px; background: var(--text-main); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 2; }
@@ -585,7 +585,7 @@
 
     .tg-map-mini {
         height: 110px; border-radius: 10px; overflow: hidden;
-        background-image: url('https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/21.999,50.041,13,0/600x300?access_token=pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg');
+        background: linear-gradient(135deg, #1e293b, #0f172a); /* mapbox dark preview — token load via JS */
         background-size: cover; background-position: center;
         position: relative; margin-bottom: 12px;
     }
@@ -1096,7 +1096,7 @@
 </div>
 
 <script>
-    const MAPBOX_TOKEN = 'pk.eyJ1IjoibXlzaGNoeXNoeW45ODk4IiwiYSI6ImNtbmh3bnVzeTA2anIyd3NtNGR4YjQ3c2wifQ.vF1Do_h-OFFsyRsM5OQyMg';
+    let MAPBOX_TOKEN = ''; // ✅ завантажується з /config
     let selectedPlan = 'pro';
     let currentSlide = 0;
     const totalSlides = 4;
