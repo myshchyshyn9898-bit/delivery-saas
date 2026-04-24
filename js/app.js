@@ -677,7 +677,9 @@ async function loadDashboardData() {
         if (window.Telegram && window.Telegram.WebApp) { window.Telegram.WebApp.expand(); window.Telegram.WebApp.ready(); }
         if (!bizId) { document.getElementById('display-biz-name').innerText = "DEMO MODE"; return; }
 
-        if (!supabaseClient) return;
+        if (!supabaseClient) { console.error('DEBUG: supabaseClient is null'); return; }
+
+        console.log('DEBUG: Starting DB fetch. bizId=' + bizId + ' authToken=' + (authToken ? authToken.slice(0,20)+'...' : 'MISSING'));
 
         let startDate = new Date();
         if (currentFilter === 'today') startDate.setHours(0, 0, 0, 0);
@@ -685,6 +687,7 @@ async function loadDashboardData() {
         else if (currentFilter === 'month') startDate.setDate(startDate.getDate() - 30);
 
         const { data: biz, error: bizError } = await supabaseClient.from('businesses').select('*').eq('id', bizId).single();
+        console.log('DEBUG: biz result =', biz ? 'GOT DATA: ' + biz.name : 'NULL', '| error =', bizError ? bizError.message + ' (' + bizError.code + ')' : 'none');
         if (bizError) console.warn('Biz query error:', bizError.message, bizError.code);
         
         // ✅ FIX: якщо бізнес не знайдено — показуємо помилку замість вічного спінера
