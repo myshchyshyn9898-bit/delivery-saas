@@ -257,14 +257,14 @@
 <!-- Верхня панель: бейдж ролі + кнопка аналітики -->
 <div id="top-bar">
     <div id="role-badge"><span id="map-search-txt">Шукаю доступ...</span></div>
-    <button id="btn-history"><i class="fa-solid fa-chart-line"></i> Аналітика</button>
+    <button id="btn-history"><i class="fa-solid fa-chart-line"></i> <span id="map-analytics-txt">Аналітика</span></button>
 </div>
 
 <!-- Панель вибору дати (з'являється в режимі аналітики) -->
 <div id="history-bar">
-    <label><i class="fa-solid fa-calendar-days"></i> Дата:</label>
+    <label><i class="fa-solid fa-calendar-days"></i> <span id="map-date-lbl">Дата:</span></label>
     <input type="date" id="history-date" />
-    <button id="btn-load-history"><i class="fa-solid fa-magnifying-glass"></i> Показати</button>
+    <button id="btn-load-history"><i class="fa-solid fa-magnifying-glass"></i> <span id="map-loadhist-txt">Показати</span></button>
 </div>
 
 <!-- Міні-статистика по дню -->
@@ -296,27 +296,27 @@
         <div id="admin-actions" style="display:none;">
             <select id="courier-select" class="select-courier"></select>
             <button id="btn-assign" class="btn-take" style="background:var(--info);">
-                <i class="fa-solid fa-paper-plane"></i> Призначити
+                <i class="fa-solid fa-paper-plane"></i> <span id="map-assign-txt">Призначити</span>
             </button>
         </div>
 
         <div id="courier-actions" style="display:none;">
             <button id="btn-route" class="btn-take">
-                <i class="fa-solid fa-map-location-dot"></i> Побудувати маршрут
+                <i class="fa-solid fa-map-location-dot"></i> <span id="map-route-txt">Побудувати маршрут</span>
             </button>
         </div>
 
         <!-- Кур'єр: взяти вільне замовлення (uber режим) -->
         <div id="uber-take-actions" style="display:none;">
             <button id="btn-take-order" class="btn-take">
-                🚀 Взяти замовлення
+                🚀 <span id="map-take-txt">Взяти замовлення</span>
             </button>
         </div>
 
         <!-- Кур'єр: я вже везу (uber режим — моє замовлення) -->
         <div id="uber-mine-actions" style="display:none;">
             <button id="btn-uber-route" class="btn-take">
-                <i class="fa-solid fa-map-location-dot"></i> Побудувати маршрут
+                <i class="fa-solid fa-map-location-dot"></i> <span id="map-route-txt2">Побудувати маршрут</span>
             </button>
         </div>
 
@@ -332,10 +332,10 @@
     <!-- Рядки для закритих замовлень (аналітика) -->
     <div id="history-rows" style="display:none;">
         <div class="sheet-info-row history-row">
-            <i class="fa-solid fa-motorcycle"></i><span id="hist-courier">Кур'єр: -</span>
+            <i class="fa-solid fa-motorcycle"></i><span id="hist-courier"><span id="map-hcourier-txt">Кур'єр: -</span></span>
         </div>
         <div class="sheet-info-row history-row">
-            <i id="hist-pay-icon" class="fa-solid fa-wallet"></i><strong id="hist-pay">Оплата</strong>
+            <i id="hist-pay-icon" class="fa-solid fa-wallet"></i><strong id="hist-pay"><span id="map-hpay-txt">Оплата</span></strong>
         </div>
         <div class="sheet-info-row history-row">
             <i class="fa-solid fa-stopwatch"></i><span id="hist-time"><span id="map-time-txt">Час доставки: -</span></span>
@@ -562,9 +562,12 @@
             'map-analytics-txt': ML.analytics, 'map-addr-txt': ML.address_lbl,
             'map-pay-txt': ML.payment_lbl, 'map-courier-txt': ML.courier_lbl,
             'map-time-txt': ML.time_lbl, 'map-route-txt': ML.btn_route,
+            'map-route-txt2': ML.btn_route,
             'map-assign-txt': ML.btn_assign, 'map-take-txt': ML.btn_take,
             'map-show-txt': ML.btn_show, 'map-hide-txt': ML.btn_hide,
-            'map-orders-count': ML.stat_orders, 'map-date-lbl': ML.date_lbl
+            'map-loadhist-txt': ML.btn_show,
+            'map-orders-count': ML.stat_orders, 'map-date-lbl': ML.date_lbl,
+            'map-hcourier-txt': ML.courier_lbl, 'map-hpay-txt': ML.payment_lbl
         };
         for (var id in ids) {
             var el = document.getElementById(id);
@@ -604,10 +607,10 @@
 
             var cfg;
             try { cfg = await res.json(); }
-            catch (e) { throw new Error('Невірна відповідь /config (не JSON): ' + e.message); }
+            catch (e) { throw new Error(ML.err_config + e.message); }
 
             if (!cfg.supabase_url || !cfg.supabase_key)
-                throw new Error('В /config відсутні supabase_url або supabase_key');
+                throw new Error(ML.err_config);
 
             _supabaseCfgCache = cfg;
             if (cfg && cfg.mapbox_token) { MAPBOX_TOKEN = cfg.mapbox_token; mapboxgl.accessToken = MAPBOX_TOKEN; }
@@ -643,7 +646,7 @@
 
             if (!bizId || !authToken) { showError('Помилка: Немає токена доступу'); return; }
             if (!window.supabase) {
-                showError('Помилка: Supabase SDK не підключена');
+                showError(ML.err_supabase);
                 logError('window.supabase відсутній — перевірте CDN');
                 return;
             }
@@ -748,10 +751,10 @@
 
             document.getElementById('btn-assign').onclick = async function() {
                 var cId = document.getElementById('courier-select').value;
-                if (!cId || !selectedOrder) return tg.showAlert("Оберіть кур'єра!");
+                if (!cId || !selectedOrder) return tg.showAlert(ML.select_courier);
                 var btn = document.getElementById('btn-assign');
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Обробка...';
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ' + ML.processing_lbl;
                 try {
                     var result = await supabase.from('orders')
                         .update({ courier_id: cId, status: 'delivering' })
@@ -833,7 +836,7 @@
                     document.getElementById('role-badge').innerHTML = '👨‍💼 <b>' + ML.role_manager.replace('👨‍💼 ','') + '</b>';
                 } else if (staff && staff.role === 'courier') {
                     userRole = 'courier';
-                    document.getElementById('role-badge').innerHTML = '🛵 <b>Кур\'єр:</b> ' + staff.name;
+                    document.getElementById('role-badge').innerHTML = '🛵 <b>' + ML.role_owner.replace('👑 ', '') + '</b> ' + staff.name;
                 } else {
                     document.getElementById('role-badge').innerHTML = ML.guest;
                 }
@@ -860,9 +863,9 @@
                 });
             }
 
-            if (!window.mapboxgl) { showError('Помилка: Mapbox не завантажився. Перевірте інтернет.'); return; }
+            if (!window.mapboxgl) { showError(ML.err_mapbox); return; }
             // mapboxgl.accessToken встановлюється після завантаження /config
-            if (!mapboxgl.supported()) { showError('Ваш телефон не підтримує 3D карти.'); return; }
+            if (!mapboxgl.supported()) { showError(ML.err_mapbox); return; }
 
             var bLng = parseFloat(bizData.lng) || 21.99901;
             var bLat = parseFloat(bizData.lat) || 50.04132;

@@ -268,7 +268,7 @@
     <div class="header">
         <div class="header-row">
             <div class="header-title"><span data-sched-i18n="title">Графік команди</span></div>
-            <span class="header-badge" id="role-badge">Кур'єр</span>
+            <span class="header-badge" id="role-badge"><span data-sched-i18n="role_courier">Кур'єр</span></span>
         </div>
     </div>
 
@@ -285,7 +285,7 @@
                     <circle cx="7" cy="7" r="3.5" fill="#3b82f6"/>
                 </svg>
             </div>
-            Заплановано
+            <span data-sched-i18n="planned_lbl">Заплановано</span>
         </div>
         <div class="leg-item">
             <div class="leg-dot leg-worked">
@@ -293,7 +293,7 @@
                     <path d="M3 7.5L5.5 10L11 4.5" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </div>
-            Відпрацьовано
+            <span data-sched-i18n="worked_lbl">Відпрацьовано</span>
         </div>
     </div>
 
@@ -307,15 +307,15 @@
             <div class="earn-amount" id="earn-total">0.00 <span style="font-size:18px;opacity:0.8;" id="earn-currency">zł</span></div>
             <div class="earn-breakdown">
                 <div class="earn-item">
-                    <div class="earn-item-val" id="earn-hours">0 год</div>
+                    <div class="earn-item-val" id="earn-hours">0</div>
                     <div class="earn-item-lbl"><span data-sched-i18n="worked_lbl">Відпрацьовано</span></div>
                 </div>
                 <div class="earn-item">
-                    <div class="earn-item-val" id="earn-shifts-count">0 змін</div>
+                    <div class="earn-item-val" id="earn-shifts-count">0</div>
                     <div class="earn-item-lbl"><span data-sched-i18n="shifts_lbl">Змін</span></div>
                 </div>
                 <div class="earn-item">
-                    <div class="earn-item-val" id="earn-orders">0 зам.</div>
+                    <div class="earn-item-val" id="earn-orders">0</div>
                     <div class="earn-item-lbl"><span data-sched-i18n="orders_lbl">Замовлень</span></div>
                 </div>
             </div>
@@ -325,10 +325,10 @@
     <!-- Admin bottom actions -->
     <div class="bottom-actions" id="admin-actions" style="display:none;">
         <button class="btn-fab btn-fab-secondary" onclick="addGroup()">
-            <i class="fa-solid fa-plus"></i> Нова група
+            <i class="fa-solid fa-plus"></i> <span data-sched-i18n="btn_add_group">Нова група</span>
         </button>
         <button class="btn-fab btn-fab-primary" onclick="saveSchedule()">
-            <i class="fa-solid fa-floppy-disk"></i> Зберегти
+            <i class="fa-solid fa-floppy-disk"></i> <span data-sched-i18n="btn_save">Зберегти</span>
         </button>
     </div>
 
@@ -345,19 +345,19 @@
                 <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
                     <circle cx="8" cy="8" r="4" fill="#3b82f6"/>
                 </svg>
-                Запланувати
+                <span data-sched-i18n="btn_plan">Запланувати</span>
             </button>
             <button class="sheet-btn sheet-btn-clear" onclick="clearSlot()">
                 <svg viewBox="0 0 16 16" fill="none" width="16" height="16">
                     <path d="M4 4L12 12M12 4L4 12" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                Очистити
+                <span data-sched-i18n="btn_clear">Очистити</span>
             </button>
         </div>
 
         <!-- Плановий час -->
         <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;margin-top:4px;">
-            <i class="fa-solid fa-calendar-days" style="margin-right:4px;color:#3b82f6;"></i>Плановий час
+            <i class="fa-solid fa-calendar-days" style="margin-right:4px;color:#3b82f6;"></i><span data-sched-i18n="lbl_planned">Плановий час</span>
         </div>
         <div class="time-group">
             <label><span data-sched-i18n="lbl_start">Початок</span></label>
@@ -370,7 +370,7 @@
 
         <!-- Фактичні години (перевизначають планові та бот-зміни) -->
         <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;margin-top:14px;">
-            <i class="fa-solid fa-pen-to-square" style="margin-right:4px;color:var(--primary);"></i>Фактичні години (для ЗП)
+            <i class="fa-solid fa-pen-to-square" style="margin-right:4px;color:var(--primary);"></i><span data-sched-i18n="lbl_actual">Фактичні години (для ЗП)
         </div>
         <div class="time-group">
             <label><span data-sched-i18n="hours_worked">Годин відпрацьовано</span></label>
@@ -379,11 +379,11 @@
                 color:var(--primary);outline:none;text-align:right;font-family:inherit;width:80px;">
         </div>
         <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px;padding:0 2px;">
-            Залиш порожнім — автоматично з боту або планового часу
+            <span data-sched-i18n="lbl_actual_hint"><span data-sched-i18n="lbl_actual_hint">Залиш порожнім — автоматично з боту або планового часу</span></span>
         </div>
 
         <button class="btn-save" onclick="saveSlot()" style="margin-top:14px;">
-            <i class="fa-solid fa-floppy-disk"></i> Зберегти
+            <i class="fa-solid fa-floppy-disk"></i> <span data-sched-i18n="btn_save">Зберегти</span>
         </button>
     </div>
 </div>
@@ -392,20 +392,20 @@
 <div class="overlay" id="staff-overlay" onclick="closeStaffSheet()">
     <div class="sheet" onclick="event.stopPropagation()">
         <div class="sheet-handle"></div>
-        <div class="sheet-title">Додати в групу <span id="staff-sheet-group" style="color:var(--primary);"></span></div>
+        <div class="sheet-title"><span data-sched-i18n="add_to_group">Додати в групу</span> <span id="staff-sheet-group" style="color:var(--primary);"></span></div>
 
         <div class="time-group">
-            <label>Ім'я та Прізвище</label>
-            <input type="text" id="staff-name" placeholder="Напр. Іван Петров" style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
+            <label><span data-sched-i18n="ph_name">Ім'я та Прізвище</span></label>
+            <input type="text" id="staff-name" id="staff-name-ph" placeholder="Напр. Іван Петров" style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
         </div>
         <div class="time-group" style="margin-top:6px;">
-            <label>Telegram ID <span style="font-size:10px;color:var(--muted);font-weight:600;">(необов'язково)</span></label>
+            <label><span data-sched-i18n="tg_id_lbl">Telegram ID</span> <span style="font-size:10px;color:var(--muted);font-weight:600;">(необов'язково)</span></label>
             <input type="number" id="staff-tg-id" placeholder="123456789" inputmode="numeric" style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
         </div>
         <div style="font-size:11px;color:var(--muted);font-weight:600;padding:0 2px;margin-top:4px;">Якщо вказати TG ID — кур'єр побачить свій заробіток в застосунку</div>
 
         <button class="btn-save" onclick="addStaffDirect()" style="margin-top:16px;">
-            <i class="fa-solid fa-user-plus"></i> Додати
+            <i class="fa-solid fa-user-plus"></i> <span data-sched-i18n="btn_add">Додати</span>
         </button>
     </div>
 </div>
@@ -418,11 +418,11 @@
 
         <div class="time-group">
             <label><span data-sched-i18n="lbl_group_name">Назва групи</span></label>
-            <input type="text" id="group-name-input" placeholder="Кухня, Склад, Електрики..." style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
+            <input type="text" id="group-name-input" placeholder="e.g. Kitchen, Warehouse..." style="border:none;background:transparent;font-size:15px;font-weight:700;color:var(--text);outline:none;text-align:right;font-family:inherit;width:60%;">
         </div>
 
         <button class="btn-save" onclick="createGroup()" style="margin-top:16px;">
-            <i class="fa-solid fa-plus"></i> Створити групу
+            <i class="fa-solid fa-plus"></i> <span data-sched-i18n="btn_create_group">Створити групу</span>
         </button>
     </div>
 </div>
@@ -477,15 +477,15 @@ var SCHED_I18N = {
         lbl_start: 'Початок',
         lbl_end: 'Кінець',
         lbl_actual: 'Фактичні години (для ЗП)',
-        lbl_actual_hint: 'Залиш порожнім — автоматично з боту або планового часу',
+        lbl_actual_hint: '<span data-sched-i18n="lbl_actual_hint"><span data-sched-i18n="lbl_actual_hint">Залиш порожнім — автоматично з боту або планового часу</span></span>',
         lbl_planned: 'Плановий час',
         lbl_group_name: 'Назва групи',
         add_to_group: 'Додати в групу',
         btn_add: 'Додати',
         earn_title: 'Мій заробіток за місяць',
-        earn_shifts: '0 змін',
+        earn_shifts: SL.earn_shifts,
         earn_hours: '0 год',
-        earn_orders: '0 зам.',
+        earn_orders: '0 ' + (SL.orders_lbl || 'зам.'),
         shifts_lbl: 'Змін',
         hours_worked: 'Годин відпрацьовано',
         orders_lbl: 'Замовлень',
@@ -500,7 +500,10 @@ var SCHED_I18N = {
         del_month: 'Видалити місяць',
         ph_name: 'Введіть ім\'я та прізвище',
         ph_group: 'Введіть назву групи',
+        tg_id_lbl: 'Telegram ID',
+        tg_id_lbl: 'Telegram ID',
         ph_month: 'Введіть місяць (формат YYYY-MM, напр. 2026-06):',
+        tg_optional: 'необов\'язково для ручного додавання',
         saved: '✅ Графік збережено',
         slot_saved: '✅ Збережено',
         group_saved: '✅ Назву групи збережено',
@@ -582,7 +585,9 @@ var SCHED_I18N = {
         del_month: 'Удалить месяц',
         ph_name: 'Введите имя и фамилию',
         ph_group: 'Введите название группы',
+        tg_id_lbl: 'Telegram ID',
         ph_month: 'Введите месяц (формат YYYY-MM, напр. 2026-06):',
+        tg_optional: 'необязательно для ручного добавления',
         saved: '✅ График сохранён',
         slot_saved: '✅ Сохранено',
         group_saved: '✅ Название группы сохранено',
@@ -665,6 +670,7 @@ var SCHED_I18N = {
         ph_name: 'Wpisz imię i nazwisko',
         ph_group: 'Wpisz nazwę grupy',
         ph_month: 'Wpisz miesiąc (format YYYY-MM, np. 2026-06):',
+        tg_optional: 'opcjonalne przy ręcznym dodawaniu',
         saved: '✅ Harmonogram zapisany',
         slot_saved: '✅ Zapisano',
         group_saved: '✅ Nazwa grupy zapisana',
@@ -746,7 +752,9 @@ var SCHED_I18N = {
         del_month: 'Delete month',
         ph_name: 'Enter first and last name',
         ph_group: 'Enter group name',
+        tg_id_lbl: 'Telegram ID',
         ph_month: 'Enter month (format YYYY-MM, e.g. 2026-06):',
+        tg_optional: 'optional for manual adding',
         saved: '✅ Schedule saved',
         slot_saved: '✅ Saved',
         group_saved: '✅ Group name saved',
@@ -824,8 +832,7 @@ var RAILWAY_DOMAIN = (function() {
     return 'https://delivery-saas-production-3fe6.up.railway.app';
 })();
 var DAY_NAMES = [SL.mon,SL.tue,SL.wed,SL.thu,SL.fri,SL.sat,SL.sun];
-var MONTH_NAMES = ['Січень','Лютий','Березень','Квітень','Травень','Червень',
-                     'Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
+var MONTH_NAMES = [SL.jan,SL.feb,SL.mar,SL.apr,SL.may,SL.jun,SL.jul,SL.aug,SL.sep,SL.oct,SL.nov,SL.dec];
 
 var supabase, tg, bizData, staffList = [];
 var userRole = 'courier', userId, bizId, authToken;
@@ -843,7 +850,7 @@ authToken = urlP.get('token');
 var tgId = urlP.get('tg_id');
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('load-text').textContent = 'DOM готовий...';
+    document.getElementById('load-text').textContent = 'DOM ready...';
     applySchedTranslations();
     setTimeout(initScheduleApp, 300);
 });
@@ -874,7 +881,7 @@ async function initScheduleApp() {
 
         // 2. Перевірки
         _step = 'params check';
-        setLoad('bizId=' + (bizId||'немає') + ' token=' + (authToken?'є':'немає'));
+        setLoad('bizId=' + (bizId||'none') + ' token=' + (authToken?'ok':'missing'));
         if (!bizId) { _alert('❌ bizId відсутній в URL'); return; }
         if (!authToken) { _alert('❌ token відсутній в URL'); return; }
         if (!window.supabase) { _alert('❌ Supabase SDK не завантажилась'); return; }
@@ -1547,7 +1554,7 @@ async function saveSchedule() {
     } catch(e) {
         toast('❌ Спочатку створіть таблицю schedule в Supabase');
     } finally {
-        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Зберегти';
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ' + (SL.btn_save || 'Зберегти');
         btn.disabled = false;
     }
 }
