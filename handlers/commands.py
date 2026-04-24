@@ -618,46 +618,19 @@ async def process_staff_name(message: types.Message, state: FSMContext):
     await state.update_data(staff_name=name, staff_lang=lang)
     await state.set_state(RegStaff.waiting_for_lang)
 
-    lang_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🇺🇦 Українська", callback_data="setlang:uk"),
-            InlineKeyboardButton(text="🇬🇧 English", callback_data="setlang:en"),
-        ],
-        [
-            InlineKeyboardButton(text="🇵🇱 Polski", callback_data="setlang:pl"),
-            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="setlang:ru"),
-        ],
-    ])
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    _kb = InlineKeyboardBuilder()
+    _kb.button(text="🇺🇦 Українська", callback_data="setlang:uk")
+    _kb.button(text="🇬🇧 English",     callback_data="setlang:en")
+    _kb.button(text="🇵🇱 Polski",      callback_data="setlang:pl")
+    _kb.button(text="🇷🇺 Русский",     callback_data="setlang:ru")
+    _kb.adjust(2)
+    lang_kb = _kb.as_markup()
     await message.answer(
         _(lang, "choose_lang"),
         reply_markup=lang_kb
     )
     return
-
-    # (unreachable - kept for reference)
-    db.invalidate_user_cache(message.from_user.id)
-    await state.clear()
-    context = await db.get_user_context_cached(message.from_user.id)
-    role_label = _(lang, 'role_c') if data.get('joining_role', 'courier') == "courier" else _(lang, 'role_m')
-    await message.answer(_(lang, 'staff_added', name=name, role=role_label))
-    if context:
-        try:
-            await show_main_menu(message, context)
-        except Exception as e:
-            logger.error(f"Помилка показу меню після реєстрації: {e}")
-    else:
-        # ✅ FIX: retry через 0.7с замість загадкового "натисніть /start"
-        import asyncio as _aio
-        await _aio.sleep(0.7)
-        db.invalidate_user_cache(message.from_user.id)
-        context = await db.get_user_context_cached(message.from_user.id)
-        if context:
-            try:
-                await show_main_menu(message, context)
-            except Exception as e:
-                logger.error(f"Помилка показу меню (retry): {e}")
-        else:
-            await message.answer(_(lang, "start_menu_hint"))
 
 @router.callback_query(RegStaff.waiting_for_lang, F.data.startswith("setlang:"))
 async def process_staff_lang(callback: types.CallbackQuery, state: FSMContext):
