@@ -1555,6 +1555,7 @@ async function saveSchedule() {
 
 // ── EARNINGS ──
 async function loadEarnings() {
+    SL = SCHED_I18N[currentLang] || SCHED_I18N['en']; // ✅ ensure fresh lang
     if (userRole === 'owner') return;
     if (!userId) return;
 
@@ -1666,11 +1667,11 @@ async function loadEarnings() {
         el = document.getElementById('earn-total');
         if (el) el.innerHTML = earnedSafe.toFixed(2) + ' <span style="font-size:18px;opacity:0.8;">' + cur + '</span>';
         el = document.getElementById('earn-hours');
-        if (el) el.textContent = totalHours.toFixed(1) + ' год';
+        if (el) el.textContent = totalHours.toFixed(1) + ' ' + (SL.earn_hours || 'год').replace(/^\d+\s*/, '');
         el = document.getElementById('earn-shifts-count');
-        if (el) el.textContent = shiftCount + ' змін';
+        if (el) el.textContent = shiftCount + ' ' + (SL.earn_shifts || 'змін').replace(/^\d+\s*/, '');
         el = document.getElementById('earn-orders');
-        if (el) el.textContent = ordersCount + ' зам.';
+        if (el) el.textContent = ordersCount + ' ' + (SL.earn_orders || 'зам.').replace(/^\d+\s*/, '');
         el = document.getElementById('earn-currency');
         if (el) el.textContent = cur;
 
