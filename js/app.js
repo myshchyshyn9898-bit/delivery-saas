@@ -139,7 +139,7 @@ function switchTab(tabId, el) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     el.classList.add('active');
     window.scrollTo(0, 0);
-    if(tabId === 'home' && window.dashboardMap) { setTimeout(() => window.dashboardMap.invalidateSize(), 100); }
+    if(tabId === 'home' && window.dashboardMap) { setTimeout(() => window.dashboardMap.resize(), 100); }
     if(tabId === 'salary') { initSalaryTab(); }
 }
 
