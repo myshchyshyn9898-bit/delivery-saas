@@ -71,7 +71,8 @@ async def register_new_business(owner_id: int, biz_data: dict):
         "courier_group_id": biz_data.get("courier_group_id"),
         "plan": "trial",
         "subscription_expires_at": trial_end.isoformat(),
-        "is_active": True
+        "is_active": True,
+        "lang": biz_data.get("lang", "en")
     }
     return await _run(lambda: supabase.table("businesses").insert(data).execute())
 
@@ -87,6 +88,16 @@ async def update_subscription(biz_id: str, is_active: bool):
 # ==========================================
 # ФУНКЦІЇ ДЛЯ ПІДПИСОК ТА WHOP
 # ==========================================
+
+
+async def update_business_lang(biz_id: str, lang: str):
+    """Оновлює мову бізнесу (для власника)."""
+    if lang not in ('uk', 'ru', 'pl', 'en'):
+        lang = 'en'
+    return await _run(
+        lambda: supabase.table("businesses").update({"lang": lang}).eq("id", biz_id).execute()
+    )
+
 
 async def get_actual_plan(biz_id: str) -> str:
     """
@@ -188,7 +199,7 @@ async def get_user_context(user_id: int):
             if biz_info.data:
                 chosen = (s, biz_info.data[0])
         if chosen:
-            return {"role": chosen[0]["role"], "biz": chosen[1]}
+            return {"role": chosen[0]["role"], "biz": chosen[1], "staff": chosen[0]}
 
     return None
 
