@@ -19,6 +19,7 @@ router = Router()
 
 class RegStaff(StatesGroup):
     waiting_for_name = State()
+    waiting_for_lang  = State()
 
 class ShiftOpen(StatesGroup):
     waiting_photo = State()
@@ -32,10 +33,20 @@ class ShiftClose(StatesGroup):
 
 async def show_main_menu(message: types.Message, context: dict):
     _raw_lang = message.from_user.language_code
-    lang = (_raw_lang or "en").split("-")[0].lower()
-    import logging as _lg; _lg.getLogger(__name__).info(f"[lang debug] user={message.from_user.id} raw_lang={_raw_lang!r} normalized={lang!r}")
+    _tg_lang  = (_raw_lang or "en").split("-")[0].lower()
+    import logging as _lg; _lg.getLogger(__name__).info(f"[lang debug] user={message.from_user.id} raw_lang={_raw_lang!r} normalized={_tg_lang!r}")
+
     role = context['role']
-    biz = context['biz']
+    biz  = context['biz']
+
+    # ✅ Читаємо мову з БД (пріоритет над Telegram language_code)
+    if role == 'owner':
+        lang = (biz.get('lang') or _tg_lang)
+    else:
+        # Для персоналу - читаємо staff.lang через context
+        lang = (context.get('staff', {}).get('lang') or _tg_lang)
+    if lang not in ('uk', 'ru', 'pl', 'en'):
+        lang = 'en'
     biz_id = biz['id']
 
     # Перевірка статусу підписки
@@ -603,14 +614,27 @@ async def process_staff_name(message: types.Message, state: FSMContext):
     except Exception as e:
         logger.warning(f"Помилка перевірки існуючого staff: {e}")
 
-    try:
-        await db.create_staff(user_id, name, biz_id, role=data.get('joining_role', 'courier'), lang=lang)
-    except Exception as e:
-        logger.error(f"Помилка додавання персоналу: {e}")
-        await message.answer(_(lang, 'staff_add_err'))
-        return
+    # ✅ Зберігаємо ім'я і просимо вибрати мову
+    await state.update_data(staff_name=name, staff_lang=lang)
+    await state.set_state(RegStaff.waiting_for_lang)
 
-    # Запис в БД успішний — скидаємо кеш та показуємо меню
+    lang_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🇺🇦 Українська", callback_data="setlang:uk"),
+            InlineKeyboardButton(text="🇬🇧 English", callback_data="setlang:en"),
+        ],
+        [
+            InlineKeyboardButton(text="🇵🇱 Polski", callback_data="setlang:pl"),
+            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="setlang:ru"),
+        ],
+    ])
+    await message.answer(
+        _(lang, "choose_lang"),
+        reply_markup=lang_kb
+    )
+    return
+
+    # (unreachable - kept for reference)
     db.invalidate_user_cache(message.from_user.id)
     await state.clear()
     context = await db.get_user_context_cached(message.from_user.id)
@@ -634,3 +658,39 @@ async def process_staff_name(message: types.Message, state: FSMContext):
                 logger.error(f"Помилка показу меню (retry): {e}")
         else:
             await message.answer(_(lang, "start_menu_hint"))
+
+@router.callback_query(RegStaff.waiting_for_lang, F.data.startswith("setlang:"))
+async def process_staff_lang(callback: types.CallbackQuery, state: FSMContext):
+    """Обробляє вибір мови при реєстрації персоналу"""
+    chosen_lang = callback.data.split(":")[1]  # setlang:uk -> uk
+    data = await state.get_data()
+    
+    name    = data['staff_name']
+    biz_id  = data['joining_biz_id']
+    role    = data.get('joining_role', 'courier')
+    user_id = callback.from_user.id
+
+    try:
+        await db.create_staff(user_id, name, biz_id, role=role, lang=chosen_lang)
+    except Exception as e:
+        logger.error(f"Помилка додавання персоналу: {e}")
+        await callback.message.answer(_(chosen_lang, 'staff_add_err'))
+        await callback.answer()
+        return
+
+    db.invalidate_user_cache(user_id)
+    await state.clear()
+    await callback.message.delete()
+    await callback.message.answer(_(chosen_lang, "lang_saved"))
+
+    context = await db.get_user_context_cached(user_id)
+    role_label = _(chosen_lang, 'role_c') if role == 'courier' else _(chosen_lang, 'role_m')
+    await callback.message.answer(_(chosen_lang, 'staff_added', name=name, role=role_label))
+    if context:
+        try:
+            await show_main_menu(callback.message, context)
+        except Exception as e:
+            logger.warning(f"Не вдалось показати меню: {e}")
+    await callback.answer()
+
+
