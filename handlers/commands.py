@@ -31,7 +31,9 @@ class ShiftClose(StatesGroup):
 # — ДОПОМІЖНА ФУНКЦІЯ МЕНЮ —
 
 async def show_main_menu(message: types.Message, context: dict):
-    lang = message.from_user.language_code or "en"
+    _raw_lang = message.from_user.language_code
+    lang = (_raw_lang or "en").split("-")[0].lower()
+    import logging as _lg; _lg.getLogger(__name__).info(f"[lang debug] user={message.from_user.id} raw_lang={_raw_lang!r} normalized={lang!r}")
     role = context['role']
     biz = context['biz']
     biz_id = biz['id']
@@ -79,7 +81,7 @@ shift_report_buttons = ["📋 Звіт змін", "📋 Отчёт смен", "�
 # --- Кур'єр натискає "Розпочати зміну" ---
 @router.message(F.text.in_(start_shift_buttons))
 async def cmd_start_shift(message: types.Message, state: FSMContext):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     ctx = await db.get_user_context_cached(message.from_user.id)
     if not ctx or ctx['role'] != 'courier':
         await message.answer(_(lang, 'no_access'))
@@ -95,7 +97,7 @@ async def cmd_start_shift(message: types.Message, state: FSMContext):
 
 @router.message(ShiftOpen.waiting_photo, F.photo)
 async def shift_open_got_photo(message: types.Message, state: FSMContext):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     file_id = message.photo[-1].file_id
     await state.update_data(start_photo_id=file_id)
     await state.set_state(ShiftOpen.waiting_km)
@@ -103,7 +105,7 @@ async def shift_open_got_photo(message: types.Message, state: FSMContext):
 
 @router.message(ShiftOpen.waiting_km, F.text)
 async def shift_open_got_km(message: types.Message, state: FSMContext):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     if not message.text.strip().isdigit():
         await message.answer(_(lang, 'shift_km_invalid'), parse_mode="HTML")
         return
@@ -139,7 +141,7 @@ async def shift_open_got_km(message: types.Message, state: FSMContext):
 # --- Кур'єр натискає "Закрити зміну" ---
 @router.message(F.text.in_(close_shift_buttons))
 async def cmd_close_shift(message: types.Message, state: FSMContext):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     ctx = await db.get_user_context_cached(message.from_user.id)
     if not ctx or ctx['role'] != 'courier':
         await message.answer(_(lang, 'no_access'))
@@ -156,18 +158,18 @@ async def cmd_close_shift(message: types.Message, state: FSMContext):
 @router.message(ShiftOpen.waiting_photo)
 async def shift_open_wrong_input(message: types.Message, state: FSMContext):
     """Кур'єр надіслав не фото під час очікування фото початку зміни"""
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     await message.answer(_(lang, 'shift_send_start_photo'))
 
 @router.message(ShiftClose.waiting_photo)
 async def shift_close_wrong_input(message: types.Message, state: FSMContext):
     """Кур'єр надіслав не фото під час очікування фото кінця зміни"""
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     await message.answer(_(lang, 'shift_send_end_photo'))
 
 @router.message(ShiftClose.waiting_photo, F.photo)
 async def shift_close_got_photo(message: types.Message, state: FSMContext):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     file_id = message.photo[-1].file_id
     await state.update_data(end_photo_id=file_id)
     await state.set_state(ShiftClose.waiting_km)
@@ -175,7 +177,7 @@ async def shift_close_got_photo(message: types.Message, state: FSMContext):
 
 @router.message(ShiftClose.waiting_km, F.text)
 async def shift_close_got_km(message: types.Message, state: FSMContext):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     if not message.text.strip().isdigit():
         await message.answer(_(lang, 'shift_km_invalid'), parse_mode="HTML")
         return
@@ -261,7 +263,7 @@ async def _notify_shift(biz_id: str, sender_id: int, text: str):
 # --- Адмін-звіт змін ---
 @router.message(F.text.in_(shift_report_buttons))
 async def cmd_shift_report(message: types.Message):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     ctx = await db.get_user_context_cached(message.from_user.id)
     if not ctx or ctx['role'] not in ('owner', 'manager'):
         await message.answer(_(lang, 'no_zvit_access'))
@@ -323,13 +325,13 @@ async def cmd_shift_report(message: types.Message):
                   km_total=f"{km_total:.2f}", to_pay=f"{to_pay:.2f}")
 
         if s.get('start_photo_id'):
-            builder.button(text=f"📸 {name} — початок", callback_data=f"shiftphoto:start:{s['id']}")
+            builder.button(text=_(lang, "btn_photo_start", name=name), callback_data=f"shiftphoto:start:{s['id']}")
         if s.get('end_photo_id'):
-            builder.button(text=f"📸 {name} — кінець", callback_data=f"shiftphoto:end:{s['id']}")
+            builder.button(text=_(lang, "btn_photo_end", name=name), callback_data=f"shiftphoto:end:{s['id']}")
 
     # ✅ FIX: показуємо активні зміни окремо
     if active:
-        text += "\n🟢 <b>Зараз на зміні:</b>\n"
+        text += "\n" + _(lang, "shift_on_duty") + "\n"
         for s in active:
             c_id = str(s['courier_id'])
             name = staff_map.get(c_id, "id:" + c_id)
@@ -410,7 +412,7 @@ async def cmd_open_settings(message: types.Message):
     """✅ ВИПРАВЛЕНО: кнопка 'Налаштування бізнесу' більше не мовчить."""
     import time as _t
     from keyboards import generate_token
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     context = await db.get_user_context_cached(message.from_user.id)
     if not context or context['role'] != 'owner':
         await message.answer(_(lang, 'no_access'))
@@ -435,7 +437,7 @@ async def cmd_open_staff(message: types.Message):
     """✅ ВИПРАВЛЕНО: кнопка 'Персонал' більше не мовчить."""
     import time as _t
     from keyboards import generate_token
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     context = await db.get_user_context_cached(message.from_user.id)
     if not context or context['role'] != 'owner':
         await message.answer(_(lang, 'no_access'))
@@ -452,7 +454,7 @@ async def cmd_open_staff(message: types.Message):
 
 @router.message(F.text.in_(report_buttons))
 async def cmd_generate_report(message: types.Message):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     context = await db.get_user_context_cached(message.from_user.id)
     if not context or context['role'] not in ['manager', 'owner']:
         await message.answer(_(lang, 'no_zvit_access'))
@@ -501,7 +503,7 @@ async def cmd_generate_report(message: types.Message):
 
 @router.message(Command("boss"))
 async def cmd_boss_panel(message: types.Message):
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     if message.from_user.id in SUPER_ADMIN_IDS:
         await message.answer(
             _(lang, 'boss_panel'),
@@ -515,7 +517,7 @@ async def cmd_boss_panel(message: types.Message):
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
     user_id = message.from_user.id
-    lang = message.from_user.language_code or "en"
+    lang = (message.from_user.language_code or "en").split("-")[0].lower()
     args = command.args
 
     # Скидаємо FSM стан якщо юзер надіслав /start під час незавершеного флоу
