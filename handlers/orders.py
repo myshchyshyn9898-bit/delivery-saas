@@ -658,7 +658,7 @@ async def cmd_my_active_orders(message: types.Message, bot: Bot):
     orders_list = res.data or []
 
     if not orders_list:
-        await message.answer("📭 Немає активних замовлень.")
+        await message.answer(_(lang, "no_active_orders"))
         return
 
     biz      = ctx["biz"]
@@ -731,7 +731,7 @@ async def cancel_order_handler(callback: types.CallbackQuery, bot: Bot):
 
     order = res.data[0]
     if order["status"] in ("completed", "cancelled"):
-        await callback.message.answer("⚠️ Замовлення вже закрите або скасоване.")
+        await callback.message.answer(_(lang, "order_already_closed"))
         return
 
     await db._run(
@@ -747,8 +747,7 @@ async def cancel_order_handler(callback: types.CallbackQuery, bot: Bot):
 
     import html as _hcan
     cancelled_text = (
-        f"❌ <b>Замовлення #{short_id} скасовано</b>\n"
-        f"📍 {_hcan.escape(order.get('address', '—'))}\n"
+        f"❌ <b>{_(lang, 'order_cancelled').replace('❌ ', '')} #{short_id}</b>\n"
         f"👤 {_hcan.escape(order.get('client_name', '') or '')}\n"
         f"📞 {_hcan.escape(order.get('client_phone', '—') or '—')}"
     )
@@ -767,7 +766,7 @@ async def cancel_order_handler(callback: types.CallbackQuery, bot: Bot):
         try:
             await bot.send_message(
                 chat_id=int(courier_id),
-                text=f"❌ Замовлення <code>#{short_id}</code> скасовано адміністратором.",
+                text=_(lang, "order_cancelled_admin", short_id=short_id),
                 parse_mode="HTML"
             )
         except Exception as e:

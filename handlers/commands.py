@@ -158,7 +158,7 @@ async def shift_open_got_km(message: types.Message, state: FSMContext):
     await _notify_shift(
         biz_id=biz_id,
         sender_id=user_id,
-        text=_(lang, 'shift_notify_start', name=name, km=km)
+        text_key='shift_notify_start', name=name, km=km
     )
 
     # Оновлюємо клавіатуру — тепер кнопка "Закрити зміну"
@@ -255,7 +255,7 @@ async def shift_close_got_km(message: types.Message, state: FSMContext):
     await _notify_shift(
         biz_id=biz_id,
         sender_id=user_id,
-        text=_(lang, 'shift_notify_end', name=name, km=end_km)
+        text_key='shift_notify_end', name=name, km=end_km
     )
 
     # Оновлюємо клавіатуру — кнопка "Розпочати зміну"
@@ -263,27 +263,30 @@ async def shift_close_got_km(message: types.Message, state: FSMContext):
     await message.answer("✅", reply_markup=markup)
 
 # --- Допоміжна: сповіщає адміна/менеджера про початок або кінець зміни ---
-async def _notify_shift(biz_id: str, sender_id: int, text: str):
+async def _notify_shift(biz_id: str, sender_id: int, text_key: str, **kwargs):
     """
-    Надсилає власнику та менеджерам просте текстове повідомлення
-    про початок/кінець зміни кур'єра. Фото зберігається в БД і
-    доступне тільки через "Звіт змін".
+    Надсилає власнику та менеджерам повідомлення про зміну кур'єра.
+    Текст перекладається в мову КОЖНОГО отримувача окремо.
     """
     from bot_setup import bot
     from database import _run, supabase
 
-    biz_res = await _run(lambda: supabase.table("businesses").select("owner_id").eq("id", biz_id).execute())
-    recipients = []
+    biz_res = await _run(lambda: supabase.table("businesses").select("owner_id, lang").eq("id", biz_id).execute())
+    recipients = []  # list of (user_id, lang)
     if biz_res.data:
-        recipients.append(int(biz_res.data[0]['owner_id']))
-    mgr_res = await _run(lambda: supabase.table("staff").select("user_id").eq("business_id", biz_id).eq("role", "manager").execute())
+        owner_lang = biz_res.data[0].get('lang') or 'uk'
+        recipients.append((int(biz_res.data[0]['owner_id']), owner_lang))
+
+    mgr_res = await _run(lambda: supabase.table("staff").select("user_id, lang").eq("business_id", biz_id).eq("role", "manager").execute())
     if mgr_res.data:
         for m in mgr_res.data:
             uid = int(m['user_id'])
-            if uid != sender_id and uid not in recipients:
-                recipients.append(uid)
-    for uid in recipients:
+            if uid != sender_id and uid not in [r[0] for r in recipients]:
+                recipients.append((uid, m.get('lang') or 'uk'))
+
+    for uid, lang in recipients:
         try:
+            text = _(lang, text_key, **kwargs)
             await bot.send_message(uid, text, parse_mode="HTML")
         except Exception as e:
             logger.warning(f"[shift_notify] не вдалось надіслати uid={uid}: {e}")
