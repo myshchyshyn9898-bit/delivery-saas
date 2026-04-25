@@ -599,15 +599,15 @@ function openConnectModal(name, id, color, letter, desc) {
             document.getElementById('connect-title').innerText = `${cfg.name || name} ✅ ${t("pos_connected_lbl")}`;
             document.getElementById('connect-desc').innerHTML = `
                 <div style="text-align:left; background:rgba(16,185,129,0.05); padding:12px; border-radius:12px; margin-bottom:12px; border:1px dashed #10b981;">
-                    <b style="color:#10b981; font-size:12px; display:block; margin-bottom:6px;">✅ Токен збережено. Залишилось налаштувати Webhook:</b>
+                    <b style="color:#10b981; font-size:12px; display:block; margin-bottom:6px;">${t('pos_token_saved_title')}</b>
                     <ol style="font-size:12px; color:var(--text-muted); margin-left:15px; line-height:1.8;">
-                        <li>Скопіюйте посилання нижче</li>
-                        <li>У кабінеті каси відкрийте:<br><b style="color:var(--text-main);">${cfg.webhookStep || 'Налаштування → Webhooks'}</b></li>
-                        <li>Вставте посилання та оберіть подію:<br><b style="color:var(--text-main);">"${cfg.webhookEvent || 'Нове замовлення'}"</b></li>
-                        <li>Збережіть — готово! 🎉</li>
+                        <li>${t('pos_step1')}</li>
+                        <li>${t('pos_step2')}<br><b style="color:var(--text-main);">${cfg.webhookStep || 'Налаштування → Webhooks'}</b></li>
+                        <li>${t('pos_step3')}<br><b style="color:var(--text-main);">"${cfg.webhookEvent || t('pos_event_poster')}"</b></li>
+                        <li>${t('pos_step4')}</li>
                     </ol>
                 </div>
-                <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700; cursor:pointer;" onclick="navigator.clipboard.writeText('${webhookUrl}'); showToast(t('pos_copied'), t('pos_paste_hint'));">${webhookUrl}<br><span style="color:#94a3b8; font-weight:400; font-size:10px;">натисніть щоб скопіювати</span></code>
+                <code style="background:#f1f5f9; padding:10px; border-radius:8px; display:block; font-size:11px; word-break:break-all; color:var(--text-main); border:1px solid #e2e8f0; font-weight:700; cursor:pointer;" onclick="navigator.clipboard.writeText('${webhookUrl}'); showToast(t('pos_copied'), t('pos_paste_hint'));">${webhookUrl}<br><span style="color:#94a3b8; font-weight:400; font-size:10px;">${t('pos_copy_click')}</span></code>
             `;
             document.getElementById('input-pos-token').style.display = 'none';
             btn.innerHTML = `<i class="fa-solid fa-copy"></i> ${t("pos_copy_link")}`;
@@ -621,7 +621,7 @@ function openConnectModal(name, id, color, letter, desc) {
             document.getElementById('connect-title').innerText = t('pos_connecting') + ' ' + (cfg.name || name);
             document.getElementById('connect-desc').innerHTML = `
                 <div style="background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:12px; color:var(--text-muted); line-height:1.6; text-align:left;">
-                    <b style="color:var(--text-main);">Де знайти токен?</b><br>${hint}
+                    <b style="color:var(--text-main);">${t('pos_where_token')}</b><br>${hint}
                 </div>`;
             const tokenInput = document.getElementById('input-pos-token');
             tokenInput.style.display = 'block';
@@ -938,12 +938,17 @@ async function loadDashboardData() {
                     window.dashboardMap = null;
                 }
 
+                // Розраховуємо початковий зум відносно радіусу доставки:
+                // менший радіус → більший зум (наближено), більший радіус → менший зум (далі)
+                const _radiusKm = bizRadius || 5;
+                const _initZoom = Math.max(8.5, Math.min(13, 14 - Math.log2(Math.max(1, _radiusKm))));
+
                 mapboxgl.accessToken = MAPBOX_TOKEN;
                 window.dashboardMap = new mapboxgl.Map({
                     container: 'heatmap',
                     style: 'mapbox://styles/mapbox/light-v11',
                     center: [centerLon, centerLat],
-                    zoom: 11.5,
+                    zoom: _initZoom,
                     interactive: false,   // як у Leaflet — без драгу/зуму
                     attributionControl: false
                 });
@@ -1010,6 +1015,15 @@ async function loadDashboardData() {
                                 'circle-stroke-width': 1.5
                             }
                         });
+
+                        // Підганяємо viewport під зону доставки (fitBounds відносно радіусу)
+                        const _R = 6371;
+                        const _latD = (_radiusKm / _R) * (180 / Math.PI);
+                        const _lonD = _latD / Math.cos(bizLat * Math.PI / 180);
+                        window.dashboardMap.fitBounds(
+                            [[bizLon - _lonD, bizLat - _latD], [bizLon + _lonD, bizLat + _latD]],
+                            { padding: 48, duration: 0, maxZoom: 14 }
+                        );
                     }
                 });
                 // ────────────────────────────────────────────────────────────
