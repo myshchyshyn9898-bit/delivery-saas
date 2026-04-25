@@ -556,7 +556,7 @@ function sendSupportTicket() {
 // ==========================================
 
 // Маппінг: id картки → реальний шлях webhook і назва колонки в БД
-// POS_CONFIG - translated via i18n
+// getPosConfig() - translated via i18n
 function getPosConfig() { return {
     poster:   { webhookPath: 'poster',   dbColumn: 'poster_token',   name: 'Poster POS',
                 tokenLabel: t('pos_token_lbl_api'),
@@ -589,7 +589,7 @@ function openConnectModal(name, id, color, letter, desc) {
     closeIntegrationsList();
     setTimeout(() => {
         currentPosSystem = id;
-        const cfg = POS_CONFIG[id] || {};
+        const cfg = getPosConfig()[id] || {};
         const logo = document.getElementById('connect-logo');
         logo.innerText = letter; logo.style.background = color;
         const btn = document.getElementById('btn-save-pos'); btn.style.background = color;
@@ -642,7 +642,7 @@ async function savePosIntegration() {
     const token = document.getElementById('input-pos-token').value.trim();
     if (!token) { alert(t('pos_enter_token')); return; }
 
-    const cfg = POS_CONFIG[currentPosSystem] || {};
+    const cfg = getPosConfig()[currentPosSystem] || {};
     const btn = document.getElementById('btn-save-pos');
     const originalHtml = btn.innerHTML;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${t("pos_saving")}`;
@@ -747,7 +747,7 @@ async function loadDashboardData() {
             
             renderSubscriptionUI(biz);
 
-            Object.entries(POS_CONFIG).forEach(([id, cfg]) => {
+            Object.entries(getPosConfig()).forEach(([id, cfg]) => {
                 const tokenVal = biz[cfg.dbColumn];
                 const statusEl = document.getElementById(`status-${id}`);
                 if (tokenVal && statusEl) {
