@@ -35,12 +35,12 @@ async def super_admin_panel(message: types.Message):
 @router.callback_query(F.data.startswith("manage_biz_"))
 async def manage_biz(callback: types.CallbackQuery):
     if callback.from_user.id not in SUPER_ADMIN_IDS:
-        await callback.answer("❌ Доступ заборонено", show_alert=True)
+        await callback.answer("❌ Access denied", show_alert=True)
         return
     biz_id = callback.data.replace("manage_biz_", "")
     biz = await db.get_business_by_id(biz_id)
     if not biz:
-        await callback.answer("❌ Бізнес не знайдено", show_alert=True)
+        await callback.answer("❌ Business not found", show_alert=True)
         return
     new_active = not biz['is_active']
     await db.update_subscription(biz_id, new_active)
@@ -92,7 +92,7 @@ async def manage_biz(callback: types.CallbackQuery):
 async def fix_subscription(callback: types.CallbackQuery):
     """Суперадмін: примусово скидає підписку на trial і очищає кеш."""
     if callback.from_user.id not in SUPER_ADMIN_IDS:
-        await callback.answer("❌ Доступ заборонено", show_alert=True)
+        await callback.answer("❌ Access denied", show_alert=True)
         return
     biz_id = callback.data.replace("fix_sub_", "")
     import datetime
@@ -113,6 +113,6 @@ async def fix_subscription(callback: types.CallbackQuery):
         biz = await db.get_business_by_id(biz_id)
         if biz and biz.get("owner_id"):
             db.invalidate_user_cache(int(biz["owner_id"]))
-        await callback.answer("✅ Підписку відновлено на 7 днів, кеш скинуто!", show_alert=True)
+        await callback.answer("✅ Trial restored for 7 days, cache cleared!", show_alert=True)
     except Exception as e:
         await callback.answer(f"❌ Помилка: {e}", show_alert=True)

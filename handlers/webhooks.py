@@ -376,10 +376,7 @@ async def whop_webhook_handler(request: web.Request) -> web.Response:
                         except Exception:
                             pass
                         # Надсилаємо власнику повідомлення про закінчення підписки
-                        cancel_text = _(owner_lang, 'subscription_expired') if True else (
-                            "⚠️ Ваша підписка DeliPro скасована. "
-                            "Для поновлення перейдіть до налаштувань."
-                        )
+                        cancel_text = _(owner_lang, 'subscription_expired')
                         await bot.send_message(
                             chat_id=int(tg_user_id),
                             text=cancel_text,
@@ -958,7 +955,7 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
 
             return web.Response(text="OK")
         else:
-            return web.Response(status=500, text="Помилка збереження замовлення")
+            return web.Response(status=500, text="order_save_error")
             
     except Exception as exc:
         logger.error(f"[API New Order] Помилка: {exc}", exc_info=True)
