@@ -358,306 +358,248 @@
     }
 
     /* ================================ */
-    /* ONBOARDING */
+    /* ONBOARDING — REDESIGNED         */
     /* ================================ */
-    #screen-onboard { padding: 0; background: var(--bg); }
+    #screen-onboard { padding: 0; background: #f5f5f7; }
 
-    .carousel { display: flex; transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); height: 100%; width: 100%; }
-    .slide { min-width: 100%; flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; }
+    .carousel { display: flex; transition: transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94); height: 100%; width: 100%; }
+    .slide { min-width: 100%; flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+    /* Dot grid background per slide */
+    .slide::before {
+        content: '';
+        position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        background-image: radial-gradient(circle, rgba(0,0,0,0.055) 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+    /* Colour wash per slide */
+    .slide::after {
+        content: '';
+        position: absolute; inset: 0; z-index: 0; pointer-events: none;
+        border-radius: 0;
+    }
+    .slide:nth-child(1)::after { background: radial-gradient(ellipse 90% 55% at 75% -5%, rgba(0,113,227,0.09) 0%, transparent 65%), radial-gradient(ellipse 60% 40% at 5% 70%, rgba(48,209,88,0.06) 0%, transparent 70%); }
+    .slide:nth-child(2)::after { background: radial-gradient(ellipse 80% 55% at 15% -5%, rgba(48,209,88,0.09) 0%, transparent 65%), radial-gradient(ellipse 55% 40% at 90% 65%, rgba(0,113,227,0.05) 0%, transparent 70%); }
+    .slide:nth-child(3)::after { background: radial-gradient(ellipse 75% 55% at 80% -5%, rgba(162,89,255,0.09) 0%, transparent 65%), radial-gradient(ellipse 50% 40% at 10% 70%, rgba(255,107,71,0.06) 0%, transparent 70%); }
+    .slide:nth-child(4)::after { background: radial-gradient(ellipse 80% 55% at 20% -5%, rgba(255,107,71,0.09) 0%, transparent 65%), radial-gradient(ellipse 55% 40% at 85% 65%, rgba(162,89,255,0.05) 0%, transparent 70%); }
 
     .slide-visual-fade {
-        flex: 1; width: 100%; position: relative;
+        flex: 1; width: 100%; position: relative; z-index: 1;
         display: flex; align-items: flex-start; justify-content: center;
-        -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 97%);
-        mask-image: linear-gradient(to bottom, black 60%, transparent 97%);
-        padding-top: 8vh;
-        overflow: hidden;
-    }
-
-    /* Slide background ambient — унікальний per-slide */
-    .slide-visual-fade::before {
-        content: '';
-        position: absolute; inset: 0;
-        z-index: 0;
-    }
-    .slide:nth-child(1) .slide-visual-fade::before {
-        background:
-            radial-gradient(ellipse 80% 55% at 80% -10%, rgba(0,113,227,0.10) 0%, transparent 65%),
-            radial-gradient(ellipse 60% 45% at 10% 60%, rgba(48,209,88,0.06) 0%, transparent 70%);
-    }
-    .slide:nth-child(2) .slide-visual-fade::before {
-        background:
-            radial-gradient(ellipse 70% 50% at 20% -5%, rgba(48,209,88,0.10) 0%, transparent 65%),
-            radial-gradient(ellipse 50% 40% at 85% 70%, rgba(0,113,227,0.06) 0%, transparent 70%);
-    }
-    .slide:nth-child(3) .slide-visual-fade::before {
-        background:
-            radial-gradient(ellipse 75% 55% at 85% -5%, rgba(191,90,242,0.10) 0%, transparent 65%),
-            radial-gradient(ellipse 55% 45% at 15% 65%, rgba(255,107,71,0.07) 0%, transparent 70%);
-    }
-    .slide:nth-child(4) .slide-visual-fade::before {
-        background:
-            radial-gradient(ellipse 70% 50% at 15% 0%, rgba(255,107,71,0.10) 0%, transparent 65%),
-            radial-gradient(ellipse 50% 40% at 80% 60%, rgba(0,113,227,0.06) 0%, transparent 70%);
+        -webkit-mask-image: linear-gradient(to bottom, black 58%, transparent 96%);
+        mask-image: linear-gradient(to bottom, black 58%, transparent 96%);
+        padding-top: 7vh; overflow: hidden;
     }
 
     .slide-text-area {
-        height: 36vh; width: 100%;
+        height: 36vh; width: 100%; position: relative; z-index: 2;
         display: flex; flex-direction: column;
         align-items: center; justify-content: flex-end;
         padding: 0 28px 36px;
-        z-index: 10;
         background: var(--bg);
-        position: relative;
+        box-shadow: 0 -1px 0 rgba(0,0,0,0.05);
     }
-    .slide-text-area::before {
-        content: '';
-        position: absolute; top: -1px; left: 0; right: 0; height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(0,0,0,0.06), transparent);
-    }
-    .slide-title {
-        font-size: 28px; font-weight: 800; color: var(--text-main);
-        margin-bottom: 10px; letter-spacing: -0.8px; text-align: center;
-        line-height: 1.15;
-    }
-    .slide-desc {
-        font-size: 15px; color: var(--text-muted);
-        line-height: 1.55; font-weight: 500; text-align: center;
-        margin-bottom: 28px; padding: 0 8px;
-    }
+    .slide-title { font-size: 27px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; letter-spacing: -0.7px; text-align: center; line-height: 1.2; }
+    .slide-desc { font-size: 14.5px; color: var(--text-muted); line-height: 1.55; font-weight: 500; text-align: center; margin-bottom: 26px; padding: 0 4px; }
 
-    /* iOS-style dots */
-    .dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
-    .dot {
-        width: 6px; height: 6px; border-radius: 3px;
-        background: rgba(0,0,0,0.12); transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .dot.active { background: var(--primary); width: 22px; border-radius: 3px; }
+    .dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 22px; }
+    .dot { width: 6px; height: 6px; border-radius: 3px; background: rgba(0,0,0,0.12); transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+    .dot.active { background: var(--primary); width: 22px; }
 
-    /* Slide action btn — outlined secondary */
-    .btn { 
-        background: var(--primary); color: white; border: none; width: 100%;
-        padding: 17px; border-radius: 14px; font-size: 16px; font-weight: 700;
-        font-family: inherit; cursor: pointer;
-        box-shadow: 0 6px 20px rgba(255,107,71,0.25);
-        transition: all 0.18s ease; display: block; text-align: center;
-        letter-spacing: -0.2px;
-    }
-    .btn:active { transform: scale(0.97); }
-    .btn-trial {
-        background: #1d1d1f;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-    }
+    .btn { background: var(--primary); color: white; border: none; width: 100%; padding: 17px; border-radius: 14px; font-size: 16px; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: 0 6px 20px rgba(255,107,71,0.30); transition: all 0.18s ease; display: block; text-align: center; letter-spacing: -0.2px; }
+    .btn:active { transform: scale(0.97); box-shadow: 0 2px 8px rgba(255,107,71,0.20); }
+    .btn-trial { background: #1d1d1f; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+
+    @keyframes floatCard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+    @keyframes floatCardAlt { 0%,100%{transform:translateY(-4px)} 50%{transform:translateY(4px)} }
+    @keyframes popIn { from{opacity:0;transform:scale(0.85) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    @keyframes slideUpSpring { from{opacity:0;transform:translateY(22px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes drawLine { from{stroke-dashoffset:300} to{stroke-dashoffset:0} }
+    @keyframes fillArea { from{opacity:0} to{opacity:1} }
+    @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes dropPin { 0%{opacity:0;transform:translate(-50%,-50%) translateY(-20px) scale(0.5)} 70%{transform:translate(-50%,-50%) translateY(4px) scale(1.1)} 100%{opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)} }
+    @keyframes pulseRing { 0%{transform:translate(-50%,-50%) scale(1);opacity:0.6} 100%{transform:translate(-50%,-50%) scale(2.8);opacity:0} }
+    @keyframes statusPulse { 0%,100%{box-shadow:0 0 0 3px rgba(48,209,88,0.2)} 50%{box-shadow:0 0 0 7px rgba(48,209,88,0.06)} }
+    @keyframes countUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes notifSlide { 0%,8%{opacity:0;transform:translateX(40px) scale(0.9)} 20%,80%{opacity:1;transform:translateX(0) scale(1)} 92%,100%{opacity:0;transform:translateX(40px) scale(0.9)} }
+    @keyframes typeSuggest { 0%,10%{content:''} 40%,90%{content:'Krakowska 3a, Rzeszów'} 95%,100%{content:''} }
+    @keyframes revealRoute { 0%,5%{clip-path:inset(0 100% 0 0)} 50%,90%{clip-path:inset(0 0% 0 0)} 95%,100%{clip-path:inset(0 100% 0 0)} }
 
     /* ================================ */
-    /* SLIDE 1 — ANALYTICS MOCKUP */
+    /* SLIDE 1 — ANALYTICS */
     /* ================================ */
-    .analytics-card {
-        width: calc(100% - 40px);
-        background: white;
-        border-radius: 24px;
-        padding: 20px;
-        box-shadow: 0 2px 0 rgba(0,113,227,0.15), 0 12px 40px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid rgba(0,0,0,0.06);
-        position: relative; z-index: 1;
-        animation: floatCard 4s infinite ease-in-out;
-        overflow: hidden;
-    }
-    .analytics-card::before {
-        content: '';
-        position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: linear-gradient(90deg, #0071e3, #34aadc, #30d158);
-        border-radius: 24px 24px 0 0;
-    }
-    @keyframes floatCard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-
-    .ac-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .ac-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
-    .ac-badge { background: rgba(48,209,88,0.12); color: var(--acc-green); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; }
-    .ac-value { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; background: linear-gradient(135deg, #1d1d1f, #0071e3); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
-    .ac-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 18px; }
-
-    .graph-container { height: 80px; position: relative; margin-bottom: 16px; }
-    .graph-svg { width: 100%; height: 100%; overflow: visible; }
-    .graph-area { fill: url(#areaGrad); }
-    .graph-line-path { stroke: var(--primary); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 300; stroke-dashoffset: 300; animation: drawGraph 3s 0.5s infinite ease-out; }
-    .graph-area-path { fill: url(#areaGrad); opacity: 0; animation: fadeFill 3s 0.5s infinite ease-out; }
-    .graph-dot-end { fill: var(--primary); filter: drop-shadow(0 0 5px rgba(255,107,71,0.7)); opacity: 0; animation: fadeFill 3s 0.5s infinite ease-out; }
-    @keyframes drawGraph { 0%,10%{stroke-dashoffset:300} 70%,100%{stroke-dashoffset:0} }
-    @keyframes fadeFill { 0%,40%{opacity:0} 70%,100%{opacity:1} }
-
-    .ac-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .ac-stat { background: linear-gradient(145deg, #f8f9ff, #f0f4ff); border-radius: 12px; padding: 10px 8px; text-align: center; border: 1px solid rgba(0,113,227,0.06); }
-    .ac-stat-val { font-size: 16px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
-    .ac-stat-lbl { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
-
-    /* ================================ */
-    /* SLIDE 2 — TEAM MOCKUP */
-    /* ================================ */
-    .team-list {
-        width: calc(100% - 40px);
+    .s1-wrap {
+        width: calc(100% - 36px);
         display: flex; flex-direction: column; gap: 10px;
         position: relative; z-index: 1;
+        animation: floatCard 5s infinite ease-in-out;
     }
 
-    .team-card {
-        background: white; border-radius: 18px;
-        padding: 14px 16px;
-        display: flex; align-items: center; gap: 14px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.05);
-        border: 1px solid rgba(0,0,0,0.06);
-        position: relative; overflow: hidden;
-        transition: all 0.3s ease;
+    .analytics-card {
+        background: white; border-radius: 22px; padding: 18px 20px;
+        box-shadow: 0 1px 0 rgba(0,113,227,0.18), 0 8px 32px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.05);
+        overflow: hidden; position: relative;
     }
-    .team-card::before {
-        content: '';
-        position: absolute; left: 0; top: 0; bottom: 0; width: 3.5px;
-        border-radius: 4px 0 0 4px;
-    }
-    .team-card:nth-child(1)::before { background: linear-gradient(180deg, #0071e3, #34aadc); }
-    .team-card:nth-child(2)::before { background: linear-gradient(180deg, #ff6b47, #ff9a76); }
-    .team-card:nth-child(3)::before { background: linear-gradient(180deg, #ff6b47, #ff9a76); }
-    .team-card:nth-child(1) { animation: slideUp 0.5s 0.1s both cubic-bezier(0.34,1.56,0.64,1); }
-    .team-card:nth-child(2) { animation: slideUp 0.5s 0.25s both cubic-bezier(0.34,1.56,0.64,1); }
-    .team-card:nth-child(3) { animation: slideUp 0.5s 0.4s both cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes slideUp { from{opacity:0;transform:translateY(20px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
-    @keyframes slideRight { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
-
-    .tc-avatar {
-        width: 44px; height: 44px; border-radius: 14px;
-        display: flex; align-items: center; justify-content: center; font-size: 20px;
-        flex-shrink: 0;
-    }
-    .tc-avatar.manager { background: linear-gradient(135deg, rgba(0,113,227,0.10), rgba(52,170,220,0.08)); border: 1px solid rgba(0,113,227,0.12); }
-    .tc-avatar.courier { background: linear-gradient(135deg, rgba(255,107,71,0.10), rgba(255,154,118,0.08)); border: 1px solid rgba(255,107,71,0.12); }
-
-    .tc-info { flex: 1; }
-    .tc-name { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
-    .tc-role {
-        font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px;
-        display: inline-block; letter-spacing: 0.5px;
-    }
-    .tc-role.manager { background: rgba(0,113,227,0.08); color: var(--acc-blue); border: 1px solid rgba(0,113,227,0.12); }
-    .tc-role.courier { background: rgba(255,107,71,0.08); color: var(--primary); border: 1px solid rgba(255,107,71,0.12); }
-
-    .tc-status { width: 8px; height: 8px; border-radius: 50%; background: var(--acc-green); flex-shrink: 0; box-shadow: 0 0 0 3px rgba(48,209,88,0.2); animation: statusPulse 2.5s infinite ease-in-out; }
-    @keyframes statusPulse { 0%,100%{box-shadow:0 0 0 3px rgba(48,209,88,0.2)} 50%{box-shadow:0 0 0 6px rgba(48,209,88,0.08)} }
-
-    /* ================================ */
-    /* SLIDE 3 — FORM MOCKUP */
-    /* ================================ */
-    .form-mockup {
-        width: calc(100% - 40px);
-        background: white; border-radius: 24px;
-        padding: 20px;
-        box-shadow: 0 2px 0 rgba(191,90,242,0.12), 0 12px 40px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
-        border: 1px solid rgba(0,0,0,0.06);
-        position: relative; z-index: 1;
-        animation: floatCard 6s 1s infinite ease-in-out alternate;
-        overflow: hidden;
-    }
-    .form-mockup::before {
+    .analytics-card::after {
         content: '';
         position: absolute; top: 0; left: 0; right: 0; height: 3px;
-        background: linear-gradient(90deg, #bf5af2, #ff6b47, #ff9a76);
-        border-radius: 24px 24px 0 0;
+        background: linear-gradient(90deg, #0071e3 0%, #34aadc 50%, #30d158 100%);
     }
+    .ac-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .ac-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.4px; text-transform: uppercase; }
+    .ac-badge { background: rgba(48,209,88,0.10); color: #1a9e45; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 7px; display: flex; align-items: center; gap: 4px; border: 1px solid rgba(48,209,88,0.15); }
+    .ac-value { font-size: 38px; font-weight: 800; letter-spacing: -2px; color: var(--text-main); line-height: 1; margin-bottom: 12px; }
+    .ac-value span { font-size: 18px; font-weight: 600; color: var(--text-muted); margin-left: 2px; }
 
-    .fm-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-    .fm-label i { color: var(--primary); }
+    .graph-container { height: 64px; position: relative; margin-bottom: 14px; }
+    .graph-svg { width: 100%; height: 100%; overflow: visible; }
+    .graph-line-path { stroke: #0071e3; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 300; stroke-dashoffset: 300; animation: drawLine 2.5s 0.3s infinite ease-out; }
+    .graph-area-path { fill: url(#areaGrad); opacity: 0; animation: fillArea 2.5s 0.3s infinite ease-out; }
+    .graph-dot-end { fill: #0071e3; r:5; filter: drop-shadow(0 0 6px rgba(0,113,227,0.6)); opacity: 0; animation: fillArea 2.5s 0.3s infinite ease-out; }
 
-    .fm-input {
-        background: var(--bg); border-radius: 12px; height: 50px;
-        display: flex; align-items: center; padding: 0 14px;
-        font-size: 14px; font-weight: 600; color: var(--text-main);
-        margin-bottom: 14px; border: 1.5px solid transparent;
+    .ac-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .ac-stat { background: #f5f7ff; border-radius: 11px; padding: 9px 6px; text-align: center; border: 1px solid rgba(0,113,227,0.07); }
+    .ac-stat-val { font-size: 15px; font-weight: 800; color: var(--text-main); letter-spacing: -0.4px; }
+    .ac-stat-lbl { font-size: 9.5px; color: var(--text-muted); font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+    /* Notification badge top right */
+    .s1-notif {
+        position: absolute; top: -8px; right: -4px;
+        background: white; border-radius: 12px;
+        padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.06);
+        font-size: 12px; font-weight: 700; white-space: nowrap;
+        animation: notifSlide 5s 1s infinite ease-in-out;
+        z-index: 2;
+    }
+    .s1-notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #30d158; flex-shrink: 0; animation: statusPulse 2s infinite; }
+
+    /* ================================ */
+    /* SLIDE 2 — TEAM */
+    /* ================================ */
+    .team-list { width: calc(100% - 36px); display: flex; flex-direction: column; gap: 9px; position: relative; z-index: 1; }
+
+    .team-card {
+        background: white; border-radius: 17px; padding: 13px 15px;
+        display: flex; align-items: center; gap: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.05);
         position: relative; overflow: hidden;
     }
-    .fm-input.focused { border-color: var(--primary); background: rgba(255,107,71,0.04); }
-    .fm-cursor { display: inline-block; width: 1.5px; height: 16px; background: var(--primary); margin-left: 1px; animation: cursorBlink 1s infinite; vertical-align: middle; }
-    @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
-    .fm-typing { display: inline; }
-    .fm-typing::after { content: ''; animation: typeText 6s infinite; }
-    @keyframes typeText {
-        0%,10% { content: ''; }
-        40%,90% { content: 'Krakowska 3a, Rzeszów'; }
-        95%,100% { content: ''; }
+    .team-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; }
+    .team-card:nth-child(1)::before { background: linear-gradient(180deg,#0071e3,#34aadc); }
+    .team-card:nth-child(2)::before { background: linear-gradient(180deg,#ff6b47,#ff9a76); }
+    .team-card:nth-child(3)::before { background: linear-gradient(180deg,#ff6b47,#ff9a76); }
+    .team-card:nth-child(1) { animation: slideUpSpring 0.5s 0.05s both cubic-bezier(0.34,1.56,0.64,1); }
+    .team-card:nth-child(2) { animation: slideUpSpring 0.5s 0.18s both cubic-bezier(0.34,1.56,0.64,1); }
+    .team-card:nth-child(3) { animation: slideUpSpring 0.5s 0.31s both cubic-bezier(0.34,1.56,0.64,1); }
+
+    .tc-avatar { width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .tc-avatar.manager { background: linear-gradient(135deg,rgba(0,113,227,0.12),rgba(52,170,220,0.08)); border: 1px solid rgba(0,113,227,0.12); }
+    .tc-avatar.courier { background: linear-gradient(135deg,rgba(255,107,71,0.12),rgba(255,154,118,0.08)); border: 1px solid rgba(255,107,71,0.12); }
+
+    .tc-info { flex: 1; }
+    .tc-name { font-size: 14.5px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
+    .tc-meta { display: flex; align-items: center; gap: 6px; }
+    .tc-role { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 5px; letter-spacing: 0.4px; }
+    .tc-role.manager { background: rgba(0,113,227,0.08); color: #0058b8; border: 1px solid rgba(0,113,227,0.12); }
+    .tc-role.courier { background: rgba(255,107,71,0.08); color: #d44a25; border: 1px solid rgba(255,107,71,0.12); }
+    .tc-orders { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+    .tc-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .tc-status { width: 9px; height: 9px; border-radius: 50%; background: var(--acc-green); box-shadow: 0 0 0 3px rgba(48,209,88,0.18); animation: statusPulse 2.5s infinite; }
+    .tc-status.busy { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.18); animation: none; }
+    .tc-time { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+    .team-add-card {
+        background: white; border-radius: 17px; padding: 13px 15px;
+        display: flex; align-items: center; gap: 12px;
+        border: 1.5px dashed rgba(0,0,0,0.12);
+        animation: slideUpSpring 0.5s 0.44s both cubic-bezier(0.34,1.56,0.64,1);
     }
+    .tc-add-icon { width: 42px; height: 42px; border-radius: 13px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-muted); flex-shrink: 0; }
+    .tc-add-text { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+
+    /* ================================ */
+    /* SLIDE 3 — FORM */
+    /* ================================ */
+    .form-mockup {
+        width: calc(100% - 36px); background: white; border-radius: 22px;
+        padding: 18px 18px 16px;
+        box-shadow: 0 1px 0 rgba(162,89,255,0.18), 0 8px 32px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.05);
+        position: relative; z-index: 1; overflow: hidden;
+        animation: floatCard 6s 1s infinite ease-in-out;
+    }
+    .form-mockup::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg,#a259ff,#ff6b47,#ffb347); }
+
+    .fm-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .fm-label i { color: var(--primary); font-size: 12px; }
+
+    .fm-input { background: #f5f5f7; border-radius: 11px; height: 46px; display: flex; align-items: center; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 10px; border: 1.5px solid transparent; position: relative; }
+    .fm-input.focused { border-color: #a259ff; background: rgba(162,89,255,0.04); box-shadow: 0 0 0 3px rgba(162,89,255,0.10); }
+    .fm-cursor { display: inline-block; width: 1.5px; height: 15px; background: #a259ff; margin-left: 1px; animation: cursorBlink 1s infinite; vertical-align: middle; }
+    .fm-typing::after { content: ''; animation: typeSuggest 6s infinite; }
+
+    /* Address suggestions */
+    .fm-suggestions { border-radius: 11px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); margin-bottom: 10px; }
+    .fm-sug-item { padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; color: var(--text-main); background: white; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .fm-sug-item:last-child { border-bottom: none; }
+    .fm-sug-item.selected { background: rgba(162,89,255,0.05); color: #7a35d8; }
+    .fm-sug-item i { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+    .fm-sug-item.selected i { color: #a259ff; }
+    .fm-sug-check { margin-left: auto; color: #a259ff; font-size: 13px; }
 
     .fm-map {
-        height: 110px; border-radius: 14px; overflow: hidden;
-        background: #e8edf0; position: relative;
-        background: linear-gradient(160deg, #d4e4f7 0%, #b8d4f0 30%, #dde8d0 60%, #c8dcc0 100%); /* map preview */
-        background-size: cover; background-position: center;
+        height: 95px; border-radius: 12px; overflow: hidden;
+        background: linear-gradient(160deg, #d8eaff 0%, #c5dff7 40%, #d4edce 70%, #c8e4c0 100%);
+        position: relative;
     }
-    .fm-map::after {
-        content: '';
+    .fm-map-grid {
         position: absolute; inset: 0;
-        background-image: linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px);
-        background-size: 24px 24px;
+        background-image: linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px);
+        background-size: 22px 22px;
     }
-    .fm-map-store { position: absolute; left: 18%; top: 55%; transform: translate(-50%,-50%); width: 32px; height: 32px; background: var(--text-main); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 2; }
-    .fm-map-client { position: absolute; right: 18%; top: 28%; transform: translate(50%,-50%); width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; border: 2.5px solid white; box-shadow: 0 4px 12px rgba(255,107,71,0.35); z-index: 2; }
-    .fm-route {
-        position: absolute; left: 20%; top: 45%; width: 58%; height: 3px;
-        background: linear-gradient(90deg, rgba(255,107,71,0.8), rgba(255,107,71,0.3));
-        transform: rotate(-15deg); border-radius: 2px; z-index: 1;
-        clip-path: inset(0 100% 0 0);
-        animation: revealRoute 4s 1s infinite;
-    }
-    @keyframes revealRoute { 0%,5%{clip-path:inset(0 100% 0 0)} 40%,90%{clip-path:inset(0 0% 0 0)} 95%,100%{clip-path:inset(0 100% 0 0)} }
+    .fm-map-road-h { position: absolute; left: 0; right: 0; top: 50%; height: 5px; background: rgba(255,255,255,0.8); transform: translateY(-50%); }
+    .fm-map-road-v { position: absolute; top: 0; bottom: 0; left: 35%; width: 5px; background: rgba(255,255,255,0.8); }
+    .fm-pin { position: absolute; left: 35%; top: 50%; transform: translate(-50%,-50%); z-index: 3; animation: dropPin 1.5s 0.5s both cubic-bezier(0.34,1.56,0.64,1); }
+    .fm-pin-dot { width: 28px; height: 28px; background: #a259ff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid white; box-shadow: 0 4px 12px rgba(162,89,255,0.4); display: flex; align-items: center; justify-content: center; }
+    .fm-pin-dot i { transform: rotate(45deg); color: white; font-size: 11px; }
+    .fm-pin-ring { position: absolute; top: 50%; left: 50%; width: 48px; height: 48px; border-radius: 50%; border: 2px solid rgba(162,89,255,0.4); animation: pulseRing 2s 1s infinite ease-out; }
+    .fm-store { position: absolute; left: 20%; top: 30%; transform: translate(-50%,-50%); width: 26px; height: 26px; background: var(--text-main); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); z-index: 2; }
+    .fm-route { position: absolute; left: 22%; top: 42%; width: 55%; height: 3px; background: linear-gradient(90deg, rgba(162,89,255,0.8), rgba(162,89,255,0.3)); transform: rotate(-12deg); border-radius: 2px; clip-path: inset(0 100% 0 0); animation: revealRoute 4s 1.5s infinite; z-index: 1; }
 
     /* ================================ */
-    /* SLIDE 4 — TG MESSAGE MOCKUP */
+    /* SLIDE 4 — TELEGRAM */
     /* ================================ */
     .tg-mockup {
-        width: calc(100% - 40px);
-        background: #17212b;
-        border-radius: 24px;
-        overflow: hidden;
-        box-shadow: 0 2px 0 rgba(255,107,71,0.4), 0 16px 48px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.1);
+        width: calc(100% - 36px); background: #17212b; border-radius: 22px; overflow: hidden;
+        box-shadow: 0 1px 0 rgba(255,107,71,0.35), 0 12px 40px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
         position: relative; z-index: 1;
         animation: floatCard 5s 0.5s infinite ease-in-out;
     }
+    .tg-header { background: #232e3c; padding: 12px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .tg-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#ff6b47,#ff9a76); display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .tg-name { font-size: 13.5px; font-weight: 700; color: white; }
+    .tg-online { font-size: 10.5px; color: #4dcd7f; font-weight: 500; }
+    .tg-body { padding: 12px 14px; }
+    .tg-msg-bubble { background: #232e3c; border-radius: 14px 14px 14px 3px; padding: 12px; margin-bottom: 9px; }
+    .tg-map-mini { height: 90px; border-radius: 9px; overflow: hidden; background: linear-gradient(160deg,#1a2d20,#0e1c2a); position: relative; margin-bottom: 10px; }
+    .tg-map-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px); background-size: 18px 18px; }
+    .tg-route-line { position: absolute; left: 18%; top: 48%; width: 60%; height: 3px; background: linear-gradient(90deg,#ff6b47,rgba(255,107,71,0.3)); transform: rotate(-13deg); border-radius: 2px; box-shadow: 0 0 10px rgba(255,107,71,0.5); }
+    .tg-pin-store { position: absolute; left: 16%; top: 58%; transform: translate(-50%,-50%); width: 26px; height: 26px; background: #1d1d1f; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; border: 1px solid rgba(255,255,255,0.12); }
+    .tg-pin-client { position: absolute; right: 15%; top: 26%; transform: translate(50%,-50%); width: 26px; height: 26px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 10px; border: 2px solid #17212b; box-shadow: 0 0 10px rgba(255,107,71,0.5); }
+    .tg-order-title { color: white; font-size: 13px; font-weight: 700; margin-bottom: 6px; letter-spacing: 0.2px; }
+    .tg-order-row { font-size: 11.5px; color: rgba(255,255,255,0.6); margin-bottom: 4px; font-weight: 500; display: flex; align-items: center; gap: 5px; }
+    .tg-status-pill { display: inline-flex; align-items: center; gap: 5px; background: rgba(48,209,88,0.15); color: #30d158; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 7px; margin-bottom: 8px; }
+    .tg-status-dot { width: 5px; height: 5px; border-radius: 50%; background: #30d158; }
+    .tg-btns { display: flex; gap: 8px; }
+    .tg-close-btn { flex: 1; background: rgba(255,107,71,0.15); border: 1px solid rgba(255,107,71,0.25); color: var(--primary); border-radius: 9px; padding: 9px 8px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .tg-nav-btn { flex: 1; background: rgba(0,113,227,0.15); border: 1px solid rgba(0,113,227,0.25); color: #4da3ff; border-radius: 9px; padding: 9px 8px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; }
 
-    .tg-header {
-        background: #232e3c;
-        padding: 14px 16px;
-        display: flex; align-items: center; gap: 10px;
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .tg-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #ff9a76); display: flex; align-items: center; justify-content: center; font-size: 16px; }
-    .tg-name { font-size: 14px; font-weight: 700; color: white; }
-    .tg-online { font-size: 11px; color: #4dcd7f; font-weight: 500; }
-
-    .tg-body { padding: 14px 16px; }
-
-    .tg-msg-bubble {
-        background: #232e3c;
-        border-radius: 16px 16px 16px 4px;
-        padding: 14px;
-        margin-bottom: 10px;
-    }
-
-    .tg-map-mini {
-        height: 110px; border-radius: 10px; overflow: hidden;
-        background: linear-gradient(135deg, #1e293b, #0f172a); /* mapbox dark preview — token load via JS */
-        background-size: cover; background-position: center;
-        position: relative; margin-bottom: 12px;
-    }
-    .tg-route-line { position: absolute; left: 20%; top: 45%; width: 58%; height: 3px; background: linear-gradient(90deg, var(--primary), rgba(255,107,71,0.4)); transform: rotate(-14deg); border-radius: 2px; box-shadow: 0 0 8px rgba(255,107,71,0.5); }
-    .tg-pin-store { position: absolute; left: 16%; top: 55%; transform: translate(-50%,-50%); width: 28px; height: 28px; background: #1d1d1f; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; border: 1px solid rgba(255,255,255,0.1); }
-    .tg-pin-client { position: absolute; right: 16%; top: 25%; transform: translate(50%,-50%); width: 28px; height: 28px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; border: 2px solid #17212b; }
-
-    .tg-order-title { color: white; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
-    .tg-order-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.65); margin-bottom: 5px; font-weight: 500; }
-    .tg-status-row { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-    .tg-status-pill { background: rgba(255,59,48,0.2); color: #ff6b6b; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 5px; }
-    .tg-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff6b6b; animation: blink 2s infinite; }
-
-    .tg-close-btn { width: 100%; background: rgba(255,107,71,0.15); border: 1px solid rgba(255,107,71,0.25); color: var(--primary); border-radius: 10px; padding: 10px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
-
-    /* ================================ */
+        /* ================================ */
     /* PRICING */
     /* ================================ */
     #screen-pricing { background: var(--bg); }
@@ -868,38 +810,45 @@
         <!-- Slide 1: Analytics -->
         <div class="slide">
             <div class="slide-visual-fade">
-                <div class="analytics-card">
-                    <div class="ac-header">
-                        <div class="ac-label" data-i18n="lbl_total_cash">Загальна каса</div>
-                        <div class="ac-badge"><i class="fa-solid fa-arrow-trend-up" style="font-size:10px;"></i> +18%</div>
-                    </div>
-                    <div class="ac-value">3 421 <span style="font-size:20px;font-weight:600;color:var(--text-muted)">zł</span></div>
-                    <div class="ac-sub" data-i18n="lbl_heatmap">Динаміка доходу</div>
-                    <div class="graph-container">
-                        <svg class="graph-svg" viewBox="0 0 200 80" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#ff6b47" stop-opacity="0.18"/>
-                                    <stop offset="100%" stop-color="#ff6b47" stop-opacity="0"/>
-                                </linearGradient>
-                            </defs>
-                            <path d="M0,65 C30,55 50,25 90,38 C130,52 150,12 200,6 L200,80 L0,80 Z" class="graph-area-path"/>
-                            <path d="M0,65 C30,55 50,25 90,38 C130,52 150,12 200,6" class="graph-line-path"/>
-                            <circle cx="200" cy="6" r="4" class="graph-dot-end"/>
-                        </svg>
-                    </div>
-                    <div class="ac-stats">
-                        <div class="ac-stat">
-                            <div class="ac-stat-val">42</div>
-                            <div class="ac-stat-lbl" data-i18n="lbl_orders_short">Замовл.</div>
+                <div class="s1-wrap">
+                    <div style="position:relative;">
+                        <div class="s1-notif">
+                            <div class="s1-notif-dot"></div>
+                            <span>+3 420 zł сьогодні</span>
                         </div>
-                        <div class="ac-stat">
-                            <div class="ac-stat-val">3</div>
-                            <div class="ac-stat-lbl" data-i18n="lbl_couriers">Кур'єри</div>
-                        </div>
-                        <div class="ac-stat">
-                            <div class="ac-stat-val">28 хв</div>
-                            <div class="ac-stat-lbl" data-i18n="lbl_avg_time">Середній час</div>
+                        <div class="analytics-card">
+                            <div class="ac-header">
+                                <div class="ac-label" data-i18n="lbl_total_cash">Загальна каса</div>
+                                <div class="ac-badge"><i class="fa-solid fa-arrow-trend-up" style="font-size:9px;"></i> +18%</div>
+                            </div>
+                            <div class="ac-value">3 421 <span>zł</span></div>
+                            <div class="graph-container">
+                                <svg class="graph-svg" viewBox="0 0 200 64" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#0071e3" stop-opacity="0.15"/>
+                                            <stop offset="100%" stop-color="#0071e3" stop-opacity="0"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <path d="M0,52 C25,44 45,20 80,30 C115,40 135,8 200,4 L200,64 L0,64 Z" class="graph-area-path"/>
+                                    <path d="M0,52 C25,44 45,20 80,30 C115,40 135,8 200,4" class="graph-line-path"/>
+                                    <circle cx="200" cy="4" r="5" class="graph-dot-end"/>
+                                </svg>
+                            </div>
+                            <div class="ac-stats">
+                                <div class="ac-stat">
+                                    <div class="ac-stat-val">42</div>
+                                    <div class="ac-stat-lbl" data-i18n="lbl_orders_short">Замовл.</div>
+                                </div>
+                                <div class="ac-stat">
+                                    <div class="ac-stat-val">3</div>
+                                    <div class="ac-stat-lbl" data-i18n="lbl_couriers">Кур'єри</div>
+                                </div>
+                                <div class="ac-stat">
+                                    <div class="ac-stat-val">28 хв</div>
+                                    <div class="ac-stat-lbl" data-i18n="lbl_avg_time">Сер. час</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -920,25 +869,47 @@
                         <div class="tc-avatar manager">👨‍💼</div>
                         <div class="tc-info">
                             <div class="tc-name" data-i18n="name_manager">Олексій М.</div>
-                            <span class="tc-role manager" data-i18n="lbl_manager">МЕНЕДЖЕР</span>
+                            <div class="tc-meta">
+                                <span class="tc-role manager" data-i18n="lbl_manager">МЕНЕДЖЕР</span>
+                                <span class="tc-orders">12 замовл.</span>
+                            </div>
                         </div>
-                        <div class="tc-status"></div>
+                        <div class="tc-right">
+                            <div class="tc-status"></div>
+                            <div class="tc-time">онлайн</div>
+                        </div>
                     </div>
                     <div class="team-card">
                         <div class="tc-avatar courier">🛵</div>
                         <div class="tc-info">
                             <div class="tc-name" data-i18n="name_courier1">Іван К.</div>
-                            <span class="tc-role courier" data-i18n="lbl_courier">КУР'ЄР</span>
+                            <div class="tc-meta">
+                                <span class="tc-role courier" data-i18n="lbl_courier">КУР'ЄР</span>
+                                <span class="tc-orders">8 замовл.</span>
+                            </div>
                         </div>
-                        <div class="tc-status"></div>
+                        <div class="tc-right">
+                            <div class="tc-status"></div>
+                            <div class="tc-time">онлайн</div>
+                        </div>
                     </div>
                     <div class="team-card">
                         <div class="tc-avatar courier">🛵</div>
                         <div class="tc-info">
                             <div class="tc-name" data-i18n="name_courier2">Максим В.</div>
-                            <span class="tc-role courier" data-i18n="lbl_courier">КУР'ЄР</span>
+                            <div class="tc-meta">
+                                <span class="tc-role courier" data-i18n="lbl_courier">КУР'ЄР</span>
+                                <span class="tc-orders">6 замовл.</span>
+                            </div>
                         </div>
-                        <div class="tc-status" style="background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.15);"></div>
+                        <div class="tc-right">
+                            <div class="tc-status busy"></div>
+                            <div class="tc-time">в дорозі</div>
+                        </div>
+                    </div>
+                    <div class="team-add-card">
+                        <div class="tc-add-icon">＋</div>
+                        <div class="tc-add-text">Додати учасника...</div>
                     </div>
                 </div>
             </div>
@@ -958,10 +929,27 @@
                     <div class="fm-input focused">
                         <span class="fm-typing"></span><span class="fm-cursor"></span>
                     </div>
+                    <div class="fm-suggestions">
+                        <div class="fm-sug-item selected">
+                            <i class="fa-solid fa-location-dot"></i>
+                            Krakowska 3a, Rzeszów
+                            <i class="fa-solid fa-check fm-sug-check"></i>
+                        </div>
+                        <div class="fm-sug-item">
+                            <i class="fa-regular fa-location-dot"></i>
+                            Krakowska 12, Rzeszów
+                        </div>
+                    </div>
                     <div class="fm-map">
-                        <div class="fm-map-store"><i class="fa-solid fa-store"></i></div>
+                        <div class="fm-map-grid"></div>
+                        <div class="fm-map-road-h"></div>
+                        <div class="fm-map-road-v"></div>
+                        <div class="fm-store"><i class="fa-solid fa-store"></i></div>
+                        <div class="fm-pin">
+                            <div class="fm-pin-ring"></div>
+                            <div class="fm-pin-dot"><i class="fa-solid fa-location-dot"></i></div>
+                        </div>
                         <div class="fm-route"></div>
-                        <div class="fm-map-client"><i class="fa-solid fa-location-dot"></i></div>
                     </div>
                 </div>
             </div>
@@ -987,17 +975,19 @@
                     <div class="tg-body">
                         <div class="tg-msg-bubble">
                             <div class="tg-map-mini">
+                                <div class="tg-map-grid"></div>
                                 <div class="tg-route-line"></div>
                                 <div class="tg-pin-store"><i class="fa-solid fa-store"></i></div>
                                 <div class="tg-pin-client"><i class="fa-solid fa-location-dot"></i></div>
                             </div>
                             <div class="tg-order-title" data-i18n="tg_title">📦 ЗАМОВЛЕННЯ #N209</div>
-                            <div class="tg-status-row">
-                                <div class="tg-status-pill"><div class="tg-status-dot"></div> <span data-i18n="tg_stat_val">Закрито (22:34)</span></div>
-                            </div>
+                            <div class="tg-status-pill"><div class="tg-status-dot"></div> <span data-i18n="tg_stat_val">В дорозі</span></div>
                             <div class="tg-order-row"><span data-i18n="tg_details">📍 52f, Miła, Drabinianka · 💳 ОНЛАЙН</span></div>
                         </div>
-                        <button class="tg-close-btn"><i class="fa-solid fa-check"></i> <span data-i18n="btn_close_order">Закрити замовлення</span></button>
+                        <div class="tg-btns">
+                            <button class="tg-close-btn"><i class="fa-solid fa-check"></i> <span data-i18n="btn_close_order">Закрити</span></button>
+                            <button class="tg-nav-btn"><i class="fa-solid fa-route"></i> Маршрут</button>
+                        </div>
                     </div>
                 </div>
             </div>
