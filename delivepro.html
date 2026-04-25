@@ -576,6 +576,12 @@
     .pw-feat-icon { font-size: 20px; }
     .pw-feat-name { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.85); line-height: 1.3; }
 
+    /* Billing toggle */
+    .pw-billing-toggle { display:flex; align-items:center; background:rgba(255,255,255,0.07); border-radius:12px; padding:4px; gap:4px; margin-bottom:18px; width:100%; }
+    .pw-billing-btn { flex:1; padding:8px 12px; border-radius:9px; border:none; font-size:13px; font-weight:700; font-family:inherit; cursor:pointer; transition:all 0.22s ease; background:transparent; color:rgba(255,255,255,0.45); }
+    .pw-billing-btn.active { background:white; color:#1d1d1f; box-shadow:0 2px 8px rgba(0,0,0,0.18); }
+    .pw-billing-save { display:inline-flex; align-items:center; gap:4px; background:rgba(48,209,88,0.18); color:#30d158; font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px; border:1px solid rgba(48,209,88,0.25); margin-left:6px; }
+
     .pw-plans { display: flex; gap: 10px; width: 100%; margin-bottom: 18px; }
     .pw-plan {
         flex: 1; border-radius: 16px; padding: 14px 12px;
@@ -1004,19 +1010,31 @@
 
         <div class="pw-features" id="pw-features-grid"></div>
 
+        <div class="pw-plan-header" data-i18n="pw_feat_title">Що входить:</div>
+        <div class="pw-features" id="pw-features-grid"></div>
+
+        <!-- Billing toggle: Monthly / Yearly -->
+        <div class="pw-billing-toggle">
+            <button class="pw-billing-btn active" id="billing-monthly" onclick="setBilling('monthly')" data-i18n="pw_billing_monthly">Щомісячно</button>
+            <button class="pw-billing-btn" id="billing-yearly" onclick="setBilling('yearly')">
+                <span data-i18n="pw_billing_yearly">Щорічно</span>
+                <span class="pw-billing-save">−25%</span>
+            </button>
+        </div>
+
         <div class="pw-plans">
             <div class="pw-plan" id="plan-basic" onclick="selectPlan('basic')">
                 <div class="pw-plan-label">Basic</div>
-                <div class="pw-plan-price">29.99 zł</div>
-                <div class="pw-plan-period" data-i18n="pr_month">/ міс</div>
-                <div class="pw-trial-badge" data-i18n="pw_trial_basic">7 днів безкоштовно</div>
+                <div class="pw-plan-price" id="price-basic">29.99 zł</div>
+                <div class="pw-plan-period" id="period-basic" data-i18n="pr_month">/ міс</div>
+                <div class="pw-trial-badge" data-i18n="pw_trial_badge">14 днів безкоштовно</div>
             </div>
             <div class="pw-plan sel" id="plan-pro" onclick="selectPlan('pro')">
                 <div class="pw-badge" data-i18n="pr_pop">ПОПУЛЯРНИЙ</div>
                 <div class="pw-plan-label">Pro</div>
-                <div class="pw-plan-price">59.99 zł</div>
-                <div class="pw-plan-period" data-i18n="pr_month">/ міс</div>
-                <div class="pw-trial-badge" data-i18n="pw_trial_pro">7 днів безкоштовно</div>
+                <div class="pw-plan-price" id="price-pro">59.99 zł</div>
+                <div class="pw-plan-period" id="period-pro" data-i18n="pr_month">/ міс</div>
+                <div class="pw-trial-badge" data-i18n="pw_trial_badge">14 днів безкоштовно</div>
             </div>
         </div>
     </div>
@@ -1162,7 +1180,7 @@
         uk: {
             splash_sub:"Еволюція твоєї доставки.<br>Швидко. Просто. Прибутково.",
             btn_join:"Приєднатися", btn_next:"Далі", btn_plan:"Обрати тариф",
-            btn_create:"Створити кабінет", btn_trial:"Почати 7 днів безкоштовно",
+            btn_create:"Створити кабінет", btn_trial:"Почати 14 днів безкоштовно",
             s1_title:"Глибока аналітика", s1_desc:"Контролюйте доходи, час та зони доставки у реальному часі.",
             s2_title:"Керування командою", s2_desc:"Додавайте та видаляйте менеджерів і кур\u2019єрів в один клік.",
             s3_title:"Розумна форма", s3_desc:"Автоматичний пошук адреси, перевірка зони та швидке створення маршруту.",
@@ -1188,11 +1206,11 @@
             txt_cancel:"Скасувати можна в будь-який момент",
             pw_headline:"Найкращий спосіб<br>керувати <em>доставкою</em>",
             pw_sub:"Спробуйте Pro безкоштовно 7 днів",
-            pw_f1:"Необмежена к-сть кур\u2019єрів", pw_f2:"Глибока аналітика",
-            pw_f3:"Карта та маршрути", pw_f4:"Управління менеджерами",
-            pw_f5:"Інтеграції з касою", pw_f6:"Техпідтримка 24/7",
-            pw_bf1:"До 2 кур\u2019єрів у штаті", pw_bf2:"Базова статистика",
-            pw_bf3:"Карта замовлень", pw_bf4:"Техпідтримка",
+            pw_f1:"Необмежена к-сть кур’єрів і менеджерів", pw_f2:"Глибока аналітика + теплова карта",
+            pw_f3:"Графік змін + зарплата кур’єрів", pw_f4:"Інтеграції з касою (Poster, iiko...)",
+            pw_f5:"Автогеокодинг + перевірка зони", pw_f6:"Пріоритетна підтримка 24/7",
+            pw_bf1:"2 кур’єри + 1 менеджер", pw_bf2:"Базова аналітика (каса, к-сть замовлень)",
+            pw_bf3:"Стандартний пошук адреси", pw_bf4:"Телеграм-бот з картою",
             pw_trial_basic:"7 днів безкоштовно", pw_trial_pro:"7 днів безкоштовно",
             pw_restore:"Відновити покупку", pw_terms:"Умови", pw_privacy:"Приватність",
             mode_title:"Як працює ваша доставка?",
@@ -1216,11 +1234,20 @@
             alert_load:"⏳ Створюємо кабінет...", alert_pay:"Оберіть хоча б один метод оплати",
             alert_group:"Для Uber-режиму потрібен ID групи кур\u2019єрів",
             anim_process:"⏳ В процесі", anim_deliv:"✅ Доставлено",
+            pw_bf5:"Диспетчер + Uber-режим",
+            pw_bf6:"Зона доставки на карті",
+            pw_feat_title:"Що входить:",
+            pw_trial_badge:"14 днів безкоштовно",
+            pw_billing_monthly:"Щомісячно",
+            pw_billing_yearly:"Щорічно",
+            pr_month:"/ міс",
+            pr_year:"/ міс (щорічно)",
+            txt_cancel:"Скасувати можна в будь-який момент"
         },
         ru: {
             splash_sub:"Эволюция твоей доставки.<br>Быстро. Просто. Прибыльно.",
             btn_join:"Присоединиться", btn_next:"Далее", btn_plan:"Выбрать тариф",
-            btn_create:"Создать кабинет", btn_trial:"Начать 7 дней бесплатно",
+            btn_create:"Создать кабинет", btn_trial:"Начать 14 дней бесплатно",
             s1_title:"Глубокая аналитика", s1_desc:"Контролируйте доходы, время и зоны доставки в реальном времени.",
             s2_title:"Управление командой", s2_desc:"Добавляйте и удаляйте менеджеров и курьеров в один клик.",
             s3_title:"Умная форма", s3_desc:"Автоматический поиск адреса, проверка зоны и быстрое создание маршрута.",
@@ -1246,11 +1273,11 @@
             txt_cancel:"Отменить можно в любой момент",
             pw_headline:"Лучший способ<br>управлять <em>доставкой</em>",
             pw_sub:"Попробуйте Pro бесплатно 7 дней",
-            pw_f1:"Неограниченное кол-во курьеров", pw_f2:"Глубокая аналитика",
-            pw_f3:"Карта и маршруты", pw_f4:"Управление менеджерами",
-            pw_f5:"Интеграции с кассой", pw_f6:"Техподдержка 24/7",
-            pw_bf1:"До 2 курьеров в штате", pw_bf2:"Базовая статистика",
-            pw_bf3:"Карта заказов", pw_bf4:"Техподдержка",
+            pw_f1:"Безлимитное кол-во курьеров и менеджеров", pw_f2:"Глубокая аналитика + тепловая карта",
+            pw_f3:"График смен + зарплата курьеров", pw_f4:"Интеграции с кассой (Poster, iiko...)",
+            pw_f5:"Автогеокодинг + проверка зоны", pw_f6:"Приоритетная поддержка 24/7",
+            pw_bf1:"2 курьера + 1 менеджер", pw_bf2:"Базовая аналитика (касса, кол-во заказов)",
+            pw_bf3:"Стандартный поиск адреса", pw_bf4:"Телеграм-бот с картой",
             pw_trial_basic:"7 дней бесплатно", pw_trial_pro:"7 дней бесплатно",
             pw_restore:"Восстановить покупку", pw_terms:"Условия", pw_privacy:"Конфиденциальность",
             mode_title:"Как работает ваша доставка?",
@@ -1274,11 +1301,20 @@
             alert_load:"⏳ Создаем кабинет...", alert_pay:"Выберите хотя бы один метод оплаты",
             alert_group:"Для Uber-режима нужен ID группы курьеров",
             anim_process:"⏳ В процессе", anim_deliv:"✅ Доставлено",
+            pw_bf5:"Диспетчер + Uber-режим",
+            pw_bf6:"Зона доставки на карте",
+            pw_feat_title:"Что включено:",
+            pw_trial_badge:"14 дней бесплатно",
+            pw_billing_monthly:"Ежемесячно",
+            pw_billing_yearly:"Ежегодно",
+            pr_month:"/ мес",
+            pr_year:"/ мес (ежегодно)",
+            txt_cancel:"Отменить можно в любой момент"
         },
         pl: {
             splash_sub:"Ewolucja Twojej dostawy.<br>Szybko. Prosto. Zyskownie.",
             btn_join:"Dołącz", btn_next:"Dalej", btn_plan:"Wybierz plan",
-            btn_create:"Utwórz konto", btn_trial:"Zacznij 7 dni za darmo",
+            btn_create:"Utwórz konto", btn_trial:"Zacznij 14 dni za darmo",
             s1_title:"Głęboka analityka", s1_desc:"Kontroluj dochody, czas i strefy dostaw w czasie rzeczywistym.",
             s2_title:"Zarządzanie zespołem", s2_desc:"Dodawaj i usuwaj menedżerów i kurierów jednym kliknięciem.",
             s3_title:"Inteligentny formularz", s3_desc:"Automatyczne wyszukiwanie adresu, sprawdzanie strefy i szybkie tworzenie trasy.",
@@ -1304,11 +1340,11 @@
             txt_cancel:"Możesz anulować w dowolnym momencie",
             pw_headline:"Najlepszy sposób<br>na <em>dostawę</em>",
             pw_sub:"Wypróbuj Pro za darmo przez 7 dni",
-            pw_f1:"Nieograniczona l. kurierów", pw_f2:"Głęboka analityka",
-            pw_f3:"Mapa i trasy", pw_f4:"Zarządzanie menedżerami",
-            pw_f5:"Integracje z kasą", pw_f6:"Wsparcie 24/7",
-            pw_bf1:"Do 2 kurierów w zespole", pw_bf2:"Podstawowe statystyki",
-            pw_bf3:"Mapa zamówień", pw_bf4:"Wsparcie techniczne",
+            pw_f1:"Nieograniczona liczba kurierów i menedżerów", pw_f2:"Głęboka analityka + mapa cieplna",
+            pw_f3:"Grafik zmian + wynagrodzenie kurierów", pw_f4:"Integracje z kasą (Poster, iiko...)",
+            pw_f5:"Autogeocodowanie + sprawdzanie strefy", pw_f6:"Priorytetowe wsparcie 24/7",
+            pw_bf1:"2 kurierów + 1 menedżer", pw_bf2:"Podstawowa analityka (utarg, liczba zamówień)",
+            pw_bf3:"Standardowe wyszukiwanie adresu", pw_bf4:"Bot Telegram z mapą",
             pw_trial_basic:"7 dni za darmo", pw_trial_pro:"7 dni za darmo",
             pw_restore:"Przywróć zakup", pw_terms:"Warunki", pw_privacy:"Prywatność",
             mode_title:"Jak działa twoja dostawa?",
@@ -1332,11 +1368,20 @@
             alert_load:"⏳ Tworzenie konta...", alert_pay:"Wybierz co najmniej jedną metodę płatności",
             alert_group:"Dla trybu Uber potrzebny jest ID grupy kurierów",
             anim_process:"⏳ W trakcie", anim_deliv:"✅ Dostarczono",
+            pw_bf5:"Tryb dyspozytora + Uber",
+            pw_bf6:"Strefa dostawy na mapie",
+            pw_feat_title:"Co zawiera:",
+            pw_trial_badge:"14 dni za darmo",
+            pw_billing_monthly:"Miesięcznie",
+            pw_billing_yearly:"Rocznie",
+            pr_month:"/ m-c",
+            pr_year:"/ m-c (rocznie)",
+            txt_cancel:"Możesz anulować w dowolnym momencie"
         },
         en: {
             splash_sub:"Evolution of your delivery.<br>Fast. Simple. Profitable.",
             btn_join:"Join Now", btn_next:"Next", btn_plan:"Choose plan",
-            btn_create:"Create account", btn_trial:"Start 7 days for free",
+            btn_create:"Create account", btn_trial:"Start 14 days for free",
             s1_title:"Deep Analytics", s1_desc:"Control revenue, time, and delivery zones in real-time.",
             s2_title:"Team Management", s2_desc:"Add and remove managers and couriers in one click.",
             s3_title:"Smart Form", s3_desc:"Auto address search, zone check, and fast route creation.",
@@ -1362,11 +1407,11 @@
             txt_cancel:"Cancel anytime",
             pw_headline:"The better way<br>to manage <em>delivery</em>",
             pw_sub:"Try Pro free for 7 days",
-            pw_f1:"Unlimited couriers", pw_f2:"Deep analytics",
-            pw_f3:"Map & routes", pw_f4:"Manager roles",
-            pw_f5:"POS integrations", pw_f6:"Support 24/7",
-            pw_bf1:"Up to 2 couriers", pw_bf2:"Basic statistics",
-            pw_bf3:"Order map", pw_bf4:"Tech support",
+            pw_f1:"Unlimited couriers & managers", pw_f2:"Deep analytics + heatmap",
+            pw_f3:"Shift schedule + courier salary", pw_f4:"POS integrations (Poster, iiko...)",
+            pw_f5:"Auto-geocoding + zone check", pw_f6:"Priority support 24/7",
+            pw_bf1:"2 couriers + 1 manager", pw_bf2:"Basic analytics (revenue, order count)",
+            pw_bf3:"Standard address search", pw_bf4:"Telegram bot with map",
             pw_trial_basic:"7 days free", pw_trial_pro:"7 days free",
             pw_restore:"Restore purchase", pw_terms:"Terms", pw_privacy:"Privacy",
             mode_title:"How does your delivery work?",
@@ -1390,6 +1435,15 @@
             alert_load:"⏳ Creating account...", alert_pay:"Select at least one payment method",
             alert_group:"Uber mode requires a couriers group ID",
             anim_process:"⏳ In progress", anim_deliv:"✅ Delivered",
+            pw_bf5:"Dispatcher + Uber mode",
+            pw_bf6:"Delivery zone on map",
+            pw_feat_title:"What's included:",
+            pw_trial_badge:"14 days free",
+            pw_billing_monthly:"Monthly",
+            pw_billing_yearly:"Yearly",
+            pr_month:"/ mo",
+            pr_year:"/ mo (yearly)",
+            txt_cancel:"Cancel anytime"
         }
     };
 
@@ -1488,30 +1542,51 @@
         } else { nextScreen('screen-pricing'); }
     }
 
+    let currentBilling = 'monthly';
+    const prices = {
+        monthly: { basic: '29.99', pro: '59.99' },
+        yearly:  { basic: '22.49', pro: '44.99' }  // 25% off, billed annually
+    };
+
+    function setBilling(mode) {
+        currentBilling = mode;
+        document.getElementById('billing-monthly').classList.toggle('active', mode === 'monthly');
+        document.getElementById('billing-yearly').classList.toggle('active', mode === 'yearly');
+        const lang = currentLang;
+        const period = mode === 'monthly'
+            ? i18n[lang].pr_month
+            : i18n[lang].pr_year;
+        ['basic','pro'].forEach(plan => {
+            const price = prices[mode][plan];
+            document.getElementById('price-' + plan).textContent = price + ' zł';
+            document.getElementById('period-' + plan).textContent = period;
+        });
+    }
+
     function selectPlan(plan) {
         selectedPlan = plan;
-        // New paywall: .pw-plan + .sel
         document.querySelectorAll('.pw-plan').forEach(c => c.classList.remove('sel'));
         const el = document.getElementById('plan-' + plan);
         if (el) el.classList.add('sel');
-        // Update features grid
         renderPwFeatures(plan);
     }
 
     // Features per plan — keys in i18n
     const pwFeatures = {
         basic: [
-            { icon: '📦', key: 'pw_bf1' },
+            { icon: '🛵', key: 'pw_bf1' },
             { icon: '📊', key: 'pw_bf2' },
-            { icon: '🗺️', key: 'pw_bf3' },
-            { icon: '🛡️', key: 'pw_bf4' },
+            { icon: '🔍', key: 'pw_bf3' },
+            { icon: '📱', key: 'pw_bf4' },
+            { icon: '⚙️', key: 'pw_bf5' },
+            { icon: '🗺️', key: 'pw_bf6' },
         ],
         pro: [
-            { icon: '📦', key: 'pw_f1' },
+            { icon: '♾️', key: 'pw_f1' },
             { icon: '📊', key: 'pw_f2' },
-            { icon: '🗺️', key: 'pw_f3' },
-            { icon: '👥', key: 'pw_f4' },
-            { icon: '🔗', key: 'pw_f5' },
+            { icon: '🗓️', key: 'pw_f3' },
+            { icon: '🔗', key: 'pw_f4' },
+            { icon: '📍', key: 'pw_f5' },
             { icon: '🛡️', key: 'pw_f6' },
         ]
     };
