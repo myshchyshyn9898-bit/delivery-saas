@@ -372,6 +372,8 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
 
             # ── DISPATCHER MODE ──────────────────────────────────────────────
             elif original_courier_id != "unassigned":
+                # BUG FIX: courier_lang не було визначено — NameError при кожному новому замовленні
+                courier_lang = await db.get_courier_lang(int(data["courier_id"]), biz_id)
                 import html as _hd
                 courier_text = _build_order_text(
                     short_id=short_id,
@@ -764,9 +766,11 @@ async def cancel_order_handler(callback: types.CallbackQuery, bot: Bot):
     courier_id = order.get("courier_id")
     if courier_id:
         try:
+            # BUG FIX: кур'єр отримував повідомлення мовою адміна — тепер беремо його власну мову
+            courier_notify_lang = await db.get_courier_lang(int(courier_id), order.get("business_id"))
             await bot.send_message(
                 chat_id=int(courier_id),
-                text=_(lang, "order_cancelled_admin", short_id=short_id),
+                text=_(courier_notify_lang, "order_cancelled_admin", short_id=short_id),
                 parse_mode="HTML"
             )
         except Exception as e:
@@ -975,7 +979,9 @@ async def _process_take_order(
             notify_uids = [int(m["user_id"]) for m in (mgr_res.data or [])]
             if owner_id_n and int(owner_id_n) not in notify_uids:
                 notify_uids.append(int(owner_id_n))
-            notify_text = f"🛵 <b>{safe_name}</b> взяв замовлення <code>#{short_id}</code>"
+            # BUG FIX: hardcoded Ukrainian — використовуємо мову власника бізнесу
+            owner_lang = biz_res.data[0].get("lang", "en") if biz_res.data else "en"
+            notify_text = _(owner_lang, "order_taken_notify", name=safe_name, short_id=short_id)
             for nuid in notify_uids:
                 if nuid != taker_id:
                     try:

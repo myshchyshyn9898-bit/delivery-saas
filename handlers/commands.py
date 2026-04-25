@@ -376,7 +376,8 @@ async def cmd_shift_report(message: types.Message):
                 except Exception:
                     pass
             od = _orders_by.get(c_id, {'count': 0, 'cash': 0.0, 'term': 0.0})
-            text += "  \U0001f6f5 <b>" + name + "</b> з " + start_time + " \u00b7 " + str(od['count']) + " зам. \u00b7 \U0001f4b5 " + f"{od['cash']:.2f}" + " " + currency + "\n"
+            # BUG FIX: рядок активної зміни був захардкоджений українською
+            text += _(lang, "shift_active_line", name=name, start_time=start_time, count=od["count"], cash=f"{od['cash']:.2f}", cur=currency) + "\n"
 
     builder.adjust(1)
     await message.answer(text, parse_mode="HTML", reply_markup=builder.as_markup())
@@ -607,7 +608,9 @@ async def process_staff_name(message: types.Message, state: FSMContext):
     lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
     # ✅ FIX: валідація імені — мін 2, макс 50 символів, не команда
     if len(name) < 2 or len(name) > 50 or name.startswith("/"):
-        await message.answer(_(lang, 'name_invalid') if 'name_invalid' in str(_(lang, 'name_invalid')) else "⚠️ Введіть ім'я: від 2 до 50 символів.")
+        # BUG FIX: умова 'name_invalid' in str(_(lang,...)) завжди False — ключ не з'являється в своєму перекладі
+        # кур'єр завжди бачив український текст незалежно від мови
+        await message.answer(_(lang, 'name_invalid'))
         return
     data = await state.get_data()
     biz_id = data['joining_biz_id']

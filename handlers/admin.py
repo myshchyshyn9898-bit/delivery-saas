@@ -18,8 +18,10 @@ async def super_admin_panel(message: types.Message):
         return
     # ✅ ВИПРАВЛЕНО: додано await (раніше повертав корутину замість даних)
     businesses = await db.get_all_businesses()
+    lang = (message.from_user.language_code or 'en').split('-')[0].lower()
+    if lang not in ('uk','ru','pl','en'): lang = 'en'
     if not businesses:
-        return await message.answer(_(message.from_user.language_code, 'sa_empty'))
+        return await message.answer(_(lang, 'sa_empty'))
     builder = InlineKeyboardBuilder()
     for b in businesses:
         builder.button(
@@ -27,7 +29,7 @@ async def super_admin_panel(message: types.Message):
             callback_data=f"manage_biz_{b['id']}"
         )
     builder.adjust(1)
-    await message.answer(_(message.from_user.language_code, 'sa_manage'), reply_markup=builder.as_markup())
+    await message.answer(_(lang, 'sa_manage'), reply_markup=builder.as_markup())
 
 
 @router.callback_query(F.data.startswith("manage_biz_"))
@@ -70,12 +72,9 @@ async def manage_biz(callback: types.CallbackQuery):
     # Скидаємо кеш власника щоб зміна підписки відобразилась одразу
     if biz.get('owner_id'):
         db.invalidate_user_cache(int(biz['owner_id']))
-    await callback.answer(_(callback.from_user.language_code, 'sa_changed'))
-
-    # ✅ ВИПРАВЛЕНО: раніше викликалось super_admin_panel(callback.message) —
-    # callback.message це повідомлення з inline-клавіатурою, не звичайне.
-    # Тепер будуємо оновлений список бізнесів і редагуємо поточне повідомлення.
-    lang = callback.from_user.language_code or "en"
+    lang = (callback.from_user.language_code or 'en').split('-')[0].lower()
+    if lang not in ('uk','ru','pl','en'): lang = 'en'
+    await callback.answer(_(lang, 'sa_changed'))
     businesses = await db.get_all_businesses()
     if not businesses:
         await callback.message.edit_text(_(lang, 'sa_empty'))

@@ -852,7 +852,12 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
             currency = biz.get('currency', 'zł')
             delivery_mode = biz.get('delivery_mode', 'dispatcher')
             is_pro = actual_plan in ['pro', 'trial']
-            courier_lang = lang
+            # BUG FIX: courier_lang = lang використовував мову адміна з форми,
+            # а не реальну мову кур'єра з БД
+            if original_courier_id and original_courier_id != 'unassigned':
+                courier_lang = await db.get_courier_lang(int(original_courier_id), biz_id)
+            else:
+                courier_lang = biz.get('lang', lang)
 
             pay_type_str = _(courier_lang, 'pay_' + data['payment'])
             pay_icon = "💵" if data['payment'] == "cash" else ("💳" if data['payment'] == "terminal" else "🌐")

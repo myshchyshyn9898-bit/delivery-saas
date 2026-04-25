@@ -67,7 +67,7 @@ async def check_late_orders():
                 continue
 
             # Ім'я кур'єра
-            c_name = "Не призначено"
+            c_name = None  # буде підставлено після отримання biz_lang нижче
             courier_id = order.get("courier_id")
             if courier_id:
                 # ✅ ВИПРАВЛЕНО: default-аргумент щоб уникнути closure bug
@@ -91,6 +91,8 @@ async def check_late_orders():
             )
             biz_lang = (biz_lang_res.data[0].get("lang") or "uk") if biz_lang_res.data else "uk"
             from texts import get_text as _tl
+            if c_name is None:
+                c_name = _tl(biz_lang, 'late_unassigned')
             msg = (
                 f"🚨 **{_tl(biz_lang, 'late_header')}**\n\n"
                 f"📦 {_tl(biz_lang, 'late_order_lbl')} `#{short_id}`\n"
