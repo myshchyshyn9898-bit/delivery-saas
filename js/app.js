@@ -556,7 +556,31 @@ function sendSupportTicket() {
 // ==========================================
 
 // Маппінг: id картки → реальний шлях webhook і назва колонки в БД
-// POS_CONFIG defined via getPosConfig() below
+// POS_CONFIG - translated via i18n
+function getPosConfig() { return {
+    poster:   { webhookPath: 'poster',   dbColumn: 'poster_token',   name: 'Poster POS',
+                tokenLabel: t('pos_token_lbl_api'),
+                tokenHint: t('pos_hint_poster'),
+                webhookEvent: t('pos_event_poster'),
+                webhookStep: t('pos_step_poster') },
+    choice:   { webhookPath: 'choiceqr', dbColumn: 'choice_token',   name: 'ChoiceQR',
+                tokenLabel: t('pos_token_lbl_bearer'),
+                tokenHint: t('pos_hint_choice'),
+                webhookEvent: 'order.created',
+                webhookStep: 'Settings → Integrations → Webhooks → New Webhook' },
+    gopos:    { webhookPath: 'gopos',    dbColumn: 'gopos_token',    name: 'GoPOS',
+                tokenLabel: t('pos_token_lbl_auth'),
+                tokenHint: t('pos_hint_gopos'),
+                webhookEvent: 'order.created',
+                webhookStep: 'Ustawienia → Integracje → Webhooki → Dodaj' },
+    syrve:    { webhookPath: 'syrve',    dbColumn: 'syrve_token',    name: 'Syrve (iiko)',
+                tokenLabel: 'API Login',
+                tokenHint: t('pos_hint_syrve'),
+                webhookEvent: 'DeliveryOrderStatusChanged',
+                webhookStep: 'Syrve Office → Administration → API' },
+}; }
+var POS_CONFIG = {};
+function refreshPosConfig() { POS_CONFIG = getPosConfig(); }
 
 function openIntegrationsList() { document.getElementById('integrations-list-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
 function closeIntegrationsList() { document.getElementById('integrations-list-modal').classList.remove('active'); document.body.style.overflow = ''; }
