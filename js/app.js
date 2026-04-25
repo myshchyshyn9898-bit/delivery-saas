@@ -1571,9 +1571,9 @@ async function saveSalarySettings(cid) {
             order_enabled: orderEnabled,
             km_enabled: kmEnabled
         }, { onConflict: 'business_id,courier_id' });
-        showToast('✅ Ставки збережено', '');
+        showToast(t('sal_rates_saved'), '');
         await switchSalaryMonth(salaryMonthKey);
-    } catch(e) { showToast('❌ Помилка', e.message); }
+    } catch(e) { showToast(t('err_generic'), e.message); }
 }
 
 async function addBonus(cid) {
@@ -1581,7 +1581,7 @@ async function addBonus(cid) {
     var comEl = document.getElementById('bon-com-' + cid);
     var amt = parseFloat(amtEl ? amtEl.value : '');
     var com = (comEl && comEl.value) ? comEl.value.trim() : '';
-    if (isNaN(amt)) { showToast('❌ Введіть суму', ''); return; }
+    if (isNaN(amt)) { showToast(t('sal_enter_amount'), ''); return; }
     try {
         await supabaseClient.from('salary_bonuses').insert({
             business_id: bizId,
@@ -1590,9 +1590,9 @@ async function addBonus(cid) {
             amount: amt,
             comment: com
         });
-        showToast('✅ Премію додано', '');
+        showToast(t('sal_bonus_added'), '');
         await switchSalaryMonth(salaryMonthKey);
-    } catch(e) { showToast('❌ Помилка', e.message); }
+    } catch(e) { showToast(t('err_generic'), e.message); }
 }
 
 async function togglePayment(cid, currentlyPaid) {
@@ -1607,5 +1607,5 @@ async function togglePayment(cid, currentlyPaid) {
         }, { onConflict: 'business_id,courier_id,month' });
         showToast(newPaid ? t('sal_pay_confirmed') : t('sal_pay_cancelled'), '');
         await switchSalaryMonth(salaryMonthKey);
-    } catch(e) { showToast('❌ Помилка', e.message); }
+    } catch(e) { showToast(t('err_generic'), e.message); }
 }
