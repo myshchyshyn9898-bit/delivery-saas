@@ -737,7 +737,7 @@
                     } catch(apiErr) {
                         console.warn('[take_order] API call failed:', apiErr);
                         // ✅ FIX: замовлення взято локально але бот не отримав нотифікацію
-                        alert('✅ Замовлення взято! Але не вдалось отримати кнопки закриття. Використай команду "📦 Мої замовлення" в боті.');
+                        alert(ML.taken_no_buttons || '✅ Order taken! Use "📦 My orders" in bot menu.');
                         // Не критично — замовлення вже захоплено в Supabase
                     }
 

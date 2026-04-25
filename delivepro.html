@@ -1254,7 +1254,7 @@
             tg.showAlert(i18n[currentLang].alert_group);
             return;
         }
-        var bizData = { action:"register_business", name, desc:document.getElementById('biz-desc').value.trim(), phone:document.getElementById('biz-phone').value.trim(), location:{ country:document.getElementById('biz-country').value.trim(), city, street:document.getElementById('biz-street').value.trim(), lat, lng }, radius:parseInt(document.getElementById('biz-radius').value) || 5, currency:document.getElementById('biz-currency').value, payments:paymentMethods, delivery_mode:deliveryMode, courier_group_id:deliveryMode==='uber'?courierGroupId:null, plan:selectedPlan, trial:true };
+        var bizData = { action:"register_business", name, desc:document.getElementById('biz-desc').value.trim(), phone:document.getElementById('biz-phone').value.trim(), lang: (navigator.language||'en').split('-')[0].toLowerCase().replace(/^(?!uk|ru|pl|en).*/,'en'), location:{ country:document.getElementById('biz-country').value.trim(), city, street:document.getElementById('biz-street').value.trim(), lat, lng }, radius:parseInt(document.getElementById('biz-radius').value) || 5, currency:document.getElementById('biz-currency').value, payments:paymentMethods, delivery_mode:deliveryMode, courier_group_id:deliveryMode==='uber'?courierGroupId:null, plan:selectedPlan, trial:true };
         const btn = document.getElementById('btn-finish');
         btn.innerText = i18n[currentLang].alert_load; btn.style.opacity = '0.7';
         tg.sendData(JSON.stringify(bizData));
