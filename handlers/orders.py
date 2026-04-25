@@ -259,6 +259,10 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
                 import keyboards as kb
                 await message.answer(_(lang, 'biz_already_exists'), reply_markup=kb.get_owner_kb(existing_biz['id'], user_id, lang), parse_mode="Markdown")
                 return
+            # BUG FIX: форма реєстрації не передавала lang — зберігався дефолт "en"
+            # Підставляємо мову з Telegram якщо форма не передала
+            if not data.get('lang') or data.get('lang') not in ('uk', 'ru', 'pl', 'en'):
+                data['lang'] = lang
             await db.register_new_business(user_id, data)
             db.invalidate_user_cache(user_id)
             context = await db.get_user_context_cached(user_id)
