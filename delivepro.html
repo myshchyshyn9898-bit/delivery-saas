@@ -624,7 +624,6 @@
     .pw-link { font-size: 11px; color: rgba(255,255,255,0.3); font-weight: 600; cursor: pointer; }
     .pw-cancel { text-align: center; font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 10px; font-weight: 500; }
 
-
     .plan-card {
         border: 1.5px solid var(--border); border-radius: 22px;
         padding: 22px; margin-bottom: 14px; cursor: pointer;
@@ -1008,9 +1007,7 @@
         <div class="pw-headline" data-i18n="pw_headline">Найкращий спосіб<br>керувати <em>доставкою</em></div>
         <div class="pw-sub" data-i18n="pw_sub">Спробуйте Pro безкоштовно 7 днів</div>
 
-        <div class="pw-features" id="pw-features-grid"></div>
-
-        <div class="pw-plan-header" data-i18n="pw_feat_title">Що входить:</div>
+                <div class="pw-plan-header" data-i18n="pw_feat_title">Що входить:</div>
         <div class="pw-features" id="pw-features-grid"></div>
 
         <!-- Billing toggle: Monthly / Yearly -->
@@ -1447,6 +1444,31 @@
         }
     };
 
+        // ── Pricing constants (must be before setLanguage) ──────────────────
+    let currentBilling = 'monthly';
+    const prices = {
+        monthly: { basic: '29.99', pro: '59.99' },
+        yearly:  { basic: '22.49', pro: '44.99' }
+    };
+    const pwFeatures = {
+        basic: [
+            { icon: '🛵', key: 'pw_bf1' },
+            { icon: '📊', key: 'pw_bf2' },
+            { icon: '🔍', key: 'pw_bf3' },
+            { icon: '📱', key: 'pw_bf4' },
+            { icon: '⚙️', key: 'pw_bf5' },
+            { icon: '🗺️', key: 'pw_bf6' },
+        ],
+        pro: [
+            { icon: '♾️', key: 'pw_f1' },
+            { icon: '📊', key: 'pw_f2' },
+            { icon: '🗓️', key: 'pw_f3' },
+            { icon: '🔗', key: 'pw_f4' },
+            { icon: '📍', key: 'pw_f5' },
+            { icon: '🛡️', key: 'pw_f6' },
+        ]
+    };
+
         function setLanguage(lang) {
         currentLang = lang;
         localStorage.setItem('appLang', lang);
@@ -1463,7 +1485,12 @@
     function toggleLangMenu() { document.getElementById('lang-menu').classList.toggle('show'); }
     document.addEventListener('click', e => { if (!e.target.closest('.lang-switcher') && !e.target.closest('.lang-menu')) document.getElementById('lang-menu').classList.remove('show'); });
     setLanguage(currentLang);
-    if (typeof renderPwFeatures === 'function') renderPwFeatures(selectedPlan || 'pro');
+    // Render features after DOM fully ready (pricing screen may not be visible yet)
+    document.addEventListener('DOMContentLoaded', function() {
+        renderPwFeatures(selectedPlan || 'pro');
+    });
+    // Also try immediately in case DOM is already loaded
+    if (document.readyState !== 'loading') renderPwFeatures(selectedPlan || 'pro');
 
     function initMap() {
         if (map !== null) return;
@@ -1523,6 +1550,10 @@
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(screenId).classList.add('active');
         window.scrollTo(0, 0);
+        if (screenId === 'screen-pricing') {
+            // Always re-render features when pricing screen opens
+            renderPwFeatures(selectedPlan || 'pro');
+        }
         if (screenId === 'screen-register') {
             document.getElementById('btn-finish').innerText = i18n[currentLang].btn_create;
             setTimeout(() => { if (!map) initMap(); map.invalidateSize(); }, 400);
@@ -1541,12 +1572,6 @@
             }
         } else { nextScreen('screen-pricing'); }
     }
-
-    let currentBilling = 'monthly';
-    const prices = {
-        monthly: { basic: '29.99', pro: '59.99' },
-        yearly:  { basic: '22.49', pro: '44.99' }  // 25% off, billed annually
-    };
 
     function setBilling(mode) {
         currentBilling = mode;
@@ -1570,26 +1595,6 @@
         if (el) el.classList.add('sel');
         renderPwFeatures(plan);
     }
-
-    // Features per plan — keys in i18n
-    const pwFeatures = {
-        basic: [
-            { icon: '🛵', key: 'pw_bf1' },
-            { icon: '📊', key: 'pw_bf2' },
-            { icon: '🔍', key: 'pw_bf3' },
-            { icon: '📱', key: 'pw_bf4' },
-            { icon: '⚙️', key: 'pw_bf5' },
-            { icon: '🗺️', key: 'pw_bf6' },
-        ],
-        pro: [
-            { icon: '♾️', key: 'pw_f1' },
-            { icon: '📊', key: 'pw_f2' },
-            { icon: '🗓️', key: 'pw_f3' },
-            { icon: '🔗', key: 'pw_f4' },
-            { icon: '📍', key: 'pw_f5' },
-            { icon: '🛡️', key: 'pw_f6' },
-        ]
-    };
 
     function renderPwFeatures(plan) {
         const grid = document.getElementById('pw-features-grid');
