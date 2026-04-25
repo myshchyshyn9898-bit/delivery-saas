@@ -625,7 +625,7 @@ function openConnectModal(name, id, color, letter, desc) {
                 </div>`;
             const tokenInput = document.getElementById('input-pos-token');
             tokenInput.style.display = 'block';
-            tokenInput.placeholder = `${cfg.tokenLabel || 'API Токен'}...`;
+            tokenInput.placeholder = `${cfg.tokenLabel || t('pos_token_lbl_api')}...`;
             tokenInput.value = '';
             btn.innerHTML = `<i class="fa-solid fa-link"></i> ${t("pos_connecting")}`;
             btn.onclick = savePosIntegration;
@@ -939,9 +939,9 @@ async function loadDashboardData() {
                 }
 
                 // Розраховуємо початковий зум відносно радіусу доставки:
-                // менший радіус → більший зум (наближено), більший радіус → менший зум (далі)
+                // формула дає трохи менший зум щоб гарячі точки були видні цілісно
                 const _radiusKm = bizRadius || 5;
-                const _initZoom = Math.max(8.5, Math.min(13, 14 - Math.log2(Math.max(1, _radiusKm))));
+                const _initZoom = Math.max(7.5, Math.min(11.5, 13 - Math.log2(Math.max(1, _radiusKm))));
 
                 mapboxgl.accessToken = MAPBOX_TOKEN;
                 window.dashboardMap = new mapboxgl.Map({
@@ -1022,7 +1022,7 @@ async function loadDashboardData() {
                         const _lonD = _latD / Math.cos(bizLat * Math.PI / 180);
                         window.dashboardMap.fitBounds(
                             [[bizLon - _lonD, bizLat - _latD], [bizLon + _lonD, bizLat + _latD]],
-                            { padding: 48, duration: 0, maxZoom: 14 }
+                            { padding: 64, duration: 0, maxZoom: 11.5 }
                         );
                     }
                 });
@@ -1433,7 +1433,7 @@ async function renderSalaryList() {
             ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_base')} (${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','').trim()} × ${hourlyRate} ${cur})</span><span class="ledger-amount neutral">${fmtAmt(baseSalary, cur)}</span></div>`;
         }
         if (orderEnabled && (orderRate > 0 || ordersCount > 0)) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">За замовлення (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
+            ledger += '<div class="ledger-row"><span class="ledger-desc">' + t('sal_per_order') + ' (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
         }
         if (kmEnabled && (kmRate > 0 || totalKm > 0)) {
             ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_mileage')} (${totalKm} ${t('sal_per_km').replace('/','').trim()} × ${kmRate} ${cur})</span><span class="ledger-amount minus">-${kmDeduction.toFixed(2)} ${cur}</span></div>`;
@@ -1441,7 +1441,7 @@ async function renderSalaryList() {
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
             var cls = amt >= 0 ? 'plus' : 'minus';
-            var desc = b.comment || (amt >= 0 ? 'Премія' : 'Штраф');
+            var desc = b.comment || (amt >= 0 ? t('sal_bonus') : t('sal_fine'));
             ledger += '<div class="ledger-row"><span class="ledger-desc">' + esc(desc) + '</span><span class="ledger-amount ' + cls + '">' + fmtAmt(amt, cur, true) + '</span></div>';
         });
         if (!ledger) ledger = `<div style="font-size:12px;color:var(--text-muted);font-weight:600;">${t('sal_no_month_data')}</div>`;
@@ -1458,7 +1458,7 @@ async function renderSalaryList() {
               '<div class="amount-block">' +
                 '<div class="total-sum">' + fmtAmt(earnedSafe, cur) + '</div>' +
                 '<div class="status-badge ' + (isPaid ? 'paid' : 'unpaid') + '" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
-                  (isPaid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Виплачено' :
+                  (isPaid ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> ' + t('sal_paid') :
                             t('sal_unpaid') + '</span>') +
                 '</div>' +
               '</div>' +
@@ -1605,7 +1605,7 @@ async function togglePayment(cid, currentlyPaid) {
             paid: newPaid,
             paid_at: newPaid ? new Date().toISOString() : null
         }, { onConflict: 'business_id,courier_id,month' });
-        showToast(newPaid ? '✅ Виплату підтверджено' : '↩️ Статус скасовано', '');
+        showToast(newPaid ? t('sal_pay_confirmed') : t('sal_pay_cancelled'), '');
         await switchSalaryMonth(salaryMonthKey);
     } catch(e) { showToast('❌ Помилка', e.message); }
 }
