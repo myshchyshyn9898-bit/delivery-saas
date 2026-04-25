@@ -334,10 +334,12 @@
                 }
 
                 // Визначаємо роль: кур'єр бачить тільки свої замовлення
+                // BUG FIX: active orders filter by created_at (correct);
+                // completed orders earnings should use completed_at for accurate period reporting
                 let ordersQuery = supabaseClient.from('orders')
                     .select('*')
                     .eq('business_id', bizId)
-                    .gte('created_at', startDate.toISOString())
+                    .or(`created_at.gte.${startDate.toISOString()},completed_at.gte.${startDate.toISOString()}`)
                     .order('created_at', { ascending: false })
                     .limit(5000);
 
@@ -473,12 +475,7 @@
                     .eq('courier_id', tgId)
                     .eq('status', 'delivering');
                 if (res.error) throw res.error;
-                // Notify Railway bot
-                await fetch(RAILWAY_DOMAIN + '/api/order_closed', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                    body: JSON.stringify({ order_id: orderId, pay_type: payType })
-                }).catch(function(){});
+                // NOTE: order status already updated in Supabase directly above
                 // Reload
                 await loadArchiveData();
             } catch(e) {

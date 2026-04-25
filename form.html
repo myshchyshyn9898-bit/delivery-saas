@@ -242,7 +242,7 @@
                 card_pay: "Оплата", ph_amount: "Сума замовлення (zł)", pay_cash: "Готівка", pay_term: "Термінал", pay_online: "Онлайн",
                 card_time: "Очікуваний час доставки",
                 card_courier: "Призначити кур'єра", select_c: "Оберіть кур'єра зі списку...", no_c: "Немає доступних кур'єрів",
-                err_data: "Помилка завантаження даних", c_busy: "В дорозі", c_free: "Вільний", ph_comment: "Коментар (необов'язково)",
+                err_data: "Помилка завантаження даних", c_busy: "В дорозі", c_free: "Вільний", c_orders: "зам.", ph_comment: "Коментар (необов'язково)",
                 btn_submit: "Створити та Відправити", btn_uber_submit: "Відправити в загальну групу", btn_loading: "Відправляємо...", 
                 tg_btn_submit: "СТВОРИТИ ТА ВІДПРАВИТИ", tg_btn_uber_submit: "ВІДПРАВИТИ В ГРУПУ",
                 search_load: "Шукаємо адресу...", search_empty: "Адресу не знайдено, або вона поза зоною доставки ({r} км).", search_err: "Помилка пошуку",
@@ -260,7 +260,7 @@
                 card_pay: "Оплата", ph_amount: "Сумма заказа (zł)", pay_cash: "Наличные", pay_term: "Терминал", pay_online: "Онлайн",
                 card_time: "Ожидаемое время доставки",
                 card_courier: "Назначить курьера", select_c: "Выберите курьера из списка...", no_c: "Нет доступных курьеров",
-                err_data: "Ошибка загрузки данных", c_busy: "В пути", c_free: "Свободен", ph_comment: "Комментарий (необязательно)",
+                err_data: "Ошибка загрузки данных", c_busy: "В пути", c_free: "Свободен", c_orders: "зак.", ph_comment: "Комментарий (необязательно)",
                 btn_submit: "Создать и Отправить", btn_uber_submit: "Отправить в общую группу", btn_loading: "Отправляем...", 
                 tg_btn_submit: "СОЗДАТЬ И ОТПРАВИТЬ", tg_btn_uber_submit: "ОТПРАВИТЬ В ГРУППУ",
                 search_load: "Ищем адрес...", search_empty: "Адрес не найден, или он вне зоны доставки ({r} км).", search_err: "Ошибка поиска",
@@ -278,7 +278,7 @@
                 card_pay: "Płatność", ph_amount: "Kwota zamówienia (zł)", pay_cash: "Gotówka", pay_term: "Terminal", pay_online: "Online",
                 card_time: "Przewidywany czas dostawy",
                 card_courier: "Przypisz kuriera", select_c: "Wybierz kuriera z listy...", no_c: "Brak dostępnych kurierów",
-                err_data: "Błąd ładowania danych", c_busy: "W trasie", c_free: "Wolny", ph_comment: "Komentarz (opcjonalnie)",
+                err_data: "Błąd ładowania danych", c_busy: "W trasie", c_free: "Wolny", c_orders: "zam.", ph_comment: "Komentarz (opcjonalnie)",
                 btn_submit: "Utwórz i Wyślij", btn_uber_submit: "Wyślij do grupy ogólnej", btn_loading: "Wysyłanie...", 
                 tg_btn_submit: "UTWÓRZ I WYŚLIJ", tg_btn_uber_submit: "WYŚLIJ DO GRUPY",
                 search_load: "Szukamy adresu...", search_empty: "Nie znaleziono adresu lub jest poza strefą dostawy ({r} km).", search_err: "Błąd wyszukiwania",
@@ -295,7 +295,7 @@
                 card_pay: "Payment", ph_amount: "Order amount (zł)", pay_cash: "Cash", pay_term: "Terminal", pay_online: "Online",
                 card_time: "Estimated delivery time",
                 card_courier: "Assign Courier", select_c: "Select courier from list...", no_c: "No available couriers",
-                err_data: "Data loading error", c_busy: "On the way", c_free: "Free", ph_comment: "Comment (optional)",
+                err_data: "Data loading error", c_busy: "On the way", c_free: "Free", c_orders: "orders", ph_comment: "Comment (optional)",
                 btn_submit: "Create & Send", btn_uber_submit: "Send to common group", btn_loading: "Sending...", 
                 tg_btn_submit: "CREATE & SEND", tg_btn_uber_submit: "SEND TO GROUP",
                 search_load: "Searching address...", search_empty: "Address not found or out of delivery zone ({r} km).", search_err: "Search error",
@@ -441,7 +441,7 @@
         let bizRadius = 10;
         
         let globalCouriers = [];
-        let globalBusyIds = [];
+        let globalOrderCount = {}; // courier_id → active order count
 
         let bizReadyResolve;
         const bizReady = new Promise(resolve => { bizReadyResolve = resolve; });
@@ -461,9 +461,9 @@
             `;
             
             globalCouriers.forEach(c => { 
-                const isBusy = globalBusyIds.includes(String(c.user_id));
-                const statusText = isBusy ? t('c_busy') : t('c_free');
-                const textColor = isBusy ? "#f59e0b" : "#10b981"; 
+                const count = globalOrderCount[String(c.user_id)] || 0;
+                const statusText = count > 0 ? `${count} ${t('c_orders')}` : t('c_free');
+                const textColor = count > 0 ? "#f59e0b" : "#10b981"; 
                 select.innerHTML += `<option value="${c.user_id || c.tg_id}" style="color: ${textColor}; font-weight: 500;">● ${c.name} (${statusText})</option>`; 
             });
         }
@@ -575,11 +575,16 @@
                     setLanguage(currentLang); // Оновлюємо текст кнопок
                 } else {
                     const { data: couriers } = await supabaseClient.from('staff').select('*').eq('business_id', bizId).eq('role', 'courier');
-                    const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).eq('status', 'pending');
+                    const { data: activeOrders } = await supabaseClient.from('orders').select('courier_id').eq('business_id', bizId).in('status', ['pending', 'delivering']);
                     
                     if (couriers && couriers.length > 0) {
                         globalCouriers = couriers;
-                        globalBusyIds = activeOrders ? activeOrders.map(o => String(o.courier_id)) : [];
+                        // Build count map — courier can have multiple simultaneous orders
+                        globalOrderCount = {};
+                        (activeOrders || []).forEach(o => {
+                            const cid = String(o.courier_id);
+                            globalOrderCount[cid] = (globalOrderCount[cid] || 0) + 1;
+                        });
                         renderCouriers();
                     } else {
                         select.innerHTML = `<option value="" disabled>${t('no_c')}</option><option value="unassigned" selected style="color: var(--info); font-weight: 700;">${t('unassigned_opt')}</option>`;

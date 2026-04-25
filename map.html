@@ -396,6 +396,7 @@
         err_config: "Невірна відповідь /config (не JSON): ",
         err_config_http: "Помилка /config: HTTP ",
         err_mapbox: "Помилка: Mapbox не завантажився. Перевірте інтернет.",
+        err_no_token: "Помилка: Немає токена доступу",
         err_supabase: "Помилка: Supabase SDK не підключена",
         err_token: "Помилка: Немає токена доступу",
         err_server: "Помилка підключення до сервера",
@@ -443,6 +444,7 @@
         err_config: "Неверный ответ /config (не JSON): ",
         err_config_http: "Ошибка /config: HTTP ",
         err_mapbox: "Ошибка: Mapbox не загрузился. Проверьте интернет.",
+        err_no_token: "Ошибка: Нет токена доступа",
         err_supabase: "Ошибка: Supabase SDK не подключена",
         err_token: "Ошибка: Нет токена доступа",
         err_server: "Ошибка подключения к серверу",
@@ -490,6 +492,7 @@
         err_config: "Nieprawidłowa odpowiedź /config (nie JSON): ",
         err_config_http: "Błąd /config: HTTP ",
         err_mapbox: "Błąd: Mapbox nie załadował się. Sprawdź internet.",
+        err_no_token: "Błąd: Brak tokenu dostępu",
         err_supabase: "Błąd: Supabase SDK nie jest podłączona",
         err_token: "Błąd: Brak tokenu dostępu",
         err_server: "Błąd połączenia z serwerem",
@@ -537,6 +540,7 @@
         err_config: "Invalid /config response (not JSON): ",
         err_config_http: "Config error: HTTP ",
         err_mapbox: "Error: Mapbox failed to load. Check internet.",
+        err_no_token: "Error: No access token",
         err_supabase: "Error: Supabase SDK not connected",
         err_token: "Error: No access token",
         err_server: "Server connection error",
@@ -644,7 +648,7 @@
 
             userId = tgId || (tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null);
 
-            if (!bizId || !authToken) { showError('Помилка: Немає токена доступу'); return; }
+            if (!bizId || !authToken) { showError(ML.err_no_token || 'Error: No access token'); return; }
             if (!window.supabase) {
                 showError(ML.err_supabase);
                 logError('window.supabase відсутній — перевірте CDN');

@@ -842,7 +842,7 @@ authToken = urlP.get('token');
 var tgId = urlP.get('tg_id');
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('load-text').textContent = 'DOM готовий...';
+    document.getElementById('load-text').textContent = SL.loading || 'Loading...';
     applySchedTranslations();
     setTimeout(initScheduleApp, 300);
 });
@@ -991,7 +991,7 @@ function closeStaffSheet() {
 
 async function addStaffDirect() {
     var name = (document.getElementById('staff-name').value || '').trim();
-    if (!name) { toast("Введіть ім'я"); return; }
+    if (!name) { toast(SL.ph_name || "Enter name"); return; }
     var overlay = document.getElementById('staff-overlay');
     var role = (overlay && overlay.getAttribute('data-group-role')) || 'courier';
     var tgIdRaw = (document.getElementById('staff-tg-id').value || '').trim();
@@ -1001,7 +1001,7 @@ async function addStaffDirect() {
         if (staffUserId) payload.user_id = staffUserId;
         var _res = await supabase.from('staff').insert(payload); var error = _res.error;
         if (error) throw error;
-        toast('✅ Додано: ' + name);
+        toast((SL.added_prefix || '✅ Added: ') + name);
         closeStaffSheet();
         await loadStaff();
         renderAll();
@@ -1020,14 +1020,14 @@ function closeGroupSheet() {
 }
 function createGroup() {
     var name = (document.getElementById('group-name-input').value || '').trim();
-    if (!name) { toast('Введіть назву групи'); return; }
+    if (!name) { toast(SL.ph_group || 'Enter group name'); return; }
     // Перевіряємо чи не існує вже така група
     var exists = staffList.some(function(s) {
         return (s.role || '').toLowerCase() === name.toLowerCase();
     });
     if (exists) {
         closeGroupSheet();
-        toast('Група "' + name + '" вже існує');
+        toast('"' + name + '" ' + (SL.group_saved ? '— ' + (SL.err_save_name ? 'already exists' : '') : 'already exists'));
         return;
     }
     closeGroupSheet();
@@ -1213,8 +1213,8 @@ function normalizeRole(role) {
 
 function roleLabel(role) {
     var r = normalizeRole(role);
-    if (r === 'courier') return SL.role_courier + 'и';
-    if (r === 'manager') return 'Менеджери';
+    if (r === 'courier') return SL.role_courier || 'Couriers';
+    if (r === 'manager') return SL.role_manager || 'Managers';
     if (r === 'kitchen') return 'Кухня';
     return role.trim(); // кастомна роль — як є
 }
@@ -1265,7 +1265,7 @@ function buildGroupCard(groupName, members, groupRole) {
                 .eq('role', oldRole)
                 .then(function(res) {
                     if (res.error) {
-                        toast('❌ Помилка збереження назви');
+                        toast(SL.err_save_name || '❌ Error saving name');
                         nameDiv.textContent = groupName; // повертаємо стару назву
                     } else {
                         // Оновлюємо локальний staffList
@@ -1273,7 +1273,7 @@ function buildGroupCard(groupName, members, groupRole) {
                             if (s.role === oldRole) s.role = newName;
                         });
                         nameDiv.setAttribute('data-role', newName);
-                        toast('✅ Назву групи збережено');
+                        toast(SL.group_saved || '✅ Group name saved');
                     }
                 });
         };
@@ -1453,7 +1453,7 @@ function saveSlot() {
         if (res.error) {
             toast('❌ Помилка збереження: ' + res.error.message);
         } else {
-            toast('✅ Збережено');
+            toast(SL.slot_saved || '✅ Saved');
         }
     });
 }
@@ -1495,7 +1495,7 @@ async function saveScheduleForMonth(monthKey) {
 
 async function saveSchedule() {
     var btn = document.querySelector('.btn-fab-primary');
-    btn.textContent = 'Збереження...';
+    btn.textContent = SL.saving || 'Saving...';
     btn.disabled = true;
 
     try {
@@ -1544,9 +1544,9 @@ async function saveSchedule() {
             await supabase.from('schedule').delete().in('id', toDelete);
         }
 
-        toast('✅ Графік збережено');
+        toast(SL.saved || '✅ Schedule saved');
     } catch(e) {
-        toast('❌ Спочатку створіть таблицю schedule в Supabase');
+        toast(SL.err_no_schedule || '❌ Create schedule table in Supabase first');
     } finally {
         btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> ' + (SL.btn_save || 'Зберегти');
         btn.disabled = false;
@@ -1643,7 +1643,7 @@ async function loadEarnings() {
                 .select('*', { count: 'exact', head: true })
                 .eq('courier_id', cid).eq('business_id', bizId)
                 .eq('status', 'completed')
-                .gte('created_at', startDate).lt('created_at', endDate); var count = _res.count;
+                .gte('completed_at', startDate).lt('completed_at', endDate); var count = _res.count; // BUG FIX: completed_at not created_at
             ordersCount = count || 0;
         } catch(e) {}
 

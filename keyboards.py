@@ -24,7 +24,7 @@ def generate_token(biz_id=None, user_id=None, is_boss=False):
         _NS = uuid.UUID('6ba7b810-9dad-11d1-80b4-00c04fd430c8')
         payload["sub"] = str(uuid.uuid5(_NS, str(user_id)))
         payload["tg_id"] = str(user_id)
-        payload["tg_id"] = str(user_id)
+        payload["user_id"] = str(user_id)  # BUG FIX: api_take_order та broadcast перевіряють user_id, не tg_id
 
     if is_boss:
         payload["role"] = "service_role" # Токен Бога для Супер-Адміна
