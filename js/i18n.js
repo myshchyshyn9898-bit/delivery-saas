@@ -121,7 +121,8 @@ var i18n = {
         month_jan: 'Січень', month_feb: 'Лютий', month_mar: 'Березень',
         month_apr: 'Квітень', month_may: 'Травень', month_jun: 'Червень',
         month_jul: 'Липень', month_aug: 'Серпень', month_sep: 'Вересень',
-        month_oct: 'Жовтень', month_nov: 'Листопад', month_dec: 'Грудень'
+        month_oct: 'Жовтень', month_nov: 'Листопад', month_dec: 'Грудень',
+        toast_sub_ending: '⚠️ Підписка скоро закінчується', txt_days: 'дн.', txt_avail: 'Доступно до', toast_sub_ending: '⚠️ Підписка скоро закінчується', txt_days: 'дн.', txt_avail: 'Доступно до'
     },
         api_token_lbl: "API Токен (Ключ доступу)",
         tg_group_id_lbl: "ID Telegram-групи кур'єрів",
@@ -243,7 +244,8 @@ var i18n = {
         month_jan: 'Январь', month_feb: 'Февраль', month_mar: 'Март',
         month_apr: 'Апрель', month_may: 'Май', month_jun: 'Июнь',
         month_jul: 'Июль', month_aug: 'Август', month_sep: 'Сентябрь',
-        month_oct: 'Октябрь', month_nov: 'Ноябрь', month_dec: 'Декабрь'
+        month_oct: 'Октябрь', month_nov: 'Ноябрь', month_dec: 'Декабрь',
+        toast_sub_ending: '⚠️ Подписка скоро закончится', txt_days: 'дн.', txt_avail: 'Доступно до', toast_sub_ending: '⚠️ Подписка скоро закончится', txt_days: 'дн.', txt_avail: 'Доступно до'
     },
         api_token_lbl: "API Токен (Ключ доступа)",
         tg_group_id_lbl: "ID Telegram-группы курьеров",
@@ -365,7 +367,8 @@ var i18n = {
         month_jan: 'Styczeń', month_feb: 'Luty', month_mar: 'Marzec',
         month_apr: 'Kwiecień', month_may: 'Maj', month_jun: 'Czerwiec',
         month_jul: 'Lipiec', month_aug: 'Sierpień', month_sep: 'Wrzesień',
-        month_oct: 'Październik', month_nov: 'Listopad', month_dec: 'Grudzień'
+        month_oct: 'Październik', month_nov: 'Listopad', month_dec: 'Grudzień',
+        toast_sub_ending: '⚠️ Subskrypcja wkrótce wygaśnie', txt_days: 'dni', txt_avail: 'Dostępne do', toast_sub_ending: '⚠️ Subskrypcja wkrótce wygaśnie', txt_days: 'dni', txt_avail: 'Dostępne do'
     },
         api_token_lbl: "Token API (Klucz dostępu)",
         tg_group_id_lbl: "ID grupy Telegram kurierów",

@@ -556,28 +556,7 @@ function sendSupportTicket() {
 // ==========================================
 
 // Маппінг: id картки → реальний шлях webhook і назва колонки в БД
-const POS_CONFIG = {
-    poster:   { webhookPath: 'poster',   dbColumn: 'poster_token',   name: 'Poster POS',
-                tokenLabel: 'API Токен',
-                tokenHint: 'Знайдіть у кабінеті Poster: Налаштування → Інтеграції → API → Скопіюйте "API токен".',
-                webhookEvent: 'Нове замовлення доставки (incoming_order → added)',
-                webhookStep: 'Налаштування → Інтеграції → Webhooks → Додати Webhook' },
-    choice:   { webhookPath: 'choiceqr', dbColumn: 'choice_token',   name: 'ChoiceQR',
-                tokenLabel: 'Bearer Токен',
-                tokenHint: 'Перейдіть у панель ChoiceQR: Settings → Integrations → Webhooks → згенеруйте Bearer Token.',
-                webhookEvent: 'order.created',
-                webhookStep: 'Settings → Integrations → Webhooks → New Webhook' },
-    gopos:    { webhookPath: 'gopos',    dbColumn: 'gopos_token',    name: 'GoPOS',
-                tokenLabel: 'Authorization Token',
-                tokenHint: 'Скопіюйте Authorization Token з адмін-панелі GoPOS: Ustawienia → Integracje → Tokeny.',
-                webhookEvent: 'order.created',
-                webhookStep: 'Ustawienia → Integracje → Webhooki → Dodaj' },
-    syrve:    { webhookPath: 'syrve',    dbColumn: 'syrve_token',    name: 'Syrve (iiko)',
-                tokenLabel: 'API Login',
-                tokenHint: 'Введіть API Login від системи Syrve (iiko) — знаходиться в налаштуваннях інтеграцій.',
-                webhookEvent: 'DeliveryOrderStatusChanged',
-                webhookStep: 'Syrve Office → Administration → API' },
-};
+// POS_CONFIG defined via getPosConfig() below
 
 function openIntegrationsList() { document.getElementById('integrations-list-modal').classList.add('active'); document.body.style.overflow = 'hidden'; }
 function closeIntegrationsList() { document.getElementById('integrations-list-modal').classList.remove('active'); document.body.style.overflow = ''; }
