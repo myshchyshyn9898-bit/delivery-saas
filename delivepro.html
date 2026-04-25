@@ -358,44 +358,61 @@
     }
 
     /* ================================ */
-    /* ONBOARDING */
+    /* ONBOARDING — WOW REDESIGN       */
     /* ================================ */
-    #screen-onboard { padding: 0; background: var(--bg); }
+    #screen-onboard { padding: 0; background: #0d0d0f; }
 
     .carousel { display: flex; transition: transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94); height: 100%; width: 100%; }
-    .slide { min-width: 100%; flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; }
+    .slide { min-width: 100%; flex: 0 0 100%; height: 100%; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+    /* Per-slide gradient backgrounds */
+    .slide:nth-child(1) { background: linear-gradient(160deg, #0d0d0f 0%, #0f1923 50%, #0d0d0f 100%); }
+    .slide:nth-child(2) { background: linear-gradient(160deg, #0d0d0f 0%, #0c1a14 50%, #0d0d0f 100%); }
+    .slide:nth-child(3) { background: linear-gradient(160deg, #0d0d0f 0%, #170d1a 50%, #0d0d0f 100%); }
+    .slide:nth-child(4) { background: linear-gradient(160deg, #0d0d0f 0%, #17120a 50%, #0d0d0f 100%); }
+
+    /* Ambient glow blob per slide */
+    .slide-blob {
+        position: absolute; border-radius: 50%;
+        filter: blur(60px); opacity: 0.35; z-index: 0; pointer-events: none;
+        animation: blobPulse 6s infinite ease-in-out;
+    }
+    .slide:nth-child(1) .slide-blob { width: 240px; height: 240px; background: #0071e3; top: -60px; right: -40px; }
+    .slide:nth-child(2) .slide-blob { width: 220px; height: 220px; background: #30d158; top: -40px; left: -40px; }
+    .slide:nth-child(3) .slide-blob { width: 200px; height: 200px; background: #bf5af2; top: -50px; right: -30px; }
+    .slide:nth-child(4) .slide-blob { width: 220px; height: 220px; background: #ff6b47; top: -40px; left: -20px; }
+    .slide-blob-2 { animation-delay: -3s !important; opacity: 0.18 !important; }
+    .slide:nth-child(1) .slide-blob-2 { background: #30d158; bottom: 30%; left: -60px; top: auto; }
+    .slide:nth-child(2) .slide-blob-2 { background: #0071e3; bottom: 25%; right: -50px; top: auto; left: auto; }
+    .slide:nth-child(3) .slide-blob-2 { background: #ff6b47; bottom: 28%; left: -40px; top: auto; }
+    .slide:nth-child(4) .slide-blob-2 { background: #0071e3; bottom: 30%; right: -40px; top: auto; left: auto; }
+    @keyframes blobPulse { 0%,100%{transform:scale(1) translate(0,0)} 50%{transform:scale(1.15) translate(8px,-8px)} }
 
     .slide-visual-fade {
         flex: 1; width: 100%; position: relative;
-        display: flex; align-items: flex-start; justify-content: center;
-        -webkit-mask-image: linear-gradient(to bottom, black 55%, transparent 96%);
-        mask-image: linear-gradient(to bottom, black 55%, transparent 96%);
-        padding-top: 9vh;
+        display: flex; align-items: center; justify-content: center;
+        -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 98%);
+        mask-image: linear-gradient(to bottom, black 60%, transparent 98%);
+        padding-top: 6vh;
         overflow: hidden;
-    }
-
-    /* Slide background ambient */
-    .slide-visual-fade::before {
-        content: '';
-        position: absolute; inset: 0;
-        background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,107,71,0.06) 0%, transparent 70%);
-        z-index: 0;
+        z-index: 1;
     }
 
     .slide-text-area {
-        height: 36vh; width: 100%;
+        height: 34vh; width: 100%;
         display: flex; flex-direction: column;
         align-items: center; justify-content: flex-end;
         padding: 0 28px 36px;
         z-index: 10;
-        background: var(--bg);
+        background: transparent;
+        position: relative;
     }
     .slide-title {
-        font-size: 28px; font-weight: 800; color: var(--text-main);
+        font-size: 28px; font-weight: 800; color: #ffffff;
         margin-bottom: 10px; letter-spacing: -0.8px; text-align: center;
     }
     .slide-desc {
-        font-size: 15px; color: var(--text-muted);
+        font-size: 15px; color: rgba(255,255,255,0.5);
         line-height: 1.55; font-weight: 500; text-align: center;
         margin-bottom: 28px; padding: 0 8px;
     }
@@ -404,21 +421,21 @@
     .dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 24px; }
     .dot {
         width: 6px; height: 6px; border-radius: 3px;
-        background: rgba(0,0,0,0.12); transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        background: rgba(255,255,255,0.2); transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .dot.active { background: var(--primary); width: 22px; border-radius: 3px; }
 
-    /* Slide action btn — outlined secondary */
-    .btn { 
-        background: var(--primary); color: white; border: none; width: 100%;
+    /* Slide action btn */
+    .btn {
+        background: linear-gradient(135deg, #ff6b47, #ff4f2b); color: white; border: none; width: 100%;
         padding: 17px; border-radius: 14px; font-size: 16px; font-weight: 700;
         font-family: inherit; cursor: pointer;
-        box-shadow: 0 6px 20px rgba(255,107,71,0.25);
+        box-shadow: 0 6px 24px rgba(255,107,71,0.4);
         transition: all 0.18s ease; display: block; text-align: center;
         letter-spacing: -0.2px;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-trial {
+    .btn-trial {    .btn-trial {
         background: #1d1d1f;
         box-shadow: 0 6px 20px rgba(0,0,0,0.15);
     }
@@ -428,35 +445,36 @@
     /* ================================ */
     .analytics-card {
         width: calc(100% - 40px);
-        background: white;
+        background: rgba(255,255,255,0.06);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
         border-radius: 24px;
         padding: 20px;
-        box-shadow: var(--shadow-lg);
-        border: 1px solid var(--border);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.1);
         position: relative; z-index: 1;
         animation: floatCard 5s infinite ease-in-out;
     }
-    @keyframes floatCard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    @keyframes floatCard { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
 
     .ac-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .ac-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
-    .ac-badge { background: rgba(48,209,88,0.12); color: var(--acc-green); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; }
-    .ac-value { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; color: var(--text-main); margin-bottom: 4px; }
-    .ac-sub { font-size: 13px; color: var(--text-muted); font-weight: 500; margin-bottom: 18px; }
+    .ac-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; text-transform: uppercase; }
+    .ac-badge { background: rgba(48,209,88,0.18); color: #30d158; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; gap: 4px; border: 1px solid rgba(48,209,88,0.25); }
+    .ac-value { font-size: 36px; font-weight: 800; letter-spacing: -1.5px; color: #fff; margin-bottom: 4px; }
+    .ac-sub { font-size: 13px; color: rgba(255,255,255,0.4); font-weight: 500; margin-bottom: 18px; }
 
     .graph-container { height: 80px; position: relative; margin-bottom: 16px; }
     .graph-svg { width: 100%; height: 100%; overflow: visible; }
-    .graph-area { fill: url(#areaGrad); }
-    .graph-line-path { stroke: var(--primary); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 300; stroke-dashoffset: 300; animation: drawGraph 3s 0.5s infinite ease-out; }
+    .graph-line-path { stroke: #ff6b47; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 300; stroke-dashoffset: 300; animation: drawGraph 3s 0.5s infinite ease-out; }
     .graph-area-path { fill: url(#areaGrad); opacity: 0; animation: fadeFill 3s 0.5s infinite ease-out; }
-    .graph-dot-end { fill: var(--primary); opacity: 0; animation: fadeFill 3s 0.5s infinite ease-out; }
+    .graph-dot-end { fill: #ff6b47; filter: drop-shadow(0 0 6px rgba(255,107,71,0.8)); opacity: 0; animation: fadeFill 3s 0.5s infinite ease-out; }
     @keyframes drawGraph { 0%,10%{stroke-dashoffset:300} 70%,100%{stroke-dashoffset:0} }
     @keyframes fadeFill { 0%,40%{opacity:0} 70%,100%{opacity:1} }
 
     .ac-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .ac-stat { background: var(--bg); border-radius: 12px; padding: 10px 8px; text-align: center; }
-    .ac-stat-val { font-size: 16px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; }
-    .ac-stat-lbl { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+    .ac-stat { background: rgba(255,255,255,0.07); border-radius: 12px; padding: 10px 8px; text-align: center; border: 1px solid rgba(255,255,255,0.07); }
+    .ac-stat-val { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    .ac-stat-lbl { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 600; margin-top: 2px; }
 
     /* ================================ */
     /* SLIDE 2 — TEAM MOCKUP */
@@ -468,17 +486,20 @@
     }
 
     .team-card {
-        background: white; border-radius: 18px;
+        background: rgba(255,255,255,0.07); border-radius: 18px;
         padding: 14px 16px;
         display: flex; align-items: center; gap: 14px;
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--border);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         transform: translateX(0);
         transition: all 0.3s ease;
     }
-    .team-card:nth-child(1) { animation: slideRight 0.6s 0.2s both ease-out; }
-    .team-card:nth-child(2) { animation: slideRight 0.6s 0.4s both ease-out; }
-    .team-card:nth-child(3) { animation: slideRight 0.6s 0.6s both ease-out; }
+    .team-card:nth-child(1) { animation: slideUp 0.5s 0.1s both cubic-bezier(0.34,1.56,0.64,1); }
+    .team-card:nth-child(2) { animation: slideUp 0.5s 0.25s both cubic-bezier(0.34,1.56,0.64,1); }
+    .team-card:nth-child(3) { animation: slideUp 0.5s 0.4s both cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes slideUp { from{opacity:0;transform:translateY(24px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
     @keyframes slideRight { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
 
     .tc-avatar {
@@ -486,44 +507,46 @@
         display: flex; align-items: center; justify-content: center; font-size: 20px;
         flex-shrink: 0;
     }
-    .tc-avatar.manager { background: rgba(0,113,227,0.08); }
-    .tc-avatar.courier { background: rgba(255,107,71,0.08); }
+    .tc-avatar.manager { background: rgba(0,113,227,0.2); box-shadow: 0 0 20px rgba(0,113,227,0.3); }
+    .tc-avatar.courier { background: rgba(255,107,71,0.2); box-shadow: 0 0 20px rgba(255,107,71,0.3); }
 
     .tc-info { flex: 1; }
-    .tc-name { font-size: 15px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
+    .tc-name { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 3px; }
     .tc-role {
         font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px;
         display: inline-block; letter-spacing: 0.5px;
     }
-    .tc-role.manager { background: rgba(0,113,227,0.08); color: var(--acc-blue); }
-    .tc-role.courier { background: rgba(255,107,71,0.08); color: var(--primary); }
+    .tc-role.manager { background: rgba(0,113,227,0.2); color: #4da3ff; border: 1px solid rgba(0,113,227,0.3); }
+    .tc-role.courier { background: rgba(255,107,71,0.2); color: #ff8c6b; border: 1px solid rgba(255,107,71,0.3); }
 
-    .tc-status { width: 8px; height: 8px; border-radius: 50%; background: var(--acc-green); flex-shrink: 0; box-shadow: 0 0 0 3px rgba(48,209,88,0.15); }
+    .tc-status { width: 8px; height: 8px; border-radius: 50%; background: #30d158; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(48,209,88,0.25); animation: statusPulse 2s infinite; }
+    @keyframes statusPulse { 0%,100%{box-shadow:0 0 0 3px rgba(48,209,88,0.25)} 50%{box-shadow:0 0 0 6px rgba(48,209,88,0.1)} }
 
     /* ================================ */
     /* SLIDE 3 — FORM MOCKUP */
     /* ================================ */
     .form-mockup {
         width: calc(100% - 40px);
-        background: white; border-radius: 24px;
+        background: rgba(255,255,255,0.06); border-radius: 24px;
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         padding: 20px;
-        box-shadow: var(--shadow-lg);
-        border: 1px solid var(--border);
+        box-shadow: 0 24px 64px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.1);
         position: relative; z-index: 1;
         animation: floatCard 6s 1s infinite ease-in-out alternate;
     }
 
-    .fm-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .fm-label { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
     .fm-label i { color: var(--primary); }
 
     .fm-input {
-        background: var(--bg); border-radius: 12px; height: 50px;
+        background: rgba(255,255,255,0.08); border-radius: 12px; height: 50px;
         display: flex; align-items: center; padding: 0 14px;
         font-size: 14px; font-weight: 600; color: var(--text-main);
         margin-bottom: 14px; border: 1.5px solid transparent;
         position: relative; overflow: hidden;
     }
-    .fm-input.focused { border-color: var(--primary); background: rgba(255,107,71,0.04); }
+    .fm-input.focused { border-color: rgba(255,107,71,0.7); background: rgba(255,107,71,0.08); box-shadow: 0 0 0 3px rgba(255,107,71,0.15); }
     .fm-cursor { display: inline-block; width: 1.5px; height: 16px; background: var(--primary); margin-left: 1px; animation: cursorBlink 1s infinite; vertical-align: middle; }
     @keyframes cursorBlink { 0%,100%{opacity:1} 50%{opacity:0} }
     .fm-typing { display: inline; }
@@ -537,14 +560,15 @@
     .fm-map {
         height: 110px; border-radius: 14px; overflow: hidden;
         background: #e8edf0; position: relative;
-        background: linear-gradient(135deg, #e2e8f0, #cbd5e1); /* mapbox preview — token load via JS */
+        background: linear-gradient(135deg, #1a2535, #0d1520); /* dark map preview */
         background-size: cover; background-position: center;
     }
-    .fm-map-store { position: absolute; left: 18%; top: 55%; transform: translate(-50%,-50%); width: 32px; height: 32px; background: var(--text-main); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 2; }
+    .fm-map-store { position: absolute; left: 18%; top: 55%; transform: translate(-50%,-50%); width: 32px; height: 32px; background: #1d1d1f; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 2; }
     .fm-map-client { position: absolute; right: 18%; top: 28%; transform: translate(50%,-50%); width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; border: 2.5px solid white; box-shadow: 0 4px 12px rgba(255,107,71,0.35); z-index: 2; }
     .fm-route {
         position: absolute; left: 20%; top: 45%; width: 58%; height: 3px;
-        background: linear-gradient(90deg, rgba(255,107,71,0.8), rgba(255,107,71,0.3));
+        background: linear-gradient(90deg, rgba(255,107,71,1), rgba(255,107,71,0.4));
+        box-shadow: 0 0 12px rgba(255,107,71,0.6);
         transform: rotate(-15deg); border-radius: 2px; z-index: 1;
         clip-path: inset(0 100% 0 0);
         animation: revealRoute 4s 1s infinite;
@@ -585,7 +609,7 @@
 
     .tg-map-mini {
         height: 110px; border-radius: 10px; overflow: hidden;
-        background: linear-gradient(135deg, #1e293b, #0f172a); /* mapbox dark preview — token load via JS */
+        background: linear-gradient(135deg, #0d1520, #060d18);
         background-size: cover; background-position: center;
         position: relative; margin-bottom: 12px;
     }
@@ -811,6 +835,8 @@
 
         <!-- Slide 1: Analytics -->
         <div class="slide">
+            <div class="slide-blob"></div>
+            <div class="slide-blob slide-blob-2"></div>
             <div class="slide-visual-fade">
                 <div class="analytics-card">
                     <div class="ac-header">
@@ -823,7 +849,7 @@
                         <svg class="graph-svg" viewBox="0 0 200 80" preserveAspectRatio="none">
                             <defs>
                                 <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stop-color="#ff6b47" stop-opacity="0.18"/>
+                                    <stop offset="0%" stop-color="#ff6b47" stop-opacity="0.35"/>
                                     <stop offset="100%" stop-color="#ff6b47" stop-opacity="0"/>
                                 </linearGradient>
                             </defs>
@@ -858,6 +884,8 @@
 
         <!-- Slide 2: Team -->
         <div class="slide">
+            <div class="slide-blob"></div>
+            <div class="slide-blob slide-blob-2"></div>
             <div class="slide-visual-fade">
                 <div class="team-list">
                     <div class="team-card">
@@ -896,6 +924,8 @@
 
         <!-- Slide 3: Smart Form -->
         <div class="slide">
+            <div class="slide-blob"></div>
+            <div class="slide-blob slide-blob-2"></div>
             <div class="slide-visual-fade">
                 <div class="form-mockup">
                     <div class="fm-label"><i class="fa-solid fa-location-dot"></i> <span data-i18n="s3_input_street">Адреса доставки</span></div>
@@ -919,6 +949,8 @@
 
         <!-- Slide 4: Telegram -->
         <div class="slide">
+            <div class="slide-blob"></div>
+            <div class="slide-blob slide-blob-2"></div>
             <div class="slide-visual-fade">
                 <div class="tg-mockup">
                     <div class="tg-header">
@@ -1137,7 +1169,12 @@
         if (map !== null) return;
         let lat = 50.04132, lon = 21.99901;
         map = L.map('real-map').setView([lat, lon], 13);
-        L.tileLayer(`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`, { attribution: '© Mapbox', maxZoom: 18 }).addTo(map);
+        // BUG FIX: token empty at load time — use OSM fallback until token arrives
+        const tileUrl = MAPBOX_TOKEN
+            ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/256/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        const tileAttr = MAPBOX_TOKEN ? '© Mapbox' : '© OpenStreetMap';
+        L.tileLayer(tileUrl, { attribution: tileAttr, maxZoom: 18 }).addTo(map);
         marker = L.marker([lat, lon]).addTo(map);
         let r = parseFloat(document.getElementById('biz-radius').value) || 5;
         radiusCircle = L.circle([lat, lon], { color: '#ff6b47', fillColor: '#ff6b47', fillOpacity: 0.12, weight: 2, dashArray: '5,5', radius: r * 1000 }).addTo(map);
