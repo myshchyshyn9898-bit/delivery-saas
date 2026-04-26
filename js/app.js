@@ -1609,3 +1609,54 @@ async function togglePayment(cid, currentlyPaid) {
         await switchSalaryMonth(salaryMonthKey);
     } catch(e) { showToast(t('err_generic'), e.message); }
 }
+
+// ==========================================
+// НОВИЙ БЛОК: ГЛОБАЛЬНІ СТАВКИ ТА ПРЕМІЇ
+// ==========================================
+async function saveGlobalRates() {
+    var data = {
+        default_hourly_rate_admin: parseFloat(document.getElementById('global-hr-admin').value) || 0,
+        default_hourly_rate_courier: parseFloat(document.getElementById('global-hr-courier').value) || 0,
+        default_order_rate: parseFloat(document.getElementById('global-order-rate').value) || 0,
+        km_rate: parseFloat(document.getElementById('global-km-rate').value) || 0
+    };
+    try {
+        var res = await supabaseClient.from('businesses').update(data).eq('id', bizId);
+        if (res.error) throw res.error;
+        showToast('✅ Глобальні ставки збережено!', '');
+    } catch(e) { 
+        showToast('❌ Помилка', e.message); 
+    }
+}
+
+async function submitGlobalBonus() {
+    var cid = document.getElementById('global-bonus-staff').value;
+    var amt = parseFloat(document.getElementById('global-bonus-amt').value);
+    var com = document.getElementById('global-bonus-com').value.trim();
+    
+    if (!cid || isNaN(amt)) {
+        showToast('❌ Виберіть працівника і введіть суму', '');
+        return;
+    }
+    
+    try {
+        var res = await supabaseClient.from('salary_bonuses').insert({
+            business_id: bizId, 
+            courier_id: cid, 
+            month: salaryMonthKey, 
+            amount: amt, 
+            comment: com
+        });
+        if (res.error) throw res.error;
+        
+        showToast('✅ Нараховано!', '');
+        // Очищаємо поля після успіху
+        document.getElementById('global-bonus-amt').value = '';
+        document.getElementById('global-bonus-com').value = '';
+        // Оновлюємо список зарплат на екрані
+        await switchSalaryMonth(salaryMonthKey); 
+    } catch(e) { 
+        showToast('❌ Помилка', e.message); 
+    }
+}
+
