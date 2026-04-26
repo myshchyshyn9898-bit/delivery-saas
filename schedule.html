@@ -775,6 +775,9 @@ var SL = SCHED_I18N[currentLang] || SCHED_I18N['en'];
 // Reload translations when lang changes
 function reloadScheduleLang() { SL = SCHED_I18N[currentLang] || SCHED_I18N['en']; }
 
+
+
+
 // Apply schedule translations to HTML elements
 function applySchedTranslations() {
     SL = SCHED_I18N[currentLang] || SCHED_I18N['en'];
@@ -783,6 +786,7 @@ function applySchedTranslations() {
         if (SL[key]) el.textContent = SL[key];
     });
 }
+
 
 // --- ФУНКЦІЇ-ПОМІЧНИКИ (окремий блок — завантажуються першими) ---
 function setLoad(msg) {
@@ -1034,6 +1038,7 @@ function addGroup() { openGroupSheet(); }
 
 async function loadBiz() {
     var _res = await supabase.from('businesses').select('*').eq('id', bizId).single(); var data = _res.data; var error = _res.error;
+    console.log('[schedule] loadBiz:', data ? 'GOT DATA' : 'NULL', '| error:', error ? error.message + ' (' + error.code + ')' : 'none');
     if (error || !data) throw new Error((SL.err_biz_prefix || 'Бізнес') + ': ' + (error ? error.message : 'не знайдено') + ' [bizId=' + bizId + ']');
     bizData = data;
 }
@@ -1103,15 +1108,19 @@ async function loadShifts() {
 // ── MONTHS ──
 function initMonths() {
     var now = new Date();
+    // Show prev, current, next month
     var months = [];
     for (var d = -1; d <= 2; d++) {
         var dt = new Date(now.getFullYear(), now.getMonth() + d, 1);
         months.push(dt.getFullYear() + "-" + (dt.getMonth()+1 < 10 ? "0" : "") + (dt.getMonth()+1));
     }
+    // Also add any months from scheduleData not in list
     Object.keys(scheduleData).forEach(function(mk) { if (!months.includes(mk)) months.unshift(mk); });
     months.sort();
+
     window._months = months;
     activeMonthKey = now.getFullYear() + "-" + (now.getMonth()+1 < 10 ? "0" : "") + (now.getMonth()+1);
+
     renderMonthTabs();
 }
 
@@ -1131,6 +1140,7 @@ function renderMonthTabs() {
         labelSpan.textContent = label;
         labelSpan.onclick = function() {
             var prevMonth = activeMonthKey;
+            // Автозбереження поточного місяця перед переключенням
             if (prevMonth !== mk && scheduleData[prevMonth]) {
                 saveScheduleForMonth(prevMonth).catch(function(e) { console.warn('[schedule] auto-save:', e.message); });
             }
@@ -1141,6 +1151,7 @@ function renderMonthTabs() {
         };
         tab.appendChild(labelSpan);
 
+        // × кнопка видалення (тільки для адміна, не для активного місяця)
         if (isAdmin && !isActive) {
             var del = document.createElement('span');
             del.textContent = '×';
@@ -1151,6 +1162,7 @@ function renderMonthTabs() {
                 var idx = window._months.indexOf(mk);
                 if (idx > -1) {
                     window._months.splice(idx, 1);
+                    // Switch to nearest month if needed
                     if (window._months.length > 0) {
                         activeMonthKey = window._months[Math.min(idx, window._months.length-1)];
                     }
@@ -1161,6 +1173,7 @@ function renderMonthTabs() {
             tab.appendChild(del);
         }
 
+        // Click on tab itself (not the × button)
         tab.style.cursor = 'pointer';
         wrap.appendChild(tab);
     });
@@ -1186,12 +1199,14 @@ function addMonth() {
 }
 
 // ── RENDER ──
+// Нормалізація ролі: "Кур'єр", "Кур'єри", "courier" → "courier"
 function normalizeRole(role) {
     if (!role) return 'courier';
     var r = role.toLowerCase().trim();
     if (r === 'courier' || r === "кур'єр" || r === "кур'єри" || r === 'кур' || r === 'кур.') return 'courier';
     if (r === 'manager' || r === 'менеджер' || r === 'менеджери' || r === 'адмін' || r === 'admin') return 'manager';
     if (r === 'kitchen' || r === 'кухня' || r === 'кухар' || r === 'кухарі') return 'kitchen';
+    // Для всіх інших — повертаємо як є (без змін), щоб кастомні ролі групувались разом
     return role.trim();
 }
 
@@ -1200,13 +1215,14 @@ function roleLabel(role) {
     if (r === 'courier') return SL.role_courier || 'Couriers';
     if (r === 'manager') return SL.role_manager || 'Managers';
     if (r === 'kitchen') return 'Кухня';
-    return role.trim(); 
+    return role.trim(); // кастомна роль — як є
 }
 
 function renderAll() {
     var container = document.getElementById('groups-container');
     container.innerHTML = '';
 
+    // Групуємо по нормалізованій ролі
     var groups = {};
     var groupOrder = [];
     staffList.forEach(function(s) {
@@ -1230,6 +1246,7 @@ function buildGroupCard(groupName, members, groupRole) {
     var card = document.createElement('div');
     card.className = 'table-card';
 
+    // Group header
     var gh = document.createElement('div');
     gh.className = 'group-header';
     var groupRoleKey = groupRole || '';
@@ -1240,21 +1257,33 @@ function buildGroupCard(groupName, members, groupRole) {
             var newName = (nameDiv.textContent || '').trim();
             var oldRole = nameDiv.getAttribute('data-role');
             if (!newName || newName === groupName) return;
-            supabase.from('staff').update({ role: newName }).eq('business_id', bizId).eq('role', oldRole).then(function(res) {
+            // Оновлюємо role у всіх членів групи в БД
+            supabase.from('staff')
+                .update({ role: newName })
+                .eq('business_id', bizId)
+                .eq('role', oldRole)
+                .then(function(res) {
                     if (res.error) {
                         toast(SL.err_save_name || '❌ Error saving name');
-                        nameDiv.textContent = groupName;
+                        nameDiv.textContent = groupName; // повертаємо стару назву
                     } else {
-                        staffList.forEach(function(s) { if (s.role === oldRole) s.role = newName; });
+                        // Оновлюємо локальний staffList
+                        staffList.forEach(function(s) {
+                            if (s.role === oldRole) s.role = newName;
+                        });
                         nameDiv.setAttribute('data-role', newName);
                         toast(SL.group_saved || '✅ Group name saved');
                     }
                 });
         };
-        nameDiv.onkeydown = function(e) { if (e.keyCode === 13) { e.preventDefault(); nameDiv.blur(); } };
+        // Enter = зберегти (blur)
+        nameDiv.onkeydown = function(e) {
+            if (e.keyCode === 13) { e.preventDefault(); nameDiv.blur(); }
+        };
     }
     card.appendChild(gh);
 
+    // Table
     var scroll = document.createElement('div');
     scroll.className = 'tbl-scroll';
     scroll.addEventListener('click', function(e) {
@@ -1269,7 +1298,7 @@ function buildGroupCard(groupName, members, groupRole) {
     var headDates = '', headDays = '', bodyRows = '';
 
     for (var d = 1; d <= daysInMonth; d++) {
-        var dow = new Date(y, m-1, d).getDay(); 
+        var dow = new Date(y, m-1, d).getDay(); // 0=Sun
         var dowIdx = dow === 0 ? 6 : dow - 1;
         var isToday = d === todayDay;
         headDates += '<th class="col-day-head' + (isToday?' today':'') + '"><div class="day-num">' + d + '</div></th>';
@@ -1277,10 +1306,11 @@ function buildGroupCard(groupName, members, groupRole) {
     }
 
     members.forEach(function(s) {
-        if (s._placeholder) return; 
+        if (s._placeholder) return; // порожня група — пропускаємо
         var cid = String(s.user_id);
         var monthData = (scheduleData[activeMonthKey] || {})[cid] || {};
 
+        // Worked days from shifts
         var workedDays = {};
         (shiftsData[cid] || []).forEach(function(sh) {
             var shDate = new Date((sh.started_at || '').replace(' ', 'T'));
@@ -1303,6 +1333,7 @@ function buildGroupCard(groupName, members, groupRole) {
             var hrs     = workedDays[d];
 
             if (planned || worked) shiftCount++;
+            // Пріоритет: actual_hours > bot shift > (ignored in grid)
             if (monthData[d] && monthData[d].actual_hours != null && !isNaN(monthData[d].actual_hours)) {
                 hoursTotal += parseFloat(monthData[d].actual_hours);
             } else if (hrs) {
@@ -1310,7 +1341,11 @@ function buildGroupCard(groupName, members, groupRole) {
             }
 
             var canEdit = isAdmin;
-            var slotClass = [ 'day-slot', planned ? 'planned' : '', worked  ? 'worked'  : '' ].filter(Boolean).join(' ');
+            var slotClass = [
+                'day-slot',
+                planned ? 'planned' : '',
+                worked  ? 'worked'  : ''
+            ].filter(Boolean).join(' ');
 
             var startT = (monthData[d] && monthData[d].start) || '';
             var endT   = (monthData[d] && monthData[d].end)   || '';
@@ -1403,6 +1438,7 @@ function saveSlot() {
     closeSheet();
     renderAll();
 
+    // Автозбереження одного слоту в БД
     var dd = String(parseInt(day)).padStart(2, '0');
     var dateStr = activeMonthKey + '-' + dd;
     supabase.from('schedule').upsert({
@@ -1422,10 +1458,12 @@ function saveSlot() {
 }
 
 // ── SAVE TO DB ──
+// Тихе збереження конкретного місяця (без UI feedback)
 async function saveScheduleForMonth(monthKey) {
     try {
         var parts = monthKey.split('-');
         var y = parseInt(parts[0]), m = parseInt(parts[1]);
+        var daysInMonth = new Date(y, m, 0).getDate();
         var monthData = scheduleData[monthKey] || {};
         var upserts = [];
 
@@ -1446,9 +1484,12 @@ async function saveScheduleForMonth(monthKey) {
         });
 
         if (upserts.length > 0) {
-            await supabase.from('schedule').upsert(upserts, { onConflict: 'business_id,courier_id,date' });
+            await supabase.from('schedule')
+                .upsert(upserts, { onConflict: 'business_id,courier_id,date' });
         }
-    } catch(e) {}
+    } catch(e) {
+        console.warn('[schedule] auto-save error:', e.message);
+    }
 }
 
 async function saveSchedule() {
@@ -1480,9 +1521,11 @@ async function saveSchedule() {
         });
 
         if (upserts.length > 0) {
-            await supabase.from('schedule').upsert(upserts, { onConflict: 'business_id,courier_id,date' });
+            await supabase.from('schedule')
+                .upsert(upserts, { onConflict: 'business_id,courier_id,date' });
         }
 
+        // Delete cleared slots (those in DB but not in current data)
         var startDate = activeMonthKey + "-01";
         var endDate   = activeMonthKey + "-" + (daysInMonth < 10 ? "0" : "") + daysInMonth;
         var _res = await supabase.from('schedule')
@@ -1509,9 +1552,9 @@ async function saveSchedule() {
     }
 }
 
-// ── EARNINGS (ВІДВ'ЯЗАНИЙ КІЛОМЕТРАЖ) ──
+// ── EARNINGS ──
 async function loadEarnings() {
-    SL = SCHED_I18N[currentLang] || SCHED_I18N['en'];
+    SL = SCHED_I18N[currentLang] || SCHED_I18N['en']; // ✅ ensure fresh lang
     if (userRole === 'owner') return;
     if (!userId) return;
 
@@ -1523,27 +1566,32 @@ async function loadEarnings() {
         var endDate   = new Date(y, m, 1).toISOString();
         var cid = userId;
 
-        // Зарплатні налаштування (персональні)
+        // Salary settings
         var sset = null;
         try {
-            var _res = await supabase.from('salary_settings').select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle(); 
-            sset = _res.data;
+            var _res = await supabase.from('salary_settings')
+                .select('*').eq('business_id', bizId).eq('courier_id', cid).maybeSingle(); var data = _res.data;
+            sset = data;
         } catch(e) {}
 
         var hourlyRate = sset ? (parseFloat(sset.hourly_rate) || 0) : 0;
+        var kmRate     = (sset && sset.km_enabled) ? (parseFloat(sset.km_rate) || parseFloat(bizData && bizData.km_rate) || 0) : 0;
         var orderRate  = (sset && sset.order_enabled) ? (parseFloat(sset.order_rate) || 0) : 0;
 
-        // ВИЗНАЧАЄМО ФІНАЛЬНІ СТАВКИ (Індивідуальні або Глобальні)
+        // ⭐️ ЗАСТОСОВУЄМО ГЛОБАЛЬНІ АБО ІНДИВІДУАЛЬНІ СТАВКИ ⭐️
         var finalHourlyRate = (hourlyRate > 0) ? hourlyRate : (userRole === 'manager' || userRole === 'admin' ? (bizData.default_hourly_rate_admin || 0) : (bizData.default_hourly_rate_courier || 0));
         var finalOrderRate = (orderRate > 0) ? orderRate : (bizData.default_order_rate || 0);
         var finalKmRate = bizData.km_rate || 0;
 
+        // Розрахунок ПО ДНЯХ
         var totalHours = 0, totalKm = 0, shiftCount = 0;
 
-        // 1. Реальні години та кілометри
+        // 1. Збираємо реальні години з боту по днях
         var realDaily = {};
         try {
-            var _res = await supabase.from('shifts').select('*').eq('courier_id', cid).eq('business_id', bizId).gte('started_at', startDate).lt('started_at', endDate);
+            var _res = await supabase.from('shifts')
+                .select('*').eq('courier_id', cid).eq('business_id', bizId)
+                .gte('started_at', startDate).lt('started_at', endDate);
             var myShifts = _res.data;
             (myShifts || []).forEach(function(s) {
                 var dd = new Date((s.started_at || '').replace(' ', 'T')).getDate();
@@ -1551,15 +1599,16 @@ async function loadEarnings() {
                 realDaily[dd].shifts++;
                 if (s.ended_at) {
                     realDaily[dd].hours += (new Date((s.ended_at || '').replace(' ', 'T')) - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
-                    if (s.end_km != null && s.start_km != null && s.end_km > s.start_km) totalKm += (s.end_km - s.start_km);
+                    if (s.end_km && s.start_km) totalKm += (s.end_km - s.start_km);
                 } else {
+                    // Незакрита зміна: рахуємо до "зараз", але не більше 24 год
                     var openHrs = (new Date() - new Date((s.started_at || '').replace(' ', 'T'))) / 3600000;
                     realDaily[dd].hours += Math.min(openHrs, 24);
                 }
             });
         } catch(e) {}
 
-        // 2. Рахуємо по кожному дню
+        // 2. Рахуємо по кожному дню окремо
         var monthSched = (scheduleData[activeMonthKey] || {})[String(cid)] || {};
         var daysInMonth = new Date(y, m, 0).getDate();
 
@@ -1570,16 +1619,19 @@ async function loadEarnings() {
             var workedToday = false;
 
             if (slot && slot.actual_hours != null && !isNaN(slot.actual_hours)) {
+                // Найвищий пріоритет: ручне введення
                 dayHours = parseFloat(slot.actual_hours);
                 workedToday = true;
             } else if (realDay && realDay.hours > 0) {
+                // Середній: реальні години з боту
                 dayHours = realDay.hours;
                 workedToday = true;
             } else if (slot && slot.planned && slot.start && slot.end) {
+                // Найнижчий: планові години
                 var ps = slot.start.split(':');
                 var pe = slot.end.split(':');
                 var diff = (parseInt(pe[0])*60 + parseInt(pe[1])) - (parseInt(ps[0])*60 + parseInt(ps[1]));
-                if (diff < 0) diff += 24 * 60; 
+                if (diff < 0) diff += 24 * 60; // нічна зміна через північ
                 if (diff > 0) { dayHours = diff / 60; workedToday = true; }
             }
 
@@ -1588,24 +1640,29 @@ async function loadEarnings() {
         }
         totalHours = Math.round(totalHours * 10) / 10;
 
-        // Замовлення
+        // Orders
         var ordersCount = 0;
         try {
-            var _res = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('courier_id', cid).eq('business_id', bizId).eq('status', 'completed').gte('completed_at', startDate).lt('completed_at', endDate); 
-            ordersCount = _res.count || 0;
+            var _res = await supabase.from('orders')
+                .select('*', { count: 'exact', head: true })
+                .eq('courier_id', cid).eq('business_id', bizId)
+                .eq('status', 'completed')
+                .gte('completed_at', startDate).lt('completed_at', endDate); var count = _res.count; // BUG FIX: completed_at not created_at
+            ordersCount = count || 0;
         } catch(e) {}
 
-        // Бонуси
+        // Bonuses
         var bonusTotal = 0;
         try {
-            var _res = await supabase.from('salary_bonuses').select('amount').eq('business_id', bizId).eq('courier_id', cid).eq('month', activeMonthKey); 
-            var bonuses = _res.data;
+            var _res = await supabase.from('salary_bonuses')
+                .select('amount').eq('business_id', bizId).eq('courier_id', cid)
+                .eq('month', activeMonthKey); var bonuses = _res.data;
             bonusTotal = (bonuses || []).reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
         } catch(e) {}
 
         var safeHours = isNaN(totalHours) ? 0 : totalHours;
         
-        // ⭐️ ЧИСТА ЗАРПЛАТА (Без кілометрів) ⭐️
+        // ⭐️ РОЗРАХУНОК БЕЗ ПАЛЬНОГО ⭐️
         var earned = (safeHours * finalHourlyRate) + (ordersCount * finalOrderRate) + bonusTotal;
         var earnedSafe = isNaN(earned) ? 0 : Math.max(0, earned);
         
@@ -1614,7 +1671,7 @@ async function loadEarnings() {
 
         var cur = bizData ? (bizData.currency || 'zł') : 'zł';
 
-        // Update UI
+        // Update UI safely
         var el;
         el = document.getElementById('earn-total');
         if (el) el.innerHTML = earnedSafe.toFixed(2) + ' <span style="font-size:18px;opacity:0.8;">' + cur + '</span>';
