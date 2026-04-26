@@ -89,7 +89,7 @@ start_shift_buttons = ["🟢 Розпочати зміну", "🟢 Начать 
 close_shift_buttons = ["🔴 Закрити зміну", "🔴 Закрыть смену", "🔴 Zakończ zmianę", "🔴 End Shift"]
 shift_report_buttons = ["📋 Звіт змін", "📋 Отчёт смен", "📋 Raport zmian", "📋 Shift Report"]
 
-# --- Кур'єр натискає "Розпочати зміну" ---
+# --- Допоміжна функція мови ---
 async def _get_user_lang(user_id: int, tg_lang_code: str) -> str:
     """Читає мову з БД (пріоритет) або береться з TG language_code."""
     tg_lang = (tg_lang_code or 'en').split('-')[0].lower()
@@ -107,6 +107,7 @@ async def _get_user_lang(user_id: int, tg_lang_code: str) -> str:
     return tg_lang if tg_lang in ('uk', 'ru', 'pl', 'en') else 'en'
 
 
+# --- 🟢 Кур'єр натискає "Розпочати зміну" ---
 @router.message(F.text.in_(start_shift_buttons))
 async def cmd_start_shift(message: types.Message, state: FSMContext):
     lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
@@ -166,7 +167,8 @@ async def shift_open_got_km(message: types.Message, state: FSMContext):
     markup = kb.get_courier_kb(biz_id, user_id, lang, shift_active=True)
     await message.answer("✅", reply_markup=markup)
 
-# --- Кур'єр натискає "Закрити зміну" ---
+
+# --- 🔴 Кур'єр натискає "Закрити зміну" ---
 @router.message(F.text.in_(close_shift_buttons))
 async def cmd_close_shift(message: types.Message, state: FSMContext):
     lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
@@ -183,18 +185,7 @@ async def cmd_close_shift(message: types.Message, state: FSMContext):
     await state.update_data(biz_id=biz_id, shift_id=active['id'], start_km=active['start_km'])
     await message.answer(_(lang, 'shift_send_end_photo'))
 
-@router.message(ShiftOpen.waiting_photo)
-async def shift_open_wrong_input(message: types.Message, state: FSMContext):
-    """Кур'єр надіслав не фото під час очікування фото початку зміни"""
-    lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
-    await message.answer(_(lang, 'shift_send_start_photo'))
-
-@router.message(ShiftClose.waiting_photo)
-async def shift_close_wrong_input(message: types.Message, state: FSMContext):
-    """Кур'єр надіслав не фото під час очікування фото кінця зміни"""
-    lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
-    await message.answer(_(lang, 'shift_send_end_photo'))
-
+# ✅ ЗМІНА ТУТ: Цей блок (який чекає ФОТО при закритті) я підняв ВИЩЕ "заглушок"
 @router.message(ShiftClose.waiting_photo, F.photo)
 async def shift_close_got_photo(message: types.Message, state: FSMContext):
     lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
@@ -257,6 +248,23 @@ async def shift_close_got_km(message: types.Message, state: FSMContext):
         sender_id=user_id,
         text_key='shift_notify_end', name=name, km=end_km
     )
+
+# ==========================================
+# ⚠️ ЗАГЛУШКИ ДЛЯ НЕПРАВИЛЬНОГО ВВОДУ
+# (Мають бути завжди в самому кінці!)
+# ==========================================
+
+@router.message(ShiftOpen.waiting_photo)
+async def shift_open_wrong_input(message: types.Message, state: FSMContext):
+    """Кур'єр надіслав не фото під час очікування фото початку зміни"""
+    lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
+    await message.answer(_(lang, 'shift_send_start_photo'))
+
+@router.message(ShiftClose.waiting_photo)
+async def shift_close_wrong_input(message: types.Message, state: FSMContext):
+    """Кур'єр надіслав не фото під час очікування фото кінця зміни"""
+    lang = await _get_user_lang(message.from_user.id, message.from_user.language_code)
+    await message.answer(_(lang, 'shift_send_end_photo'))
 
     # Оновлюємо клавіатуру — кнопка "Розпочати зміну"
     markup = kb.get_courier_kb(biz_id, user_id, lang, shift_active=False)
