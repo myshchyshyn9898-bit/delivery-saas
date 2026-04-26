@@ -1217,13 +1217,35 @@ async function initSalaryTab() {
 async function loadSalaryData() {
     // Load staff
     var _r = await supabaseClient.from('staff')
-        .select('*').eq('business_id', bizId); var staffData = _r.data;
+        .select('*').eq('business_id', bizId); 
+    var staffData = _r.data;
     salaryStaff = staffData || [];
+
+    // ========================================================
+    // ⭐️ НОВИЙ БЛОК: ГЛОБАЛЬНІ СТАВКИ ТА ПРЕМІЇ (АВТОЗАПОВНЕННЯ)
+    // ========================================================
+    var bonusSelect = document.getElementById('global-bonus-staff');
+    if (bonusSelect) {
+        bonusSelect.innerHTML = '<option value="">Виберіть працівника...</option>';
+        salaryStaff.forEach(function(s) {
+            var roleName = (s.role === 'admin' || s.role === 'manager') ? 'Адмін' : "Кур'єр";
+            bonusSelect.innerHTML += '<option value="' + s.user_id + '">' + (s.name || 'Staff') + ' (' + roleName + ')</option>';
+        });
+    }
+
+    if (document.getElementById('global-hr-admin') && window._bizData) {
+        document.getElementById('global-hr-admin').value = window._bizData.default_hourly_rate_admin || '';
+        document.getElementById('global-hr-courier').value = window._bizData.default_hourly_rate_courier || '';
+        document.getElementById('global-order-rate').value = window._bizData.default_order_rate || '';
+        document.getElementById('global-km-rate').value = window._bizData.km_rate || '';
+    }
+    // ========================================================
 
     // Load salary settings for all staff
     try {
         var _r = await supabaseClient.from('salary_settings')
-            .select('*').eq('business_id', bizId); var sets = _r.data;
+            .select('*').eq('business_id', bizId); 
+        var sets = _r.data;
         salarySettings = {};
         (sets || []).forEach(s => { salarySettings[String(s.courier_id)] = s; });
     } catch(e) { salarySettings = {}; }
@@ -1231,7 +1253,8 @@ async function loadSalaryData() {
     // Load bonuses for current month
     try {
         var _r = await supabaseClient.from('salary_bonuses')
-            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey); var bons = _r.data;
+            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey); 
+        var bons = _r.data;
         salaryBonuses = {};
         (bons || []).forEach(b => {
             if (!salaryBonuses[String(b.courier_id)]) salaryBonuses[String(b.courier_id)] = [];
@@ -1242,7 +1265,8 @@ async function loadSalaryData() {
     // Load payments status
     try {
         var _r = await supabaseClient.from('salary_payments')
-            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey); var pays = _r.data;
+            .select('*').eq('business_id', bizId).eq('month', salaryMonthKey); 
+        var pays = _r.data;
         salaryPayments = {};
         (pays || []).forEach(p => { salaryPayments[String(p.courier_id)] = p; });
     } catch(e) { salaryPayments = {}; }
@@ -1308,7 +1332,7 @@ async function renderSalaryList() {
         allOrders = ordRes.data || [];
     } catch(e) {}
 
-    // 2. Завантажуємо дані графіку (actual_hours + планові)
+    // 2. Завантажуємо дані графіку
     var salaryScheduleData = {};
     try {
         var schedRes = await supabaseClient.from('schedule')
@@ -1328,15 +1352,13 @@ async function renderSalaryList() {
         });
     } catch(e) {}
 
-    // 3. Групуємо shifts по кур'єру і по дню
+    // 3. Групуємо shifts
     var shiftsByCourier = {};
     var realDailyByCourier = {};
     allShifts.forEach(function(sh) {
         var cid = String(sh.courier_id);
-        // По кур'єру (для km)
         if (!shiftsByCourier[cid]) shiftsByCourier[cid] = [];
         shiftsByCourier[cid].push(sh);
-        // По дню
         var dd = new Date((sh.started_at||'').replace(' ','T')).getDate();
         if (!realDailyByCourier[cid]) realDailyByCourier[cid] = {};
         if (!realDailyByCourier[cid][dd]) realDailyByCourier[cid][dd] = { hours: 0 };
@@ -1360,21 +1382,27 @@ async function renderSalaryList() {
         var s = salaryStaff[si];
         var cid = String(s.user_id);
         var sets = salarySettings[cid] || {};
+        
         var hourlyRate  = parseFloat(sets.hourly_rate) || 0;
-        var kmEnabled   = !!sets.km_enabled;
-        var kmRate      = kmEnabled ? (parseFloat(sets.km_rate) || parseFloat(window._bizData && window._bizData.km_rate) || 0) : 0;
         var orderEnabled = !!sets.order_enabled;
         var orderRate   = orderEnabled ? (parseFloat(sets.order_rate) || 0) : 0;
+        
+        // ⭐️ ЗАСТОСОВУЄМО ГЛОБАЛЬНІ АБО ІНДИВІДУАЛЬНІ СТАВКИ ⭐️
+        var finalHourlyRate = (hourlyRate > 0) ? hourlyRate : (s.role === 'manager' || s.role === 'admin' ? (window._bizData.default_hourly_rate_admin || 0) : (window._bizData.default_hourly_rate_courier || 0));
+        var finalOrderRate = (orderRate > 0) ? orderRate : (window._bizData.default_order_rate || 0);
+        var finalKmRate = window._bizData.km_rate || 0;
+
         var bonusList   = salaryBonuses[cid] || [];
         var payment     = salaryPayments[cid];
 
         // Km з реальних змін
         var totalKm = 0;
         (shiftsByCourier[cid] || []).forEach(function(sh) {
-            if (sh.ended_at && sh.end_km && sh.start_km) totalKm += (sh.end_km - sh.start_km);
+            if (sh.ended_at && sh.end_km != null && sh.start_km != null && sh.end_km > sh.start_km) {
+                totalKm += (sh.end_km - sh.start_km);
+            }
         });
 
-        // Години по днях (пріоритет: actual > real > planned)
         var totalHours = 0;
         var shiftCount = 0;
         var monthSched = salaryScheduleData[cid] || {};
@@ -1405,17 +1433,17 @@ async function renderSalaryList() {
         totalKm = Math.round(totalKm);
         var ordersCount = ordersByCourier[cid] || 0;
 
-        // Бонуси
         var bonusTotal = 0;
         bonusList.forEach(function(b) {
             bonusTotal += parseFloat(b.amount) || 0;
         });
 
-        // Розрахунок
-        var baseSalary  = Math.round(totalHours * hourlyRate * 100) / 100;
-        var orderBonus  = Math.round(ordersCount * orderRate * 100) / 100;
-        var kmDeduction = Math.round(totalKm * kmRate * 100) / 100;
-        var earnedSafe  = baseSalary + orderBonus - kmDeduction + bonusTotal;
+        // ⭐️ РОЗРАХУНОК БЕЗ ПАЛЬНОГО В ЗАРПЛАТІ ⭐️
+        var baseSalary  = Math.round(totalHours * finalHourlyRate * 100) / 100;
+        var orderBonus  = Math.round(ordersCount * finalOrderRate * 100) / 100;
+        var kmComp      = Math.round(totalKm * finalKmRate * 100) / 100;
+        
+        var earnedSafe  = baseSalary + orderBonus + bonusTotal;
         if (isNaN(earnedSafe)) earnedSafe = 0;
         totalFund += earnedSafe;
 
@@ -1429,15 +1457,18 @@ async function renderSalaryList() {
 
         // Ledger
         var ledger = '';
-        if (hourlyRate > 0 || totalHours > 0) {
-            ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_base')} (${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','').trim()} × ${hourlyRate} ${cur})</span><span class="ledger-amount neutral">${fmtAmt(baseSalary, cur)}</span></div>`;
+        if (finalHourlyRate > 0 || totalHours > 0) {
+            ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_base')} (${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','').trim()} × ${finalHourlyRate} ${cur})</span><span class="ledger-amount neutral">${fmtAmt(baseSalary, cur)}</span></div>`;
         }
-        if (orderEnabled && (orderRate > 0 || ordersCount > 0)) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">' + t('sal_per_order') + ' (' + ordersCount + ' × ' + orderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
+        if (finalOrderRate > 0 || ordersCount > 0) {
+            ledger += '<div class="ledger-row"><span class="ledger-desc">' + t('sal_per_order') + ' (' + ordersCount + ' × ' + finalOrderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
         }
-        if (kmEnabled && (kmRate > 0 || totalKm > 0)) {
-            ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_mileage')} (${totalKm} ${t('sal_per_km').replace('/','').trim()} × ${kmRate} ${cur})</span><span class="ledger-amount minus">-${kmDeduction.toFixed(2)} ${cur}</span></div>`;
+        
+        // Пальне (тільки інформаційно)
+        if (finalKmRate > 0 || totalKm > 0) {
+            ledger += `<div class="ledger-row" style="background: rgba(245,158,11,0.08); border-radius: 6px; padding: 6px 8px; margin-top: 6px;"><span class="ledger-desc" style="color:var(--text-main);"><i class="fa-solid fa-car-side" style="color:var(--warning); margin-right:4px;"></i> Компенсація пального (до видачі)<br><span style="font-size:9px; opacity:0.7; font-weight:600;">${totalKm} км × ${finalKmRate} ${cur}</span></span><span class="ledger-amount neutral">${fmtAmt(kmComp, cur)}</span></div>`;
         }
+
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
             var cls = amt >= 0 ? 'plus' : 'minus';
@@ -1446,11 +1477,10 @@ async function renderSalaryList() {
         });
         if (!ledger) ledger = `<div style="font-size:12px;color:var(--text-muted);font-weight:600;">${t('sal_no_month_data')}</div>`;
 
-        // Settings rows
-        var settHourly = `<div class="setting-row"><span class="setting-label">${t('sal_hourly')} (${cur}${t('sal_per_hour')})</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-${cid}" value="${hourlyRate}" min="0" step="0.5"></div></div>`;
-        var settOrders = `<div class="setting-row"><span class="setting-label">${t('sal_per_order')} (${cur}${t('sal_per_item')})</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="oe-${cid}"${orderEnabled ? ' checked' : ''}><span class="slider"></span></label><input type="number" class="setting-input" id="or-${cid}" value="${orderRate}" min="0" step="0.1"></div></div>`;
-        var settKm = `<div class="setting-row"><span class="setting-label">${t('sal_km_deduct')} (${cur}${t('sal_per_km')})</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="ke-${cid}"${kmEnabled ? ' checked' : ''}><span class="slider"></span></label><input type="number" class="setting-input" id="kr-${cid}" value="${kmRate}" min="0" step="0.1"></div></div>`;
-
+        // Індивідуальні налаштування (для перевизначення)
+        var settHourly = `<div class="setting-row"><span class="setting-label">${t('sal_hourly')} (${cur}${t('sal_per_hour')})</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-${cid}" value="${hourlyRate || ''}" placeholder="Загал. ${finalHourlyRate}" min="0" step="0.5"></div></div>`;
+        var settOrders = `<div class="setting-row"><span class="setting-label">${t('sal_per_order')} (${cur}${t('sal_per_item')})</span><div class="salary-settings-right"><label class="toggle-switch"><input type="checkbox" id="oe-${cid}"${orderEnabled ? ' checked' : ''}><span class="slider"></span></label><input type="number" class="setting-input" id="or-${cid}" value="${orderRate || ''}" placeholder="Загал. ${finalOrderRate}" min="0" step="0.1"></div></div>`;
+        
         html += '<div class="salary-card' + (isPaid ? ' salary-card-paid' : '') + '" id="sal-card-' + cid + '">' +
             '<div class="card-summary" data-toggle="' + bodyId + '">' +
               '<div class="avatar ' + roleClass + '">' + initials + '</div>' +
@@ -1468,11 +1498,12 @@ async function renderSalaryList() {
               '<div class="settings-block">' +
                 '<button class="settings-summary" data-settid="' + settId + '">' +
                   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>' +
-                  t('sal_settings_title') +
+                  'Індивідуальні ставки (Перевизначення)' +
                   '<svg class="sett-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>' +
                 '</button>' +
                 '<div class="settings-content" id="' + settId + '" style="display:none;">' +
-                  settHourly + settOrders + settKm +
+                  '<div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">Якщо тут пусто, рахуватиметься за глобальними ставками закладу.</div>' +
+                  settHourly + settOrders +
                   '<button class="btn btn-save-rates" data-savecid="' + cid + '">' + t('sal_save_rates') + '</button>' +
                 '</div>' +
               '</div>' +
@@ -1481,7 +1512,7 @@ async function renderSalaryList() {
                 `<div class="stat-item"><div class="stat-label">${t('sal_hours')}</div><div class="stat-value">${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','')}</div></div>` +
                 `<div class="stat-item"><div class="stat-label">${t('sal_orders_col')}</div><div class="stat-value">${ordersCount} ${t('sal_per_item').replace('/','')}</div></div>` +
               '</div>' +
-              `<div class="section-heading">${t('sal_bonus_fine_adv')}</div>` +
+              `<div class="section-heading">${t('sal_bonus_fine_adv')} / ЗП</div>` +
               '<div class="ledger">' + ledger + '</div>' +
               '<div class="add-action">' +
                 '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="' + t('sal_amount') + '">' +
@@ -1659,4 +1690,3 @@ async function submitGlobalBonus() {
         showToast('❌ Помилка', e.message); 
     }
 }
-
