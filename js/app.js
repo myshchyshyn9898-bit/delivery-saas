@@ -1455,7 +1455,7 @@ async function renderSalaryList() {
         var bodyId = 'sal-body-' + cid;
         var settId = 'sal-sett-' + cid;
 
-        // ⭐️ НОВИЙ КРАСИВИЙ ДИЗАЙН ІСТОРІЇ НАРАХУВАНЬ (БЕЗ ЕМОДЗІ) ⭐️
+        // ⭐️ НОВИЙ КРАСИВИЙ ДИЗАЙН ІСТОРІЇ НАРАХУВАНЬ (МУЛЬТИМОВНИЙ + ІКОНКИ) ⭐️
         var ledger = '';
         
         // 1. Базова ЗП (Години)
@@ -1483,7 +1483,7 @@ async function renderSalaryList() {
                     </div>
                     <div>
                         <div style="font-size: 13px; font-weight: 800; color: var(--text);">${t('sal_per_order')}</div>
-                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 2px;">${ordersCount} шт × ${finalOrderRate} ${cur}</div>
+                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 2px;">${ordersCount} × ${finalOrderRate} ${cur}</div>
                     </div>
                 </div>
                 <div style="font-size: 15px; font-weight: 800; color: #10b981;">+${fmtAmt(orderBonus, cur)}</div>
@@ -1494,13 +1494,12 @@ async function renderSalaryList() {
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
             var isBonus = amt >= 0;
-            // Використовуємо FontAwesome стрілочки
             var iconStr = isBonus ? '<i class="fa-solid fa-arrow-trend-up"></i>' : '<i class="fa-solid fa-arrow-trend-down"></i>';
             var colorHex = isBonus ? '#10b981' : '#ef4444';
             var bgHex = isBonus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
             var title = b.comment || (isBonus ? t('sal_bonus') : t('sal_fine'));
             var sign = isBonus ? '+' : '';
-            var subtitle = isBonus ? 'Премія / Нарахування' : 'Штраф / Списання';
+            var subtitle = isBonus ? t('sal_bonus') : t('sal_fine');
 
             ledger += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -1516,7 +1515,7 @@ async function renderSalaryList() {
             </div>`;
         });
 
-        // 4. Пальне (Довідково) - FontAwesome Заправка
+        // 4. Пальне (Довідково)
         if (finalKmRate > 0 || totalKm > 0) {
             ledger += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(245,158,11,0.05); border: 1px dashed rgba(245,158,11,0.3); border-radius: 14px; margin-top: 12px; margin-bottom: 8px;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -1524,15 +1523,15 @@ async function renderSalaryList() {
                         <i class="fa-solid fa-gas-pump"></i>
                     </div>
                     <div>
-                        <div style="font-size: 13px; font-weight: 800; color: var(--text);">Компенсація пального</div>
-                        <div style="font-size: 11px; font-weight: 700; color: #d97706; margin-top: 2px;">${totalKm} км × ${finalKmRate} ${cur} (До видачі)</div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--text);">${t('sal_mileage')}</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #d97706; margin-top: 2px;">${totalKm} км × ${finalKmRate} ${cur}</div>
                     </div>
                 </div>
                 <div style="font-size: 15px; font-weight: 800; color: var(--text);">${fmtAmt(kmComp, cur)}</div>
             </div>`;
         }
 
-        if (!ledger) ledger = `<div style="text-align: center; padding: 15px 0; font-size: 12px; color: var(--text-muted); font-weight: 600;">Немає нарахувань</div>`;
+        if (!ledger) ledger = `<div style="text-align: center; padding: 15px 0; font-size: 12px; color: var(--text-muted); font-weight: 600;">${t('sal_no_month_data')}</div>`;
 
         // Індивідуальні налаштування (для перевизначення)
         var settHourly = `<div class="setting-row"><span class="setting-label">${t('sal_hourly')} (${cur}${t('sal_per_hour')})</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-${cid}" value="${hourlyRate || ''}" placeholder="Загал. ${finalHourlyRate}" min="0" step="0.5"></div></div>`;
