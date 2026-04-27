@@ -1455,27 +1455,84 @@ async function renderSalaryList() {
         var bodyId = 'sal-body-' + cid;
         var settId = 'sal-sett-' + cid;
 
-        // Ledger
+        // ⭐️ НОВИЙ КРАСИВИЙ ДИЗАЙН ІСТОРІЇ НАРАХУВАНЬ (БЕЗ ЕМОДЗІ) ⭐️
         var ledger = '';
-        if (finalHourlyRate > 0 || totalHours > 0) {
-            ledger += `<div class="ledger-row"><span class="ledger-desc">${t('sal_base')} (${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','').trim()} × ${finalHourlyRate} ${cur})</span><span class="ledger-amount neutral">${fmtAmt(baseSalary, cur)}</span></div>`;
-        }
-        if (finalOrderRate > 0 || ordersCount > 0) {
-            ledger += '<div class="ledger-row"><span class="ledger-desc">' + t('sal_per_order') + ' (' + ordersCount + ' × ' + finalOrderRate + ' ' + cur + ')</span><span class="ledger-amount ' + (orderBonus >= 0 ? 'plus' : 'minus') + '">' + fmtAmt(orderBonus, cur, true) + '</span></div>';
-        }
         
-        // Пальне (тільки інформаційно)
-        if (finalKmRate > 0 || totalKm > 0) {
-            ledger += `<div class="ledger-row" style="background: rgba(245,158,11,0.08); border-radius: 6px; padding: 6px 8px; margin-top: 6px;"><span class="ledger-desc" style="color:var(--text-main);"><i class="fa-solid fa-car-side" style="color:var(--warning); margin-right:4px;"></i> Компенсація пального (до видачі)<br><span style="font-size:9px; opacity:0.7; font-weight:600;">${totalKm} км × ${finalKmRate} ${cur}</span></span><span class="ledger-amount neutral">${fmtAmt(kmComp, cur)}</span></div>`;
+        // 1. Базова ЗП (Години)
+        if (finalHourlyRate > 0 || totalHours > 0) {
+            ledger += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(59,130,246,0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--text);">${t('sal_base')}</div>
+                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 2px;">${totalHours.toFixed(1)} ${t('sal_per_hour').replace('/','').trim()} × ${finalHourlyRate} ${cur}</div>
+                    </div>
+                </div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text);">${fmtAmt(baseSalary, cur)}</div>
+            </div>`;
         }
 
+        // 2. Замовлення
+        if (finalOrderRate > 0 || ordersCount > 0) {
+            ledger += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(16,185,129,0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--text);">${t('sal_per_order')}</div>
+                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 2px;">${ordersCount} шт × ${finalOrderRate} ${cur}</div>
+                    </div>
+                </div>
+                <div style="font-size: 15px; font-weight: 800; color: #10b981;">+${fmtAmt(orderBonus, cur)}</div>
+            </div>`;
+        }
+        
+        // 3. Бонуси та Штрафи
         bonusList.forEach(function(b) {
             var amt = parseFloat(b.amount) || 0;
-            var cls = amt >= 0 ? 'plus' : 'minus';
-            var desc = b.comment || (amt >= 0 ? t('sal_bonus') : t('sal_fine'));
-            ledger += '<div class="ledger-row"><span class="ledger-desc">' + esc(desc) + '</span><span class="ledger-amount ' + cls + '">' + fmtAmt(amt, cur, true) + '</span></div>';
+            var isBonus = amt >= 0;
+            // Використовуємо FontAwesome стрілочки
+            var iconStr = isBonus ? '<i class="fa-solid fa-arrow-trend-up"></i>' : '<i class="fa-solid fa-arrow-trend-down"></i>';
+            var colorHex = isBonus ? '#10b981' : '#ef4444';
+            var bgHex = isBonus ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)';
+            var title = b.comment || (isBonus ? t('sal_bonus') : t('sal_fine'));
+            var sign = isBonus ? '+' : '';
+            var subtitle = isBonus ? 'Премія / Нарахування' : 'Штраф / Списання';
+
+            ledger += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 12px; background: ${bgHex}; color: ${colorHex}; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                        ${iconStr}
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--text);">${esc(title)}</div>
+                        <div style="font-size: 11px; font-weight: 600; color: var(--muted); margin-top: 2px;">${subtitle}</div>
+                    </div>
+                </div>
+                <div style="font-size: 15px; font-weight: 900; color: ${colorHex};">${sign}${fmtAmt(amt, cur)}</div>
+            </div>`;
         });
-        if (!ledger) ledger = `<div style="font-size:12px;color:var(--text-muted);font-weight:600;">${t('sal_no_month_data')}</div>`;
+
+        // 4. Пальне (Довідково) - FontAwesome Заправка
+        if (finalKmRate > 0 || totalKm > 0) {
+            ledger += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(245,158,11,0.05); border: 1px dashed rgba(245,158,11,0.3); border-radius: 14px; margin-top: 12px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(245,158,11,0.15); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                        <i class="fa-solid fa-gas-pump"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 800; color: var(--text);">Компенсація пального</div>
+                        <div style="font-size: 11px; font-weight: 700; color: #d97706; margin-top: 2px;">${totalKm} км × ${finalKmRate} ${cur} (До видачі)</div>
+                    </div>
+                </div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text);">${fmtAmt(kmComp, cur)}</div>
+            </div>`;
+        }
+
+        if (!ledger) ledger = `<div style="text-align: center; padding: 15px 0; font-size: 12px; color: var(--text-muted); font-weight: 600;">Немає нарахувань</div>`;
 
         // Індивідуальні налаштування (для перевизначення)
         var settHourly = `<div class="setting-row"><span class="setting-label">${t('sal_hourly')} (${cur}${t('sal_per_hour')})</span><div class="salary-settings-right"><input type="number" class="setting-input" id="hr-${cid}" value="${hourlyRate || ''}" placeholder="Загал. ${finalHourlyRate}" min="0" step="0.5"></div></div>`;
