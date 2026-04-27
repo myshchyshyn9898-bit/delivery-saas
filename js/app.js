@@ -1512,6 +1512,15 @@ async function renderSalaryList() {
                 `<div class="stat-item"><div class="stat-label">${t('sal_hours')}</div><div class="stat-value">${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','')}</div></div>` +
                 `<div class="stat-item"><div class="stat-label">${t('sal_orders_col')}</div><div class="stat-value">${ordersCount} ${t('sal_per_item').replace('/','')}</div></div>` +
               '</div>' +
+              `<div class="section-heading">Історія нарахувань</div>` +
+              '<div class="ledger">' + ledger + '</div>' +
+              '<div class="card-actions" style="margin-top: 15px;">' +
+                '<button class="btn btn-primary" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '" style="width: 100%;">' +
+                  (isPaid ? `<i class="fa-solid fa-rotate-left"></i> ${t('sal_cancel_pay')}` : `<i class="fa-solid fa-check"></i> ${t('sal_pay')}`) +
+                '</button>' +
+              '</div>' +
+            '</div>' +
+        '</div>';
     }
 
     list.innerHTML = html || `<div style="text-align:center;color:var(--text-muted);padding:30px 0;">${t("sal_no_data")}</div>`;
