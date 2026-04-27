@@ -13,100 +13,17 @@ import database as db
 from texts import get_text as _
 from handlers.map_service import get_route_map_file
 
+# ✅ Чиста бізнес-логіка винесена в services/
+from services.orders import (
+    build_call_url as _build_call_url,
+    build_order_text as _build_order_text,
+    build_order_text_from_pay_icon as _build_uber_group_text,
+    build_route_url,
+    normalize_phone,
+)
+
 logger = logging.getLogger(__name__)
 router = Router()
-
-
-# ===========================================================================
-# ХЕЛПЕР: будує текст групового повідомлення (uber-режим)
-# ===========================================================================
-
-def _build_call_url(phone: str, biz: dict = None, lang: str = "en") -> tuple:
-    """
-    Повертає (btn_text, call_url) для кнопки дзвінка.
-    - 8 цифр → Uber Call (набирає номер Uber + код)
-    - інакше → звичайний дзвінок
-    dispatcher береться з biz['uber_dispatcher'] або дефолтний польський
-    """
-    from texts import get_text as _gt
-    base = BASE_URL.rstrip('/')
-    digits_only = "".join(filter(str.isdigit, phone or ""))
-
-    if len(digits_only) == 8:
-        # Uber-код — потрібен номер диспетчера
-        dispatcher = ""
-        if biz and biz.get("uber_dispatcher"):
-            dispatcher = str(biz["uber_dispatcher"]).strip()
-        if dispatcher:
-            call_url = f"{base}/call.html?code={urllib.parse.quote(digits_only)}&dispatcher={urllib.parse.quote(dispatcher)}"
-        else:
-            call_url = f"{base}/call.html?code={urllib.parse.quote(digits_only)}"
-        return "🚖 Uber Call", call_url
-    else:
-        # Звичайний номер
-        safe_phone = phone or ""
-        call_url = f"{base}/call.html?code={urllib.parse.quote(safe_phone)}"
-        return _gt(lang, 'btn_call_regular'), call_url
-
-
-def _build_order_text(short_id, address, details_text, client_name,
-                       phone, pay_type, amount, currency, comment,
-                       status_line, source_label="", lang="en"):
-    """
-    Будує уніфікований текст замовлення для БУДЬ-ЯКОГО режиму.
-    lang — мова для локалізації підписів полів.
-    """
-    from texts import get_text as _gt
-
-    if pay_type == "cash":
-        pay_line = _gt(lang, 'order_pay_cash_line', amount=amount, cur=currency)
-    elif pay_type == "terminal":
-        pay_line = _gt(lang, 'order_pay_terminal_line', amount=amount, cur=currency)
-    else:
-        pay_line = _gt(lang, 'order_pay_online_line')
-
-    order_lbl  = _gt(lang, 'order_label')
-    status_lbl = _gt(lang, 'order_status_lbl')
-    addr_lbl   = _gt(lang, 'order_address_lbl')
-    det_lbl    = _gt(lang, 'order_details_lbl')
-    cli_lbl    = _gt(lang, 'order_client_lbl')
-    tel_lbl    = _gt(lang, 'order_tel_lbl')
-    com_lbl    = _gt(lang, 'order_comment_lbl')
-
-    prefix = f"{source_label}\n" if source_label else ""
-    txt = (
-        f"{prefix}"
-        f"📦 <b>{order_lbl} #{short_id}</b>\n"
-        f"➖➖➖➖➖➖\n"
-        f"<b>{status_lbl}:</b> {status_line}\n\n"
-        f"📍 <b>{addr_lbl}:</b> {address}\n"
-    )
-    if details_text:
-        txt += f"🏢 <b>{det_lbl}:</b> {details_text}\n"
-    if client_name and client_name not in ("—", "Клієнт", "Client", "Klient", "Клиент", ""):
-        txt += f"👤 <b>{cli_lbl}:</b> {client_name}\n"
-    txt += f"📞 <b>{tel_lbl}:</b> {phone or '—'}\n"
-    txt += f"{pay_line}\n"
-    txt += "➖➖➖➖➖➖"
-    if comment:
-        txt += f"\n🗣 <b>{com_lbl}:</b> {comment}"
-    return txt
-
-
-# Зворотна сумісність — старе ім'я
-def _build_uber_group_text(short_id, source_label, address, details_text,
-                            client_name, phone, pay_icon, amount, currency,
-                            pay_type_str, comment, status_line, lang="en"):
-    # Визначаємо pay_type з pay_icon
-    if pay_icon == "💵":
-        pay_type = "cash"
-    elif pay_icon == "💳" or pay_icon == "🏧":
-        pay_type = "terminal"
-    else:
-        pay_type = "online"
-    return _build_order_text(short_id, address, details_text, client_name,
-                              phone, pay_type, amount, currency, comment,
-                              status_line, source_label, lang)
 
 
 def _build_uber_keyboard(order_id, route_url, phone, pay_type, amount, currency, state="pending", lang="en"):
@@ -326,9 +243,7 @@ async def handle_web_app_data(message: types.Message, bot: Bot):
             route_url = f"https://www.google.com/maps/dir/?api=1&destination={address_query}"
 
             phone_raw = data.get('client_phone', '') or ''
-            phone_clean = "".join(filter(lambda x: x.isdigit() or x == '+', phone_raw))
-            if phone_clean and not phone_clean.startswith('+'):
-                phone_clean = '+' + phone_clean
+            phone_clean = normalize_phone(phone_raw)
 
             amount = data['amount']
             comment = data.get('comment', '')
@@ -834,7 +749,7 @@ async def _process_take_order(
     already_captured: bool = False,
 ) -> dict:
     """
-    Захоплення замовлення + оновлення повідомлень.
+    Захоплення замовлення + оновлення Telegram повідомлень.
     Повертає dict: { ok, error?, text?, markup? }
 
     already_captured=True — map.html вже зробив UPDATE в Supabase сам,
@@ -847,58 +762,18 @@ async def _process_take_order(
     """
     import html as _h
     import urllib.parse as _ul
+    from services.orders import capture_order
 
-    # 1. Читаємо замовлення (завжди)
-    res = await db._run(
-        lambda: db.supabase.table("orders").select("*").eq("id", order_id).execute()
-    )
-    if not res.data:
-        return {"ok": False, "error": "order_not_found"}
+    # ── DB логіка винесена в services ───────────────────────────────────────
+    captured = await capture_order(order_id, taker_id, already_captured)
+    if not captured["ok"]:
+        return captured
 
-    order = res.data[0]
+    order = captured["order"]
+    biz   = captured["biz"]
 
-    if already_captured:
-        # map.html вже зробив UPDATE — просто перевіряємо що саме ми захопили
-        if str(order.get("courier_id", "")) != str(taker_id):
-            return {"ok": False, "error": "order_already_assigned"}
-    else:
-        # 2. Перевірка статусу
-        if order["status"] != "pending":
-            return {"ok": False, "error": "order_already_assigned"}
-
-        # 3. Перевірка що кур'єр є в staff
-        staff_check = await db._run(
-            lambda: db.supabase.table("staff")
-                .select("user_id")
-                .eq("user_id", taker_id)
-                .eq("business_id", order["business_id"])
-                .execute()
-        )
-        if not staff_check.data:
-            return {"ok": False, "error": "courier_not_in_staff"}
-
-        # 4. Атомарне захоплення — UPDATE тільки якщо статус ще pending
-        take_res = await db._run(
-            lambda: db.supabase.table("orders")
-                .update({"status": "delivering", "courier_id": taker_id})
-                .eq("id", order_id)
-                .eq("status", "pending")
-                .execute()
-        )
-        if not take_res.data:
-            verify = await db._run(
-                lambda: db.supabase.table("orders")
-                    .select("courier_id, status")
-                    .eq("id", order_id)
-                    .execute()
-            )
-            if not verify.data or str(verify.data[0].get("courier_id")) != str(taker_id):
-                return {"ok": False, "error": "order_already_assigned"}
-
-    # 5. Будуємо текст і клавіатуру
+    # ── Далі тільки Telegram ─────────────────────────────────────────────────
     short_id = str(order_id)[:6].upper()
-    biz_id   = order["business_id"]
-    biz      = await db.get_business_by_id(biz_id)
     currency = biz.get("currency", "zł") if biz else "zł"
 
     pay_type  = order.get("pay_type", "cash")
