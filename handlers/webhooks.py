@@ -509,7 +509,7 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
 
 
 # ---------------------------------------------------------------------------
-# WEBHOOK: CHOICEQR
+# WEBHOOK: CHOICEQR (БЕЗ КЛЮЧІВ - ПАСИВНИЙ СЛУХАЧ)
 # ---------------------------------------------------------------------------
 
 async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
@@ -523,20 +523,8 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
         if not biz:
             return web.Response(status=404, text="Business not found")
 
-        stored_token = (biz.get("choice_token") or "").strip()
-        if not stored_token:
-            logger.warning(f"[ChoiceQR] biz={biz_id} — choice_token не налаштовано")
-            return web.Response(status=403, text="Integration not configured")
-
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            logger.warning(f"[ChoiceQR] biz={biz_id} — відсутній Authorization Bearer")
-            return web.Response(status=403, text="Forbidden")
-
-        incoming_token = auth_header[len("Bearer "):].strip()
-        if not hmac.compare_digest(incoming_token, stored_token):
-            logger.warning(f"[ChoiceQR] biz={biz_id} — невірний Bearer токен")
-            return web.Response(status=403, text="Forbidden")
+        # ❌ ВИДАЛЕНО: Перевірку stored_token та Authorization Header.
+        # Тепер вебхук приймається відкрито, якщо є валідний biz_id у посиланні.
 
         body = await request.read()
         try:
@@ -548,6 +536,7 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
         event = data.get("event") or data.get("type", "")
         logger.info(f"[ChoiceQR] biz={biz_id} event={event}")
 
+        # ✅ 1. Опрацювання НОВОГО замовлення
         if event in ("order.created", "new_order", "order"):
             order = data.get("order") or data.get("data") or data
 
@@ -587,6 +576,15 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
                     payment=payment,
                 )
             )
+
+        # 🚨 2. Опрацювання СКАСУВАННЯ замовлення
+        elif event in ("order.cancelled", "order.canceled", "cancelled", "canceled"):
+            order = data.get("order") or data.get("data") or data
+            choice_order_id = order.get("id") or order.get("display_id", "невідомий")
+            
+            logger.warning(f"[ChoiceQR] 🚨 ЗАМОВЛЕННЯ СКАСОВАНО: biz={biz_id}, choice_id={choice_order_id}")
+            # P.S. Поки що просто логуємо. Якщо в майбутньому захочеш - тут можна 
+            # дописати пошук замовлення в БД і відправку повідомлення кур'єру в Telegram.
 
         return web.Response(text="OK")
 
