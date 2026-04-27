@@ -282,89 +282,92 @@
     </div>
 
 
-    <div id="tab-salary" class="tab-content">
+<div id="tab-salary" class="tab-content">
 
-        <div class="section-title">
-            <i class="fa-solid fa-calendar-days" style="color:var(--primary);"></i> <span data-i18n="title_sched_sal">Графік та зарплати</span>
-        </div>
-        <div id="salary-schedule-btn-wrap" style="margin-bottom:20px;"></div>
-
-        <div style="display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; margin-bottom:20px;" id="salary-month-tabs"></div>
-
-        <div style="margin-bottom: 25px; border-radius: 20px; background: #fff; border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden;">
-            
-            <div onclick="var b=document.getElementById('global-settings-body'); var c=document.getElementById('global-settings-chevron'); if(b.style.display==='none'){b.style.display='block'; c.style.transform='rotate(180deg)';}else{b.style.display='none'; c.style.transform='rotate(0deg)';}" 
-                 style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;">
-                
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(255,90,95,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px;">
-                        <i class="fa-solid fa-sliders"></i>
-                    </div>
-                    <h3 style="font-size: 15px; font-weight: 800; margin: 0; color: var(--text);" data-i18n="global_settings_collapse">Ставки та налаштування</h3>
-                </div>
-                
-                <div style="width: 28px; height: 28px; border-radius: 8px; background: #f8fafc; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa-solid fa-chevron-down" id="global-settings-chevron" style="color: var(--muted); font-size: 13px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);"></i>
-                </div>
-            </div>
-
-            <div id="global-settings-body" style="display: none; border-top: 1px solid rgba(0,0,0,0.05);">
-                
-                <div style="padding: 20px;">
-                    <h4 style="font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; margin-top: 0;"><i class="fa-solid fa-gears" style="margin-right: 4px;"></i> <span data-i18n="global_rates_title">Глобальні ставки</span></h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-size: 11px; margin-bottom: 4px; color: var(--muted);" data-i18n="sal_hourly_admin">Адмін (год)</label>
-                            <input type="number" id="global-hr-admin" class="form-input" style="background: #f8fafc; border-radius: 10px; padding: 10px; margin: 0;" placeholder="0">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-size: 11px; margin-bottom: 4px; color: var(--muted);" data-i18n="sal_hourly_courier">Кур'єр (год)</label>
-                            <input type="number" id="global-hr-courier" class="form-input" style="background: #f8fafc; border-radius: 10px; padding: 10px; margin: 0;" placeholder="0">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-size: 11px; margin-bottom: 4px; color: var(--muted);" data-i18n="sal_per_order">За замовлення</label>
-                            <input type="number" id="global-order-rate" class="form-input" style="background: #f8fafc; border-radius: 10px; padding: 10px; margin: 0;" placeholder="0">
-                        </div>
-                        <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-size: 11px; margin-bottom: 4px; color: var(--muted);" data-i18n="sal_per_km">Пальне (за 1 км)</label>
-                            <input type="number" id="global-km-rate" class="form-input" style="background: #f8fafc; border-radius: 10px; padding: 10px; margin: 0;" placeholder="0">
-                        </div>
-                    </div>
-                    <button class="btn-main" onclick="saveGlobalRates()" style="margin-top: 15px; border-radius: 12px; background: #111418; padding: 12px; font-size: 13px; font-weight: 700; box-shadow: none;">
-                        <i class="fa-solid fa-floppy-disk" style="margin-right: 6px;"></i> <span data-i18n="btn_save_global">Зберегти ставки</span>
-                    </button>
-                </div>
-
-                <div style="padding: 20px; background: #fafbfc; border-top: 1px dashed rgba(0,0,0,0.05);">
-                    <h4 style="font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; margin-top: 0;"><i class="fa-solid fa-hand-holding-dollar" style="margin-right: 4px; color: #10b981;"></i> <span data-i18n="quick_bonus_title">Швидка премія / штраф</span></h4>
-                    
-                    <select id="global-bonus-staff" class="form-input" style="margin-bottom: 10px; background: #fff; border-radius: 10px; padding: 10px; border: 1px solid #e2e8f0; font-weight: 700;">
-                        <option value="" data-i18n="select_staff_ph">Виберіть працівника...</option>
-                    </select>
-
-                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                        <input type="number" id="global-bonus-amt" class="form-input" style="flex: 1; background: #fff; border-radius: 10px; padding: 10px; border: 1px solid #e2e8f0; margin: 0;" placeholder="-50 або 100">
-                        <input type="text" id="global-bonus-com" class="form-input" style="flex: 2; background: #fff; border-radius: 10px; padding: 10px; border: 1px solid #e2e8f0; margin: 0;" placeholder="Коментар">
-                    </div>
-
-                    <button class="btn-main" onclick="submitGlobalBonus()" style="background: var(--primary); padding: 12px; border-radius: 12px; font-weight: 700; box-shadow: 0 4px 15px rgba(255,90,95,0.2);">
-                        <i class="fa-solid fa-plus" style="margin-right: 6px;"></i> <span data-i18n="btn_apply_bonus">Нарахувати</span>
-                    </button>
-                </div>
-
-            </div>
-        </div>
-        <div class="section-title" style="margin-top:0;">
-            <i class="fa-solid fa-money-bill-wave" style="color:var(--success);"></i> <span data-i18n="title_salary_team">Зарплати команди</span>
-        </div>
-        <div id="salary-list"></div>
-
-        <div id="salary-total-card" style="background:linear-gradient(135deg,#111418,#2e343b); border-radius:24px; padding:24px; margin-bottom:20px; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.15); display:none;">
-            <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px; opacity:0.6; margin-bottom:8px;" data-i18n="salary_fund">Загальний фонд оплати праці</div>
-            <div style="font-size:36px; font-weight:900; letter-spacing:-1.5px;" id="salary-total-amount">0.00</div>
-        </div>
-
+    <div class="section-title">
+        <i class="fa-solid fa-calendar-days" style="color:var(--primary);"></i> <span data-i18n="title_sched_sal">Графік та зарплати</span>
     </div>
+    <div id="salary-schedule-btn-wrap" style="margin-bottom:20px;"></div>
+
+    <div style="display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px; margin-bottom:20px;" id="salary-month-tabs"></div>
+
+    <div style="background: var(--surface); border-radius: var(--radius); margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.03); overflow: hidden;">
+        
+        <div onclick="var b=document.getElementById('global-settings-body'); var c=document.getElementById('global-settings-chevron'); if(b.style.display==='none'){b.style.display='block'; c.style.transform='rotate(180deg)';}else{b.style.display='none'; c.style.transform='rotate(0deg)';}" 
+             style="padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;">
+            
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 36px; height: 36px; border-radius: 12px; background: rgba(255,90,95,0.1); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px;">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <div style="font-size: 15px; font-weight: 800; color: var(--text);" data-i18n="global_settings_collapse">Ставки та налаштування</div>
+            </div>
+            
+            <div id="global-settings-chevron" style="transition: transform 0.3s; color: var(--muted);">
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+        </div>
+
+        <div id="global-settings-body" style="display: none; border-top: 1px solid var(--border); padding: 20px;">
+            
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 12px;">
+                <i class="fa-solid fa-gears" style="margin-right: 4px; color: var(--primary);"></i> <span data-i18n="global_rates_title">Глобальні ставки</span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;" data-i18n="sal_hourly_admin">Адмін (год)</label>
+                    <input type="number" id="global-hr-admin" class="form-input" style="margin: 0; border-radius: 10px; background: #f8fafc; border: 1px solid transparent;" placeholder="0">
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;" data-i18n="sal_hourly_courier">Кур'єр (год)</label>
+                    <input type="number" id="global-hr-courier" class="form-input" style="margin: 0; border-radius: 10px; background: #f8fafc; border: 1px solid transparent;" placeholder="0">
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;" data-i18n="sal_per_order">За замовлення</label>
+                    <input type="number" id="global-order-rate" class="form-input" style="margin: 0; border-radius: 10px; background: #f8fafc; border: 1px solid transparent;" placeholder="0">
+                </div>
+                <div>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 4px;" data-i18n="sal_per_km">Пальне (за 1 км)</label>
+                    <input type="number" id="global-km-rate" class="form-input" style="margin: 0; border-radius: 10px; background: #f8fafc; border: 1px solid transparent;" placeholder="0">
+                </div>
+            </div>
+            
+            <button class="btn-main" onclick="saveGlobalRates()" style="padding: 12px; font-size: 13px; margin-bottom: 25px; box-shadow: none; border: 1.5px solid rgba(255,90,95,0.2); background: transparent; color: var(--primary);">
+                <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btn_save_global">Зберегти ставки</span>
+            </button>
+
+            <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 12px;">
+                <i class="fa-solid fa-hand-holding-dollar" style="margin-right: 4px; color: var(--success);"></i> <span data-i18n="quick_bonus_title">Швидка премія / штраф</span>
+            </div>
+            
+            <select id="global-bonus-staff" class="form-input" style="margin-bottom: 10px; border-radius: 10px; background: #f8fafc; border: 1px solid transparent; color: var(--text); font-weight: 700;">
+                <option value="" data-i18n="select_staff_ph">Виберіть працівника...</option>
+            </select>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                <input type="number" id="global-bonus-amt" class="form-input" style="flex: 1; margin: 0; border-radius: 10px; background: #f8fafc; border: 1px solid transparent;" placeholder="-50 / 100">
+                <input type="text" id="global-bonus-com" class="form-input" style="flex: 2; margin: 0; border-radius: 10px; background: #f8fafc; border: 1px solid transparent;" placeholder="Коментар">
+            </div>
+
+            <button class="btn-main" onclick="submitGlobalBonus()" style="padding: 12px; font-size: 13px;">
+                <i class="fa-solid fa-plus"></i> <span data-i18n="btn_apply_bonus">Нарахувати</span>
+            </button>
+
+        </div>
+    </div>
+    <div class="section-title" style="margin-top:0;">
+        <i class="fa-solid fa-money-bill-wave" style="color:var(--success);"></i> <span data-i18n="title_salary_team">Зарплати команди</span>
+    </div>
+    <div id="salary-list"></div>
+
+    <div id="salary-total-card" style="background:linear-gradient(135deg,#FF5A5F,#ff8a76);border-radius:20px;padding:20px;margin-bottom:20px;color:#fff;box-shadow:0 10px 30px rgba(255,90,95,0.25);display:none;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;margin-bottom:6px;"><span data-i18n="salary_fund">Загальний фонд оплати праці</span></div>
+        <div style="font-size:32px;font-weight:900;letter-spacing:-1px;" id="salary-total-amount">0.00</div>
+    </div>
+
+</div>
+
 
     <div class="bottom-nav">
         <div class="nav-item active" onclick="switchTab('home', this)">
