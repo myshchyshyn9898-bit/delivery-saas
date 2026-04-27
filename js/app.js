@@ -1741,3 +1741,56 @@ async function submitGlobalBonus() {
         showToast('❌ Помилка', e.message); 
     }
 }
+
+// ==========================================
+// ЛОГІКА ДЛЯ CHOICE QR (WEBHOOK MODAL)
+// ==========================================
+
+function openChoiceWebhookModal() {
+    // 1. Ховаємо загальний список інтеграцій
+    var listModal = document.getElementById('integrations-list-modal');
+    if (listModal) listModal.classList.remove('active');
+    
+    // 🛠 ЗАХИСТ ВІД БАГУ: Перевіряємо, чи bizId реально завантажився
+    if (typeof bizId === 'undefined' || !bizId || bizId === '') {
+        if(typeof showToast === "function") {
+            showToast('⏳ Зачекайте...', 'Дані закладу ще завантажуються.');
+        } else {
+            alert('Зачекайте, дані ще завантажуються...');
+        }
+        return; // Блокуємо відкриття модалки
+    }
+    
+    // 2. Беремо URL сервера з мета-тегу
+    var serverMeta = document.querySelector('meta[name="server-url"]');
+    var serverUrl = serverMeta ? serverMeta.getAttribute('content') : "https://web-production-df704.up.railway.app";
+    
+    // 3. Формуємо правильне посилання для цього ресторану
+    var webhookUrl = serverUrl + '/webhook/choiceqr?biz_id=' + bizId;
+    
+    // 4. Вставляємо посилання в поле і показуємо модал
+    document.getElementById('webhook-url-input').value = webhookUrl;
+    document.getElementById('webhook-choice-modal').classList.add('active');
+}
+
+function closeChoiceWebhookModal() {
+    document.getElementById('webhook-choice-modal').classList.remove('active');
+}
+
+function copyChoiceWebhookUrl(e) {
+    var copyText = document.getElementById("webhook-url-input");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // Для мобільних пристроїв
+    
+    navigator.clipboard.writeText(copyText.value).then(function() {
+        if(typeof showToast === "function") {
+            showToast('🔗 Посилання скопійовано!', 'Вставте його в налаштуваннях ChoiceQR');
+        }
+        
+        // Візуальна зміна кнопки (клік)
+        var btn = e.currentTarget;
+        var oldHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        setTimeout(function() { btn.innerHTML = oldHtml; }, 2000);
+    });
+}
