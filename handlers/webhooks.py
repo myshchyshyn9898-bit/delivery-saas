@@ -526,7 +526,7 @@ async def poster_webhook_handler(request: web.Request) -> web.Response:
 
 
 # ---------------------------------------------------------------------------
-# WEBHOOK: CHOICEQR (БЕЗ КЛЮЧІВ - ПАСИВНИЙ СЛУХАЧ)
+# WEBHOOK: CHOICEQR (БЕЗ КЛЮЧІВ - ПАСИВНИЙ СЛУХАЧ + ФІЛЬТР ДОСТАВКИ)
 # ---------------------------------------------------------------------------
 
 async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
@@ -547,32 +547,30 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             logger.error(f"[ChoiceQR] biz={biz_id} — невалідний JSON")
             return web.Response(status=400, text="Invalid JSON")
 
-        # ✅ FIX #2: Debug-лог повного payload для діагностики.
-        # Допомагає зрозуміти реальні назви полів і event від ChoiceQR.
-        # Можна прибрати після підтвердження що інтеграція працює.
-        logger.info(
-            f"[ChoiceQR DEBUG] biz={biz_id} | "
-            f"event={data.get('event')} | type={data.get('type')} | "
-            f"keys={list(data.keys())} | "
-            f"payload={json.dumps(data, ensure_ascii=False)[:600]}"
-        )
+        # Тимчасовий лог для діагностики (можна буде прибрати пізніше)
+        logger.info(f"[ChoiceQR DEBUG] biz={biz_id} | event={data.get('event')} | payload={json.dumps(data, ensure_ascii=False)[:400]}")
 
-        event = data.get("event") or data.get("type", "")
-        logger.info(f"[ChoiceQR] biz={biz_id} event={event}")
+        event = str(data.get("event") or data.get("type", "")).strip().lower()
 
         # ✅ 1. Опрацювання НОВОГО замовлення
-        # Розширений список можливих назв події від різних версій ChoiceQR API
-        if event in (
-            "order.created", "new_order", "order",
-            "ORDER_CREATED", "order_created", "NewOrder",
-        ):
+        if event in ("order.created", "new_order", "order", "order_created"):
             order = data.get("order") or data.get("data") or data
+
+            delivery = order.get("delivery") or {}
+            
+            # 🛑 РОЗУМНИЙ ШЛАГБАУМ: ФІЛЬТР САМОВИВОЗУ ТА ЗАЛУ
+            # Шукаємо тип замовлення. Якщо не вказано - вважаємо, що це доставка (страховка)
+            order_type = str(order.get("type") or delivery.get("type") or "delivery").lower()
+            
+            # Якщо це самовивіз (pickup, takeaway) або столик (dine_in, table) — ігноруємо!
+            if order_type in ("pickup", "takeaway", "dine_in", "in_room", "table"):
+                logger.info(f"[ChoiceQR] biz={biz_id} — Ігноруємо замовлення, бо це не доставка (Тип: {order_type})")
+                return web.Response(text="OK") # Відповідаємо ChoiceQR, але не пускаємо в Телеграм
 
             customer    = order.get("customer") or {}
             client_name = customer.get("name") or order.get("customer_name", "—")
             phone       = customer.get("phone") or order.get("customer_phone", "")
 
-            delivery = order.get("delivery") or {}
             address  = (
                 delivery.get("address")
                 or delivery.get("full_address")
@@ -581,11 +579,7 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             )
 
             comment    = order.get("comment") or order.get("notes", "")
-            raw_amount = (
-                order.get("total")
-                or order.get("total_price")
-                or order.get("amount", 0)
-            )
+            raw_amount = order.get("total") or order.get("total_price") or order.get("amount", 0)
             amount = _parse_amount(raw_amount)
 
             raw_pay = (
@@ -614,14 +608,10 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
         elif event in ("order.cancelled", "order.canceled", "cancelled", "canceled"):
             order = data.get("order") or data.get("data") or data
             choice_order_id = order.get("id") or order.get("display_id", "невідомий")
-
             logger.warning(f"[ChoiceQR] 🚨 ЗАМОВЛЕННЯ СКАСОВАНО: biz={biz_id}, choice_id={choice_order_id}")
-            # P.S. Поки що просто логуємо. Якщо в майбутньому захочеш - тут можна
-            # дописати пошук замовлення в БД і відправку повідомлення кур'єру в Telegram.
 
         else:
-            # Невідома подія — логуємо щоб знати що прийшло
-            logger.warning(f"[ChoiceQR] biz={biz_id} — невідома подія: '{event}', пропускаємо")
+            logger.info(f"[ChoiceQR] biz={biz_id} — ігноруємо подію: '{event}'")
 
         return web.Response(text="OK")
 
