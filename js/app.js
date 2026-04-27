@@ -1512,20 +1512,6 @@ async function renderSalaryList() {
                 `<div class="stat-item"><div class="stat-label">${t('sal_hours')}</div><div class="stat-value">${totalHours.toFixed(1)}${t('sal_per_hour').replace('/','')}</div></div>` +
                 `<div class="stat-item"><div class="stat-label">${t('sal_orders_col')}</div><div class="stat-value">${ordersCount} ${t('sal_per_item').replace('/','')}</div></div>` +
               '</div>' +
-              `<div class="section-heading">${t('sal_bonus_fine_adv')} / ЗП</div>` +
-              '<div class="ledger">' + ledger + '</div>' +
-              '<div class="add-action">' +
-                '<input type="number" class="input-styled in-amount" id="bon-amt-' + cid + '" placeholder="' + t('sal_amount') + '">' +
-                '<input type="text" class="input-styled in-desc" id="bon-com-' + cid + '" placeholder="' + t('sal_comment') + '">' +
-              '</div>' +
-              '<div class="card-actions">' +
-                '<button class="btn btn-add-bonus" data-addbonus="' + cid + '"><i class="fa-solid fa-plus"></i> ' + t('sal_add') + '</button>' +
-                '<button class="btn btn-primary" data-pay="' + cid + '" data-paid="' + (isPaid ? '1' : '0') + '">' +
-                  (isPaid ? `<i class="fa-solid fa-rotate-left"></i> ${t('sal_cancel_pay')}` : `<i class="fa-solid fa-check"></i> ${t('sal_pay')}`) +
-                '</button>' +
-              '</div>' +
-            '</div>' +
-        '</div>';
     }
 
     list.innerHTML = html || `<div style="text-align:center;color:var(--text-muted);padding:30px 0;">${t("sal_no_data")}</div>`;
