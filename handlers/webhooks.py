@@ -131,23 +131,38 @@ async def _notify_managers_new_pos_order(
     if not biz:
         return
 
-    # ✅ Перевіряємо підписку — POS замовлення не проходять якщо підписка expired
+    # 🛠 БАГ #4: Якщо підписка expired — не просто дропаємо, а пишемо власнику!
     actual_plan = await db.get_actual_plan(biz_id)
     if actual_plan == "expired":
         logger.warning(f"[POS:{source}] biz={biz_id} — підписка expired, замовлення відхилено")
+        owner_id = biz.get("owner_id")
+        if owner_id:
+            try:
+                await bot.send_message(
+                    chat_id=int(owner_id),
+                    text=f"⚠️ <b>Увага!</b> Нове замовлення з {source_label} не доставлено кур'єрам, оскільки ваша підписка закінчилась! Оновіть тариф.",
+                    parse_mode="HTML"
+                )
+            except Exception:
+                pass
         return
 
-    # ✅ FIX #1: Якщо адреса порожня — використовуємо заглушку замість return.
-    # ChoiceQR для pickup/dine-in замовлень може не надсилати адресу,
-    # але замовлення все одно має дійти менеджеру.
+    # ✅ БАГ #1: Заглушка для адреси (у тебе вже є, залишаємо)
     if not address or not address.strip():
         logger.warning(f"[POS:{source}] biz={biz_id} — замовлення без адреси, використовуємо заглушку")
         address = "— адреса не вказана —"
 
     delivery_mode = biz.get("delivery_mode", "dispatcher")
+
+    # 🛠 БАГ #3 (Uber група): Якщо власник увімкнув "Вільну касу", але забув вказати групу
+    if delivery_mode == 'uber':
+        group_id = biz.get('courier_group_id')
+        if not group_id:
+            logger.warning(f"[uber] biz_id={biz_id}: courier_group_id не задано! РЯТУЄМО ЗАМОВЛЕННЯ -> перемикаємо на dispatcher.")
+            delivery_mode = 'dispatcher' # Примусово переводимо на адміна, щоб замовлення не зникло
+
     currency = biz.get("currency", "zł")
     pay_icon = "💵" if payment == "cash" else ("💳" if payment == "terminal" else "🌐")
-    # Для POS-нотифікацій використовуємо мову бізнесу або 'en' як дефолт
     biz_lang = biz.get("lang", "en")
 
     # ── DISPATCHER MODE ───────────────────────────────────────────────────────
