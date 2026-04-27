@@ -137,10 +137,12 @@ async def _notify_managers_new_pos_order(
         logger.warning(f"[POS:{source}] biz={biz_id} — підписка expired, замовлення відхилено")
         return
 
-    # Якщо адреса порожня - не можемо відправити замовлення кур'єру
+    # ✅ FIX #1: Якщо адреса порожня — використовуємо заглушку замість return.
+    # ChoiceQR для pickup/dine-in замовлень може не надсилати адресу,
+    # але замовлення все одно має дійти менеджеру.
     if not address or not address.strip():
-        logger.warning(f"[POS:{source}] biz={biz_id} - замовлення без адреси, пропускаємо")
-        return
+        logger.warning(f"[POS:{source}] biz={biz_id} — замовлення без адреси, використовуємо заглушку")
+        address = "— адреса не вказана —"
 
     delivery_mode = biz.get("delivery_mode", "dispatcher")
     currency = biz.get("currency", "zł")
@@ -523,9 +525,6 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
         if not biz:
             return web.Response(status=404, text="Business not found")
 
-        # ❌ ВИДАЛЕНО: Перевірку stored_token та Authorization Header.
-        # Тепер вебхук приймається відкрито, якщо є валідний biz_id у посиланні.
-
         body = await request.read()
         try:
             data = json.loads(body)
@@ -533,11 +532,25 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             logger.error(f"[ChoiceQR] biz={biz_id} — невалідний JSON")
             return web.Response(status=400, text="Invalid JSON")
 
+        # ✅ FIX #2: Debug-лог повного payload для діагностики.
+        # Допомагає зрозуміти реальні назви полів і event від ChoiceQR.
+        # Можна прибрати після підтвердження що інтеграція працює.
+        logger.info(
+            f"[ChoiceQR DEBUG] biz={biz_id} | "
+            f"event={data.get('event')} | type={data.get('type')} | "
+            f"keys={list(data.keys())} | "
+            f"payload={json.dumps(data, ensure_ascii=False)[:600]}"
+        )
+
         event = data.get("event") or data.get("type", "")
         logger.info(f"[ChoiceQR] biz={biz_id} event={event}")
 
         # ✅ 1. Опрацювання НОВОГО замовлення
-        if event in ("order.created", "new_order", "order"):
+        # Розширений список можливих назв події від різних версій ChoiceQR API
+        if event in (
+            "order.created", "new_order", "order",
+            "ORDER_CREATED", "order_created", "NewOrder",
+        ):
             order = data.get("order") or data.get("data") or data
 
             customer    = order.get("customer") or {}
@@ -545,7 +558,12 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
             phone       = customer.get("phone") or order.get("customer_phone", "")
 
             delivery = order.get("delivery") or {}
-            address  = delivery.get("address") or order.get("address", "")
+            address  = (
+                delivery.get("address")
+                or delivery.get("full_address")
+                or delivery.get("street")
+                or order.get("address", "")
+            )
 
             comment    = order.get("comment") or order.get("notes", "")
             raw_amount = (
@@ -581,10 +599,14 @@ async def choiceqr_webhook_handler(request: web.Request) -> web.Response:
         elif event in ("order.cancelled", "order.canceled", "cancelled", "canceled"):
             order = data.get("order") or data.get("data") or data
             choice_order_id = order.get("id") or order.get("display_id", "невідомий")
-            
+
             logger.warning(f"[ChoiceQR] 🚨 ЗАМОВЛЕННЯ СКАСОВАНО: biz={biz_id}, choice_id={choice_order_id}")
-            # P.S. Поки що просто логуємо. Якщо в майбутньому захочеш - тут можна 
+            # P.S. Поки що просто логуємо. Якщо в майбутньому захочеш - тут можна
             # дописати пошук замовлення в БД і відправку повідомлення кур'єру в Telegram.
+
+        else:
+            # Невідома подія — логуємо щоб знати що прийшло
+            logger.warning(f"[ChoiceQR] biz={biz_id} — невідома подія: '{event}', пропускаємо")
 
         return web.Response(text="OK")
 
@@ -954,7 +976,7 @@ async def api_new_order_handler(request: web.Request) -> web.Response:
             return web.Response(text="OK")
         else:
             return web.Response(status=500, text="order_save_error")
-            
+
     except Exception as exc:
         logger.error(f"[API New Order] Помилка: {exc}", exc_info=True)
         return web.Response(status=500, text="Internal Server Error")
@@ -1004,8 +1026,6 @@ async def cors_middleware(request: web.Request, handler):
     for k, v in CORS_HEADERS.items():
         response.headers[k] = v
     return response
-
-
 
 
 async def invalidate_cache_handler(request: web.Request) -> web.Response:
@@ -1214,4 +1234,3 @@ async def start_webhook_server() -> None:
     logger.info("   POST /webhook/choiceqr   (ChoiceQR)")
     logger.info("   POST /webhook/gopos      (GoPOS)")
     logger.info("   POST /webhook/syrve      (Syrve / iiko)")
-
